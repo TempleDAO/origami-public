@@ -112,7 +112,7 @@ async function switchToChain(ethereum: LocalProvider, toChain: ChainConfig) {
           {
             chainId: chainIdStr,
             chainName: toChain.name,
-            rpcUrls: [toChain.metamaskRpcUrl],
+            rpcUrls: [toChain.walletRpcUrl],
             nativeCurrency: toChain.nativeCurrency,
           },
         ],
