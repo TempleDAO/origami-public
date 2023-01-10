@@ -1,0 +1,164 @@
+import type { HistoricPeriod, HistoryPoint } from '@/api/types';
+import type { Loading } from '@/utils/loading-value';
+
+import styled, { css } from 'styled-components';
+import { format } from 'd3-format';
+import {
+  FlexibleXYPlot,
+  HorizontalGridLines,
+  LineSeries,
+  AreaSeries,
+  XAxis,
+  YAxis,
+  RVTickFormat,
+} from 'react-vis';
+import { LoadingComponent } from './commons/LoadingComponent';
+import { isReady } from '@/utils/loading-value';
+import { theme } from '@/styles/theme';
+
+import 'react-vis/dist/style.css';
+
+export type ChartDataPoint = {
+  x: number;
+  y: number;
+};
+
+export type HistoricLineChartProps = {
+  values: Loading<ChartDataPoint[]>;
+  histPeriod: HistoricPeriod;
+  setHistPeriod: (p: HistoricPeriod) => void;
+  yTickFormat: RVTickFormat;
+};
+
+export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
+  const ldata = props.values;
+
+  if (!isReady(ldata)) {
+    return <StyledLoader />;
+  }
+
+  const chartData =
+    ldata.value.length === 1 ? padSingleDataPoint(ldata.value) : ldata.value;
+
+  return (
+    <>
+      <ChartWrapper>
+        <FlexibleXYPlot xType="time" margin={{ left: 50 }}>
+          <HorizontalGridLines style={{ stroke: '#3A3E44' }} />
+          <XAxis hideLine tickSize={0} tickTotal={8} />
+          <YAxis hideLine tickSize={0} tickFormat={props.yTickFormat} />
+          <LineSeries
+            color={theme.colors.chartLine}
+            data={chartData}
+            opacity={1}
+          />
+          <AreaSeries
+            color={theme.colors.bgLight}
+            fill={theme.colors.bgLight}
+            opacity={0.6}
+            data={chartData}
+          />
+        </FlexibleXYPlot>
+      </ChartWrapper>
+      {ldata.value.length === 0 ? (
+        <NoResults>No results for this period</NoResults>
+      ) : null}
+      {ldata.value.length > 0 && (
+        <GraphDurations>
+          <GraphDuration
+            active={props.histPeriod == 'day'}
+            onClick={() => props.setHistPeriod('day')}
+          >
+            1D
+          </GraphDuration>
+          <GraphDuration
+            active={props.histPeriod == 'week'}
+            onClick={() => props.setHistPeriod('week')}
+          >
+            1W
+          </GraphDuration>
+          <GraphDuration
+            active={props.histPeriod == 'month'}
+            onClick={() => props.setHistPeriod('month')}
+          >
+            1M
+          </GraphDuration>
+          <GraphDuration
+            active={props.histPeriod == 'all'}
+            onClick={() => props.setHistPeriod('all')}
+          >
+            All
+          </GraphDuration>
+        </GraphDurations>
+      )}
+    </>
+  );
+}
+
+function padSingleDataPoint(chartData: ChartDataPoint[]): ChartDataPoint[] {
+  const singleDataPoint = chartData[0];
+  return [singleDataPoint, { x: Date.now(), y: singleDataPoint.y }];
+}
+
+export function tickValue(v: number): string {
+  return format(Math.abs(v) < 1000 ? '.3' : '.3s')(v);
+}
+
+export function tickPercent(v: number): string {
+  const percentage = v * 100;
+
+  return `${format(Math.abs(percentage) < 1000 ? '.3' : '.1s')(percentage)}%`;
+}
+
+export function convertHistoryPoint(p: HistoryPoint): ChartDataPoint {
+  return { x: p.t.getTime(), y: p.v };
+}
+
+const ChartWrapper = styled.div`
+  height: 100%;
+  width: 100%;
+  position: relative;
+  // Fix for common resizing bug with the react-vis FlexibleXYPlot component
+  // https://github.com/uber-archive/react-vis/issues/1159
+  .rv-xy-plot {
+    position: absolute;
+    overflow: hidden;
+  }
+`;
+const StyledLoader = styled(LoadingComponent)`
+  height: 16.25rem;
+  margin-bottom: 2rem;
+  width: 98%;
+`;
+
+const GraphDurations = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+`;
+
+const GraphDuration = styled.div<{ active?: boolean }>`
+  margin: 0 1em 1em;
+  color: ${({ theme }) => theme.colors.greyLight};
+  cursor: pointer;
+  transition: 300ms ease color;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.white};
+  }
+
+  ${({ active }) =>
+    active &&
+    css`
+      text-decoration-line: underline;
+      color: ${({ theme }) => theme.colors.white};
+    `}
+`;
+
+const NoResults = styled.div`
+  display: flex;
+  justify-content: center;
+  position: relative;
+  height: 100%;
+  width: 100%;
+`;

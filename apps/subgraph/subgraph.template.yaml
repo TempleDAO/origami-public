@@ -1,0 +1,167 @@
+specVersion: 0.0.5
+description: Origami Subgraph
+features:
+  - grafting
+repository: https://github.com/TempleDAO/origami-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: GmxInvestment
+    network: {{network}}
+    source:
+      address: '{{gmxInvestment.address}}'
+      abi: GmxInvestment
+      startBlock: {{gmxInvestment.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investment.ts
+      entities:
+        - Investment
+      abis:
+        - name: GmxInvestment
+          file: ./abis/GmxInvestment.json
+        - name: GlpInvestment
+          file: ./abis/GlpInvestment.json
+        - name: InvestmentShare
+          file: ./abis/InvestmentShare.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvested
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExited
+  - kind: ethereum/contract
+    name: GlpInvestment
+    network: {{network}}
+    source:
+      address: '{{glpInvestment.address}}'
+      abi: GlpInvestment
+      startBlock: {{glpInvestment.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investment.ts
+      entities:
+        - Investment
+      abis:
+        - name: GmxInvestment
+          file: ./abis/GmxInvestment.json
+        - name: GlpInvestment
+          file: ./abis/GlpInvestment.json
+        - name: InvestmentShare
+          file: ./abis/InvestmentShare.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvested
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExited
+  - kind: ethereum/contract
+    name: GmxInvestmentShare
+    network: {{network}}
+    source:
+      address: '{{gmxInvestmentShare.address}}'
+      abi: InvestmentShare
+      startBlock: {{gmxInvestmentShare.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investmentShare.ts
+      entities:
+        - InvestmentShare
+      abis:
+        - name: GmxInvestment
+          file: ./abis/GmxInvestment.json
+        - name: GlpInvestment
+          file: ./abis/GlpInvestment.json
+        - name: InvestmentShare
+          file: ./abis/InvestmentShare.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvestedShare
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExitedShare
+        - event: ReservesAdded(uint256)
+          handler: onReservesAdded
+        - event: ReservesRemoved(uint256)
+          handler: onReservesRemoved
+  - kind: ethereum/contract
+    name: GlpInvestmentShare
+    network: {{network}}
+    source:
+      address: '{{glpInvestmentShare.address}}'
+      abi: InvestmentShare
+      startBlock: {{glpInvestmentShare.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investmentShare.ts
+      entities:
+        - InvestmentShare
+      abis:
+        - name: GmxInvestment
+          file: ./abis/GmxInvestment.json
+        - name: GlpInvestment
+          file: ./abis/GlpInvestment.json
+        - name: InvestmentShare
+          file: ./abis/InvestmentShare.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvestedShare
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExitedShare
+        - event: ReservesAdded(uint256)
+          handler: onReservesAdded
+        - event: ReservesRemoved(uint256)
+          handler: onReservesRemoved
+  # Access Controlled Offchain Aggregator
+  - kind: ethereum/contract
+    name: HourlyScheduler
+    network: {{network}}
+    source:
+      address: '{{hourlyScheduler.address}}'
+      abi: OffchainAggregator
+      startBlock: {{hourlyScheduler.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/hourlyScheduler.ts
+      entities:
+        - HourlyScheduler
+      abis:
+        - name: GmxInvestment
+          file: ./abis/GmxInvestment.json
+        - name: GlpInvestment
+          file: ./abis/GlpInvestment.json
+        - name: InvestmentShare
+          file: ./abis/InvestmentShare.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+        - name: OffchainAggregator
+          file: ./abis/OffchainAggregator.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: onAnswerUpdated

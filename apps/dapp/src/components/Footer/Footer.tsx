@@ -1,0 +1,109 @@
+import type { FC } from 'react';
+
+import styled from 'styled-components';
+import { Icon } from '@/components/commons/Icon';
+import breakpoints from '@/styles/responsive-breakpoints';
+import { Link } from '../commons/Link';
+import { Image } from '../commons/Image';
+
+const SUBTEXT_FONT_SIZE = '0.9rem';
+
+const socials = [
+  { iconName: 'discord', href: 'https://discord.gg/templedao' },
+  { iconName: 'twitter', href: 'https://twitter.com/origamifinance' },
+  { iconName: 'telegram', href: 'https://t.me/+fr8eQevq_6tjZDYx' },
+  { iconName: 'medium', href: 'https://origamifinance.medium.com/' },
+];
+
+const Footer = () => (
+  <FooterContainer>
+    <CopyrightContainer>
+      <Image src="/header-logo.svg" alt="ORIGAMI" width={100} height={30} />
+      <TextContainer>
+        <CopyrightText>© 2022 ORIGAMI. All rights reserved.</CopyrightText>
+        <Disclaimer href="/disclaimer">Disclaimer</Disclaimer>
+      </TextContainer>
+    </CopyrightContainer>
+    <div>
+      <p>COMMUNITY</p>
+      <SocialsIconsContainer>
+        {socials.map((props) => (
+          <SocialsIconLink key={props.iconName} {...props} />
+        ))}
+      </SocialsIconsContainer>
+    </div>
+  </FooterContainer>
+);
+
+export default Footer;
+
+const SocialsIconLink: FC<{ href: string; iconName: string }> = ({
+  href,
+  iconName,
+}) => (
+  <Link href={href}>
+    <Icon iconName={iconName} />
+  </Link>
+);
+
+const FooterContainer = styled.footer`
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  border-top: 1px solid ${({ theme }) => theme.colors.greyMid};
+  padding: 1rem 2rem;
+  margin-top: auto;
+  justify-content: space-between;
+
+  ${breakpoints.md(`
+    height: 8rem;
+  `)}
+`;
+
+const CopyrightContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  flex-shrink: 2;
+  margin-right: 1.5rem;
+
+  ${breakpoints.md(`
+    align-self: start;
+    margin-right: 0;
+  `)}
+`;
+
+const TextContainer = styled.div`
+  padding-top: 0.8rem;
+`;
+
+const CopyrightText = styled.small`
+  display: block;
+  color: ${({ theme }) => theme.colors.greyMid};
+  font-size: ${SUBTEXT_FONT_SIZE};
+`;
+
+const Disclaimer = styled.a`
+  color: ${({ theme }) => theme.colors.greyMid};
+  font-size: ${SUBTEXT_FONT_SIZE};
+  font-weight: bold;
+  text-decoration: underline;
+  filter: brightness(1.3);
+`;
+
+const SocialsIconsContainer = styled.div`
+  display: flex;
+  flex-shrink: 1;
+  flex-wrap: wrap;
+  justify-content: space-between;
+
+  & > * {
+    margin-right: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  ${breakpoints.sm(`
+    flex-wrap: nowrap;
+    flex-direction: row;
+  `)}
+`;

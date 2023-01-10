@@ -1,0 +1,198 @@
+type Metric @entity {
+  id: ID!
+  timestamp: BigInt!
+  investments: [Investment!]!
+  investmentCount: Int!
+  investmentShares: [InvestmentShare!]!
+  investmentShareCount: Int!
+  rewardTokens: [RewardToken!]!
+  rewardTokenCount: Int!
+  userCount: Int!
+  metricDailySnapshots: [MetricDailySnapshot!]! @derivedFrom(field: "metric")
+}
+
+type MetricDailySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  metric: Metric!
+  investmentCount: Int!
+  investmentShareCount: Int!
+  rewardTokenCount: Int!
+  userCount: Int!
+}
+
+type InvestmentShare @entity {
+  id: ID!
+  timestamp: BigInt!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  apr: BigDecimal!
+  apy: BigDecimal!
+  reservesPerShare: BigDecimal!
+  totalReserves: BigDecimal!
+  totalSupply: BigDecimal!
+  acceptedInvestTokens: [Bytes!]!
+  acceptedExitTokens: [Bytes!]!
+  reserveToken: RewardToken!
+  investment: Investment!
+  tokenPrices: Bytes!
+  userCount: Int!
+  investmentShareDailySnapshots: [InvestmentShareDailySnapshot!]! @derivedFrom(field: "investmentShare")
+  investmentShareHourlySnapshots: [InvestmentShareHourlySnapshot!]! @derivedFrom(field: "investmentShare")
+}
+
+type InvestmentShareDailySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  investmentShare: InvestmentShare!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  apr: BigDecimal!
+  apy: BigDecimal!
+  reservesPerShare: BigDecimal!
+  totalReserves: BigDecimal!
+  totalSupply: BigDecimal!
+  userCount: Int!
+}
+
+type InvestmentShareHourlySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  investmentShare: InvestmentShare!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  apr: BigDecimal!
+  apy: BigDecimal!
+  reservesPerShare: BigDecimal!
+  totalReserves: BigDecimal!
+  totalSupply: BigDecimal!
+  userCount: Int!
+}
+
+type Investment @entity {
+  id: ID!
+  timestamp: BigInt!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  investmentToken: RewardToken!
+  acceptedInvestTokens: [Bytes!]!
+  acceptedExitTokens: [Bytes!]!
+  userCount: Int!
+}
+
+type User @entity {
+  id: ID!
+  timestamp: BigInt!
+  enterTimestamp: BigInt!
+  userBalances: [UserBalance!]! @derivedFrom(field: "user")
+}
+
+type UserBalance @entity {
+  id: ID!
+  timestamp: BigInt!
+  user: User!
+  investment: Investment
+  investmentShare: InvestmentShare
+  enterInvestTimestamp: BigInt!
+  investAmount: BigDecimal!
+  investVolume: BigDecimal!
+  investCount: Int!
+  exitCount: Int!
+  userInvestments: [UserInvestment!]! @derivedFrom(field: "userBalance")
+  userExits: [UserExit!]! @derivedFrom(field: "userBalance")
+  userBalanceSnapshots: [UserBalanceSnapshot!]! @derivedFrom(field: "userBalance")
+}
+
+type UserBalanceSnapshot @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  userBalance: UserBalance!
+  user: User!
+  investment: Investment
+  investmentShare: InvestmentShare
+  enterInvestTimestamp: BigInt!
+  investAmount: BigDecimal!
+  investVolume: BigDecimal!
+  investCount: Int!
+  exitCount: Int!
+}
+
+type UserInvestment @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  transaction: Bytes!
+  userBalance: UserBalance!
+  user: User!
+  tokenIn: Token!
+  tokenOut: RewardToken!
+  amountIn: BigDecimal!
+  amountOut: BigDecimal!
+}
+
+type UserExit @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  transaction: Bytes!
+  userBalance: UserBalance!
+  user: User!
+  tokenIn: RewardToken!
+  tokenOut: Token!
+  amountIn: BigDecimal!
+  amountOut: BigDecimal!
+  recipient: Bytes!
+}
+
+type Token @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  name: String!
+  symbol: String!
+  decimals: Int!
+}
+
+type RewardToken @entity {
+  id: ID!
+  timestamp: BigInt!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  price: BigDecimal!
+  tokenPrices: Bytes!
+  rewardTokenHourlySnapshots: [RewardTokenHourlySnapshot!]! @derivedFrom(field: "rewardToken")
+  rewardTokenDailySnapshots: [RewardTokenDailySnapshot!]! @derivedFrom(field: "rewardToken")
+}
+
+type RewardTokenHourlySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  rewardToken: RewardToken!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  price: BigDecimal!
+  tokenPrices: Bytes!
+}
+
+type RewardTokenDailySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  rewardToken: RewardToken!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  price: BigDecimal!
+  tokenPrices: Bytes!
+}

@@ -1,0 +1,80 @@
+pragma solidity ^0.8.17;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {IOrigamiInvestmentManager} from "../../interfaces/investments/IOrigamiInvestmentManager.sol";
+import {FractionalAmount} from "../../common/FractionalAmount.sol";
+
+contract DummyOrigamiInvestmentManager is IOrigamiInvestmentManager {
+    using SafeERC20 for IERC20;
+    using FractionalAmount for FractionalAmount.Data;
+
+    address[] public rewardTokens;
+
+    uint256 public lastDistributionTime;
+    
+    mapping(address => uint256) public tokensPerInterval;
+
+    /// @notice Performance fee for each rewardToken which Origami takes on the rewards
+    mapping(uint256 => FractionalAmount.Data) public override performanceFeeRates;
+    
+    constructor(
+        address[] memory _rewardTokens, 
+        uint256[] memory _rewardsPerInterval,
+        FractionalAmount.Data[] memory _performanceFeeRates
+    ) {
+        lastDistributionTime = block.timestamp;
+        rewardTokens = _rewardTokens;
+        for (uint256 i=0; i < _rewardTokens.length; i++) {
+            tokensPerInterval[_rewardTokens[i]] = _rewardsPerInterval[i];
+        }
+        for (uint256 i; i < rewardTokens.length; ++i) {
+            performanceFeeRates[i] = _performanceFeeRates[i];
+        }
+    }
+
+    function rewardTokensList() external override view returns (address[] memory tokens) {
+        return rewardTokens;
+    }
+
+    function harvestRewards() external override returns (uint256[] memory amounts) {
+        amounts = _pendingRewards();
+        lastDistributionTime = block.timestamp;
+
+        // Send the amount to the caller.
+        // In the real world, this would be limited to be called only by the RewardDistributor
+        // but we don't care for the test.
+        IERC20 token;
+        for (uint256 i; i<rewardTokens.length; i++) {
+            token = IERC20(rewardTokens[i]);
+            token.safeTransfer(msg.sender, amounts[i]);
+        }
+    }
+
+    function harvestableRewards() external override view returns (uint256[] memory amounts) {
+        return _pendingRewards();
+    }
+
+    function projectedRewardRates() external override view returns (uint256[] memory amounts) {
+        amounts = new uint256[](rewardTokens.length);
+        for (uint256 i; i < rewardTokens.length; ++i) {
+            (, amounts[i]) = performanceFeeRates[i].split(tokensPerInterval[rewardTokens[i]]);
+        }
+    }
+
+    function _pendingRewards() internal view returns (uint256[] memory amounts) {
+        amounts = new uint256[](rewardTokens.length);
+
+        uint256 timeDiff = block.timestamp - lastDistributionTime;
+        if (timeDiff == 0) {
+            return amounts;
+        }
+
+        for (uint256 i; i < rewardTokens.length; ++i) {
+            amounts[i] = tokensPerInterval[rewardTokens[i]] * timeDiff;
+        }
+    }
+
+}
