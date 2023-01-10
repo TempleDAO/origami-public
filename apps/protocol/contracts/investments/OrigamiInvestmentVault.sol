@@ -167,7 +167,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
         } else {
             // Pull the `fromToken` into this contract and approve the reserveToken to pull it.
             IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(this), quoteData.fromTokenAmount);
-            IERC20(quoteData.fromToken).approve(reserveToken, quoteData.fromTokenAmount);
+            IERC20(quoteData.fromToken).safeIncreaseAllowance(reserveToken, quoteData.fromTokenAmount);
 
             // Use the `fromToken` to invest in the underlying and receive `reserveToken`           
             InvestQuoteData memory underlyingQuoteData = abi.decode(
