@@ -1,5 +1,3 @@
-import type { GasPriorityFee } from '@/api/types';
-
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import {
@@ -11,10 +9,8 @@ import { textP1 } from '@/styles/mixins/text-styles';
 
 export interface AdvancedOptionsProps {
   slippageTolerance: number;
-  gasPriorityFee: GasPriorityFee;
 
   setSlippageTolerance(v: number): void;
-  setGasPriorityFee(v: GasPriorityFee): void;
 }
 
 export const SLIPPAGE_TOLERANCE_VALUES: LabelledValue<number>[] = [
@@ -22,12 +18,6 @@ export const SLIPPAGE_TOLERANCE_VALUES: LabelledValue<number>[] = [
   ['0.5%', 0.005],
   ['1%', 0.01],
   ['1.5%', 0.015],
-];
-
-export const GAS_FEE_VALUES: LabelledValue<GasPriorityFee>[] = [
-  ['Slow', 'slow'],
-  ['Standard', 'standard'],
-  ['Fast', 'fast'],
 ];
 
 export function AdvancedOptions(props: AdvancedOptionsProps) {
@@ -50,15 +40,6 @@ export function AdvancedOptions(props: AdvancedOptionsProps) {
               onChange={props.setSlippageTolerance}
             />
           </FlexRight>
-
-          <FlexRight>
-            <Label>Gas priority fee</Label>
-            <SmallSelection
-              value={props.gasPriorityFee}
-              values={GAS_FEE_VALUES}
-              onChange={props.setGasPriorityFee}
-            />
-          </FlexRight>
         </Indent>
       )}
     </FlexDown>
@@ -67,25 +48,17 @@ export function AdvancedOptions(props: AdvancedOptionsProps) {
 
 export interface AdvancedOptionsState {
   slippageTolerance: number;
-  gasPriorityFee: GasPriorityFee;
-
   setSlippageTolerance(v: number): void;
-  setGasPriorityFee(v: GasPriorityFee): void;
 }
 
 export function useAdvancedOptionsState() {
   const [slippageTolerance, setSlippageTolerance] = useState<number>(
     SLIPPAGE_TOLERANCE_VALUES[1][1]
   );
-  const [gasPriorityFee, setGasPriorityFee] = useState<GasPriorityFee>(
-    GAS_FEE_VALUES[1][1]
-  );
 
   return {
     slippageTolerance,
     setSlippageTolerance,
-    gasPriorityFee,
-    setGasPriorityFee,
   };
 }
 

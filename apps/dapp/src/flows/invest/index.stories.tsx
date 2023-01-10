@@ -142,7 +142,6 @@ const TEST_QUOTE: InvestQuoteResp = {
 const TEST_INVEST_REQ: InvestReq = {
   quote: TEST_QUOTE,
   slippageBps: 100,
-  gasPriorityFee: 'standard',
 };
 
 const TEST_INVEST_RESP: InvestResp = {

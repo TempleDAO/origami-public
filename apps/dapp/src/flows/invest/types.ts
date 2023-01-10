@@ -5,7 +5,7 @@ import type {
   ProviderApi,
   SignerApi,
 } from '@/api/api';
-import type { GasPriorityFee, Investment, TokenOrNative } from '@/api/types';
+import type { Investment, TokenOrNative } from '@/api/types';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 // Values available to every screen in the flow
@@ -37,7 +37,6 @@ export interface InitialValues {
   amount: DecimalBigNumber;
   ofAsset: TokenOrNative;
   slippageBps: number;
-  gasPriorityFee: GasPriorityFee;
 }
 
 export function formState(initial?: InitialValues): FormState {
@@ -69,13 +68,11 @@ export async function runInvest(
   api: Pick<SignerApi, 'invest'>,
   setState: (state: State) => void,
   quote: InvestQuoteResp,
-  slippageBps: number,
-  gasPriorityFee: GasPriorityFee
+  slippageBps: number
 ): Promise<void> {
   const req: InvestReq = {
     quote,
     slippageBps,
-    gasPriorityFee,
     onStage,
   };
 
@@ -92,7 +89,6 @@ export async function runInvest(
         amount: req.quote.amount,
         ofAsset: req.quote.from,
         slippageBps: req.slippageBps,
-        gasPriorityFee: req.gasPriorityFee,
       })
     );
   }

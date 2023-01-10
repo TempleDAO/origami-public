@@ -79,5 +79,3 @@ export interface HistoryPoint {
 }
 
 export type Metric = 'tvl' | 'apr';
-
-export type GasPriorityFee = 'slow' | 'standard' | 'fast';

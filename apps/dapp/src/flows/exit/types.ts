@@ -5,7 +5,7 @@ import type {
   ProviderApi,
   SignerApi,
 } from '@/api/api';
-import type { GasPriorityFee, Investment, TokenOrNative } from '@/api/types';
+import type { Investment, TokenOrNative } from '@/api/types';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 export interface Ctx {
@@ -35,7 +35,6 @@ export interface InitialValues {
   amount: DecimalBigNumber;
   toAsset: TokenOrNative;
   slippageBps: number;
-  gasPriorityFee: GasPriorityFee;
 }
 
 export function formState(initial?: InitialValues): FormState {
@@ -67,13 +66,11 @@ export async function runExit(
   api: Pick<SignerApi, 'exit'>,
   setState: (state: State) => void,
   quote: ExitQuoteResp,
-  slippageBps: number,
-  gasPriorityFee: GasPriorityFee
+  slippageBps: number
 ): Promise<void> {
   const req: ExitReq = {
     quote,
     slippageBps,
-    gasPriorityFee,
     onStage,
   };
 
@@ -90,7 +87,6 @@ export async function runExit(
         amount: req.quote.receiptTokenAmount,
         toAsset: req.quote.to,
         slippageBps: req.slippageBps,
-        gasPriorityFee: req.gasPriorityFee,
       })
     );
   }

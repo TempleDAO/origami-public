@@ -9,7 +9,6 @@ import {
   TokenOrNative,
   Metric,
   ChainConfig,
-  GasPriorityFee,
   TokenConfig,
   InvestmentConfig,
 } from './types';
@@ -83,7 +82,6 @@ export interface InvestQuoteResp extends InvestQuoteReq {
 export interface InvestReq {
   quote: InvestQuoteResp;
   slippageBps: number;
-  gasPriorityFee: GasPriorityFee;
   onStage?(stage: InvestStage): void;
 }
 
@@ -111,7 +109,6 @@ export interface ExitQuoteResp extends ExitQuoteReq {
 export interface ExitReq {
   quote: ExitQuoteResp;
   slippageBps: number;
-  gasPriorityFee: GasPriorityFee;
   onStage?(stage: ExitStage): void;
 }
 
