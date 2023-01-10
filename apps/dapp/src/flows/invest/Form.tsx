@@ -108,13 +108,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
   async function onConfirm() {
     if (canConfirm) {
       const slippageBps = options.slippageTolerance * 10000;
-      runInvest(
-        sapi,
-        setState,
-        quote.value,
-        slippageBps,
-        options.gasPriorityFee
-      );
+      runInvest(sapi, setState, quote.value, slippageBps);
     }
   }
 

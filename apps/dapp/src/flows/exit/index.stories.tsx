@@ -142,7 +142,6 @@ const TEST_QUOTE: ExitQuoteResp = {
 const TEST_EXIT_REQ: ExitReq = {
   quote: TEST_QUOTE,
   slippageBps: 100,
-  gasPriorityFee: 'standard',
 };
 
 const TEXT_EXIT_RESP: ExitResp = {
