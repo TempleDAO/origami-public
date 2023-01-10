@@ -1,0 +1,39 @@
+import { Invested, Exited } from '../../generated/GmxInvestment/GmxInvestment'
+import { getOrCreateInvestment, updateInvestment } from '../entities/investment'
+
+import { getRewardToken } from '../entities/rewardToken'
+import { getOrCreateToken } from '../entities/token'
+import { toDecimal } from '../utils/decimals'
+
+
+export function onInvested(event: Invested): void {
+    const timestamp = event.block.timestamp
+
+    const investment = getOrCreateInvestment(event.address, timestamp)
+
+    const fromToken = getOrCreateToken(event.params.fromToken, timestamp)
+    const toToken = getRewardToken(investment.id, timestamp)
+    const toTokenAmount = toDecimal(event.params.investmentAmount, toToken.decimals)
+
+    investment.tvl = investment.tvl.plus(toTokenAmount)
+    investment.tvlUSD = investment.tvl.times(toToken.price)
+    investment.volume = investment.volume.plus(toTokenAmount)
+    investment.volumeUSD = investment.volumeUSD.plus(toTokenAmount.times(toToken.price))
+    updateInvestment(investment, timestamp)
+}
+
+export function onExited(event: Exited): void {
+    const timestamp = event.block.timestamp
+
+    const investment = getOrCreateInvestment(event.address, timestamp)
+
+    const fromToken = getRewardToken(investment.id, timestamp)
+    const fromTokenAmount = toDecimal(event.params.investmentAmount, fromToken.decimals)
+    const toToken = getOrCreateToken(event.params.toToken, timestamp)
+
+    investment.tvl = investment.tvl.minus(fromTokenAmount)
+    investment.tvlUSD = investment.tvl.times(fromToken.price)
+    investment.volume = investment.volume.plus(fromTokenAmount)
+    investment.volumeUSD = investment.volumeUSD.plus(fromTokenAmount.times(fromToken.price))
+    updateInvestment(investment, timestamp)
+}

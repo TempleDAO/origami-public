@@ -1,0 +1,260 @@
+pragma solidity ^0.8.17;
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Origami (investments/gmx/OrigamiGlpLocker.sol)
+
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+
+import {OrigamiInvestment} from "../OrigamiInvestment.sol";
+import {IWrappedToken} from "../../interfaces/common/IWrappedToken.sol";
+import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
+import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
+import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
+
+/// @title Origami GLP Investment
+/// @notice Users purchase oGLP with an accepted GMX.io ERC20 token, ETH, or staked GLP
+/// Upon investment, users receive the same as amount of oGLP 1:1 as if they were purchasing GLP directly via GMX.io.
+/// Staked oGLP will earn boosted ETH/AVAX & oGMX rewards.
+contract OrigamiGlpInvestment is OrigamiInvestment, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    using Address for address payable;
+
+    /// @notice The ETH (Arbitrum) or AVAX (Avalanche) native token which can be used for buying and selling the origami receipt token
+    address public immutable wrappedNativeToken;
+
+    /// @notice The contract GMX.io provides to transfer staked GLP
+    IERC20 public immutable stakedGlp;
+
+    /// @notice The Origami contract managing the holdings of GLP and derived GMX/esGMX/mult point rewards
+    IOrigamiGmxManager public origamiGlpManager;
+
+    struct UnderlyingInvestQuoteData {
+        uint256 expectedUsdg;
+    }
+
+    error InvalidSender(address caller);
+    event OrigamiGlpManagerSet(address indexed origamiGlpManager);
+
+    constructor(
+        address _stakedGlp,
+        address _wrappedNativeToken
+    ) OrigamiInvestment("Origami GLP Investment", "oGLP") {
+        wrappedNativeToken = _wrappedNativeToken;
+        stakedGlp = IERC20(_stakedGlp);
+    }
+
+    /// @dev Only the wrappedNativeToken contract (eg weth) can send us ETH, when we withdraw to pay out
+    /// a user liquidation.
+    receive() external payable {
+        if (msg.sender != wrappedNativeToken) revert InvalidSender(msg.sender);
+    }
+
+    /// @notice Set the Origami GLP Manager contract used to apply GLP to earn rewards.
+    function setOrigamiGlpManager(address _origamiGlpManager) external onlyOwner {
+        if (_origamiGlpManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
+        origamiGlpManager = IOrigamiGmxManager(_origamiGlpManager);
+        emit OrigamiGlpManagerSet(_origamiGlpManager);
+    }
+
+    /**
+     * @notice The set of accepted tokens which can be used to buy oGLP
+     * @dev This is the same list as when investing in GLP at GMX.io
+     * With the addition of 0x0 for native ETH/AVAX, and also existing user purchased & staked GLP
+     */
+    function acceptedInvestTokens() public override view returns (address[] memory) {
+        address[] memory extraTokens = new address[](2);
+        extraTokens[0] = address(0);  // Native ETH/AVAX
+        extraTokens[1] = address(stakedGlp);
+        return origamiGlpManager.acceptedGlpTokens(extraTokens);
+    }
+
+    /**
+     * @notice The set of accepted tokens which can be used to exit into
+     * @dev For oGLP, this is the same set of tokens that can be used to invest
+     */
+    function acceptedExitTokens() external override view returns (address[] memory) {
+        return acceptedInvestTokens();
+    }
+    
+    /**
+     * @notice Get a quote to buy the oGLP using one of the approved tokens, inclusive of GMX.io fees.
+     * @dev The 0x0 address can be used for native chain ETH/AVAX
+     * @param fromTokenAmount How much of `fromToken` to invest with
+     * @param fromToken What ERC20 token to purchase with. This must be one of `acceptedInvestTokens`
+     * @return quoteData The quote data, including any other quote params required for the underlying investment type. To be passed through when executing the quote.
+     * @return investFeeBps [GMX.io's fee when depositing with `fromToken`]
+     */
+    function investQuote(
+        uint256 fromTokenAmount, 
+        address fromToken
+    ) external override view returns (
+        InvestQuoteData memory quoteData, 
+        uint256[] memory investFeeBps
+    ) {
+        if (fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        quoteData.fromToken = fromToken;
+        quoteData.fromTokenAmount = fromTokenAmount;
+
+        uint256 expectedUsdg;
+        if (fromToken == address(stakedGlp)) {
+            quoteData.expectedInvestmentAmount = fromTokenAmount; // 1:1 for staked GLP
+            investFeeBps = new uint256[](1); // investFeeBps[0]=0, expectedUsdg=0
+        } else {
+            address tokenIn = (fromToken == address(0)) ? wrappedNativeToken : fromToken;
+            (quoteData.expectedInvestmentAmount, investFeeBps, expectedUsdg) = origamiGlpManager.buyOGlpQuote(fromTokenAmount, tokenIn);
+        }
+
+        quoteData.underlyingInvestmentQuoteData = abi.encode(UnderlyingInvestQuoteData(expectedUsdg));
+    }
+
+    /** 
+      * @notice User buys oGLP with an amount of one of the approved ERC20 tokens. 
+      * @param quoteData The quote data received from investQuote()
+      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
+      * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
+      */
+    function investWithToken(
+        InvestQuoteData calldata quoteData, 
+        uint256 slippageBps
+    ) external override whenNotPaused returns (
+        uint256 investmentAmount
+    ) {
+        if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        if (quoteData.fromToken == address(stakedGlp)) {
+            // Pull staked GLP tokens from the user and transfer directly to the primary Origami earn account contract, responsible for staking.
+            // This doesn't reset the cooldown clock for withdrawals, so it's ok to send directly to the primary earn account.
+            IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(origamiGlpManager.primaryEarnAccount()), quoteData.fromTokenAmount);
+            investmentAmount = quoteData.fromTokenAmount;
+        } else {
+            // Pull ERC20 tokens from the user and send to the secondary Origami earn account contract which purchases GLP on GMX.io and stakes it
+            // This DOES reset the cooldown clock for withdrawals, so the secondary account is used in order 
+            // to avoid withdrawals blocking from cooldown in the primary account.
+            IOrigamiGmxEarnAccount secondaryEarnAccount = origamiGlpManager.secondaryEarnAccount();
+            IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(secondaryEarnAccount), quoteData.fromTokenAmount);
+
+            UnderlyingInvestQuoteData memory underlyingQuoteData = abi.decode(quoteData.underlyingInvestmentQuoteData, (UnderlyingInvestQuoteData));
+            investmentAmount = secondaryEarnAccount.mintAndStakeGlp(
+                quoteData.fromTokenAmount, quoteData.fromToken, underlyingQuoteData.expectedUsdg, quoteData.expectedInvestmentAmount, slippageBps
+            );
+        }
+
+        // Mint the oGLP for the user
+        _mint(msg.sender, investmentAmount);
+        emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
+    }
+
+    /** 
+      * @notice User buys oGLP tokens with an amount of native chain token (ETH/AVAX)
+      * @param quoteData The quote data received from investQuote()
+      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
+      * @return investmentAmount The number of receipt tokens to expect, inclusive of any fees.
+      */
+    function investWithNative(
+        InvestQuoteData calldata quoteData, uint256 slippageBps
+    ) external payable override whenNotPaused nonReentrant returns (uint256 investmentAmount) {
+        if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+        if (quoteData.fromTokenAmount != msg.value) revert CommonEventsAndErrors.InvalidAmount(address(0), msg.value);
+        if (quoteData.fromToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.fromToken);
+
+        // Convert the native to the wrapped token (eg weth)
+        IWrappedToken(wrappedNativeToken).deposit{value: msg.value}();
+
+        // Send to the secondary Origami earn account contract which purchases GLP on GMX.io and stakes it
+        // This DOES reset the cooldown clock for withdrawals, so the secondary account is used in order 
+        // to avoid withdrawals blocking from cooldown in the primary account.
+        IOrigamiGmxEarnAccount secondaryEarnAccount = origamiGlpManager.secondaryEarnAccount();
+        IERC20(wrappedNativeToken).safeTransfer(address(secondaryEarnAccount), msg.value);
+
+        UnderlyingInvestQuoteData memory underlyingQuoteData = abi.decode(quoteData.underlyingInvestmentQuoteData, (UnderlyingInvestQuoteData));
+        investmentAmount = secondaryEarnAccount.mintAndStakeGlp(
+            msg.value, wrappedNativeToken, underlyingQuoteData.expectedUsdg, quoteData.expectedInvestmentAmount, slippageBps
+        );
+
+        // Mint the oGLP for the user
+        _mint(msg.sender, investmentAmount);
+        emit Invested(msg.sender, msg.value, address(0), investmentAmount);
+    }
+
+    /**
+     * @notice Get a quote to sell oGLP to receive one of the accepted tokens.
+     * @dev The 0x0 address can be used for native chain ETH/AVAX
+     * @param investmentTokenAmount The amount of oGLP to sell
+     * @param toToken The token to receive when selling. This must be one of `acceptedExitTokens`
+     * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
+     * @return exitFeeBps [Origami's exit fee, GMX.io's fee when selling to `toToken`]
+     */
+    function exitQuote(
+        uint256 investmentTokenAmount, 
+        address toToken
+    ) external override view returns (
+        ExitQuoteData memory quoteData, 
+        uint256[] memory exitFeeBps
+    ) {
+        if (investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        address tokenOut = (toToken == address(0)) ? wrappedNativeToken : toToken;
+        (quoteData.expectedToTokenAmount, exitFeeBps) = origamiGlpManager.sellOGlpQuote(investmentTokenAmount, tokenOut); 
+        quoteData.investmentTokenAmount = investmentTokenAmount;
+        quoteData.toToken = toToken;
+        // No extra underlyingInvestmentQuoteData on exit
+    }
+
+    /** 
+      * @notice Sell oGLP to receive one of the accepted tokens. 
+      * @param quoteData The quote data received from exitQuote()
+      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
+      * @param recipient The receiving address of the `toToken`
+      * @return toTokenAmount The number of `toToken` tokens received upon selling the Origami receipt token.
+      */
+    function exitToToken(
+        ExitQuoteData calldata quoteData, 
+        uint256 slippageBps, 
+        address recipient
+    ) external override whenNotPaused returns (
+        uint256 toTokenAmount
+    ) {
+        if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        _transfer(msg.sender, address(origamiGlpManager), quoteData.investmentTokenAmount);
+
+        toTokenAmount = quoteData.toToken == address(stakedGlp) 
+            ? origamiGlpManager.sellOGlpToStakedGlp(quoteData.investmentTokenAmount, recipient)
+            : origamiGlpManager.sellOGlp(quoteData.investmentTokenAmount, quoteData.toToken, quoteData.expectedToTokenAmount, slippageBps, recipient);
+            
+        emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
+    }
+
+    /** 
+      * @notice Sell oGLP to native ETH/AVAX.
+      * @param quoteData The quote data received from exitQuote()
+      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
+      * @param recipient The receiving address of the native chain token.
+      * @return nativeAmount The number of native chain ETH/AVAX/etc tokens received upon selling the Origami receipt token.
+      */
+    function exitToNative(
+        ExitQuoteData calldata quoteData, 
+        uint256 slippageBps, 
+        address payable recipient
+    ) external override whenNotPaused nonReentrant returns (
+        uint256 nativeAmount
+    ) {
+        if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+        if (quoteData.toToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
+
+        // Sell the oGLP to WETH
+        _transfer(msg.sender, address(origamiGlpManager), quoteData.investmentTokenAmount);
+        nativeAmount = origamiGlpManager.sellOGlp(quoteData.investmentTokenAmount, wrappedNativeToken, quoteData.expectedToTokenAmount, slippageBps, address(this));
+
+        // Convert the wrapped native token (weth/wavax) to the native token (ETH/AVAX)
+        IWrappedToken(wrappedNativeToken).withdraw(nativeAmount);
+        recipient.sendValue(nativeAmount);
+
+        emit Exited(msg.sender, quoteData.investmentTokenAmount, address(0), nativeAmount, recipient);
+    }
+
+}
