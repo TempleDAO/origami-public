@@ -39,7 +39,6 @@
     "eslint-plugin-promise": "^6.1.1",
     "eth-gas-reporter": "^0.2.25",
     "ethers": "^5.7.2",
-    "fsevents": "^2.3.2",
     "hardhat": "^2.12.5",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.9",
