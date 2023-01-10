@@ -15,13 +15,13 @@ jobs:
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          github-token: ${{ secrets.CI_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           vercel-args: "-A apps/dapp/vercel.json"
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID}}
           scope: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.ORIGAMI_PROJECT_ID}}
           alias-domains: |
-            pr-{{PR_NUMBER}}-preview.origami.fi
+            pr-{{PR_NUMBER}}-preview.origami.finance
         continue-on-error: true
       - name: "notify failure"
         if: steps.deploy_step.outcome == 'failure'
