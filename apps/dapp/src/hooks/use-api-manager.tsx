@@ -3,7 +3,7 @@ import { ChainConfig, ChainId } from '@/api/types';
 import { createProviderApi, createSignerApi, ApiConfig } from '@/api/ethers';
 
 import { ethers, Signer } from 'ethers';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface ApiManager {
   papi: ProviderApi;
@@ -36,6 +36,7 @@ export function ApiManagerProvider(props: {
 
   async function disconnectSigner() {
     setWallet(undefined);
+    localStorage.removeItem(LOCALSTORE_WALLET_STATE);
   }
 
   async function connectSigner(mChainId?: ChainId) {
@@ -44,8 +45,15 @@ export function ApiManagerProvider(props: {
       setWallet((oldmm) =>
         !oldmm || oldmm.chainId !== newmm.chainId ? newmm : oldmm
       );
+      localStorage.setItem(LOCALSTORE_WALLET_STATE, 'connected');
     }
   }
+
+  useEffect(() => {
+    if (localStorage.getItem(LOCALSTORE_WALLET_STATE) != null) {
+      connectSigner();
+    }
+  }, []); // eslint-disable-line
 
   const apiManager: ApiManager = {
     papi,
@@ -129,3 +137,5 @@ export type LocalProvider = {
     params?: Array<unknown>;
   }) => Promise<unknown>;
 };
+
+const LOCALSTORE_WALLET_STATE = 'walletState';
