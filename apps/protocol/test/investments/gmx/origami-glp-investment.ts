@@ -7,7 +7,7 @@ import {
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory, 
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory, 
 } from "../../../typechain";
-import { addDefaultGlpLiquidity, deployGmx, GmxContracts } from "./gmx-helpers";
+import { addDefaultGlpLiquidity, decodeGlpUnderlyingInvestQuoteData, deployGmx, encodeGlpUnderlyingInvestQuoteData, GmxContracts } from "./gmx-helpers";
 import { deployUupsProxy, EmptyBytes, expectBalancesChangeBy, mineForwardSeconds, recoverToken, shouldRevertNotOwner, shouldRevertPaused, ZERO_ADDRESS } from "../../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
@@ -37,12 +37,9 @@ describe("Origami GLP Investment", async () => {
     async function setup() {
         gmxContracts = await deployGmx(owner, esGmxPerSecond, esGmxPerSecond, ethPerSecond, ethPerSecond);
 
-        oGMX = await new OrigamiGmxInvestment__factory(owner).deploy(
-            gmxContracts.gmxToken.address,
-        );
+        oGMX = await new OrigamiGmxInvestment__factory(owner).deploy();
         
         oGLP = await new OrigamiGlpInvestment__factory(owner).deploy(
-            gmxContracts.stakedGlp.address,
             gmxContracts.wrappedNativeToken.address,
         );
 
@@ -114,7 +111,6 @@ describe("Origami GLP Investment", async () => {
 
     it("constructor", async () => {
         expect(await oGLP.origamiGlpManager()).eq(origamiGlpManager.address);
-        expect(await oGLP.stakedGlp()).eq(gmxContracts.stakedGlp.address);
         expect(await oGLP.wrappedNativeToken()).eq(gmxContracts.wrappedNativeToken.address);
     });
 
@@ -206,25 +202,6 @@ describe("Origami GLP Investment", async () => {
         // exit tokens are the same as invest tokens
         expect(await oGLP.acceptedExitTokens()).deep.eq(tokens);
     });
-
-    const investQuoteTypes = 'tuple(uint256 expectedUsdg)'; 
-    const encodeUnderlyingInvestQuoteData = (expectedUsdg: BigNumberish): string => {
-        return ethers.utils.defaultAbiCoder.encode(
-            [investQuoteTypes], 
-            [{
-                expectedUsdg,
-            }]
-        );
-    }
-    type UnderlyingInvestQuoteData = {
-        expectedUsdg: BigNumberish,
-    }
-    const decodeUnderlyingInvestQuoteData = (encodedQuoteData: string): UnderlyingInvestQuoteData => {
-        return ethers.utils.defaultAbiCoder.decode(
-            [investQuoteTypes], 
-            encodedQuoteData
-        )[0];
-    }
     
     describe("Invest oGLP", async () => {
         it("Invest oGLP Quote", async () => {
@@ -237,7 +214,7 @@ describe("Origami GLP Investment", async () => {
                 .to.be.revertedWithCustomError(origamiGlpManager, "InvalidToken")
                 .withArgs(gmxContracts.gmxToken.address);
 
-            const decodedQuote = decodeUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
+            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
             // 500x300 - 35bps fee
             const expectedGlp = ethers.utils.parseEther("149475")
             expect(quote.quoteData.fromToken).eq(gmxContracts.bnbToken.address);
@@ -266,10 +243,10 @@ describe("Origami GLP Investment", async () => {
 
             // 1 more than the USDG quote amount fails
             {
-                const usdgAmount = decodeUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
+                const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
                 const manualQuote = {
                     ...quote.quoteData,
-                    underlyingInvestmentQuoteData: encodeUnderlyingInvestQuoteData(
+                    underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
                         BigNumber.from(usdgAmount).add(1)
                     ),
                 };
@@ -317,11 +294,11 @@ describe("Origami GLP Investment", async () => {
             const slippageBps = 100; // 1%
 
             // Tweak the usdg amount and expected output amount
-            const usdgAmount = decodeUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
+            const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
             const manualQuote = {
                 ...quote.quoteData,
                 expectedInvestmentAmount: quote.quoteData.expectedInvestmentAmount.mul(10_000+slippageBps).div(10_000),
-                underlyingInvestmentQuoteData: encodeUnderlyingInvestQuoteData(
+                underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
                     BigNumber.from(usdgAmount).mul(10_000+slippageBps).div(10_000)
                 ),
             };
@@ -404,10 +381,10 @@ describe("Origami GLP Investment", async () => {
 
             // 1 more than the USDG quote amount fails
             {
-                const usdgAmount = decodeUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
+                const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
                 const manualQuote = {
                     ...quote.quoteData,
-                    underlyingInvestmentQuoteData: encodeUnderlyingInvestQuoteData(
+                    underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
                         BigNumber.from(usdgAmount).add(1)
                     ),
                 };
@@ -459,11 +436,11 @@ describe("Origami GLP Investment", async () => {
             const quote = await oGLP.investQuote(amount, ZERO_ADDRESS);
             const slippageBps = 100; // 1%
             
-            const usdgAmount = decodeUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
+            const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
             const manualQuote = {
                 ...quote.quoteData,
                 expectedInvestmentAmount: quote.quoteData.expectedInvestmentAmount.mul(10_000+slippageBps).div(10_000),
-                underlyingInvestmentQuoteData: encodeUnderlyingInvestQuoteData(
+                underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
                     BigNumber.from(usdgAmount).mul(10_000+slippageBps).div(10_000)
                 ),
             };

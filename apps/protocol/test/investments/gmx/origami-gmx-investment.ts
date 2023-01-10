@@ -37,9 +37,7 @@ describe("Origami GMX Investment", async () => {
         const esGmxPerSecond = BigNumber.from("20667989410000000"); // 0.02066798941 esGmx per second
         gmxContracts = await deployGmx(owner, esGmxPerSecond, esGmxPerSecond, ethPerSecond, ethPerSecond);
 
-        oGMX = await new OrigamiGmxInvestment__factory(owner).deploy(
-            gmxContracts.gmxToken.address,
-        );
+        oGMX = await new OrigamiGmxInvestment__factory(owner).deploy();
 
         gmxEarnAccount = await deployUupsProxy(
             new OrigamiGmxEarnAccount__factory(owner), 
@@ -91,7 +89,6 @@ describe("Origami GMX Investment", async () => {
 
     it("constructor", async () => {
         expect(await oGMX.origamiGmxManager()).eq(origamiGmxManager.address);
-        expect(await oGMX.gmxToken()).eq(gmxContracts.gmxToken.address);
     });
 
     it("admin", async () => {
@@ -182,7 +179,7 @@ describe("Origami GMX Investment", async () => {
                     .to.be.revertedWithCustomError(oGMX, "ExpectedNonZero");
 
                 await expect(oGMX.investQuote(100, gmxContracts.bnbToken.address))
-                    .to.be.revertedWithCustomError(oGMX, "InvalidToken")
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidToken")
                     .withArgs(gmxContracts.bnbToken.address);
                 
                 const quote1 = await oGMX.investQuote(100, gmxContracts.gmxToken.address);
@@ -199,7 +196,7 @@ describe("Origami GMX Investment", async () => {
                     .to.be.revertedWithCustomError(oGMX, "ExpectedNonZero");
 
                 await expect(oGMX.exitQuote(100, gmxContracts.bnbToken.address))
-                    .to.be.revertedWithCustomError(oGMX, "InvalidToken")
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidToken")
                     .withArgs(gmxContracts.bnbToken.address);
                 
                 await origamiGmxManager.setSellFeeRate(30, 100);

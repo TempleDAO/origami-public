@@ -8,7 +8,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {OrigamiInvestment} from "../OrigamiInvestment.sol";
 import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
-import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 
 /// @title Origami GMX Investment
@@ -18,19 +17,12 @@ import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 contract OrigamiGmxInvestment is OrigamiInvestment {
     using SafeERC20 for IERC20;
 
-    /// @notice The GMX token used for purchases.
-    IERC20 public immutable gmxToken;
-
     /// @notice The Origami contract managing the holdings of GMX and derived esGMX/mult point rewards
     IOrigamiGmxManager public origamiGmxManager;
 
     event OrigamiGmxManagerSet(address origamiGmxManager);
     
-    constructor(
-        address _gmxToken
-    ) OrigamiInvestment("Origami GMX Investment", "oGMX") {
-        gmxToken = IERC20(_gmxToken);
-    }
+    constructor() OrigamiInvestment("Origami GMX Investment", "oGMX") {}
 
     /// @notice Set the Origami GMX Manager contract used to apply GMX to earn rewards.
     function setOrigamiGmxManager(address _origamiGmxManager) external onlyOwner {
@@ -40,18 +32,17 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     }
 
     /**
-     * @notice Only GMX can be used to buy oGMX
+     * @notice The set of accepted tokens which can be used to invest.
      */
     function acceptedInvestTokens() public override view returns (address[] memory tokens) {
-        tokens = new address[](1);
-        tokens[0] = address(gmxToken);
+        return origamiGmxManager.acceptedOGmxTokens();
     }
 
     /**
-     * @notice Only GMX can be used to exit oGMX into
+     * @notice The set of accepted tokens which can be used to exit into.
      */
     function acceptedExitTokens() external override view returns (address[] memory) {
-        return acceptedInvestTokens();
+        return origamiGmxManager.acceptedOGmxTokens();
     }
     
     /**
@@ -68,39 +59,27 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
         InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
     ) {
-        if (fromToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(fromToken);
-        if (fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
-
-        // oGMX is minted 1:1, no fees
-        quoteData.fromToken = fromToken;
-        quoteData.fromTokenAmount = fromTokenAmount;
-        quoteData.expectedInvestmentAmount = fromTokenAmount;
-        // No extra underlyingInvestmentQuoteData
-
-        investFeeBps = new uint256[](0);
+        return origamiGmxManager.investOGmxQuote(fromTokenAmount, fromToken);
     }
 
     /** 
       * @notice User buys oGMX with an amount GMX.
       * @param quoteData The quote data received from investQuote()
-      * @return origamiReceiptAmountOut The actual number of receipt tokens received, inclusive of any fees.
+      * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
       */
     function investWithToken(
         InvestQuoteData calldata quoteData, 
-        uint256 /*slippageBps*/
-    ) external override whenNotPaused returns (uint256) {
+        uint256 slippageBps
+    ) external override whenNotPaused returns (uint256 investmentAmount) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
-        // Transfer the GMX straight to the primary earn account which stakes the GMX at GMX.io
-        // NB: There is no cooldown when transferring GMX, so using the primary earn account for deposits is fine.
-        IOrigamiGmxEarnAccount earnAccount = origamiGmxManager.primaryEarnAccount();
-        gmxToken.safeTransferFrom(msg.sender, address(earnAccount), quoteData.fromTokenAmount);
-        earnAccount.stakeGmx(quoteData.fromTokenAmount);
+        // Send the investment token to the gmx manager
+        IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(origamiGmxManager), quoteData.fromTokenAmount);
+        investmentAmount = origamiGmxManager.investOGmx(quoteData, slippageBps);
 
-        // Mint the oGMX for the user. User gets 1:1 oGMX for the GMX provided.
-        _mint(msg.sender, quoteData.fromTokenAmount);
-        emit Invested(msg.sender, quoteData.fromTokenAmount, address(gmxToken), quoteData.fromTokenAmount);
-        return quoteData.fromTokenAmount;
+        // Mint the oGMX for the user
+        _mint(msg.sender, investmentAmount);
+        emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, quoteData.fromTokenAmount);
     }
 
     /** 
@@ -126,35 +105,29 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
         ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
     ) {
-        if (investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
-        if (toToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(toToken);
-
-        exitFeeBps = new uint256[](1);
-        (exitFeeBps[0], quoteData.expectedToTokenAmount) = origamiGmxManager.sellOGmxQuote(investmentTokenAmount);
-
-        quoteData.investmentTokenAmount = investmentTokenAmount;
-        quoteData.toToken = toToken;
-        // No extra underlyingInvestmentQuoteData
+        return origamiGmxManager.exitOGmxQuote(investmentTokenAmount, toToken);
     }
 
     /** 
       * @notice Sell oGMX to receive GMX. 
       * @param quoteData The quote data received from exitQuote()
-      * @param recipient The receiving address of the `toToken`
+      * @param recipient The receiving address of the `t\oToken`
       * @return toTokenAmountOut The number of `toToken` tokens received upon selling the Origami receipt token.
       */
     function exitToToken(
         ExitQuoteData calldata quoteData, 
-        uint256 /*slippageBps*/, 
+        uint256 slippageBps, 
         address recipient
     ) external override whenNotPaused returns (
         uint256 toTokenAmountOut
     ) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
+        // Send the oGMX to the gmx manager
         _transfer(msg.sender, address(origamiGmxManager), quoteData.investmentTokenAmount);
-        toTokenAmountOut = origamiGmxManager.sellOGmx(quoteData.investmentTokenAmount, recipient);
-        emit Exited(msg.sender, quoteData.investmentTokenAmount, address(gmxToken), toTokenAmountOut, recipient);
+        toTokenAmountOut = origamiGmxManager.exitOGmx(quoteData, slippageBps, recipient);
+        
+        emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmountOut, recipient);
     }
 
     /** 

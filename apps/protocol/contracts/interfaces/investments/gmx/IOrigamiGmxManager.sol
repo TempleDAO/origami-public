@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 // Origami (interfaces/investments/gmx/IOrigamiGmxManager.sol)
 
 import {IOrigamiGmxEarnAccount} from "./IOrigamiGmxEarnAccount.sol";
+import {IOrigamiInvestment} from "../IOrigamiInvestment.sol";
 
 interface IOrigamiGmxManager {
     function harvestableRewards(IOrigamiGmxEarnAccount.VaultType vaultType) external view returns (uint256[] memory amounts);
@@ -10,30 +11,60 @@ interface IOrigamiGmxManager {
     function harvestRewards() external;
     function harvestSecondaryRewards() external;
     function rewardTokensList() external view returns (address[] memory tokens);
-    function wrappedNativeToken() external view returns (address);
-    function primaryEarnAccount() external view returns (IOrigamiGmxEarnAccount);
-    function secondaryEarnAccount() external view returns (IOrigamiGmxEarnAccount);
-    function sellOGmxQuote(uint256 _oGmxAmount) external view returns (uint256 origamiFeeBasisPoints, uint256 gmxAmountOut);
-    function sellOGmx(
-        uint256 _sellAmount,
-        address _recipient
-    ) external returns (uint256 amountOut);
-    function acceptedGlpTokens(address[] calldata extraTokens) external view returns (address[] memory);
-    function buyOGlpQuote(uint256 _amount, address _token) external view returns (
-        uint256 oGlpAmountOut, uint256[] memory investFeeBps, uint256 expectedUsdg
+
+    function acceptedOGmxTokens() external view returns (address[] memory);
+    function investOGmxQuote(
+        uint256 fromTokenAmount,
+        address fromToken
+    ) external view returns (
+        IOrigamiInvestment.InvestQuoteData memory quoteData, 
+        uint256[] memory investFeeBps
     );
-    function sellOGlpQuote(uint256 _oGlpAmount, address _toToken) external view returns (
-        uint256 toTokenAmount, uint256[] memory exitFeeBps
+    function investOGmx(
+        IOrigamiInvestment.InvestQuoteData calldata quoteData, 
+        uint256 slippageBps
+    ) external returns (
+        uint256 investmentAmount
     );
-    function sellOGlp(
-        uint256 _sellAmount,
-        address _toToken,
-        uint256 _minAmountOut,
-        uint256 _slippageBps,
-        address _recipient
+    function exitOGmxQuote(
+        uint256 investmentTokenAmount, 
+        address toToken
+    ) external view returns (
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256[] memory exitFeeBps
+    );
+    function exitOGmx(
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256 slippageBps, 
+        address recipient
     ) external returns (uint256 amountOut);
-    function sellOGlpToStakedGlp(
-        uint256 _sellAmount,
-        address _recipient
+
+    function acceptedGlpTokens() external view returns (address[] memory);
+    function investOGlpQuote(
+        uint256 fromTokenAmount, 
+        address fromToken
+    ) external view returns (
+        IOrigamiInvestment.InvestQuoteData memory quoteData, 
+        uint256[] memory investFeeBps
+    );
+    function investOGlp(
+        address fromToken,
+        IOrigamiInvestment.InvestQuoteData calldata quoteData, 
+        uint256 slippageBps
+    ) external returns (
+        uint256 investmentAmount
+    );
+    function exitOGlpQuote(
+        uint256 investmentTokenAmount, 
+        address toToken
+    ) external view returns (
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256[] memory exitFeeBps
+    );
+    function exitOGlp(
+        address toToken,
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256 slippageBps, 
+        address recipient
     ) external returns (uint256 amountOut);
 }

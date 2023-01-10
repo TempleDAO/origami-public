@@ -15,7 +15,6 @@ async function main() {
   const factory = new OrigamiGmxInvestment__factory(owner);
   await deployAndMine(
     'oGMX', factory, factory.deploy,
-    GMX_DEPLOYED_CONTRACTS.GMX.TOKENS.GMX_TOKEN,
   );
 }
 

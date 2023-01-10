@@ -1,5 +1,5 @@
 
-import { BigNumber, ethers, Signer } from "ethers";
+import { BigNumber, BigNumberish, ethers, Signer } from "ethers";
 import { 
     GMX_Timelock, GMX_Timelock__factory,
     GMX_GmxTimelock__factory,
@@ -139,6 +139,25 @@ async function initVaultErrors(vault: GMX_Vault, owner: Signer) {
     await vault.setErrorController(vaultErrorController.address);
     await vaultErrorController.setErrors(vault.address, errors);
     return vaultErrorController;
+}
+
+const glpInvestQuoteTypes = 'tuple(uint256 expectedUsdg)'; 
+type UnderlyingGlpInvestQuoteData = {
+    expectedUsdg: BigNumberish,
+}
+export const encodeGlpUnderlyingInvestQuoteData = (expectedUsdg: BigNumberish): string => {
+    return ethers.utils.defaultAbiCoder.encode(
+        [glpInvestQuoteTypes], 
+        [{
+            expectedUsdg,
+        }]
+    );
+}
+export const decodeGlpUnderlyingInvestQuoteData = (encodedQuoteData: string): UnderlyingGlpInvestQuoteData => {
+    return ethers.utils.defaultAbiCoder.decode(
+        [glpInvestQuoteTypes], 
+        encodedQuoteData
+    )[0];
 }
 
 export interface GmxContracts {

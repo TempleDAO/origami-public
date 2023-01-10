@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IGmxRewardRouter} from "../../interfaces/external/gmx/IGmxRewardRouter.sol";
+import {IOrigamiInvestment} from "../../interfaces/investments/IOrigamiInvestment.sol";
 import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
 import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
 import {IMintableToken} from "../../interfaces/common/IMintableToken.sol";
@@ -41,7 +42,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     IGmxVault public gmxVault;
 
     /// @notice $wrappedNative - wrapped ETH/AVAX
-    address public override wrappedNativeToken;
+    address public wrappedNativeToken;
 
     /// @notice $oGMX - The Origami ERC20 receipt token over $GMX
     /// Users get oGMX for initial $GMX deposits, and for each esGMX which Origami is rewarded,
@@ -78,14 +79,18 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     // @notice The Origami contract holding the majority of staked GMX/GLP/multiplier points/esGMX.
     // @dev When users sell GMX/GLP positions are unstaked from this account.
     // GMX positions are also deposited directly into this account (no cooldown for GMX, unlike GLP)
-    IOrigamiGmxEarnAccount public override primaryEarnAccount;
+    IOrigamiGmxEarnAccount public primaryEarnAccount;
 
     // @notice The Origami contract holding a small amount of staked GMX/GLP/multiplier points/esGMX.
     // @dev This account is used to accept user deposits for GLP, such that the cooldown clock isn't reset
     // in the primary earn account (which may block any user withdrawals)
     // Staked GLP positions are transferred to the primaryEarnAccount on a schedule (eg daily), which does
     // not reset the cooldown clock.
-    IOrigamiGmxEarnAccount public override secondaryEarnAccount;
+    IOrigamiGmxEarnAccount public secondaryEarnAccount;
+
+    struct GlpUnderlyingInvestQuoteData {
+        uint256 expectedUsdg;
+    }
 
     event OGmxRewardsFeeRateSet(uint128 numerator, uint128 denominator);
     event SellFeeRateSet(uint128 numerator, uint128 denominator);
@@ -346,88 +351,95 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
         primaryEarnAccount.stakeGmx(_amount);
     }
 
-    /// @notice Get a quote for selling oGMX - 1:1 but with exit fees applied.
-    function sellOGmxQuote(uint256 _oGmxAmount) external override view returns (
-        uint256 origamiFeeBasisPoints, uint256 gmxAmountOut
+    /// @notice The set of accepted tokens which can be used to invest/exit into oGMX.
+    function acceptedOGmxTokens() external view override returns (address[] memory tokens) {
+        tokens = new address[](1);
+        tokens[0] = address(gmxToken);
+    }
+
+    /**
+     * @notice Get a quote to buy the oGMX using GMX.
+     * @param fromTokenAmount How much of GMX to invest with
+     * @param fromToken This must be the address of the GMX token
+     * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
+     * @return investFeeBps [GMX.io's fee when depositing with `fromToken`]
+     */
+    function investOGmxQuote(
+        uint256 fromTokenAmount,
+        address fromToken
+    ) external override view returns (
+        IOrigamiInvestment.InvestQuoteData memory quoteData, 
+        uint256[] memory investFeeBps
     ) {
-        origamiFeeBasisPoints = sellFeeRate.asBasisPoints();
-        (, gmxAmountOut) = sellFeeRate.split(_oGmxAmount);
+        if (fromToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(fromToken);
+        if (fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        // oGMX is minted 1:1, no fees
+        quoteData.fromToken = fromToken;
+        quoteData.fromTokenAmount = fromTokenAmount;
+        quoteData.expectedInvestmentAmount = fromTokenAmount;
+        // No extra underlyingInvestmentQuoteData
+
+        investFeeBps = new uint256[](0);
     }
 
-    /// @notice The set of whitelisted GMX.io tokens which can be used to buy GLP (and hence oGLP)
-    /// @dev Native tokens (ETH/AVAX) and using staked GLP can also be used and are
-    /// not included in this list.
-    function acceptedGlpTokens(address[] calldata extraTokens) external view override returns (address[] memory tokens) {
-        uint256 length = gmxVault.allWhitelistedTokensLength();
-        tokens = new address[](length + extraTokens.length);
-
-        // Add in the GMX.io whitelisted tokens
-        uint256 tokenIdx;
-        uint256 i;
-        for (; i < length; ++i) {
-            tokens[tokenIdx] = gmxVault.allWhitelistedTokens(i);
-            ++tokenIdx;
-        }
-
-        // Add any extra tokens (eg ETH/AVAX, staked GLP)
-        for (i=0; i < extraTokens.length; ++i) {
-            tokens[tokenIdx] = extraTokens[i];
-            ++tokenIdx;
-        }
-    }
-
-    /// @notice Get a quote to buy oGLP, with a GMX.io whitelisted token
-    function buyOGlpQuote(
-        uint256 _amount, address _token
-    ) external view override returns (
-        uint256 oGlpAmountOut, uint256[] memory investFeeBps, uint256 expectedUsdg
+    /** 
+      * @notice User buys oGMX with an amount GMX.
+      * @param quoteData The quote data received from investQuote()
+      * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
+      */
+    function investOGmx(
+        IOrigamiInvestment.InvestQuoteData calldata quoteData, 
+        uint256 /*slippageBps currently unused*/
+    ) external override onlyOperators returns (
+        uint256 investmentAmount
     ) {
-        // GMX.io don't provide on-contract external functions to obtain the quote. Logic extracted from:
-        // https://github.com/gmx-io/gmx-contracts/blob/83bd5c7f4a1236000e09f8271d58206d04d1d202/contracts/core/GlpManager.sol#L160
-        investFeeBps = new uint256[](1);
-        if (_amount == 0) return (oGlpAmountOut, investFeeBps, expectedUsdg);
-        uint256 aumInUsdg = glpManager.getAumInUsdg(true); // Assets Under Management
-        uint256 glpSupply = IERC20(glpToken).totalSupply();
+        // Transfer the GMX straight to the primary earn account which stakes the GMX at GMX.io
+        // NB: There is no cooldown when transferring GMX, so using the primary earn account for deposits is fine.
+        gmxToken.safeTransfer(address(primaryEarnAccount), quoteData.fromTokenAmount);
+        primaryEarnAccount.stakeGmx(quoteData.fromTokenAmount);
 
-        (investFeeBps[0], expectedUsdg) = buyUsdgQuote(_amount, _token);
-
-        oGlpAmountOut = (aumInUsdg == 0) ? expectedUsdg : expectedUsdg * glpSupply / aumInUsdg;
+        // User gets 1:1 oGMX for the GMX provided.
+        investmentAmount = quoteData.fromTokenAmount;
     }
 
-    /// @notice Get a quote to sell oGLP to a GMX whitelisted token
-    /// @dev Origami retains a portion of the oGLP as a fee and then gets a quote to sell
-    /// the remaining portion 1:1 as GLP
-    function sellOGlpQuote(
-        uint256 _oGlpAmount,
-        address _toToken
-    ) external override view returns (uint256 tokenAmountOut, uint256[] memory exitFeeBps) {
-        exitFeeBps = new uint256[](2);  // [Origami's exit fee, GMX's exit fee]
+    /**
+     * @notice Get a quote to sell oGMX to GMX.
+     * @param investmentTokenAmount The amount of oGMX to sell
+     * @param toToken This must be the address of the GMX token
+     * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
+     * @return exitFeeBps [Origami's exit fee]
+     */
+    function exitOGmxQuote(
+        uint256 investmentTokenAmount, 
+        address toToken
+    ) external override view returns (
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256[] memory exitFeeBps
+    ) {
+        if (investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+        if (toToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(toToken);
+
+        quoteData.investmentTokenAmount = investmentTokenAmount;
+        quoteData.toToken = toToken;
+        // No extra underlyingInvestmentQuoteData
+
+        exitFeeBps = new uint256[](1);
         exitFeeBps[0] = sellFeeRate.asBasisPoints();
-        (, uint256 glpAmount) = sellFeeRate.split(_oGlpAmount);
-        if (glpAmount == 0) return (tokenAmountOut, exitFeeBps);
-
-        if (_toToken == address(primaryEarnAccount.stakedGlp())) {
-            // No GMX related fees for staked GLP transfers
-            tokenAmountOut = glpAmount;
-        } else {
-            // GMX.io don't provide on-contract external functions to obtain the quote. Logic extracted from:
-            // https://github.com/gmx-io/gmx-contracts/blob/83bd5c7f4a1236000e09f8271d58206d04d1d202/contracts/core/GlpManager.sol#L183
-            uint256 aumInUsdg = glpManager.getAumInUsdg(false); // Assets Under Management
-            uint256 glpSupply = IERC20(glpToken).totalSupply();
-            uint256 usdgAmount = (glpSupply == 0) ? 0 : glpAmount * aumInUsdg / glpSupply;
-            
-            (exitFeeBps[1], tokenAmountOut) = sellUsdgQuote(usdgAmount, _toToken);
-        }
+        (, quoteData.expectedToTokenAmount) = sellFeeRate.split(investmentTokenAmount);
     }
-
-    /// @notice Sell oGMX to GMX. Origami retains a portion of the staked GMX as a fee and unstakes the remaining GMX and sends to the user.
-    /// @dev This burns the full amount of oGMX, and then unstakes only the portion it needs to return to the user.
-    function sellOGmx(
-        uint256 _sellAmount,
-        address _recipient
+    
+    /** 
+      * @notice Sell oGMX to receive GMX. 
+      * @param quoteData The quote data received from exitQuote()
+      * @param recipient The receiving address of the `t\oToken`
+      */
+    function exitOGmx(
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256 /*slippageBps currently unused*/,
+        address recipient
     ) external override onlyOperators returns (uint256) {
-        if (_sellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
-        (uint256 fees, uint256 nonFees) = sellFeeRate.split(_sellAmount);
+        (uint256 fees, uint256 nonFees) = sellFeeRate.split(quoteData.investmentTokenAmount);
 
         // Send the oGlp fees to the fee collector
         if (fees > 0) {
@@ -442,23 +454,160 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
             primaryEarnAccount.unstakeGmx(nonFees);
 
             // Send the GMX to the recipient
-            gmxToken.safeTransfer(_recipient, nonFees);
+            gmxToken.safeTransfer(recipient, nonFees);
         }
 
         return nonFees;
     }
 
-    /// @notice Sell oGLP to a whitelisted token. Origami retains a portion of the staked GLP as a fee and unstakes/sells the remaining GLP and sends the _toToken to the user.
-    /// @dev This burns the full amount of oGLP, and then unstakes and sends the `_toToken` amount to the recipient.
-    function sellOGlp(
-        uint256 _sellAmount,
-        address _toToken,
-        uint256 _minAmountOut,
-        uint256 _slippageBps,
-        address _recipient
+    /// @notice The set of whitelisted GMX.io tokens which can be used to buy GLP (and hence oGLP)
+    /// @dev Native tokens (ETH/AVAX) and using staked GLP can also be used.
+    function acceptedGlpTokens() external view override returns (address[] memory tokens) {
+        uint256 length = gmxVault.allWhitelistedTokensLength();
+        tokens = new address[](length + 2);
+
+        // Add in the GMX.io whitelisted tokens
+        // uint256 tokenIdx;
+        uint256 i;
+        for (; i < length; ++i) {
+            tokens[i] = gmxVault.allWhitelistedTokens(i);
+        }
+
+        // ETH/AVAX is at [length-1 + 1]. Already instantiated as 0x
+        // staked GLP is at [length-1 + 2]
+        tokens[i+1] = address(primaryEarnAccount.stakedGlp());
+    }
+
+    /**
+     * @notice Get a quote to buy the oGLP using one of the approved tokens, inclusive of GMX.io fees.
+     * @dev The 0x0 address can be used for native chain ETH/AVAX
+     * @param fromTokenAmount How much of `fromToken` to invest with
+     * @param fromToken What ERC20 token to purchase with. This must be one of `acceptedInvestTokens`
+     * @return quoteData The quote data, including any other quote params required for the underlying investment type. To be passed through when executing the quote.
+     * @return investFeeBps [GMX.io's fee when depositing with `fromToken`]
+     */
+    function investOGlpQuote(
+        uint256 fromTokenAmount, 
+        address fromToken
+    ) external view override returns (
+        IOrigamiInvestment.InvestQuoteData memory quoteData, 
+        uint256[] memory investFeeBps
+    ) {
+        if (fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        quoteData.fromToken = fromToken;
+        quoteData.fromTokenAmount = fromTokenAmount;
+
+        uint256 expectedUsdg;
+        if (fromToken == address(primaryEarnAccount.stakedGlp())) {
+            quoteData.expectedInvestmentAmount = fromTokenAmount; // 1:1 for staked GLP
+            investFeeBps = new uint256[](1); // investFeeBps[0]=0, expectedUsdg=0
+        } else {
+            address tokenIn = (fromToken == address(0)) ? wrappedNativeToken : fromToken;
+
+            // GMX.io don't provide on-contract external functions to obtain the quote. Logic extracted from:
+            // https://github.com/gmx-io/gmx-contracts/blob/83bd5c7f4a1236000e09f8271d58206d04d1d202/contracts/core/GlpManager.sol#L160
+            investFeeBps = new uint256[](1);
+            uint256 aumInUsdg = glpManager.getAumInUsdg(true); // Assets Under Management
+            uint256 glpSupply = IERC20(glpToken).totalSupply();
+
+            (investFeeBps[0], expectedUsdg) = buyUsdgQuote(fromTokenAmount, tokenIn);
+
+            quoteData.expectedInvestmentAmount = (aumInUsdg == 0) ? expectedUsdg : expectedUsdg * glpSupply / aumInUsdg;
+        }
+        
+        quoteData.underlyingInvestmentQuoteData = abi.encode(GlpUnderlyingInvestQuoteData(expectedUsdg));
+    }
+
+    /** 
+      * @notice User buys oGLP with an amount of one of the approved ERC20 tokens. 
+      * @param fromToken The token override to invest with. May be different from the `quoteData.fromToken`
+      * @param quoteData The quote data received from investQuote()
+      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
+      * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
+      */
+    function investOGlp(
+        address fromToken,
+        IOrigamiInvestment.InvestQuoteData calldata quoteData, 
+        uint256 slippageBps
+    ) external override onlyOperators returns (
+        uint256 investmentAmount
+    ) {
+        if (fromToken == address(primaryEarnAccount.stakedGlp())) {
+            // Pull staked GLP tokens from the user and transfer directly to the primary Origami earn account contract, responsible for staking.
+            // This doesn't reset the cooldown clock for withdrawals, so it's ok to send directly to the primary earn account.
+            IERC20(fromToken).safeTransfer(address(primaryEarnAccount), quoteData.fromTokenAmount);
+            investmentAmount = quoteData.fromTokenAmount;
+        } else {
+            // Pull ERC20 tokens from the user and send to the secondary Origami earn account contract which purchases GLP on GMX.io and stakes it
+            // This DOES reset the cooldown clock for withdrawals, so the secondary account is used in order 
+            // to avoid withdrawals blocking from cooldown in the primary account.
+            IERC20(fromToken).safeTransfer(address(secondaryEarnAccount), quoteData.fromTokenAmount);
+
+            GlpUnderlyingInvestQuoteData memory underlyingQuoteData = abi.decode(quoteData.underlyingInvestmentQuoteData, (GlpUnderlyingInvestQuoteData));
+            investmentAmount = secondaryEarnAccount.mintAndStakeGlp(
+                quoteData.fromTokenAmount, fromToken, underlyingQuoteData.expectedUsdg, quoteData.expectedInvestmentAmount, slippageBps
+            );
+        }
+    }
+
+    /**
+     * @notice Get a quote to sell oGLP to receive one of the accepted tokens.
+     * @dev The 0x0 address can be used for native chain ETH/AVAX
+     * @param investmentTokenAmount The amount of oGLP to sell
+     * @param toToken The token to receive when selling. This must be one of `acceptedExitTokens`
+     * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
+     * @return exitFeeBps [Origami's exit fee, GMX.io's fee when selling to `toToken`]
+     */
+    function exitOGlpQuote(
+        uint256 investmentTokenAmount, 
+        address toToken
+    ) external override view returns (
+        IOrigamiInvestment.ExitQuoteData memory quoteData, 
+        uint256[] memory exitFeeBps
+    ) {
+        if (investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        quoteData.investmentTokenAmount = investmentTokenAmount;
+        quoteData.toToken = toToken;
+        // No extra underlyingInvestmentQuoteData on exit
+
+        exitFeeBps = new uint256[](2);  // [Origami's exit fee, GMX's exit fee]
+        exitFeeBps[0] = sellFeeRate.asBasisPoints();
+        (, uint256 glpAmount) = sellFeeRate.split(investmentTokenAmount);
+        if (glpAmount == 0) return (quoteData, exitFeeBps);
+
+        if (toToken == address(primaryEarnAccount.stakedGlp())) {
+            // No GMX related fees for staked GLP transfers
+            quoteData.expectedToTokenAmount = glpAmount;
+        } else {
+            address tokenOut = (toToken == address(0)) ? wrappedNativeToken : toToken;
+
+            // GMX.io don't provide on-contract external functions to obtain the quote. Logic extracted from:
+            // https://github.com/gmx-io/gmx-contracts/blob/83bd5c7f4a1236000e09f8271d58206d04d1d202/contracts/core/GlpManager.sol#L183
+            uint256 aumInUsdg = glpManager.getAumInUsdg(false); // Assets Under Management
+            uint256 glpSupply = IERC20(glpToken).totalSupply();
+            uint256 usdgAmount = (glpSupply == 0) ? 0 : glpAmount * aumInUsdg / glpSupply;
+            
+            (exitFeeBps[1], quoteData.expectedToTokenAmount) = sellUsdgQuote(usdgAmount, tokenOut);
+        }
+    }
+
+    /** 
+      * @notice Sell oGLP to receive one of the accepted tokens. 
+      * @param toToken The token override to invest with. May be different from the `quoteData.toToken`
+      * @param quoteData The quote data received from exitQuote()
+      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
+      * @param recipient The receiving address of the `toToken`
+      * @return amountOut The number of `toToken` tokens received upon selling the Origami receipt token.
+      */
+    function exitOGlp(
+        address toToken,
+        IOrigamiInvestment.ExitQuoteData calldata quoteData, 
+        uint256 slippageBps, 
+        address recipient
     ) external override onlyOperators returns (uint256 amountOut) {
-        if (_sellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
-        (uint256 fees, uint256 nonFees) = sellFeeRate.split(_sellAmount);
+        (uint256 fees, uint256 nonFees) = sellFeeRate.split(quoteData.investmentTokenAmount);
 
         // Send the oGlp fees to the fee collector
         if (fees > 0) {
@@ -469,43 +618,24 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
             // Burn the remaining oGlp
             oGlpToken.burn(address(this), nonFees);
 
-            // Sell from the primary earn account and send the resulting token to the recipient.
-            amountOut = primaryEarnAccount.unstakeAndRedeemGlp(
-                nonFees,
-                _toToken,
-                _minAmountOut,
-                _slippageBps,
-                _recipient
-            );
+            if (toToken == address(primaryEarnAccount.stakedGlp())) {
+                // Transfer the remaining staked GLP to the recipient
+                primaryEarnAccount.transferStakedGlp(
+                    nonFees,
+                    recipient
+                );
+                amountOut = nonFees;
+            } else {
+                // Sell from the primary earn account and send the resulting token to the recipient.
+                amountOut = primaryEarnAccount.unstakeAndRedeemGlp(
+                    nonFees,
+                    toToken,
+                    quoteData.expectedToTokenAmount,
+                    slippageBps,
+                    recipient
+                );
+            }
         }
-    }
-
-    /// @notice Sell oGLP to Staked GLP to the recipient. Origami retains a portion of the staked GLP as a fee and returns the rest to the user.
-    /// @dev This burns the full amount of oGLP, and then unstakes and sends the `_toToken` amount to the recipient.
-    function sellOGlpToStakedGlp(
-        uint256 _sellAmount,
-        address _recipient
-    ) external override onlyOperators returns (uint256) {
-        if (_sellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
-        (uint256 fees, uint256 nonFees) = sellFeeRate.split(_sellAmount);
-
-        // Send the oGlp fees to the fee collector
-        if (fees > 0) {
-            oGlpToken.safeTransfer(feeCollector, fees);
-        }
-
-        if (nonFees > 0) {
-            // Burn the users oGlp
-            oGlpToken.burn(address(this), nonFees);
-
-            // Transfer the remaining staked GLP to the recipient
-            primaryEarnAccount.transferStakedGlp(
-                nonFees,
-                _recipient
-            );
-        }
-
-        return nonFees;
     }
 
     function buyUsdgQuote(uint256 fromAmount, address fromToken) internal view returns (

@@ -13,6 +13,7 @@ import {
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
 } from "../../../typechain";
 import {
+    decodeGlpUnderlyingInvestQuoteData,
     deployGmx, GmxContracts, updateDistributionTime } from "./gmx-helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { GmxVaultType } from "../../../scripts/deploys/helpers";
@@ -338,18 +339,22 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.buyOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, bobQuote.expectedUsdg, bobQuote.oGlpAmountOut
+                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.buyOGlpQuote(amount, tokenAddr);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, origamiQuote.expectedUsdg, origamiQuote.oGlpAmountOut, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
+                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
 
-                expectedRatio = origamiQuote.oGlpAmountOut.mul(precision).div(origamiQuote.oGlpAmountOut.add(bobQuote.oGlpAmountOut));
+                expectedRatio = origamiQuote.quoteData.expectedInvestmentAmount
+                    .mul(precision)
+                    .div(origamiQuote.quoteData.expectedInvestmentAmount.add(bobQuote.quoteData.expectedInvestmentAmount));
             }
 
             await mineForwardSeconds(86400);
@@ -425,18 +430,22 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.buyOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, bobQuote.expectedUsdg, bobQuote.oGlpAmountOut
+                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.buyOGlpQuote(amount, tokenAddr);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, origamiQuote.expectedUsdg, origamiQuote.oGlpAmountOut, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
+                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
 
-                expectedRatio = origamiQuote.oGlpAmountOut.mul(precision).div(origamiQuote.oGlpAmountOut.add(bobQuote.oGlpAmountOut));
+                expectedRatio = origamiQuote.quoteData.expectedInvestmentAmount
+                    .mul(precision)
+                    .div(origamiQuote.quoteData.expectedInvestmentAmount.add(bobQuote.quoteData.expectedInvestmentAmount));
 
                 // Bob buys GMX directly (outside of origami)
                 await gmxContracts.gmxToken.mint(bob.getAddress(), amount);
@@ -506,18 +515,22 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.buyOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, bobQuote.expectedUsdg, bobQuote.oGlpAmountOut
+                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.buyOGlpQuote(amount, tokenAddr);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, origamiQuote.expectedUsdg, origamiQuote.oGlpAmountOut, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
+                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
 
-                expectedRatio = origamiQuote.oGlpAmountOut.mul(precision).div(origamiQuote.oGlpAmountOut.add(bobQuote.oGlpAmountOut));
+                expectedRatio = origamiQuote.quoteData.expectedInvestmentAmount
+                    .mul(precision)
+                    .div(origamiQuote.quoteData.expectedInvestmentAmount.add(bobQuote.quoteData.expectedInvestmentAmount));
 
                 // Bob buys GMX directly (outside of origami)
                 await gmxContracts.gmxToken.mint(bob.getAddress(), amount);
@@ -585,18 +598,22 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.buyOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, bobQuote.expectedUsdg, bobQuote.oGlpAmountOut
+                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.buyOGlpQuote(amount, tokenAddr);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, origamiQuote.expectedUsdg, origamiQuote.oGlpAmountOut, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
+                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
 
-                expectedRatio = origamiQuote.oGlpAmountOut.mul(precision).div(origamiQuote.oGlpAmountOut.add(bobQuote.oGlpAmountOut));
+                expectedRatio = origamiQuote.quoteData.expectedInvestmentAmount
+                    .mul(precision)
+                    .div(origamiQuote.quoteData.expectedInvestmentAmount.add(bobQuote.quoteData.expectedInvestmentAmount));
             }
 
             await mineForwardSeconds(86400);
@@ -691,18 +708,20 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.buyOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
+                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, bobQuote.expectedUsdg, bobQuote.oGlpAmountOut
+                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.buyOGlpQuote(amount, tokenAddr);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, origamiQuote.expectedUsdg, origamiQuote.oGlpAmountOut, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
+                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
 
-                expectedRatio = origamiQuote.oGlpAmountOut.mul(precision).div(origamiQuote.oGlpAmountOut.add(bobQuote.oGlpAmountOut));
+                expectedRatio = origamiQuote.quoteData.expectedInvestmentAmount.mul(precision).div(origamiQuote.quoteData.expectedInvestmentAmount.add(bobQuote.quoteData.expectedInvestmentAmount));
 
                 // Bob buys GMX directly (outside of origami)
                 await gmxContracts.gmxToken.mint(bob.getAddress(), amount);
