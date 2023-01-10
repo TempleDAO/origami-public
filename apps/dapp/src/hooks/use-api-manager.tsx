@@ -8,13 +8,13 @@ import React, { useMemo, useState } from 'react';
 interface ApiManager {
   papi: ProviderApi;
   sapi: SignerApi | undefined;
-  metamask: MetamaskConnection | undefined;
+  wallet: WalletConnection | undefined;
 
   disconnectSigner(): Promise<void>;
   connectSigner(chainId?: ChainId): Promise<void>;
 }
 
-export interface MetamaskConnection {
+export interface WalletConnection {
   signer: Signer;
   signerApi: SignerApi;
   chainId: ChainId;
@@ -32,38 +32,16 @@ export function ApiManagerProvider(props: {
     () => createProviderApi(props.apiConfig),
     [props.apiConfig]
   );
-  const [metamask, setMetamask] = useState<MetamaskConnection | undefined>();
+  const [wallet, setWallet] = useState<WalletConnection | undefined>();
 
   async function disconnectSigner() {
-    setMetamask(undefined);
+    setWallet(undefined);
   }
 
   async function connectSigner(mChainId?: ChainId) {
     if (typeof window !== undefined) {
-      const ethereum = (window as unknown as { ethereum: LocalProvider })
-        .ethereum;
-      const provider = new ethers.providers.Web3Provider(ethereum, 'any');
-      const signer = provider.getSigner();
-      let chainId = await signer.getChainId();
-      await provider.send('eth_requestAccounts', []);
-
-      if (mChainId && mChainId !== chainId) {
-        const toChain = papi.chains.get(mChainId);
-        if (!toChain) {
-          throw new Error('No config for chainid ' + mChainId);
-        }
-        await switchToChain(ethereum, toChain);
-        chainId = toChain.id;
-      }
-      const address = await signer.getAddress();
-      const signerApi = createSignerApi(
-        props.apiConfig,
-        address,
-        chainId,
-        signer
-      );
-      const newmm = { signer, signerApi, chainId, address };
-      setMetamask((oldmm) =>
+      const newmm = await createConnection(papi, mChainId, props.apiConfig);
+      setWallet((oldmm) =>
         !oldmm || oldmm.chainId !== newmm.chainId ? newmm : oldmm
       );
     }
@@ -71,8 +49,8 @@ export function ApiManagerProvider(props: {
 
   const apiManager: ApiManager = {
     papi,
-    sapi: metamask && metamask.signerApi,
-    metamask,
+    sapi: wallet && wallet.signerApi,
+    wallet: wallet,
     disconnectSigner,
     connectSigner,
   };
@@ -89,6 +67,33 @@ export function useApiManager(): ApiManager {
     throw new Error('useChainSigner invalid outside an ChainSignerProvider');
   }
   return chainSigner;
+}
+
+/**
+ * Create a new connection to the wallet, switching to and setting up the specified chain if required.
+ */
+async function createConnection(
+  papi: ProviderApi,
+  mChainId: ChainId | undefined,
+  apiConfig: ApiConfig
+): Promise<WalletConnection> {
+  const ethereum = (window as unknown as { ethereum: LocalProvider }).ethereum;
+  const provider = new ethers.providers.Web3Provider(ethereum, 'any');
+  const signer = provider.getSigner();
+  let chainId = await signer.getChainId();
+  await provider.send('eth_requestAccounts', []);
+
+  if (mChainId && mChainId !== chainId) {
+    const toChain = papi.chains.get(mChainId);
+    if (!toChain) {
+      throw new Error('No config for chainid ' + mChainId);
+    }
+    await switchToChain(ethereum, toChain);
+    chainId = toChain.id;
+  }
+  const address = await signer.getAddress();
+  const signerApi = createSignerApi(apiConfig, address, chainId, signer);
+  return { signer, signerApi, chainId, address };
 }
 
 async function switchToChain(ethereum: LocalProvider, toChain: ChainConfig) {
