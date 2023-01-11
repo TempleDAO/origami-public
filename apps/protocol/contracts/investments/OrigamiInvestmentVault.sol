@@ -13,6 +13,7 @@ import {IOrigamiInvestment} from "../interfaces/investments/IOrigamiInvestment.s
 import {ITokenPrices} from "../interfaces/common/ITokenPrices.sol";
 import {RepricingToken} from "../common/RepricingToken.sol";
 import {CommonEventsAndErrors} from "../common/CommonEventsAndErrors.sol";
+import {FractionalAmount} from "../common/FractionalAmount.sol";
 
 /**
  * @title Origami Investment Vault
@@ -36,16 +37,22 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
     /// @notice The Origami investment manager contract, which can give apr/apy based rates 
     IOrigamiInvestmentManager public investmentManager;
 
+    /// @notice The performance fee which Origami takes from harvested rewards before compounding into reserves.
+    FractionalAmount.Data public override performanceFee;
+
     event InvestmentManagerSet(address indexed _investmentManager);
     event TokenPricesSet(address indexed _tokenPrices);
+    event PerformanceFeeSet(uint128 numerator, uint128 denominator);
 
     constructor(
         string memory _name,
         string memory _symbol,
         address _origamiInvestment,
-        address _tokenPrices
+        address _tokenPrices,
+        uint256 _performanceFeePercent
     ) RepricingToken(_name, _symbol, _origamiInvestment) {
         tokenPrices = ITokenPrices(_tokenPrices);
+        FractionalAmount.set(performanceFee, uint128(_performanceFeePercent), 100);
     }
     
     /** 
@@ -73,7 +80,13 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
         tokenPrices = ITokenPrices(_tokenPrices);
         emit TokenPricesSet(_tokenPrices);
     }
-    
+
+    /// @notice Set the vault performance fee
+    function setPerformanceFee(uint128 _numerator, uint128 _denominator) external onlyOwner {
+        FractionalAmount.set(performanceFee, _numerator, _denominator);
+        emit PerformanceFeeSet(_numerator, _denominator);
+    }
+
     /// @dev The reseve token is a valid invest/exit token, and needs to be appended.
     /// Unforunately needs to copy the input array as this is memory defined storage.
     function appendReserveToken(address[] memory items) private view returns (address[] memory newItems) {
@@ -361,7 +374,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
      * @dev APR == [the total USD value of rewards (less fees) for one per year at current rates] / [USD value of the total shares supply]
      */
     function apr() public override view returns (uint256 aprBps) {
-        uint256[] memory projectedRewardRates = investmentManager.projectedRewardRates();  // 1e18 precision
+        uint256[] memory projectedRewardRates = investmentManager.projectedRewardRates(true);  // 1e18 precision, remove performance fees
         uint256[] memory rewardTokenPricesUsd = tokenPrices.tokenPrices(investmentManager.rewardTokensList()); // 1e30 precision
 
         // Accumulate the USD value of rewards for the year, based on the current projected reward rates per second.

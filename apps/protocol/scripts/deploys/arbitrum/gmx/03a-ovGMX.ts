@@ -18,6 +18,7 @@ async function main() {
     'Origami GMX Investment Vault', 'ovGMX',
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGMX,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.TOKEN_PRICES,
+    5, // 5% performance fee
   );
 }
 

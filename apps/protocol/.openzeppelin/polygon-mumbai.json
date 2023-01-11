@@ -2,22 +2,27 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
-      "address": "0x04db529c39bbd8C3Dc77D56fF7A5015a6D1162B9",
-      "txHash": "0x496c6631fc6916976b793795279e39489c9cc30e851dece2a6b7b44112787067",
+      "address": "0xc39559DD31A0c4111e51Bb94244D48C55C0bBd91",
+      "txHash": "0x30126b36d203d0589587913227e0d9711ae9c98a2d42b72a3c561ef4b5b68552",
       "kind": "uups"
     },
     {
-      "address": "0xb02Ab7EfdC561A94CBe3e75d624531699f168a67",
-      "txHash": "0x8fd425caf26d9675584e3bc2d1830c80b5fe054989cdf7b53351a0600ff352db",
+      "address": "0xee5A7aE103540A9C4837a9910ed63D3C338878f7",
+      "txHash": "0xa325911ed392a3988fdfe2b5a2fdc1384213b2c2184274c41b8aaea6a1c377e7",
+      "kind": "uups"
+    },
+    {
+      "address": "0xc154043057B4c33f54f88cFA75cbD85be48900de",
+      "txHash": "0xc5164541328a5aecd4bf2e15d5c51c373ee44cc414643eae3e410f4ebdeaa7d9",
       "kind": "uups"
     }
   ],
   "impls": {
-    "c3ee48bfd8955df1066273080772b5220504ab33398cd8a8332fd45010e4ff0b": {
-      "address": "0xA04501840A843982Ea5B9FA21e7aC0F8301C5331",
-      "txHash": "0xab363d208ef1b014bb23f66ba60faf1a0252f9d1aa1afb86531375e1de3de67b",
+    "25f57b66be77ec733cc6afe11df70c986484a138a40eb9152c3280f75330e838": {
+      "address": "0x1298A115Dc4b912F9EacE170584306168A67E708",
+      "txHash": "0x8a7078d03670b20d662f1d9ab25fa0df9acbb2a1cb5ee3a2c1c209650782a891",
       "layout": {
-        "solcVersion": "0.8.10",
+        "solcVersion": "0.8.17",
         "storage": [
           {
             "label": "_initialized",
@@ -45,25 +50,9 @@
             "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
           },
           {
-            "label": "_paused",
-            "offset": 0,
-            "slot": "51",
-            "type": "t_bool",
-            "contract": "PausableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
-          },
-          {
-            "label": "__gap",
-            "offset": 0,
-            "slot": "52",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "PausableUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
-          },
-          {
             "label": "_owner",
             "offset": 0,
-            "slot": "101",
+            "slot": "51",
             "type": "t_address",
             "contract": "OwnableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
@@ -71,10 +60,26 @@
           {
             "label": "__gap",
             "offset": 0,
-            "slot": "102",
+            "slot": "52",
             "type": "t_array(t_uint256)49_storage",
             "contract": "OwnableUpgradeable",
             "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "operators",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "OperatorsUpgradeable",
+            "src": "contracts/common/access/OperatorsUpgradeable.sol:11"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OperatorsUpgradeable",
+            "src": "contracts/common/access/OperatorsUpgradeable.sol:56"
           },
           {
             "label": "__gap",
@@ -93,134 +98,106 @@
             "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
           },
           {
-            "label": "_status",
+            "label": "gmxToken",
             "offset": 0,
             "slot": "251",
-            "type": "t_uint256",
-            "contract": "ReentrancyGuardUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:38"
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:33"
           },
           {
-            "label": "__gap",
+            "label": "esGmxToken",
             "offset": 0,
             "slot": "252",
-            "type": "t_array(t_uint256)49_storage",
-            "contract": "ReentrancyGuardUpgradeable",
-            "src": "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol:80"
-          },
-          {
-            "label": "distributorRewardTokens",
-            "offset": 0,
-            "slot": "301",
-            "type": "t_array(t_address)dyn_storage",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:27"
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:36"
           },
           {
             "label": "wrappedNativeToken",
             "offset": 0,
-            "slot": "302",
+            "slot": "253",
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:39"
+          },
+          {
+            "label": "bnGmxAddr",
+            "offset": 0,
+            "slot": "254",
             "type": "t_address",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:31"
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:42"
           },
           {
-            "label": "allRewardTokens",
+            "label": "gmxRewardRouter",
             "offset": 0,
-            "slot": "303",
-            "type": "t_array(t_address)dyn_storage",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:37"
+            "slot": "255",
+            "type": "t_contract(IGmxRewardRouter)7313",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:45"
           },
           {
-            "label": "distributor",
+            "label": "glpRewardRouter",
             "offset": 0,
-            "slot": "304",
-            "type": "t_contract(IOrigamiRewardsDistributor)12309",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:40"
+            "slot": "256",
+            "type": "t_contract(IGmxRewardRouter)7313",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:48"
           },
           {
-            "label": "stakingToken",
+            "label": "stakedGmxTracker",
             "offset": 0,
-            "slot": "305",
-            "type": "t_contract(IERC20Upgradeable)1103",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:43"
+            "slot": "257",
+            "type": "t_contract(IGmxRewardTracker)7356",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:51"
           },
           {
-            "label": "claimableRewards",
+            "label": "feeGmxTracker",
             "offset": 0,
-            "slot": "306",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:46"
+            "slot": "258",
+            "type": "t_contract(IGmxRewardTracker)7356",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:54"
           },
           {
-            "label": "cumulativeRewardPerToken",
+            "label": "stakedGlpTracker",
             "offset": 0,
-            "slot": "307",
-            "type": "t_mapping(t_address,t_uint256)",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:50"
+            "slot": "259",
+            "type": "t_contract(IGmxRewardTracker)7356",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:57"
           },
           {
-            "label": "previousCumulatedRewardPerToken",
+            "label": "feeGlpTracker",
             "offset": 0,
-            "slot": "308",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:54"
+            "slot": "260",
+            "type": "t_contract(IGmxRewardTracker)7356",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:60"
           },
           {
-            "label": "largeStakePercentage",
+            "label": "stakedGlp",
             "offset": 0,
-            "slot": "309",
-            "type": "t_uint256",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:62"
+            "slot": "261",
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:63"
           },
           {
-            "label": "tokenToDistributorRewardsIndex",
+            "label": "esGmxVester",
             "offset": 0,
-            "slot": "310",
-            "type": "t_mapping(t_address,t_uint256)",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:66"
-          },
-          {
-            "label": "totalSupply",
-            "offset": 0,
-            "slot": "311",
-            "type": "t_uint256",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:69"
-          },
-          {
-            "label": "stakedBalances",
-            "offset": 0,
-            "slot": "312",
-            "type": "t_mapping(t_address,t_uint256)",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:72"
-          },
-          {
-            "label": "externalStakingForCompounding",
-            "offset": 0,
-            "slot": "313",
-            "type": "t_mapping(t_address,t_contract(IOrigamiStaking)12432)",
-            "contract": "OrigamiStaking",
-            "src": "contracts/staking/OrigamiStaking.sol:77"
+            "slot": "262",
+            "type": "t_contract(IGmxVester)7541",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:67"
           }
         ],
         "types": {
           "t_address": {
             "label": "address",
             "numberOfBytes": "20"
-          },
-          "t_array(t_address)dyn_storage": {
-            "label": "address[]",
-            "numberOfBytes": "32"
           },
           "t_array(t_uint256)49_storage": {
             "label": "uint256[49]",
@@ -234,28 +211,24 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(IERC20Upgradeable)1103": {
+          "t_contract(IERC20Upgradeable)903": {
             "label": "contract IERC20Upgradeable",
             "numberOfBytes": "20"
           },
-          "t_contract(IOrigamiRewardsDistributor)12309": {
-            "label": "contract IOrigamiRewardsDistributor",
+          "t_contract(IGmxRewardRouter)7313": {
+            "label": "contract IGmxRewardRouter",
             "numberOfBytes": "20"
           },
-          "t_contract(IOrigamiStaking)12432": {
-            "label": "contract IOrigamiStaking",
+          "t_contract(IGmxRewardTracker)7356": {
+            "label": "contract IGmxRewardTracker",
             "numberOfBytes": "20"
           },
-          "t_mapping(t_address,t_contract(IOrigamiStaking)12432)": {
-            "label": "mapping(address => contract IOrigamiStaking)",
-            "numberOfBytes": "32"
+          "t_contract(IGmxVester)7541": {
+            "label": "contract IGmxVester",
+            "numberOfBytes": "20"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
-            "label": "mapping(address => mapping(address => uint256))",
-            "numberOfBytes": "32"
-          },
-          "t_mapping(t_address,t_uint256)": {
-            "label": "mapping(address => uint256)",
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
           "t_uint256": {

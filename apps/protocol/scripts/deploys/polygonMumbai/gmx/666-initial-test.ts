@@ -149,7 +149,7 @@ async function main() {
         // Add/Remove Reserves
         {
             const addAmount = ethers.utils.parseEther("10");
-            // await mine(contracts.oGLP.mint(owner.getAddress(), addAmount));
+            await mine(contracts.oGLP.mint(owner.getAddress(), addAmount));
             await mine(contracts.oGLP.approve(contracts.ovGLP.address, addAmount));
             console.log("ovGLP reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
             await mine(contracts.ovGLP.addReserves(addAmount));

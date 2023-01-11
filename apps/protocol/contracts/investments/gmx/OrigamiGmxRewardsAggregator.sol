@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IOrigamiInvestmentManager} from "../../interfaces/investments/IOrigamiInvestmentManager.sol";
+import {IOrigamiInvestmentVault} from "../../interfaces/investments/IOrigamiInvestmentVault.sol";
 import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
 import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
@@ -20,7 +21,6 @@ import {FractionalAmount} from "../../common/FractionalAmount.sol";
 /// calls to harvest aggregated rewards.
 contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Pausable {
     using SafeERC20 for IERC20;
-    using FractionalAmount for FractionalAmount.Data;
 
     /**
      * @notice The type of vault this aggregator is for - either GLP or GMX.
@@ -49,24 +49,21 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
     /// @notice The contract/EOA responsible for harvesting rewards and distributing to the staking contract.
     address public rewardsDistributor;
 
-    /// @notice Performance fee for each rewardToken which Origami takes on the rewards
-    mapping(uint256 => FractionalAmount.Data) public override performanceFeeRates;
+    /// @notice The ovToken that rewards will compound into when harvested/swapped. 
+    IOrigamiInvestmentVault public immutable ovToken;
     
     event OrigamiGmxManagersSet(IOrigamiGmxEarnAccount.VaultType _vaultType, address indexed gmxManager, address indexed glpManager);
     event RewardsDistributorSet(address indexed rewardsDistributor);
-    event PerformanceFeesSet(FractionalAmount.Data[] performanceFeeRates);
     error OnlyRewardsDistributor(address caller);
 
-    constructor(IOrigamiGmxEarnAccount.VaultType _vaultType, address _gmxManager, address _glpManager, FractionalAmount.Data[] memory _performanceFeeRates) {
+    constructor(IOrigamiGmxEarnAccount.VaultType _vaultType, address _gmxManager, address _glpManager, address _ovToken) {
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
         glpManager = IOrigamiGmxManager(_glpManager);
         rewardTokens = vaultType == IOrigamiGmxEarnAccount.VaultType.GLP
             ? glpManager.rewardTokensList() 
             : gmxManager.rewardTokensList();
-        for (uint256 i; i < rewardTokens.length; ++i) {
-            performanceFeeRates[i] = _performanceFeeRates[i];
-        }
+        ovToken = IOrigamiInvestmentVault(_ovToken);
     }
 
     function pause() public onlyOwner {
@@ -94,17 +91,6 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
         if (_rewardsDistributor == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         rewardsDistributor = _rewardsDistributor;
         emit RewardsDistributorSet(_rewardsDistributor);
-    }
-
-    /// @notice Set the Origami performance fees per token
-    function setPerformanceFees(
-        FractionalAmount.Data[] calldata _performanceFeeRates
-    ) external onlyOwner {
-        if (_performanceFeeRates.length != rewardTokens.length) revert CommonEventsAndErrors.InvalidParam();
-        for (uint256 i; i < rewardTokens.length; ++i) {
-            performanceFeeRates[i] = _performanceFeeRates[i];
-        }
-        emit PerformanceFeesSet(_performanceFeeRates);
     }
 
     /// @notice The set of reward tokens we give to the staking contract.
@@ -140,7 +126,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
     /// @notice The current native token and oGMX reward rates per second
     /// @dev Based on the current total Origami rewards, minus any portion of performance fees which Origami receives
     /// will take.
-    function projectedRewardRates() external view override returns (uint256[] memory amounts) {
+    function projectedRewardRates(bool subtractPerformanceFees) external view override returns (uint256[] memory amounts) {
         // Pull the GLP manager rewards - for both GMX and GLP vaults
         amounts = glpManager.projectedRewardRates(vaultType);
 
@@ -153,10 +139,13 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
             }
         }
 
-        // Remove any performance fees that users won't be due
-        for (i=0; i < rewardTokens.length; ++i) {
-            (, amounts[i]) = performanceFeeRates[i].split(amounts[i]);
-        }
+        // Remove any performance fees as users aren't due these.
+        if (subtractPerformanceFees) {
+            (uint128 feeNumerator, uint128 feeDenominator) = ovToken.performanceFee();
+            for (i=0; i < rewardTokens.length; ++i) {
+                (, amounts[i]) = FractionalAmount.split(feeNumerator, feeDenominator, amounts[i]);
+            }
+        } 
     }
 
     /**

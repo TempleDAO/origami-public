@@ -5,12 +5,10 @@ import {
   deployAndMine,
   ensureExpectedEnvvars,
 } from '../../helpers';
-import {getDeployedContracts} from './contract-addresses';
 
 async function main() {
   ensureExpectedEnvvars();
   const [owner] = await ethers.getSigners();
-  const GMX_DEPLOYED_CONTRACTS = getDeployedContracts();
 
   const factory = new OrigamiGmxInvestment__factory(owner);
   await deployAndMine(

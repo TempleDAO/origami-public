@@ -30,26 +30,21 @@ library FractionalAmount {
     /// @notice Split an amount into two parts based on a fractional ratio
     /// eg: 333/1000 (33.3%) can be used to split an input amount of 600 into: (199, 401).
     /// @dev The numerator amount is truncated if necessary
-    function split(Data storage self, uint256 inputAmount) internal view returns (uint256 numeratorAmount, uint256 denominatorAmount) {
-        if (self.numerator == 0) {
-            return (0, inputAmount);
-        }
-        unchecked {
-            numeratorAmount = (inputAmount * self.numerator) / self.denominator;
-            denominatorAmount = inputAmount - numeratorAmount;
-        }
+    function split(Data storage self, uint256 inputAmount) internal view returns (uint256 amount1, uint256 amount2) {
+        return split(self.numerator, self.denominator, inputAmount);
     }
 
     /// @notice Split an amount into two parts based on a fractional ratio
     /// eg: 333/1000 (33.3%) can be used to split an input amount of 600 into: (199, 401).
     /// @dev Overloaded version of the above, using calldata/pure to avoid a copy from storage in some scenarios
-    function split(Data calldata self, uint256 inputAmount) internal pure returns (uint256 numeratorAmount, uint256 denominatorAmount) {
-        if (self.numerator == 0) {
-            return (0, inputAmount);
-        }
+    function split(Data calldata self, uint256 inputAmount) internal pure returns (uint256 amount1, uint256 amount2) {
+        return split(self.numerator, self.denominator, inputAmount);
+    }
+
+    function split(uint128 numerator, uint128 denominator, uint256 inputAmount) internal pure returns (uint256 amount1, uint256 amount2) {
         unchecked {
-            numeratorAmount = (inputAmount * self.numerator) / self.denominator;
-            denominatorAmount = inputAmount - numeratorAmount;
+            amount1 = (inputAmount * numerator) / denominator;
+            amount2 = inputAmount - amount1;
         }
     }
 }

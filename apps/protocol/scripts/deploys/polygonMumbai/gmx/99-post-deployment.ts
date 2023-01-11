@@ -188,12 +188,12 @@ async function main() {
     // Set default policy
     {
         // GMX Manager
-        await mine(contracts.gmxManager.setSellFeeRate(3, 100)); // 3% fee on oGMX when selling
+        await mine(contracts.gmxManager.setSellFeeRate(5, 1000)); // 0.5% fee on oGMX when selling
         await mine(contracts.gmxManager.setOGmxRewardsFeeRate(30, 100)); // 30% fee on oGMX rewards
         await mine(contracts.gmxManager.setEsGmxVestingRate(10, 100)); // Vest 10% of the esGMX rewards into GMX
 
         // GLP Manager
-        await mine(contracts.glpManager.setSellFeeRate(3, 100)); // 3% fee on oGLP when selling
+        // No fees on oGLP when selling
         await mine(contracts.glpManager.setOGmxRewardsFeeRate(30, 100)); // 30% fee on oGMX rewards
         // setEsGmxVestingRate left at 0%
     }

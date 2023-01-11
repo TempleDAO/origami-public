@@ -19,16 +19,7 @@ async function main() {
     GmxVaultType.GLP,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GMX_MANAGER,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GLP_MANAGER,
-    [
-        { // weth performance fee
-            numerator: 0,
-            denominator: 100,
-        },
-        { // oGMX performance fee
-            numerator: 0,
-            denominator: 100,
-        },
-    ],
+    GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.ovGLP,
   );
 }
 

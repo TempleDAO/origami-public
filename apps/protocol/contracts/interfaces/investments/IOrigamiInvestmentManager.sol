@@ -6,9 +6,5 @@ interface IOrigamiInvestmentManager {
     function rewardTokensList() external view returns (address[] memory tokens);
     function harvestRewards() external returns (uint256[] memory amounts);
     function harvestableRewards() external view returns (uint256[] memory amounts);
-    function projectedRewardRates() external view returns (uint256[] memory amounts);
-    function performanceFeeRates(uint256 rewardTokenIndex) external view returns (
-        uint128 numerator,
-        uint128 denominator
-    );
+    function projectedRewardRates(bool subtractPerformanceFees) external view returns (uint256[] memory amounts);
 }

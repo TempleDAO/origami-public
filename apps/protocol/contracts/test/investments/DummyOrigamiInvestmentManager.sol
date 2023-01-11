@@ -5,11 +5,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IOrigamiInvestmentManager} from "../../interfaces/investments/IOrigamiInvestmentManager.sol";
+import {IOrigamiInvestmentVault} from "../../interfaces/investments/IOrigamiInvestmentVault.sol";
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
 
 contract DummyOrigamiInvestmentManager is IOrigamiInvestmentManager {
     using SafeERC20 for IERC20;
-    using FractionalAmount for FractionalAmount.Data;
 
     address[] public rewardTokens;
 
@@ -17,22 +17,19 @@ contract DummyOrigamiInvestmentManager is IOrigamiInvestmentManager {
     
     mapping(address => uint256) public tokensPerInterval;
 
-    /// @notice Performance fee for each rewardToken which Origami takes on the rewards
-    mapping(uint256 => FractionalAmount.Data) public override performanceFeeRates;
-    
+    IOrigamiInvestmentVault public immutable ovToken;
+
     constructor(
         address[] memory _rewardTokens, 
         uint256[] memory _rewardsPerInterval,
-        FractionalAmount.Data[] memory _performanceFeeRates
+        address _ovToken
     ) {
         lastDistributionTime = block.timestamp;
         rewardTokens = _rewardTokens;
         for (uint256 i=0; i < _rewardTokens.length; i++) {
             tokensPerInterval[_rewardTokens[i]] = _rewardsPerInterval[i];
         }
-        for (uint256 i; i < rewardTokens.length; ++i) {
-            performanceFeeRates[i] = _performanceFeeRates[i];
-        }
+        ovToken = IOrigamiInvestmentVault(_ovToken);
     }
 
     function rewardTokensList() external override view returns (address[] memory tokens) {
@@ -57,10 +54,18 @@ contract DummyOrigamiInvestmentManager is IOrigamiInvestmentManager {
         return _pendingRewards();
     }
 
-    function projectedRewardRates() external override view returns (uint256[] memory amounts) {
+    function projectedRewardRates(bool subtractPerformanceFees) external override view returns (uint256[] memory amounts) {
         amounts = new uint256[](rewardTokens.length);
         for (uint256 i; i < rewardTokens.length; ++i) {
-            (, amounts[i]) = performanceFeeRates[i].split(tokensPerInterval[rewardTokens[i]]);
+            amounts[i] = tokensPerInterval[rewardTokens[i]];
+        }
+
+        // Remove any performance fees as users aren't due these.
+        if (subtractPerformanceFees) {
+            (uint128 feeNumerator, uint128 feeDenominator) = ovToken.performanceFee();
+            for (uint256 i; i < rewardTokens.length; ++i) {
+                (, amounts[i]) = FractionalAmount.split(feeNumerator, feeDenominator, amounts[i]);
+            }
         }
     }
 

@@ -18,6 +18,7 @@ async function main() {
     'Origami GLP Investment Vault', 'ovGLP',
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGLP,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.TOKEN_PRICES,
+    5, // 5% performance fee
   );
 }
 

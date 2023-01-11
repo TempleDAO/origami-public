@@ -239,22 +239,26 @@ async function main() {
         await mineForwardSeconds(86400);
 
         console.log("GMX:");
-        console.log("\tProjected Reward Rates", await contracts.gmxRewardsAggregator.projectedRewardRates());
+        console.log("\tProjected Reward Rates (before perf fees)", await contracts.gmxRewardsAggregator.projectedRewardRates(false));
+        console.log("\tProjected Reward Rates (after perf fees)", await contracts.gmxRewardsAggregator.projectedRewardRates(true));
         console.log("\tRewards Distributor", await contracts.gmxRewardsAggregator.rewardsDistributor(), await origamiMultisig.getAddress(), await owner.getAddress());
         console.log("\tMSIG oGMX before:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
         console.log("\tMSIG wETH before:", fromAtto(await weth.balanceOf(origamiMultisig.getAddress())));
         await contracts.gmxRewardsAggregator.connect(origamiMultisig).harvestRewards();
         console.log("\tMSIG oGMX after:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
         console.log("\tMSIG wETH after:", fromAtto(await weth.balanceOf(origamiMultisig.getAddress())));
+        console.log("\tAPR:", await contracts.ovGMX.apr());
 
         console.log("GLP:");
-        console.log("\tProjected Reward Rates", await contracts.glpRewardsAggregator.projectedRewardRates());
+        console.log("\tProjected Reward Rates (before perf fees)", await contracts.glpRewardsAggregator.projectedRewardRates(false));
+        console.log("\tProjected Reward Rates (after perf fees)", await contracts.gmxRewardsAggregator.projectedRewardRates(true));
         console.log("\tRewards Distributor", await contracts.glpRewardsAggregator.rewardsDistributor(), await origamiMultisig.getAddress(), await owner.getAddress());
         console.log("\tMSIG oGMX before:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
         console.log("\tMSIG wETH before:", fromAtto(await weth.balanceOf(origamiMultisig.getAddress())));
         await contracts.glpRewardsAggregator.connect(origamiMultisig).harvestRewards();
         console.log("\tMSIG oGMX after:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
         console.log("\tMSIG wETH after:", fromAtto(await weth.balanceOf(origamiMultisig.getAddress())));
+        console.log("\tAPR:", await contracts.ovGLP.apr());
     }
 
     console.log("\n**Bump Up Reserves**");

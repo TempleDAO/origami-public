@@ -56,7 +56,14 @@ describe("Origami Investment Vault", async () => {
             );
             await oToken.addMinter(operator.getAddress());
         }
-
+        
+        // Setup ovToken
+        {
+            tokenPrices = await new TokenPrices__factory(owner).deploy(30);
+            ovToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovToken", "ovToken", oToken.address, tokenPrices.address, 5);
+            await ovToken.addOperator(operator.getAddress());
+        }
+        
         // Setup investment manager
         {
             rewardToken1 = await new MintableToken__factory(owner).deploy("rwd1", "rwd1");
@@ -67,24 +74,12 @@ describe("Origami Investment Vault", async () => {
                     ethers.utils.parseEther("0.000028935185185185"), // 2.5 per day, 912.5 per year
                     ethers.utils.parseEther("0.000017361111111111"), // 1.5 per day, 547.5 per year
                 ],
-                [
-                    {
-                        numerator: 3, 
-                        denominator: 100,
-                    },
-                    {
-                        numerator: 5, 
-                        denominator: 100,
-                    },
-                ]
+                ovToken.address,
             );
         }
 
         // Setup ovToken
         {
-            tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            ovToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovToken", "ovToken", oToken.address, tokenPrices.address);
-            await ovToken.addOperator(operator.getAddress());
             await ovToken.setInvestmentManager(investmentManager.address);
         }
 
@@ -163,6 +158,9 @@ describe("Origami Investment Vault", async () => {
     it("constructor", async () => {
         expect(await ovToken.reserveToken()).eq(oToken.address);
         expect(await ovToken.tokenPrices()).eq(tokenPrices.address);
+        const [numerator, denominator] = await ovToken.performanceFee();
+        expect(numerator.toNumber()).to.eq(5);
+        expect(denominator.toNumber()).to.eq(100);
     });
 
     it("admin", async () => {
@@ -170,6 +168,7 @@ describe("Origami Investment Vault", async () => {
         await shouldRevertNotOwner(ovToken.connect(alan).unpause());
         await shouldRevertNotOwner(ovToken.connect(alan).setInvestmentManager(investmentManager.address));
         await shouldRevertNotOwner(ovToken.connect(alan).setTokenPrices(tokenPrices.address));
+        await shouldRevertNotOwner(ovToken.connect(alan).setPerformanceFee(80, 100));
 
         await expect(ovToken.connect(alan).addReserves(0))
             .to.revertedWithCustomError(ovToken, "OnlyOperators")
@@ -183,6 +182,7 @@ describe("Origami Investment Vault", async () => {
         await ovToken.unpause();
         await ovToken.setInvestmentManager(investmentManager.address);
         await ovToken.setTokenPrices(tokenPrices.address);
+        await ovToken.setPerformanceFee(80, 100);
     });
 
     it("owner can set the investment manager", async () => {           
@@ -203,6 +203,15 @@ describe("Origami Investment Vault", async () => {
             .to.emit(ovToken, "TokenPricesSet")
             .withArgs(tokenPrices.address);
         expect(await ovToken.tokenPrices()).to.eq(tokenPrices.address);
+    });
+
+    it("Should setPerformanceFee()", async () => {
+        await expect(ovToken.setPerformanceFee(80, 100))
+            .to.emit(ovToken, "PerformanceFeeSet")
+            .withArgs(80, 100);
+        const [numerator, denominator] = await ovToken.performanceFee();
+        expect(numerator.toNumber()).to.eq(80);
+        expect(denominator.toNumber()).to.eq(100);
     });
 
     it("pause/unpause", async () => {
@@ -936,9 +945,13 @@ describe("Origami Investment Vault", async () => {
         await bootstrapReserves();
 
         const expectedTotalRewardsInUsdPerYear = (
-            (2.5*365*30*0.97) + // rewardToken1 with 3% performance fee
-            (1.5*365*50*0.95)   // rewardToken2 with 5% performance fee
-        )
+            (
+                (2.5*30) + // rewardToken1
+                (1.5*50)   // rewardToken2
+            )
+             * 365  // 365 days
+             * 0.95 // 5% performance fee
+        );
         const expectedTotalSharesInUsd = (
             10_000 * // shares
             15 * 1.1 // oToken price * reservesPerShare
@@ -948,6 +961,6 @@ describe("Origami Investment Vault", async () => {
         );
 
         const apr = await ovToken.apr();
-        expect(apr).eq(expectedApr).eq(3185); // 31.85%
+        expect(apr).eq(expectedApr).eq(3152); // 31.52%
     });
 });

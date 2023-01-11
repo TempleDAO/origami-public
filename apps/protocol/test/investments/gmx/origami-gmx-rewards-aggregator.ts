@@ -4,13 +4,15 @@ import { expect } from "chai";
 import { 
     mineForwardSeconds,
     ZERO_ADDRESS, recoverToken, 
-    shouldRevertNotOwner, shouldRevertPaused, slightlyGte, blockTimestamp, deployUupsProxy
+    shouldRevertNotOwner, shouldRevertPaused, slightlyGte, blockTimestamp, deployUupsProxy, slightlyLte
 } from "../../helpers";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxManager, OrigamiGmxManager__factory, 
     MintableToken, MintableToken__factory, 
-    OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
+    OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory, 
+    OrigamiInvestmentVault, OrigamiInvestmentVault__factory,
+    TokenPrices, TokenPrices__factory, 
 } from "../../../typechain";
 import {
     decodeGlpUnderlyingInvestQuoteData,
@@ -32,6 +34,10 @@ describe("Origami GMX Rewards Aggregator", async () => {
     let secondaryGlpEarnAccount: OrigamiGmxEarnAccount;
     let oGmxToken: MintableToken;
     let oGlpToken: MintableToken;
+
+    let ovGmxToken: OrigamiInvestmentVault;
+    let ovGlpToken: OrigamiInvestmentVault;
+    let tokenPrices: TokenPrices;
 
     let origamiGmxRewardsAggr: OrigamiGmxRewardsAggregator;
     let origamiGlpRewardsAggr: OrigamiGmxRewardsAggregator;
@@ -55,6 +61,13 @@ describe("Origami GMX Rewards Aggregator", async () => {
         oGmxToken = await new MintableToken__factory(owner).deploy("oGMX", "oGMX");
         oGlpToken = await new MintableToken__factory(owner).deploy("oGLP", "oGLP");
 
+        // Setup ovTokens
+        {
+            tokenPrices = await new TokenPrices__factory(owner).deploy(30);
+            ovGmxToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGmxToken", "ovGmxToken", oGmxToken.address, tokenPrices.address, 5);
+            ovGlpToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGlpToken", "ovGlpToken", oGlpToken.address, tokenPrices.address, 5);
+        }
+        
         // Setup the GMX Manager/Earn Account
         {
             gmxEarnAccount = await deployUupsProxy(
@@ -117,16 +130,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 GmxVaultType.GMX,
                 origamiGmxManager.address,
                 origamiGlpManager.address,
-                [
-                    {
-                        numerator: 3, 
-                        denominator: 100,
-                    },
-                    {
-                        numerator: 5, 
-                        denominator: 100,
-                    },
-                ],
+                ovGmxToken.address,
             );
             await origamiGmxRewardsAggr.setRewardsDistributor(origamiGmxRewardsDistributor.getAddress());
 
@@ -134,16 +138,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 GmxVaultType.GLP,
                 origamiGmxManager.address,
                 origamiGlpManager.address,
-                [
-                    {
-                        numerator: 3, 
-                        denominator: 100,
-                    },
-                    {
-                        numerator: 5, 
-                        denominator: 100,
-                    },
-                ],
+                ovGlpToken.address,
             );
             await origamiGlpRewardsAggr.setRewardsDistributor(origamiGlpRewardsDistributor.getAddress());
 
@@ -202,6 +197,9 @@ describe("Origami GMX Rewards Aggregator", async () => {
 
             expect(await origamiGmxRewardsAggr.rewardsDistributor()).eq(await origamiGmxRewardsDistributor.getAddress());
             expect(await origamiGlpRewardsAggr.rewardsDistributor()).eq(await origamiGlpRewardsDistributor.getAddress());
+
+            expect(await origamiGmxRewardsAggr.ovToken()).eq(ovGmxToken.address);
+            expect(await origamiGlpRewardsAggr.ovToken()).eq(ovGlpToken.address);
         });
 
         it("admin", async () => {
@@ -211,7 +209,6 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 origamiGlpManager.address
             ));
             await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).setRewardsDistributor(operator.getAddress()));
-            await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).setPerformanceFees([]));
             await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
             await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).pause());
             await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).unpause());
@@ -232,8 +229,6 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 .to.revertedWith("ERC20: transfer amount exceeds balance");
             await origamiGmxRewardsAggr.pause();
             await origamiGmxRewardsAggr.unpause();
-            await expect(origamiGmxRewardsAggr.setPerformanceFees([]))
-                .to.revertedWithCustomError(origamiGmxRewardsAggr, "InvalidParam");
         });
 
         it("pause/unpause", async () => {
@@ -261,29 +256,6 @@ describe("Origami GMX Rewards Aggregator", async () => {
             expect(await origamiGmxRewardsAggr.vaultType()).eq(GmxVaultType.GMX);
             expect(await origamiGmxRewardsAggr.gmxManager()).eq(bobAddr);
             expect(await origamiGmxRewardsAggr.glpManager()).eq(alanAddr);
-        });
-
-        it("Should setPerformanceFees()", async () => {
-            const fees = [
-                {
-                    numerator: 13, 
-                    denominator: 100,
-                },
-                {
-                    numerator: 15, 
-                    denominator: 100,
-                },
-            ];
-            await expect(origamiGmxRewardsAggr.setPerformanceFees(fees))
-                .to.emit(origamiGmxRewardsAggr, "PerformanceFeesSet");
-
-            const pf1 = await origamiGmxRewardsAggr.performanceFeeRates(0);
-            expect(pf1.numerator).eq(13);
-            expect(pf1.denominator).eq(100);
-
-            const pf2 = await origamiGmxRewardsAggr.performanceFeeRates(1);
-            expect(pf2.numerator).eq(15);
-            expect(pf2.denominator).eq(100);
         });
 
         it("Should setRewardsDistributor()", async () => {
@@ -499,9 +471,9 @@ describe("Origami GMX Rewards Aggregator", async () => {
     describe("projectedRewardRates", async () => {
         it("projectedRewardRates - GMX & GLP combined", async () => {
             // Nothing staked -> nothing earnt
-            let rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates();
+            let rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates(true);
             expect(rewardRatesGlp).deep.eq([0, 0]);
-            let rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates();
+            let rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates(true);
             expect(rewardRatesGmx).deep.eq([0, 0]);
 
             const amount = ethers.utils.parseEther("250");
@@ -544,15 +516,17 @@ describe("Origami GMX Rewards Aggregator", async () => {
 
             await mineForwardSeconds(86400);
             
+            const removePerfFee = (bn: BigNumber) => bn.mul(95).div(100);
+
             // GLP aggregator gets 50% of staked GLP rewards
-            rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates();
-            expect(slightlyGte(rewardRatesGlp[0], ethPerSecond.mul(expectedRatio).div(precision).mul(97).div(100), 0.0001)).eq(true);
-            expect(slightlyGte(rewardRatesGlp[1], esGmxPerSecond.mul(expectedRatio).div(precision).mul(95).div(100), 0.01)).eq(true);
+            rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates(true);
+            expect(slightlyGte(rewardRatesGlp[0], removePerfFee(ethPerSecond.mul(expectedRatio).div(precision)), 0.0001)).eq(true);
+            expect(slightlyGte(rewardRatesGlp[1], removePerfFee(esGmxPerSecond.mul(expectedRatio).div(precision)), 0.01)).eq(true);
 
             // GLP aggregator gets 50% of staked GMX rewards
-            rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates();
-            expect(slightlyGte(rewardRatesGmx[0], ethPerSecond.div(2).mul(97).div(100), 0.0001)).eq(true);
-            expect(slightlyGte(rewardRatesGmx[1], esGmxPerSecond.div(2).mul(95).div(100), 0.01)).eq(true);
+            rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates(true);
+            expect(slightlyGte(rewardRatesGmx[0], removePerfFee(ethPerSecond.div(2)), 0.0001)).eq(true);
+            expect(slightlyGte(rewardRatesGmx[1], removePerfFee(esGmxPerSecond.div(2)), 0.01)).eq(true);
 
             // Harvest on both
             await origamiGlpRewardsAggr.connect(origamiGlpRewardsDistributor).harvestRewards();
@@ -560,9 +534,9 @@ describe("Origami GMX Rewards Aggregator", async () => {
             await mineForwardSeconds(86400);
 
             // Now GLP aggregator still only gets 50% of staked GLP rewards
-            rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates();
-            expect(slightlyGte(rewardRatesGlp[0], ethPerSecond.mul(expectedRatio).div(precision).mul(97).div(100), 0.0001)).eq(true);
-            expect(slightlyGte(rewardRatesGlp[1], esGmxPerSecond.mul(expectedRatio).div(precision).mul(95).div(100), 1)).eq(true);
+            rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates(true);
+            expect(slightlyGte(rewardRatesGlp[0], removePerfFee(ethPerSecond.mul(expectedRatio).div(precision)), 0.0001)).eq(true);
+            expect(slightlyGte(rewardRatesGlp[1], removePerfFee(esGmxPerSecond.mul(expectedRatio).div(precision)), 1)).eq(true);
 
             // But the GMX aggregator gets rewards based off it's total GMX+esGMX 
             // from both the GMX and GLP manager vs the rest of the pool (bob had 50% originally)
@@ -571,9 +545,14 @@ describe("Origami GMX Rewards Aggregator", async () => {
             //   ~50% of staked GMX rewards
             //   staked esGMX+mult point rewards (from staked GMX rewards)
             //   staked esGMX+mult point rewards (from staked GLP rewards)
-            rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates();
-            expect(slightlyGte(rewardRatesGmx[0], ethPerSecond.mul(expectedEthRatio).div(precision).mul(97).div(100), 0.0001)).eq(true);
-            expect(slightlyGte(rewardRatesGmx[1], esGmxPerSecond.mul(expectedEsGmxRatio).div(precision).mul(95).div(100), 1)).eq(true);
+            rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates(true);
+            expect(slightlyGte(rewardRatesGmx[0], removePerfFee(ethPerSecond.mul(expectedEthRatio).div(precision)), 0.0001)).eq(true);
+            expect(slightlyGte(rewardRatesGmx[1], removePerfFee(esGmxPerSecond.mul(expectedEsGmxRatio).div(precision)), 1)).eq(true);
+
+            // projected rewards without taking out performance fees matches (slight rounding)
+            const rewardRatesGmxNoFees = await origamiGmxRewardsAggr.projectedRewardRates(false);
+            expect(slightlyLte(removePerfFee(rewardRatesGmxNoFees[0]), rewardRatesGmx[0], BigNumber.from(1))).eq(true);
+            expect(slightlyLte(removePerfFee(rewardRatesGmxNoFees[1]), rewardRatesGmx[1], BigNumber.from(1))).eq(true);
         });
     });
 

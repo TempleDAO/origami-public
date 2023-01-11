@@ -14,6 +14,11 @@ import {IRepricingToken} from "../common/IRepricingToken.sol";
  */
 interface IOrigamiInvestmentVault is IOrigamiInvestment, IRepricingToken {
     /**
+     * @notice The performance fee which Origami takes from harvested rewards before compounding into reserves.
+     */
+    function performanceFee() external view returns (uint128 numerator, uint128 denominator);
+
+    /**
      * @notice Annual Percentage Rate (APR) in basis points for this investment,
      * based on the projected rewards per share
      * @dev APR == [the total USD value of rewards (less fees) for one per year at current rates] / [USD value of the total share supply]
