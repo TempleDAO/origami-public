@@ -11,8 +11,8 @@ export function getApiConfig(): ApiConfig {
     tokens: [
       GMX_TOKEN,
       SGLP_TOKEN,
-      OSGMX_TOKEN,
-      OSGLP_TOKEN,
+      OVGMX_TOKEN,
+      OVGLP_TOKEN,
       OGMX_TOKEN,
       OGLP_TOKEN,
       BTC_TOKEN,
@@ -46,47 +46,47 @@ const MUMBAI_PRICE_CONTRACT: PriceContractConfig = {
 
 const GMX_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x02aE0A50234Df57E094684B02B35c4CF1b88cC63',
+    address: '0xd085fe61150Ed7C721E9a4cCe891e35Bf5483148',
     chainId: MUMBAI.id,
   },
   icon: 'gmx',
-  name: 'osGMX',
-  description: 'Origami wrapper for the GMX utility token',
+  name: 'ovGMX',
+  description: 'Origami investment vault for the GMX utility token',
   info: `
-  Info on the GMX investment. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+  Info on the GMX investment vault. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
   `,
   moreInfoUrl:
-    'https://mumbai.polygonscan.com/address/0x02aE0A50234Df57E094684B02B35c4CF1b88cC63',
+    'https://mumbai.polygonscan.com/address/0xd085fe61150Ed7C721E9a4cCe891e35Bf5483148',
 };
 
 const GLP_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x22662bBa4e2b7b1E674F37D8013Fe245d278abce',
+    address: '0x09317dcf1450b62E8aa092d680fee7905CeCC99f',
     chainId: MUMBAI.id,
   },
   icon: 'glp',
-  name: 'osGLP',
-  description: 'Origami wrapper for the GMX liquidity provider token',
+  name: 'ovGLP',
+  description: 'Origami investment vault for the GMX liquidity provider token',
   info: `
-  Info on the GLP investment. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+  Info on the GLP investment vault. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
   `,
   moreInfoUrl:
-    'https://mumbai.polygonscan.com/address/0x22662bBa4e2b7b1E674F37D8013Fe245d278abce',
+    'https://mumbai.polygonscan.com/address/0x09317dcf1450b62E8aa092d680fee7905CeCC99f',
 };
 
-const OSGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0x22662bBa4e2b7b1E674F37D8013Fe245d278abce',
+const OVGLP_TOKEN: ExtendedTokenConfig = {
+  address: '0x09317dcf1450b62E8aa092d680fee7905CeCC99f',
   chainId: MUMBAI.id,
   iconName: 'glp',
-  symbol: 'osGLP',
+  symbol: 'ovGLP',
   decimals: 18,
 };
 
-const OSGMX_TOKEN: ExtendedTokenConfig = {
-  address: '0x02aE0A50234Df57E094684B02B35c4CF1b88cC63',
+const OVGMX_TOKEN: ExtendedTokenConfig = {
+  address: '0xd085fe61150Ed7C721E9a4cCe891e35Bf5483148',
   chainId: MUMBAI.id,
   iconName: 'gmx',
-  symbol: 'osGMX',
+  symbol: 'ovGMX',
   decimals: 18,
 };
 
@@ -99,7 +99,7 @@ const GMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGMX_TOKEN: ExtendedTokenConfig = {
-  address: '0xBCd6BA024a179Dfd441CF2418c687e80F1AeAf0D',
+  address: '0x50b732da6E8549610E8A509D66302D7C5e16535D',
   chainId: MUMBAI.id,
   iconName: 'gmx',
   symbol: 'oGMX',
@@ -115,7 +115,7 @@ const SGLP_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0x6e78520fd07591B459AA3a4F8B4474215C7C8aF7',
+  address: '0xD100984adaA40b45f8260be11a0155aF1173cc9D',
   chainId: MUMBAI.id,
   iconName: 'glp',
   symbol: 'oGLP',

@@ -59,9 +59,9 @@ export function tokenUsdPrices(): VMap<Token, DecimalBigNumber> {
   const prices = new VMap<Token, DecimalBigNumber>(tokenKey);
   prices.put(dai(), DecimalBigNumber.parseUnits('1', 2));
   prices.put(gmx(), DecimalBigNumber.parseUnits('45.19', 2));
-  prices.put(osGmx(), DecimalBigNumber.parseUnits('45.19', 2));
+  prices.put(ovGmx(), DecimalBigNumber.parseUnits('45.19', 2));
   prices.put(glp(), DecimalBigNumber.parseUnits('0.82', 2));
-  prices.put(osGlp(), DecimalBigNumber.parseUnits('0.82', 2));
+  prices.put(ovGlp(), DecimalBigNumber.parseUnits('0.82', 2));
   return prices;
 }
 
@@ -93,7 +93,7 @@ class TestProviderApiImpl implements TestProviderApi {
   }
 
   async getToken(config: TokenConfig): Promise<Token> {
-    const tokens: Token[] = [dai(), gmx(), osGmx(), glp(), osGlp()];
+    const tokens: Token[] = [dai(), gmx(), ovGmx(), glp(), ovGlp()];
     for (const t of tokens) {
       if (
         config.address == t.config.address &&
@@ -248,9 +248,9 @@ function gmx(): Token {
   });
 }
 
-function osGmx(): Token {
-  return newToken('osGMX', 'gmx', 18, {
-    address: '0xERC20-OSGMX',
+function ovGmx(): Token {
+  return newToken('ovGMX', 'gmx', 18, {
+    address: '0xERC20-OVGMX',
     chainId: ARBITRUM_ID,
   });
 }
@@ -262,9 +262,9 @@ function glp(): Token {
   });
 }
 
-function osGlp(): Token {
-  return newToken('osGLP', 'glp', 18, {
-    address: '0xERC20-OSGLP',
+function ovGlp(): Token {
+  return newToken('ovGLP', 'glp', 18, {
+    address: '0xERC20-OVGLP',
     chainId: ARBITRUM_ID,
   });
 }
@@ -290,9 +290,9 @@ export function gmxInvestment(): Investment {
   return {
     contractAddress: { address: '0xINVEST-GMX', chainId: arbitrum().id },
     icon: 'gmx',
-    name: 'osGMX',
+    name: 'ovGMX',
     description: 'Origami investment in the GMX utility token',
-    receiptToken: osGmx(),
+    receiptToken: ovGmx(),
     acceptedInvestTokens: acceptedTokens.get,
     acceptedExitTokens: acceptedTokens.get,
     getMetrics,
@@ -333,9 +333,9 @@ export function glpInvestment(): Investment {
   return {
     contractAddress: { address: '0xINVEST-GLP', chainId: arbitrum().id },
     icon: 'glp',
-    name: 'osGLP',
+    name: 'ovGLP',
     description: 'Origami investment in the GMX liquidity provider (LP) token',
-    receiptToken: osGlp(),
+    receiptToken: ovGlp(),
     acceptedInvestTokens: acceptedTokens.get,
     acceptedExitTokens: acceptedTokens.get,
     getMetrics,

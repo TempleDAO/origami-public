@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint --max-warnings=0 src",
-    "preview": "vite preview",
+    "preview": "yarn build && vite preview",
     "test": "vitest run --reporter=verbose",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"

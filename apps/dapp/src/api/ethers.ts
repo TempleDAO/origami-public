@@ -186,8 +186,8 @@ class ProviderApiImpl implements ProviderApi {
     config: TokenConfig,
     iconName: string
   ): Promise<Token> {
-    const provider = await this.getProvider(config.chainId);
-    const tc = await IERC20Metadata__factory.connect(config.address, provider);
+    const provider = this.getProvider(config.chainId);
+    const tc = IERC20Metadata__factory.connect(config.address, provider);
     const [symbol, decimals] = await Promise.all([tc.symbol(), tc.decimals()]);
     const token = newToken(symbol, iconName, decimals, config);
 
@@ -218,8 +218,8 @@ class ProviderApiImpl implements ProviderApi {
   private async loadInvestment_(ic: InvestmentConfig): Promise<Investment> {
     const chainId = ic.contractAddress.chainId;
     const chain = this.getChain(chainId);
-    const provider = await this.getProvider(chainId);
-    const contract = await IOrigamiInvestment__factory.connect(
+    const provider = this.getProvider(chainId);
+    const contract = IOrigamiInvestment__factory.connect(
       ic.contractAddress.address,
       provider
     );
@@ -310,7 +310,7 @@ class ProviderApiImpl implements ProviderApi {
     chain: ChainId,
     address: string
   ): Promise<DecimalBigNumber> {
-    const provider = await this.getProvider(chain);
+    const provider = this.getProvider(chain);
     const balance = await provider.getBalance(address);
     const decimals = this.chains.get(chain)?.nativeCurrency.decimals || 18;
     return DecimalBigNumber.fromBN(balance, decimals);
@@ -331,11 +331,8 @@ class ProviderApiImpl implements ProviderApi {
     token: Token,
     address: string
   ): Promise<DecimalBigNumber> {
-    const provider = await this.getProvider(token.config.chainId);
-    const tc = await IERC20Metadata__factory.connect(
-      token.config.address,
-      provider
-    );
+    const provider = this.getProvider(token.config.chainId);
+    const tc = IERC20Metadata__factory.connect(token.config.address, provider);
     const balance = await tc.balanceOf(address);
     return DecimalBigNumber.fromBN(balance, token.decimals);
   }
@@ -383,7 +380,7 @@ class ProviderApiImpl implements ProviderApi {
   }
 
   private async getPriceContract(chainId: ChainId): Promise<ITokenPrices> {
-    const provider = await this.getProvider(chainId);
+    const provider = this.getProvider(chainId);
     for (const pc of this.config.priceContracts) {
       if (pc.chainId == chainId) {
         return ITokenPrices__factory.connect(pc.address, provider);
@@ -502,8 +499,8 @@ class ProviderApiImpl implements ProviderApi {
   }
 
   private async investQuote_(req: InvestQuoteReq): Promise<InvestQuoteResp> {
-    const provider = await this.getProvider(req.investment.chain.id);
-    const contract = await IOrigamiInvestment__factory.connect(
+    const provider = this.getProvider(req.investment.chain.id);
+    const contract = IOrigamiInvestment__factory.connect(
       req.investment.contractAddress.address,
       provider
     );
@@ -534,8 +531,8 @@ class ProviderApiImpl implements ProviderApi {
   }
 
   private async exitQuote_(req: ExitQuoteReq): Promise<ExitQuoteResp> {
-    const provider = await this.getProvider(req.investment.chain.id);
-    const contract = await IOrigamiInvestment__factory.connect(
+    const provider = this.getProvider(req.investment.chain.id);
+    const contract = IOrigamiInvestment__factory.connect(
       req.investment.contractAddress.address,
       provider
     );
@@ -612,7 +609,7 @@ class SignerApiImpl implements SignerApi {
     }
     const chain = this.getChain(chainId);
 
-    const investmentContract = await IOrigamiInvestment__factory.connect(
+    const investmentContract = IOrigamiInvestment__factory.connect(
       req.quote.investment.contractAddress.address,
       this.signer
     );
@@ -622,7 +619,7 @@ class SignerApiImpl implements SignerApi {
 
       const fromToken = req.quote.from.token;
 
-      const fromTokenContract = await IERC20Metadata__factory.connect(
+      const fromTokenContract = IERC20Metadata__factory.connect(
         fromToken.config.address,
         this.signer
       );
@@ -707,12 +704,12 @@ class SignerApiImpl implements SignerApi {
 
     const receiptToken = req.quote.investment.receiptToken;
 
-    const receiptTokenContract = await IERC20Metadata__factory.connect(
+    const receiptTokenContract = IERC20Metadata__factory.connect(
       receiptToken.config.address,
       this.signer
     );
 
-    const investmentContract = await IOrigamiInvestment__factory.connect(
+    const investmentContract = IOrigamiInvestment__factory.connect(
       req.quote.investment.contractAddress.address,
       this.signer
     );
