@@ -1,4 +1,4 @@
-import { Invested as InvestedShare } from '../../generated/GmxInvestmentShare/InvestmentShare'
+import { Invested as InvestedVault } from '../../generated/GmxInvestmentVault/OrigamiInvestmentVault'
 import { UserInvestment } from '../../generated/schema'
 
 import { getOrCreateUser } from './user'
@@ -7,19 +7,19 @@ import { getOrCreateUserBalance, updateUserBalance } from './userBalance'
 import { getOrCreateRewardToken } from './rewardToken'
 import { getOrCreateToken } from './token'
 import { BIG_DECIMAL_0 } from '../utils/constants'
-import { getOrCreateInvestmentShare, updateInvestmentShare } from './investmentShare'
+import { getOrCreateInvestmentVault, updateInvestmentVault } from './investmentVault'
 
 
-export function createUserInvestment(event: InvestedShare): UserInvestment {
+export function createUserInvestment(event: InvestedVault): UserInvestment {
   const timestamp = event.block.timestamp
 
-  const investmentShare = getOrCreateInvestmentShare(event.address, timestamp)
+  const investmentVault = getOrCreateInvestmentVault(event.address, timestamp)
   const user = getOrCreateUser(event.params.user, timestamp)
-  const userBalance = getOrCreateUserBalance(user, investmentShare.id, timestamp)
+  const userBalance = getOrCreateUserBalance(user, investmentVault.id, timestamp)
 
   const fromToken = getOrCreateToken(event.params.fromToken, timestamp)
   const fromTokenAmount = toDecimal(event.params.fromTokenAmount, fromToken.decimals)
-  const toToken = getOrCreateRewardToken(event.address, investmentShare.tokenPrices, timestamp)
+  const toToken = getOrCreateRewardToken(event.address, investmentVault.tokenPrices, timestamp)
   const toTokenAmount = toDecimal(event.params.investmentAmount, toToken.decimals)
 
   const userInvID = userBalance.id + '-' + userBalance.investCount.toString()
@@ -35,17 +35,17 @@ export function createUserInvestment(event: InvestedShare): UserInvestment {
   userInvestment.save()
 
   if (userBalance.investAmount == BIG_DECIMAL_0) {
-    investmentShare.userCount += 1
+    investmentVault.userCount += 1
     userBalance.enterInvestTimestamp = timestamp
   }
 
-  investmentShare.tvl = investmentShare.tvl.plus(toTokenAmount)
-  investmentShare.tvlUSD = investmentShare.tvl.times(toToken.price)
-  investmentShare.volume = investmentShare.volume.plus(toTokenAmount)
-  investmentShare.volumeUSD = investmentShare.volumeUSD.plus(toTokenAmount.times(toToken.price))
-  updateInvestmentShare(investmentShare, timestamp)
+  investmentVault.tvl = investmentVault.tvl.plus(toTokenAmount)
+  investmentVault.tvlUSD = investmentVault.tvl.times(toToken.price)
+  investmentVault.volume = investmentVault.volume.plus(toTokenAmount)
+  investmentVault.volumeUSD = investmentVault.volumeUSD.plus(toTokenAmount.times(toToken.price))
+  updateInvestmentVault(investmentVault, timestamp)
 
-  userBalance.investment = investmentShare.id
+  userBalance.investment = investmentVault.id
   userBalance.investAmount = userBalance.investAmount.plus(toTokenAmount)
   userBalance.investVolume = userBalance.investVolume.plus(toTokenAmount)
   userBalance.investCount += 1

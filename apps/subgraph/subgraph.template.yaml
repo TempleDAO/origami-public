@@ -11,7 +11,7 @@ dataSources:
     network: {{network}}
     source:
       address: '{{gmxInvestment.address}}'
-      abi: GmxInvestment
+      abi: OrigamiInvestment
       startBlock: {{gmxInvestment.startBlock}}
     mapping:
       kind: ethereum/events
@@ -21,12 +21,10 @@ dataSources:
       entities:
         - Investment
       abis:
-        - name: GmxInvestment
-          file: ./abis/GmxInvestment.json
-        - name: GlpInvestment
-          file: ./abis/GlpInvestment.json
-        - name: InvestmentShare
-          file: ./abis/InvestmentShare.json
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
         - name: ERC20
           file: ./abis/ERC20.json
         - name: TokenPrices
@@ -41,7 +39,7 @@ dataSources:
     network: {{network}}
     source:
       address: '{{glpInvestment.address}}'
-      abi: GlpInvestment
+      abi: OrigamiInvestment
       startBlock: {{glpInvestment.startBlock}}
     mapping:
       kind: ethereum/events
@@ -51,12 +49,10 @@ dataSources:
       entities:
         - Investment
       abis:
-        - name: GmxInvestment
-          file: ./abis/GmxInvestment.json
-        - name: GlpInvestment
-          file: ./abis/GlpInvestment.json
-        - name: InvestmentShare
-          file: ./abis/InvestmentShare.json
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
         - name: ERC20
           file: ./abis/ERC20.json
         - name: TokenPrices
@@ -67,69 +63,65 @@ dataSources:
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
           handler: onExited
   - kind: ethereum/contract
-    name: GmxInvestmentShare
+    name: GmxInvestmentVault
     network: {{network}}
     source:
-      address: '{{gmxInvestmentShare.address}}'
-      abi: InvestmentShare
-      startBlock: {{gmxInvestmentShare.startBlock}}
+      address: '{{gmxInvestmentVault.address}}'
+      abi: OrigamiInvestmentVault
+      startBlock: {{gmxInvestmentVault.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      file: ./src/mappings/investmentShare.ts
+      file: ./src/mappings/investmentVault.ts
       entities:
-        - InvestmentShare
+        - InvestmentVault
       abis:
-        - name: GmxInvestment
-          file: ./abis/GmxInvestment.json
-        - name: GlpInvestment
-          file: ./abis/GlpInvestment.json
-        - name: InvestmentShare
-          file: ./abis/InvestmentShare.json
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
         - name: ERC20
           file: ./abis/ERC20.json
         - name: TokenPrices
           file: ./abis/TokenPrices.json
       eventHandlers:
         - event: Invested(indexed address,uint256,indexed address,uint256)
-          handler: onInvestedShare
+          handler: onInvestedVault
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
-          handler: onExitedShare
+          handler: onExitedVault
         - event: ReservesAdded(uint256)
           handler: onReservesAdded
         - event: ReservesRemoved(uint256)
           handler: onReservesRemoved
   - kind: ethereum/contract
-    name: GlpInvestmentShare
+    name: GlpInvestmentVault
     network: {{network}}
     source:
-      address: '{{glpInvestmentShare.address}}'
-      abi: InvestmentShare
-      startBlock: {{glpInvestmentShare.startBlock}}
+      address: '{{glpInvestmentVault.address}}'
+      abi: OrigamiInvestmentVault
+      startBlock: {{glpInvestmentVault.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
       language: wasm/assemblyscript
-      file: ./src/mappings/investmentShare.ts
+      file: ./src/mappings/investmentVault.ts
       entities:
-        - InvestmentShare
+        - InvestmentVault
       abis:
-        - name: GmxInvestment
-          file: ./abis/GmxInvestment.json
-        - name: GlpInvestment
-          file: ./abis/GlpInvestment.json
-        - name: InvestmentShare
-          file: ./abis/InvestmentShare.json
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
         - name: ERC20
           file: ./abis/ERC20.json
         - name: TokenPrices
           file: ./abis/TokenPrices.json
       eventHandlers:
         - event: Invested(indexed address,uint256,indexed address,uint256)
-          handler: onInvestedShare
+          handler: onInvestedVault
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
-          handler: onExitedShare
+          handler: onExitedVault
         - event: ReservesAdded(uint256)
           handler: onReservesAdded
         - event: ReservesRemoved(uint256)
@@ -150,12 +142,10 @@ dataSources:
       entities:
         - HourlyScheduler
       abis:
-        - name: GmxInvestment
-          file: ./abis/GmxInvestment.json
-        - name: GlpInvestment
-          file: ./abis/GlpInvestment.json
-        - name: InvestmentShare
-          file: ./abis/InvestmentShare.json
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
         - name: ERC20
           file: ./abis/ERC20.json
         - name: TokenPrices

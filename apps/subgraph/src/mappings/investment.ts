@@ -1,4 +1,4 @@
-import { Invested, Exited } from '../../generated/GmxInvestment/GmxInvestment'
+import { Invested, Exited } from '../../generated/GmxInvestment/OrigamiInvestment'
 import { getOrCreateInvestment, updateInvestment } from '../entities/investment'
 
 import { getRewardToken } from '../entities/rewardToken'

@@ -1,6 +1,6 @@
 import { AnswerUpdated } from '../../generated/HourlyScheduler/OffchainAggregator'
 
-import { updateInvestmentShares } from '../entities/investmentShare'
+import { updateInvestmentVaults } from '../entities/investmentVault'
 import { getMetric, updateMetric } from '../entities/metric'
 import { updateRewardTokenPrices } from '../entities/rewardToken'
 
@@ -10,7 +10,7 @@ export function onAnswerUpdated(event: AnswerUpdated): void {
     updateRewardTokenPrices(event.block.timestamp)
 
     // Update investments
-    updateInvestmentShares(event.block.timestamp)
+    updateInvestmentVaults(event.block.timestamp)
 
     // Update metrics
     const metric = getMetric()

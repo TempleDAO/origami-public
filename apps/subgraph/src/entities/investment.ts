@@ -1,6 +1,6 @@
 import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts'
 
-import { GmxInvestment as InvestmentContract } from '../../generated/GmxInvestment/GmxInvestment'
+import { OrigamiInvestment as InvestmentContract } from '../../generated/GmxInvestment/OrigamiInvestment'
 import { Investment } from '../../generated/schema'
 
 import { getMetric, updateMetric } from './metric'

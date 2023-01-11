@@ -3,8 +3,8 @@ type Metric @entity {
   timestamp: BigInt!
   investments: [Investment!]!
   investmentCount: Int!
-  investmentShares: [InvestmentShare!]!
-  investmentShareCount: Int!
+  investmentVaults: [InvestmentVault!]!
+  investmentVaultCount: Int!
   rewardTokens: [RewardToken!]!
   rewardTokenCount: Int!
   userCount: Int!
@@ -17,12 +17,12 @@ type MetricDailySnapshot @entity {
   timeframe: BigInt!
   metric: Metric!
   investmentCount: Int!
-  investmentShareCount: Int!
+  investmentVaultCount: Int!
   rewardTokenCount: Int!
   userCount: Int!
 }
 
-type InvestmentShare @entity {
+type InvestmentVault @entity {
   id: ID!
   timestamp: BigInt!
   tvl: BigDecimal!
@@ -40,15 +40,15 @@ type InvestmentShare @entity {
   investment: Investment!
   tokenPrices: Bytes!
   userCount: Int!
-  investmentShareDailySnapshots: [InvestmentShareDailySnapshot!]! @derivedFrom(field: "investmentShare")
-  investmentShareHourlySnapshots: [InvestmentShareHourlySnapshot!]! @derivedFrom(field: "investmentShare")
+  investmentVaultDailySnapshots: [InvestmentVaultDailySnapshot!]! @derivedFrom(field: "investmentVault")
+  investmentVaultHourlySnapshots: [InvestmentVaultHourlySnapshot!]! @derivedFrom(field: "investmentVault")
 }
 
-type InvestmentShareDailySnapshot @entity {
+type InvestmentVaultDailySnapshot @entity {
   id: ID!
   timestamp: BigInt!
   timeframe: BigInt!
-  investmentShare: InvestmentShare!
+  investmentVault: InvestmentVault!
   tvl: BigDecimal!
   tvlUSD: BigDecimal!
   volume: BigDecimal!
@@ -61,11 +61,11 @@ type InvestmentShareDailySnapshot @entity {
   userCount: Int!
 }
 
-type InvestmentShareHourlySnapshot @entity {
+type InvestmentVaultHourlySnapshot @entity {
   id: ID!
   timestamp: BigInt!
   timeframe: BigInt!
-  investmentShare: InvestmentShare!
+  investmentVault: InvestmentVault!
   tvl: BigDecimal!
   tvlUSD: BigDecimal!
   volume: BigDecimal!
@@ -103,7 +103,7 @@ type UserBalance @entity {
   timestamp: BigInt!
   user: User!
   investment: Investment
-  investmentShare: InvestmentShare
+  investmentVault: InvestmentVault
   enterInvestTimestamp: BigInt!
   investAmount: BigDecimal!
   investVolume: BigDecimal!
@@ -120,7 +120,7 @@ type UserBalanceSnapshot @entity(immutable: true) {
   userBalance: UserBalance!
   user: User!
   investment: Investment
-  investmentShare: InvestmentShare
+  investmentVault: InvestmentVault
   enterInvestTimestamp: BigInt!
   investAmount: BigDecimal!
   investVolume: BigDecimal!

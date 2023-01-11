@@ -2,7 +2,7 @@
 
 ### Subgraph Build and Deploy
 
-1) Run `yarn install` to install the needed libraries.
+1) Run `yarn` to install the needed libraries.
 2) Run `yarn graph auth --product hosted-service <access token>`. Replace `<access token>` with the token you can find on the [subgraphs dashboard](https://thegraph.com/hosted-service/dashboard/).
 3) Run `yarn prepare:mainnet` to prepare the subgraph manifest.
 4) Run `yarn codegen` to build the GraphQL schema.

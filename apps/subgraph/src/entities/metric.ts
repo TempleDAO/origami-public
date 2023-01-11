@@ -12,8 +12,8 @@ export function getMetric(): Metric {
     metric = new Metric(OWNER)
     metric.investments = []
     metric.investmentCount = 0
-    metric.investmentShares = []
-    metric.investmentShareCount = 0
+    metric.investmentVaults = []
+    metric.investmentVaultCount = 0
     metric.rewardTokens = []
     metric.rewardTokenCount = 0
     metric.userCount = 0
@@ -42,7 +42,7 @@ export function updateOrCreateDayData(metric: Metric, timestamp: BigInt): void {
   dayData.metric = metric.id
   dayData.timestamp = timestamp
   dayData.investmentCount = metric.investmentCount
-  dayData.investmentShareCount = metric.investmentShareCount
+  dayData.investmentVaultCount = metric.investmentVaultCount
   dayData.rewardTokenCount = metric.rewardTokenCount
   dayData.userCount = metric.userCount
   dayData.save()
