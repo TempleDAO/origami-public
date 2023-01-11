@@ -58,9 +58,9 @@ import {
 import {
   dateFromTimestamp,
   percentFromBps,
-  queryInvestmentShareDailySnapshots as queryInvestmentShareDailySnapshots,
-  queryInvestmentShareHourlySnapshots,
-  queryInvestmentShareMetrics,
+  queryInvestmentVaultDailySnapshots as queryInvestmentVaultDailySnapshots,
+  queryInvestmentVaultHourlySnapshots,
+  queryInvestmentVaultMetrics,
   queryRewardTokenDailySnapshots,
   queryRewardTokenHourlySnapshots,
   subgraphQuery,
@@ -244,14 +244,14 @@ class ProviderApiImpl implements ProviderApi {
 
     const getMetrics = async (): Promise<MetricsResp> => {
       const url = this.getSubgraphUrl(chainId);
-      const query = queryInvestmentShareMetrics(ic.contractAddress);
+      const query = queryInvestmentVaultMetrics(ic.contractAddress);
       const result = await subgraphQuery(url, query);
-      if (!result.investmentShare) {
+      if (!result.investmentVault) {
         throw new Error('No metrics returned');
       }
       return {
-        tvl: parseFloat(result.investmentShare.tvl),
-        apr: parseFloat(result.investmentShare.apr) / 100,
+        tvl: parseFloat(result.investmentVault.tvl),
+        apr: parseFloat(result.investmentVault.apr) / 100,
       };
     };
 
@@ -437,24 +437,24 @@ class ProviderApiImpl implements ProviderApi {
     const { first, qtype } = this.historicTimeParams(req.period);
 
     if (qtype === 'hourly') {
-      const query = queryInvestmentShareHourlySnapshots(
+      const query = queryInvestmentVaultHourlySnapshots(
         investmentAddress,
         first
       );
       const result = await subgraphQuery(url, query);
-      return result.investmentShareHourlySnapshots.map((p) => {
+      return result.investmentVaultHourlySnapshots.map((p) => {
         return {
           t: dateFromTimestamp(p.timeframe),
           v: req.metric == 'apr' ? percentFromBps(p.apr) : parseFloat(p.tvl),
         };
       });
     } else {
-      const query = queryInvestmentShareDailySnapshots(
+      const query = queryInvestmentVaultDailySnapshots(
         investmentAddress,
         first
       );
       const result = await subgraphQuery(url, query);
-      return result.investmentShareDailySnapshots.map((p) => {
+      return result.investmentVaultDailySnapshots.map((p) => {
         return {
           t: dateFromTimestamp(p.timeframe),
           v: req.metric == 'apr' ? percentFromBps(p.apr) : parseFloat(p.tvl),

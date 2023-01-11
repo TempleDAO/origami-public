@@ -12,14 +12,14 @@ interface SubGraphQuery<T> {
 
 //----------------------------------------------------------------------------------------------------
 
-export function queryInvestmentShareMetrics(
+export function queryInvestmentVaultMetrics(
   investmentAddress: ContractAddress
-): SubGraphQuery<InvestmentShareMetricsResp> {
-  const label = 'queryInvestmentShareMetrics';
+): SubGraphQuery<InvestmentVaultMetricsResp> {
+  const label = 'queryInvestmentVaultMetrics';
   const investmentId = investmentAddress.address.toLowerCase();
   const request = `
   {
-    investmentShare(id:"${investmentId}") {
+    investmentVault(id:"${investmentId}") {
       timestamp
       apr
       tvl
@@ -29,32 +29,32 @@ export function queryInvestmentShareMetrics(
   return {
     label,
     request,
-    parse: InvestmentShareMetricsResp.parse,
+    parse: InvestmentVaultMetricsResp.parse,
   };
 }
 
-const InvestmentShareMetricsResp = z.object({
-  investmentShare: z.optional(
+const InvestmentVaultMetricsResp = z.object({
+  investmentVault: z.optional(
     z.object({
       apr: z.string(),
       tvl: z.string(),
     })
   ),
 });
-type InvestmentShareMetricsResp = z.infer<typeof InvestmentShareMetricsResp>;
+type InvestmentVaultMetricsResp = z.infer<typeof InvestmentVaultMetricsResp>;
 
 //----------------------------------------------------------------------------------------------------
 
-export function queryInvestmentShareHourlySnapshots(
+export function queryInvestmentVaultHourlySnapshots(
   investmentAddress: ContractAddress,
   first: number
-): SubGraphQuery<InvestmentShareHourlySnapshotsResp> {
-  const label = 'queryInvestmentShareHourlySnapshots';
+): SubGraphQuery<InvestmentVaultHourlySnapshotsResp> {
+  const label = 'queryInvestmentVaultHourlySnapshots';
   const investmentId = investmentAddress.address.toLowerCase();
   const request = `
   {
-    investmentShareHourlySnapshots(
-      where: {investmentShare: "${investmentId}"}
+    investmentVaultHourlySnapshots(
+      where: {investmentVault: "${investmentId}"}
       orderBy: timestamp
       first: ${first}
       orderDirection: desc
@@ -70,12 +70,12 @@ export function queryInvestmentShareHourlySnapshots(
   return {
     label,
     request,
-    parse: InvestmentShareHourlySnapshotsResp.parse,
+    parse: InvestmentVaultHourlySnapshotsResp.parse,
   };
 }
 
-const InvestmentShareHourlySnapshotsResp = z.object({
-  investmentShareHourlySnapshots: z.array(
+const InvestmentVaultHourlySnapshotsResp = z.object({
+  investmentVaultHourlySnapshots: z.array(
     z.object({
       timeframe: z.string(),
       timestamp: z.string(),
@@ -84,22 +84,22 @@ const InvestmentShareHourlySnapshotsResp = z.object({
     })
   ),
 });
-type InvestmentShareHourlySnapshotsResp = z.infer<
-  typeof InvestmentShareHourlySnapshotsResp
+type InvestmentVaultHourlySnapshotsResp = z.infer<
+  typeof InvestmentVaultHourlySnapshotsResp
 >;
 
 //----------------------------------------------------------------------------------------------------
 
-export function queryInvestmentShareDailySnapshots(
+export function queryInvestmentVaultDailySnapshots(
   investmentAddress: ContractAddress,
   first: number
-): SubGraphQuery<InvestmentShareDailySnapshotsResp> {
-  const label = 'queryInvestmentShareDailySnapshots';
+): SubGraphQuery<InvestmentVaultDailySnapshotsResp> {
+  const label = 'queryInvestmentVaultDailySnapshots';
   const investmentId = investmentAddress.address.toLowerCase();
   const request = `
   {
-    investmentShareDailySnapshots(
-      where: {investmentShare: "${investmentId}"}
+    investmentVaultDailySnapshots(
+      where: {investmentVault: "${investmentId}"}
       orderBy: timestamp
       first: ${first}
       orderDirection: desc
@@ -115,12 +115,12 @@ export function queryInvestmentShareDailySnapshots(
   return {
     label,
     request,
-    parse: InvestmentShareDailySnapshotsResp.parse,
+    parse: InvestmentVaultDailySnapshotsResp.parse,
   };
 }
 
-const InvestmentShareDailySnapshotsResp = z.object({
-  investmentShareDailySnapshots: z.array(
+const InvestmentVaultDailySnapshotsResp = z.object({
+  investmentVaultDailySnapshots: z.array(
     z.object({
       timeframe: z.string(),
       timestamp: z.string(),
@@ -129,8 +129,8 @@ const InvestmentShareDailySnapshotsResp = z.object({
     })
   ),
 });
-type InvestmentShareDailySnapshotsResp = z.infer<
-  typeof InvestmentShareDailySnapshotsResp
+type InvestmentVaultDailySnapshotsResp = z.infer<
+  typeof InvestmentVaultDailySnapshotsResp
 >;
 
 //----------------------------------------------------------------------------------------------------
