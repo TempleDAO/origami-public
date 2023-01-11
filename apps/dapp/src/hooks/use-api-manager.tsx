@@ -3,18 +3,18 @@ import { ChainConfig, ChainId } from '@/api/types';
 import { createProviderApi, createSignerApi, ApiConfig } from '@/api/ethers';
 
 import { ethers, Signer } from 'ethers';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface ApiManager {
   papi: ProviderApi;
   sapi: SignerApi | undefined;
-  metamask: MetamaskConnection | undefined;
+  wallet: WalletConnection | undefined;
 
   disconnectSigner(): Promise<void>;
   connectSigner(chainId?: ChainId): Promise<void>;
 }
 
-export interface MetamaskConnection {
+export interface WalletConnection {
   signer: Signer;
   signerApi: SignerApi;
   chainId: ChainId;
@@ -32,47 +32,33 @@ export function ApiManagerProvider(props: {
     () => createProviderApi(props.apiConfig),
     [props.apiConfig]
   );
-  const [metamask, setMetamask] = useState<MetamaskConnection | undefined>();
+  const [wallet, setWallet] = useState<WalletConnection | undefined>();
 
   async function disconnectSigner() {
-    setMetamask(undefined);
+    setWallet(undefined);
+    localStorage.removeItem(LOCALSTORE_WALLET_STATE);
   }
 
   async function connectSigner(mChainId?: ChainId) {
     if (typeof window !== undefined) {
-      const ethereum = (window as unknown as { ethereum: LocalProvider })
-        .ethereum;
-      const provider = new ethers.providers.Web3Provider(ethereum, 'any');
-      const signer = provider.getSigner();
-      let chainId = await signer.getChainId();
-      await provider.send('eth_requestAccounts', []);
-
-      if (mChainId && mChainId !== chainId) {
-        const toChain = papi.chains.get(mChainId);
-        if (!toChain) {
-          throw new Error('No config for chainid ' + mChainId);
-        }
-        await switchToChain(ethereum, toChain);
-        chainId = toChain.id;
-      }
-      const address = await signer.getAddress();
-      const signerApi = createSignerApi(
-        props.apiConfig,
-        address,
-        chainId,
-        signer
-      );
-      const newmm = { signer, signerApi, chainId, address };
-      setMetamask((oldmm) =>
+      const newmm = await createConnection(papi, mChainId, props.apiConfig);
+      setWallet((oldmm) =>
         !oldmm || oldmm.chainId !== newmm.chainId ? newmm : oldmm
       );
+      localStorage.setItem(LOCALSTORE_WALLET_STATE, 'connected');
     }
   }
 
+  useEffect(() => {
+    if (localStorage.getItem(LOCALSTORE_WALLET_STATE) != null) {
+      connectSigner();
+    }
+  }, []); // eslint-disable-line
+
   const apiManager: ApiManager = {
     papi,
-    sapi: metamask && metamask.signerApi,
-    metamask,
+    sapi: wallet && wallet.signerApi,
+    wallet: wallet,
     disconnectSigner,
     connectSigner,
   };
@@ -91,6 +77,33 @@ export function useApiManager(): ApiManager {
   return chainSigner;
 }
 
+/**
+ * Create a new connection to the wallet, switching to and setting up the specified chain if required.
+ */
+async function createConnection(
+  papi: ProviderApi,
+  mChainId: ChainId | undefined,
+  apiConfig: ApiConfig
+): Promise<WalletConnection> {
+  const ethereum = (window as unknown as { ethereum: LocalProvider }).ethereum;
+  const provider = new ethers.providers.Web3Provider(ethereum, 'any');
+  const signer = provider.getSigner();
+  let chainId = await signer.getChainId();
+  await provider.send('eth_requestAccounts', []);
+
+  if (mChainId && mChainId !== chainId) {
+    const toChain = papi.chains.get(mChainId);
+    if (!toChain) {
+      throw new Error('No config for chainid ' + mChainId);
+    }
+    await switchToChain(ethereum, toChain);
+    chainId = toChain.id;
+  }
+  const address = await signer.getAddress();
+  const signerApi = createSignerApi(apiConfig, address, chainId, signer);
+  return { signer, signerApi, chainId, address };
+}
+
 async function switchToChain(ethereum: LocalProvider, toChain: ChainConfig) {
   console.log(`switching to ${toChain.name} (id ${toChain.id})`);
   const chainIdStr = '0x' + toChain.id.toString(16);
@@ -107,7 +120,7 @@ async function switchToChain(ethereum: LocalProvider, toChain: ChainConfig) {
           {
             chainId: chainIdStr,
             chainName: toChain.name,
-            rpcUrls: [toChain.metamaskRpcUrl],
+            rpcUrls: [toChain.walletRpcUrl],
             nativeCurrency: toChain.nativeCurrency,
           },
         ],
@@ -124,3 +137,5 @@ export type LocalProvider = {
     params?: Array<unknown>;
   }) => Promise<unknown>;
 };
+
+const LOCALSTORE_WALLET_STATE = 'walletState';

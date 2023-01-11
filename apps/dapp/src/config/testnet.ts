@@ -29,7 +29,7 @@ const MUMBAI: ChainConfig = {
   name: 'Polygon Mumbai',
   id: 80001,
   rpcUrl: 'https://polygon-testnet.public.blastapi.io',
-  metamaskRpcUrl: 'https://polygon-testnet.public.blastapi.io',
+  walletRpcUrl: 'https://polygon-testnet.public.blastapi.io',
   nativeCurrency: {
     name: 'MATIC',
     symbol: 'MATIC',

@@ -87,7 +87,7 @@ class TestProviderApiImpl implements TestProviderApi {
       id: a.id,
       nativeCurrency: a.nativeCurrency,
       rpcUrl: 'http://something',
-      metamaskRpcUrl: 'http://something',
+      walletRpcUrl: 'http://something',
       subgraphUrl: 'http://something',
     });
   }

@@ -17,7 +17,7 @@ export interface Chain {
 
 export interface ChainConfig extends Chain {
   rpcUrl: string;
-  metamaskRpcUrl: string;
+  walletRpcUrl: string;
   subgraphUrl: string;
 }
 
