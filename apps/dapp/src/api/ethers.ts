@@ -708,25 +708,9 @@ class SignerApiImpl implements SignerApi {
     }
     const toAmountDecimals = tokenOrNativeAmountDecimals(req.quote.to);
 
-    const receiptToken = req.quote.investment.receiptToken;
-
-    const receiptTokenContract = IERC20Metadata__factory.connect(
-      receiptToken.config.address,
-      this.signer
-    );
-
     const investmentContract = IOrigamiInvestment__factory.connect(
       req.quote.investment.contractAddress.address,
       this.signer
-    );
-
-    req.onStage && req.onStage({ kind: 'approve' });
-
-    await this.requireTokenApproval(
-      receiptTokenContract,
-      req.quote.investment.contractAddress.address,
-      receiptToken,
-      req.quote.receiptTokenAmount
     );
 
     req.onStage && req.onStage({ kind: 'exit' });
