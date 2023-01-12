@@ -676,6 +676,7 @@ class SignerApiImpl implements SignerApi {
       matchEvents(
         receipt?.events || [],
         investmentContract,
+        investmentContract.address,
         investmentContract.filters.Invested()
       )
     );
@@ -737,6 +738,7 @@ class SignerApiImpl implements SignerApi {
       matchEvents(
         receipt?.events || [],
         investmentContract,
+        investmentContract.address,
         investmentContract.filters.Exited()
       )
     );

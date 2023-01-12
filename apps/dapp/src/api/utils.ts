@@ -2,15 +2,17 @@ import { ethers } from 'ethers';
 import { TypedEventFilter, TypedEvent } from '@/typechain/common';
 
 /**
- * Finds the events that match the specified filter, and
+ * Finds the events that match the specified address and filter, and
  * returns these parsed and mapped to the appropriate type
  */
 export function matchEvents<TArgsArray extends unknown[], TArgsObject>(
   events: ethers.Event[],
   contract: ethers.BaseContract,
+  address: string | undefined,
   eventFilter: TypedEventFilter<TypedEvent<TArgsArray, TArgsObject>>
 ): TypedEvent<TArgsArray, TArgsObject>[] {
   return events
+    .filter((ev) => !address || address === ev.address)
     .filter((ev) => matchTopics(eventFilter.topics, ev.topics))
     .map((ev) => {
       const args = contract.interface.parseLog(ev).args;
