@@ -15,10 +15,10 @@ const RRLinkStyledUndecorated = styled(RRLink)`
 
 export function Link(props: LinkProps) {
   return props.removedecoration ? (
-    <RRLinkStyled to={props.href}>{props.children}</RRLinkStyled>
-  ) : (
     <RRLinkStyledUndecorated to={props.href}>
       {props.children}
     </RRLinkStyledUndecorated>
+  ) : (
+    <RRLinkStyled to={props.href}>{props.children}</RRLinkStyled>
   );
 }
