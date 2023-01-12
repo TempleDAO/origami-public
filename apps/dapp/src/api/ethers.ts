@@ -57,7 +57,7 @@ import {
 } from './types';
 import {
   dateFromTimestamp,
-  percentFromBps,
+  percentFromSubgraph,
   queryInvestmentVaultDailySnapshots as queryInvestmentVaultDailySnapshots,
   queryInvestmentVaultHourlySnapshots,
   queryInvestmentVaultMetrics,
@@ -445,7 +445,10 @@ class ProviderApiImpl implements ProviderApi {
       return result.investmentVaultHourlySnapshots.map((p) => {
         return {
           t: dateFromTimestamp(p.timeframe),
-          v: req.metric == 'apr' ? percentFromBps(p.apr) : parseFloat(p.tvl),
+          v:
+            req.metric == 'apr'
+              ? percentFromSubgraph(p.apr)
+              : parseFloat(p.tvl),
         };
       });
     } else {
@@ -457,7 +460,10 @@ class ProviderApiImpl implements ProviderApi {
       return result.investmentVaultDailySnapshots.map((p) => {
         return {
           t: dateFromTimestamp(p.timeframe),
-          v: req.metric == 'apr' ? percentFromBps(p.apr) : parseFloat(p.tvl),
+          v:
+            req.metric == 'apr'
+              ? percentFromSubgraph(p.apr)
+              : parseFloat(p.tvl),
         };
       });
     }

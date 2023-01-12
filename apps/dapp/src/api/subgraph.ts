@@ -264,6 +264,6 @@ export function dateFromTimestamp(timestamp: string): Date {
   return new Date(parseFloat(timestamp) * 1000);
 }
 
-export function percentFromBps(v: string): number {
-  return parseFloat(v) / 10000;
+export function percentFromSubgraph(v: string): number {
+  return parseFloat(v) / 100;
 }
