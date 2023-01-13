@@ -1,24 +1,31 @@
 import { ProviderApi, SignerApi } from '@/api/api';
 import { Investment } from '@/api/types';
 import { useApiManager } from '@/hooks/use-api-manager';
-
+import { ApiCache, BalanceMap, MetricsVMap } from '@/api/cache';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import { Text } from '@/components/commons/Text';
 
-import { lmap } from '@/utils/loading-value';
+import {
+  isReady,
+  lmap,
+  lmap2,
+  Loading,
+  newLoading,
+} from '@/utils/loading-value';
 
-import { AssetHolding, loadAssetHoldings } from './AssetsTable';
+import { AssetHolding } from './AssetsTable';
 import { AssetDetails } from './AssetDetails';
 import { AssetsTable } from './AssetsTable';
 import { NetHoldings } from './NetHoldings';
-import { useAsyncLoad } from '@/hooks/use-async-result';
-import { asyncNever } from '@/utils/noop';
 import { Button } from '@/components/commons/Button';
 import { textH5 } from '@/styles/mixins/text-styles';
 import { ConnectWalletButton } from '@/components/commons/ConnectWalletButton';
 import { Link } from '@/components/commons/Link';
+import { DBN_ZERO } from '@/utils/decimal-big-number';
+import { useAsyncLoad } from '@/hooks/use-async-result';
+import { asyncNever } from '@/utils/noop';
 
 export function Page() {
   const am = useApiManager();
@@ -38,6 +45,7 @@ export function Page() {
     <PageContent
       papi={am.papi}
       sapi={am.sapi}
+      cache={am.cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
     />
@@ -46,21 +54,25 @@ export function Page() {
 interface PageContentProps {
   papi: ProviderApi;
   sapi?: SignerApi;
+  cache: ApiCache;
   selectedInvestment: Investment | undefined;
   setSelectedInvestment(i: Investment | undefined): void;
 }
 
 export function PageContent(props: PageContentProps) {
-  const signerAddress = props.sapi?.signerAddress;
+  const cache = props.cache;
 
-  const [userHoldings] = useAsyncLoad(
-    () => loadUserHoldingsIfSigner(signerAddress, props.papi),
-    [signerAddress, props.papi]
+  const userHoldings = useMemo(
+    () =>
+      lmap2([cache.investments, cache.balances], (investments, balances) =>
+        calcAssetHoldings(investments, balances, cache.metrics)
+      ),
+    [cache.investments, cache.balances, cache.metrics]
   );
 
-  const metrics = useMemo(
-    () => lmap(userHoldings, calcPortfolioMetrics),
-    [userHoldings]
+  const [metrics] = useAsyncLoad(
+    () => calcPortfolioMetrics(props.papi, userHoldings),
+    [props.papi, userHoldings]
   );
 
   if (!props.sapi) {
@@ -94,6 +106,7 @@ export function PageContent(props: PageContentProps) {
           <AssetDetails
             papi={props.papi}
             sapi={props.sapi}
+            cache={props.cache}
             investment={props.selectedInvestment}
           />
         </>
@@ -118,29 +131,51 @@ export function PageContent(props: PageContentProps) {
   );
 }
 
-async function loadUserHoldingsIfSigner(
-  signerAddress: string | undefined,
-  papi: ProviderApi
-): Promise<AssetHolding[]> {
-  if (signerAddress == undefined) {
-    return asyncNever();
-  } else {
-    return loadAssetHoldings(signerAddress, papi);
-  }
-}
-
 interface PortfolioMetrics {
   apr: number;
   tvl: number;
 }
 
-function calcPortfolioMetrics(userHoldings: AssetHolding[]): PortfolioMetrics {
+function calcAssetHoldings(
+  investments: Investment[],
+  balances: BalanceMap,
+  metricsMap: MetricsVMap
+): AssetHolding[] {
+  const result: AssetHolding[] = [];
+  for (const investment of investments) {
+    const balance = balances.get(investment);
+    if (balance && balance.gt(DBN_ZERO)) {
+      const token = investment.receiptToken;
+      const metrics = newLoading(metricsMap.get(investment));
+      result.push({ investment, token, balance, metrics });
+    }
+  }
+  return result;
+}
+
+async function calcPortfolioMetrics(
+  papi: ProviderApi,
+  userHoldings: Loading<AssetHolding[]>
+): Promise<PortfolioMetrics> {
+  // First check everything is ready.
+  if (!isReady(userHoldings)) {
+    return asyncNever();
+  }
+  for (const uh of userHoldings.value) {
+    if (!isReady(uh.metrics)) {
+      return asyncNever();
+    }
+  }
+
   let tvl = 0;
   let apr = 0;
-  for (const uh of userHoldings) {
-    const value = Number(uh.balance.mul(uh.usdPrice).formatUnits(2));
-    tvl += value;
-    apr += uh.apr * value;
+  for (const uh of userHoldings.value) {
+    if (isReady(uh.metrics)) {
+      const usdPrice = await papi.getTokenUsdPrice(uh.investment.receiptToken);
+      const value = Number(uh.balance.mul(usdPrice).formatUnits(2));
+      tvl += value;
+      apr += uh.metrics.value.apr * value;
+    }
   }
   apr = apr / tvl;
   return {

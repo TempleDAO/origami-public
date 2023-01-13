@@ -4,9 +4,9 @@ import { InvestGrid, Link, InvestGridItem } from './InvestGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
 import { ChainId, InvestmentConfig } from '@/api/types';
-import { lmap, Loading, loading, ready } from '@/utils/loading-value';
+import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
-import { useMapAsyncFn } from '@/hooks/use-async-result';
+import { ApiCache } from '@/api/cache';
 
 export function Page() {
   const am = useApiManager();
@@ -14,6 +14,7 @@ export function Page() {
     <PageContent
       papi={am.papi}
       sapi={am.sapi}
+      cache={am.cache}
       connectSigner={am.connectSigner}
     />
   );
@@ -22,23 +23,14 @@ export function Page() {
 interface PageContentProps {
   papi: ProviderApi;
   sapi?: SignerApi;
+  cache: ApiCache;
   connectSigner(chainId: ChainId): Promise<void>;
 }
 
 export const PageContent = (props: PageContentProps) => {
   const { papi, sapi, connectSigner } = props;
   const [activeFlow, setActiveFlow] = useState<JSX.Element | undefined>();
-
-  const metrics: Loading<MetricsResp>[] = useMapAsyncFn(
-    papi.investments,
-    (_ic) => loading(),
-    async (ic) => {
-      const investment = await papi.getInvestment(ic);
-      const metrics = await investment.getMetrics();
-      return ready(metrics);
-    },
-    [papi]
-  );
+  const investments = getValue(props.cache.investments) || [];
 
   function hidePanel() {
     setActiveFlow(undefined);
@@ -54,15 +46,22 @@ export const PageContent = (props: PageContentProps) => {
         sapi={sapi}
         investment={investment}
         acceptedTokens={acceptedTokens}
+        cache={props.cache}
         hidePanel={hidePanel}
       />
     );
     setActiveFlow(flow);
   }
 
-  const gridItems = papi.investments.map((ic, i) =>
-    makeInvestGridItem(papi, ic, metrics[i], sapi && (() => onInvest(ic, sapi)))
-  );
+  const gridItems = investments.map((investment) => {
+    const metrics = newLoading(props.cache.metrics.get(investment));
+    return makeInvestGridItem(
+      papi,
+      investment,
+      metrics,
+      sapi && (() => onInvest(investment, sapi))
+    );
+  });
 
   return (
     <FlexDown>

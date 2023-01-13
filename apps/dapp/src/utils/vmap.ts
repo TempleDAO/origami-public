@@ -63,4 +63,18 @@ export class VMap<K, V> {
   clear() {
     this._values = {};
   }
+
+  // create a shallow copy
+  copy(): VMap<K, V> {
+    const result = new VMap<K, V>(this.keygen);
+    result._values = { ...this._values };
+    return result;
+  }
+
+  // Returns a shallow copy with an update
+  withPut(k: K, v: V): VMap<K, V> {
+    const m = this.copy();
+    m.put(k, v);
+    return m;
+  }
 }

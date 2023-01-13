@@ -33,6 +33,7 @@ import { DBN_ZERO, DecimalBigNumber } from '@/utils/decimal-big-number';
 import { sleep } from '@/utils/sleep';
 import { VMap } from '@/utils/vmap';
 import { createMemoizedAsyncValue } from '@/utils/memoized';
+import { ApiCache, useCache } from '@/api/cache';
 
 interface TestApi {
   sleepMs: number;
@@ -45,14 +46,17 @@ export type TestSignerApi = TestApi & SignerApi;
 export function useTestApis(sleepMs?: number): {
   papi: TestProviderApi;
   sapi: TestSignerApi;
+  cache: ApiCache;
 } {
   const papi = useMemo(() => new TestProviderApiImpl(), []);
   const sapi = useMemo(() => new TestSignerApiImpl(), []);
+  const cache = useCache(papi, sapi.signerAddress);
+
   if (sleepMs !== undefined) {
     papi.sleepMs = sleepMs;
     sapi.sleepMs = sleepMs;
   }
-  return { papi, sapi };
+  return { papi, sapi, cache };
 }
 
 export function tokenUsdPrices(): VMap<Token, DecimalBigNumber> {

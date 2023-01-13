@@ -5,6 +5,14 @@ export interface Reloadable<T> {
   refresh(): void;
 }
 
+export function newLoading<T>(value: T | undefined): Loading<T> {
+  if (value === undefined) {
+    return { state: 'loading' };
+  } else {
+    return { state: 'ready', value };
+  }
+}
+
 export function loading<T>(): Loading<T> {
   return { state: 'loading' };
 }

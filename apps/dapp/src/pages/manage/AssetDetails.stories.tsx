@@ -8,15 +8,29 @@ export default {
 };
 
 export const Default = () => {
-  const { papi, sapi } = useTestApis();
+  const { papi, sapi, cache } = useTestApis();
   const investment = useMemo(() => gmxInvestment(), []);
 
-  return <AssetDetails papi={papi} sapi={sapi} investment={investment} />;
+  return (
+    <AssetDetails
+      papi={papi}
+      sapi={sapi}
+      investment={investment}
+      cache={cache}
+    />
+  );
 };
 
 export const Loading = () => {
-  const { papi, sapi } = useTestApis(1000000);
+  const { papi, sapi, cache } = useTestApis(1000000);
   const investment = useMemo(() => gmxInvestment(), []);
 
-  return <AssetDetails papi={papi} sapi={sapi} investment={investment} />;
+  return (
+    <AssetDetails
+      papi={papi}
+      sapi={sapi}
+      investment={investment}
+      cache={cache}
+    />
+  );
 };

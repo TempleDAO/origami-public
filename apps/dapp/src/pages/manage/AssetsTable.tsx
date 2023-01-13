@@ -1,31 +1,24 @@
 import type { FC } from 'react';
 import type { Token, Investment } from '@/api/types';
-import type { Loading } from '@/utils/loading-value';
-import { DBN_ZERO, DecimalBigNumber } from '@/utils/decimal-big-number';
+import { lmap, Loading } from '@/utils/loading-value';
+import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 import styled from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import { Text } from '@/components/commons/Text';
 import { LoadingText } from '@/components/commons/LoadingText';
 import { LoadingComponent } from '@/components/commons/LoadingComponent';
-import { isReady, lmap, ready, loading } from '@/utils/loading-value';
+import { isReady, loading } from '@/utils/loading-value';
 import { formatDecimalBigNumber, formatPercent } from '@/utils/formatNumber';
-import { noop } from '@/utils/noop';
 import { textH3 } from '@/styles/mixins/text-styles';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
-import { ProviderApi } from '@/api/api';
+import { MetricsResp } from '@/api/api';
 
 export type AssetHolding = {
   investment: Investment;
   token: Token;
-  usdPrice: DecimalBigNumber;
-  apr: number;
   balance: DecimalBigNumber;
-};
-
-type AssetHoldingsProps = {
-  assetHoldings: Loading<AssetHolding>;
-  handleSelect: (investment: Investment) => void;
+  metrics: Loading<MetricsResp>;
 };
 
 type AssetsTableProps = {
@@ -52,56 +45,76 @@ export const AssetsTable: FC<AssetsTableProps> = ({
       </Item>
     </Row>
     {isReady(holdings) ? (
-      holdings.value.map((assetHoldings) => (
-        <AssetHoldings
-          key={assetHoldings.token.symbol}
-          assetHoldings={ready(assetHoldings)}
+      holdings.value.map((holding) => (
+        <AssetsTableRow
+          key={holding.token.symbol}
+          holding={holding}
           handleSelect={handleSelect}
         />
       ))
     ) : (
       <>
-        <AssetHoldings
-          assetHoldings={loading<AssetHolding>()}
-          handleSelect={noop}
-        />
-        <AssetHoldings
-          assetHoldings={loading<AssetHolding>()}
-          handleSelect={noop}
-        />
+        <EmptyAssetsTableRow />
+        <EmptyAssetsTableRow />
       </>
     )}
   </Table>
 );
 
-const AssetHoldings: FC<AssetHoldingsProps> = ({
-  assetHoldings,
-  handleSelect,
-}) => {
-  const { pool, token, title, subtitle, apr, chain, balance } =
-    extractHoldingsValues(assetHoldings);
+type AssetsTableRowProps = {
+  holding: AssetHolding;
+  handleSelect: (investment: Investment) => void;
+};
 
-  const handleClick = isReady(pool) ? () => handleSelect(pool.value) : noop;
-
+const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
+  const { investment, token, balance } = holding;
   return (
-    <AssetRow onClick={handleClick}>
+    <AssetRow onClick={() => handleSelect(investment)}>
       <Item0 col={1}>
         <AssetInfo>
-          {isReady(token) ? (
-            <Icon
-              iconName={token.value.iconName}
-              size={ICON_SIZE}
-              hasBackground
+          <Icon iconName={token.iconName} size={ICON_SIZE} hasBackground />
+          <VerticalFlex>
+            <Primary>{investment.receiptToken.symbol}</Primary>
+            <Subtext>{investment.description}</Subtext>
+          </VerticalFlex>
+        </AssetInfo>
+      </Item0>
+      <Item col={2}>
+        <ValueContainer>
+          <Primary>
+            <LoadingText
+              value={lmap(holding.metrics, (metrics) =>
+                formatPercent(metrics.apr)
+              )}
             />
-          ) : (
-            <LoadingIcon width={50} height={50} />
-          )}
+          </Primary>
+          <Secondary>%</Secondary>
+        </ValueContainer>
+      </Item>
+      <Item col={3}>
+        <Secondary>{investment.chain.name}</Secondary>
+      </Item>
+      <Item col={4}>
+        <ValueContainer>
+          <Primary>{formatDecimalBigNumber(balance)}</Primary>
+        </ValueContainer>
+      </Item>
+    </AssetRow>
+  );
+};
+
+const EmptyAssetsTableRow = () => {
+  return (
+    <AssetRow>
+      <Item0 col={1}>
+        <AssetInfo>
+          <LoadingIcon width={50} height={50} />
           <VerticalFlex>
             <Primary>
-              <LoadingText value={title} />
+              <LoadingText value={loading()} />
             </Primary>
             <Subtext>
-              <LoadingText value={subtitle} />
+              <LoadingText value={loading()} />
             </Subtext>
           </VerticalFlex>
         </AssetInfo>
@@ -109,82 +122,26 @@ const AssetHoldings: FC<AssetHoldingsProps> = ({
       <Item col={2}>
         <ValueContainer>
           <Primary>
-            <LoadingText value={apr} />
+            <LoadingText value={loading()} />
           </Primary>
           <Secondary>%</Secondary>
         </ValueContainer>
       </Item>
       <Item col={3}>
         <Secondary>
-          <LoadingText value={chain} />
+          <LoadingText value={loading()} />
         </Secondary>
       </Item>
       <Item col={4}>
         <ValueContainer>
           <Primary>
-            <LoadingText value={balance} />
+            <LoadingText value={loading()} />
           </Primary>
         </ValueContainer>
       </Item>
     </AssetRow>
   );
 };
-
-function extractHoldingsValues(holdings: Loading<AssetHolding>) {
-  const pool = lmap(holdings, (holdings) => holdings.investment);
-  const token = lmap(holdings, (holdings) => holdings.token);
-  const title = lmap(
-    holdings,
-    (holdings) => holdings.investment.receiptToken.symbol
-  );
-  const subtitle = lmap(
-    holdings,
-    (holdings) => holdings.investment.description
-  );
-  const apr = lmap(holdings, (holdings) => formatPercent(holdings.apr));
-  const chain = lmap(holdings, (holdings) =>
-    holdings.investment.chain.name.toUpperCase()
-  );
-  const balance = lmap(holdings, (holdings) =>
-    formatDecimalBigNumber(holdings.balance)
-  );
-
-  return {
-    pool,
-    token,
-    title,
-    subtitle,
-    apr,
-    chain,
-    balance,
-  };
-}
-
-export async function loadAssetHoldings(
-  signerAddress: string,
-  papi: ProviderApi
-): Promise<AssetHolding[]> {
-  const result: AssetHolding[] = [];
-  for (const ic of papi.investments) {
-    const investment = await papi.getInvestment(ic);
-    const token = investment.receiptToken;
-    const balance = await papi.getTokenBalance(token, signerAddress);
-    if (balance.gt(DBN_ZERO)) {
-      const [metrics, usdPrice] = await Promise.all([
-        await investment.getMetrics(),
-        await papi.getTokenUsdPrice(investment.receiptToken),
-      ]);
-      result.push({
-        investment,
-        token,
-        balance: balance,
-        apr: metrics.apr,
-        usdPrice: usdPrice,
-      });
-    }
-  }
-  return result;
-}
 
 const VerticalFlex = styled.div`
   display: flex;

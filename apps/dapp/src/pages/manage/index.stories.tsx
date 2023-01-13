@@ -9,7 +9,7 @@ export default {
 };
 
 export const Default = () => {
-  const { papi, sapi } = useTestApis();
+  const { papi, sapi, cache } = useTestApis();
   const [selectedInvestment, setSelectedInvestment] =
     useState<Investment | undefined>();
 
@@ -17,6 +17,7 @@ export const Default = () => {
     <PageContent
       papi={papi}
       sapi={sapi}
+      cache={cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
     />
@@ -24,13 +25,14 @@ export const Default = () => {
 };
 
 export const Loading = () => {
-  const { papi, sapi } = useTestApis(1000000);
+  const { papi, sapi, cache } = useTestApis(1000000);
   const [selectedInvestment, setSelectedInvestment] =
     useState<Investment | undefined>();
   return (
     <PageContent
       papi={papi}
       sapi={sapi}
+      cache={cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
     />
@@ -38,13 +40,14 @@ export const Loading = () => {
 };
 
 export const SingleHolding = () => {
-  const { papi, sapi } = useTestApis();
+  const { papi, sapi, cache } = useTestApis();
   const [selectedInvestment, setSelectedInvestment] =
     useState<Investment | undefined>(gmxInvestment);
   return (
     <PageContent
       papi={papi}
       sapi={sapi}
+      cache={cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
     />

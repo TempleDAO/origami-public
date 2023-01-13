@@ -11,10 +11,12 @@ import { FlowOverlay as ExitOverlay } from '@/flows/exit';
 import raisedStyles from '@/styles/mixins/cards/raised';
 import { textH1 } from '@/styles/mixins/text-styles';
 import { ProviderApi, SignerApi } from '@/api/api';
+import { ApiCache } from '@/api/cache';
 
 type ActionCardProps = {
   papi: ProviderApi;
   sapi: SignerApi;
+  cache: ApiCache;
   investment: Investment;
   apr: Loading<string>;
   receiptTokenBalance: Loading<string>;
@@ -25,6 +27,7 @@ type ActionCardProps = {
 export const ActionCard: FC<ActionCardProps> = ({
   papi,
   sapi,
+  cache,
   investment,
   apr,
   receiptTokenBalance,
@@ -43,6 +46,7 @@ export const ActionCard: FC<ActionCardProps> = ({
       <InvestOverlay
         papi={papi}
         sapi={sapi}
+        cache={cache}
         investment={investment}
         acceptedTokens={acceptedTokens}
         hidePanel={hidePanel}
@@ -56,6 +60,7 @@ export const ActionCard: FC<ActionCardProps> = ({
       <ExitOverlay
         papi={papi}
         sapi={sapi}
+        cache={cache}
         investment={investment}
         acceptedTokens={acceptedTokens}
         hidePanel={hidePanel}

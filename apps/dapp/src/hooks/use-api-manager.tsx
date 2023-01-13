@@ -4,11 +4,13 @@ import { createProviderApi, createSignerApi, ApiConfig } from '@/api/ethers';
 
 import { ethers, Signer } from 'ethers';
 import React, { useEffect, useMemo, useState } from 'react';
+import { ApiCache, useCache } from '@/api/cache';
 
 interface ApiManager {
   papi: ProviderApi;
   sapi: SignerApi | undefined;
   wallet: WalletConnection | undefined;
+  cache: ApiCache;
 
   disconnectSigner(): Promise<void>;
   connectSigner(chainId?: ChainId): Promise<void>;
@@ -55,10 +57,13 @@ export function ApiManagerProvider(props: {
     }
   }, []); // eslint-disable-line
 
+  const cache = useCache(papi, wallet?.address);
+
   const apiManager: ApiManager = {
     papi,
     sapi: wallet && wallet.signerApi,
     wallet: wallet,
+    cache,
     disconnectSigner,
     connectSigner,
   };

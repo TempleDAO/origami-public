@@ -8,13 +8,27 @@ export default {
 };
 
 export const Default = () => {
-  const { papi, sapi } = useTestApis();
+  const { papi, sapi, cache } = useTestApis();
 
-  return <PageContent papi={papi} sapi={sapi} connectSigner={asyncNoop} />;
+  return (
+    <PageContent
+      papi={papi}
+      sapi={sapi}
+      connectSigner={asyncNoop}
+      cache={cache}
+    />
+  );
 };
 
 export const Loading = () => {
-  const { papi, sapi } = useTestApis(1000000);
+  const { papi, sapi, cache } = useTestApis(1000000);
 
-  return <PageContent papi={papi} sapi={sapi} connectSigner={asyncNoop} />;
+  return (
+    <PageContent
+      papi={papi}
+      sapi={sapi}
+      connectSigner={asyncNoop}
+      cache={cache}
+    />
+  );
 };

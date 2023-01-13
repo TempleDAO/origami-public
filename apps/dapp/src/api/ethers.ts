@@ -242,7 +242,7 @@ class ProviderApiImpl implements ProviderApi {
       return this.getAcceptedTokens(chain, await contract.acceptedExitTokens());
     }).get;
 
-    const getMetrics = async (): Promise<MetricsResp> => {
+    const getMetrics_ = async (): Promise<MetricsResp> => {
       const url = this.getSubgraphUrl(chainId);
       const query = queryInvestmentVaultMetrics(ic.contractAddress);
       const result = await subgraphQuery(url, query);
@@ -253,6 +253,14 @@ class ProviderApiImpl implements ProviderApi {
         tvl: parseFloat(result.investmentVault.tvl),
         apr: parseFloat(result.investmentVault.apr) / 100,
       };
+    };
+
+    const getMetrics = async (): Promise<MetricsResp> => {
+      return logged(getMetrics_(), {
+        label: 'getMetrics',
+        req: [ic],
+        resp: (v) => v,
+      });
     };
 
     const getHistoricMetric = async (

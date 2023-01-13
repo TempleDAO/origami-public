@@ -1,6 +1,7 @@
 import { ProviderApi, SignerApi } from '@/api/api';
 import { Investment, TokenOrNative } from '@/api/types';
 import { RightPanelOverlay } from '@/components/commons/RightPanelOverlay';
+import { ApiCache } from '@/api/cache';
 import { FlowState } from '@/hooks/use-flow-state';
 import { FC, useState } from 'react';
 import styled from 'styled-components';
@@ -28,6 +29,7 @@ interface FlowOverlayProps {
   acceptedTokens: TokenOrNative[];
   papi: ProviderApi;
   sapi: SignerApi;
+  cache: ApiCache;
   hidePanel(): void;
 }
 
@@ -41,7 +43,10 @@ export function FlowOverlay(props: FlowOverlayProps): JSX.Element {
       Content={({ startDismiss }) => {
         const ctx = {
           ...props,
-          onDone: startDismiss,
+          onDone: () => {
+            props.cache.refreshBalances();
+            startDismiss();
+          },
         };
         return (
           <FlowContainer>

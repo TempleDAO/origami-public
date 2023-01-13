@@ -3,8 +3,8 @@ import type { AssetHolding } from './AssetsTable';
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { AssetsTable } from './AssetsTable';
-import { ready, loading } from '@/utils/loading-value';
-import { DBN_ZERO, DBN_ONE_HUNDRED } from '@/utils/decimal-big-number';
+import { ready, loading, newLoading } from '@/utils/loading-value';
+import { DBN_ONE_HUNDRED } from '@/utils/decimal-big-number';
 import { gmxInvestment, glpInvestment } from '@/api/test';
 
 export default {
@@ -37,15 +37,19 @@ const mockHoldings: AssetHolding[] = [
   {
     investment: GMX,
     token: GMX.receiptToken,
-    apr: 100,
     balance: DBN_ONE_HUNDRED,
-    usdPrice: DBN_ZERO,
+    metrics: newLoading({
+      apr: 0.25,
+      tvl: 1000000,
+    }),
   },
   {
     investment: GMXLP,
     token: GMXLP.receiptToken,
-    apr: 100,
     balance: DBN_ONE_HUNDRED,
-    usdPrice: DBN_ZERO,
+    metrics: newLoading({
+      apr: 0.27,
+      tvl: 2000000,
+    }),
   },
 ];

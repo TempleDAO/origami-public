@@ -91,5 +91,5 @@ export function contractAddressKey(ca: ContractAddress): string {
 }
 /// unique string key for an investment
 export function investmentKey(i: Investment): string {
-  return i.contractAddress + '/' + i.chain.id;
+  return i.contractAddress.address + '/' + i.contractAddress.chainId;
 }
