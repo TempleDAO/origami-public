@@ -58,7 +58,9 @@ const IconBackground = styled.div<{ size: number }>`
       justify-content: center;
       background: ${({ theme }) => theme.colors.bgDark};
       min-width: ${(size * 2) / 16}rem;
+      max-width: ${(size * 2) / 16}rem;
       min-height: ${(size * 2) / 16}rem;
+      max-height: ${(size * 2) / 16}rem;
       border-radius: 50%;
       display: flex;
       align-items: center;
