@@ -15,6 +15,7 @@ import { SignerApi, ProviderApi } from '@/api/api';
 import { HistoricPeriod, Investment } from '@/api/types';
 import { ApiCache } from '@/api/cache';
 import { DBN_ZERO } from '@/utils/decimal-big-number';
+import breakpoints from '@/styles/responsive-breakpoints';
 
 export type AssetDetailsProps = {
   papi: ProviderApi;
@@ -98,6 +99,11 @@ export const AssetDetails: FC<AssetDetailsProps> = (props) => {
 
 const Container = styled.div`
   display: flex;
-  gap: 3.75rem;
+  flex-direction: column;
+  gap: 2rem;
   padding-bottom: 2rem;
+  ${breakpoints.lg(`
+    flex-direction: row;
+    gap: 3.75rem;
+  `)}
 `;
