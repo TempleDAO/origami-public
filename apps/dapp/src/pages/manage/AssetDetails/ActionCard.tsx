@@ -12,6 +12,7 @@ import raisedStyles from '@/styles/mixins/cards/raised';
 import { textH1 } from '@/styles/mixins/text-styles';
 import { ProviderApi, SignerApi } from '@/api/api';
 import { ApiCache } from '@/api/cache';
+import breakpoints from '@/styles/responsive-breakpoints';
 
 type ActionCardProps = {
   papi: ProviderApi;
@@ -122,13 +123,22 @@ const Container = styled(VerticalFlex)`
   box-sizing: border-box;
   ${raisedStyles}
   height: fit-content;
-  min-width: 31rem;
+  min-width: 0;
+  width: 100%;
   padding: 2.5rem;
+
+  ${breakpoints.md(`
+    min-width: 31rem;
+  `)}
 `;
 
 const InfoText = styled(Text)`
   display: inline-block;
   color: ${({ theme }) => theme.colors.greyLight};
+
+  ${breakpoints.md(`
+    display: inline-block;
+  `)}
 `;
 
 const TokenBalances = styled.div`

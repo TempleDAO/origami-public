@@ -191,13 +191,13 @@ const Container = styled(VerticalFlex)`
   border-radius: 1.25rem;
   background-color: ${({ theme }) => theme.colors.bgMid};
   ${sunkenStyles}
-  padding: 1.875rem;
+  padding: 1rem;
 `;
 
 const ChartContainer = styled.div`
   height: 260px;
   margin-bottom: 40px;
-  max-width: 60vw;
+  width: 100%;
 `;
 
 const InfoText = styled(Text)`
@@ -224,9 +224,9 @@ const Subtitle = styled.h3`
 `;
 
 const ChartTogglesRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 2.5rem;
+  display: flex;
+  max-width: 25rem;
+  justify-content: space-between;
   margin-top: 2.5rem;
   margin-bottom: 0.5rem;
 `;

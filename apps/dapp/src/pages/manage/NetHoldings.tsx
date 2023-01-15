@@ -1,4 +1,4 @@
-import type { FC, MouseEventHandler } from 'react';
+import type { FC } from 'react';
 import type { HistoricPeriod, HistoryPoint } from '@/api/types';
 import type { Loading } from '@/utils/loading-value';
 
@@ -7,7 +7,6 @@ import { LoadingText } from '@/components/commons/LoadingText';
 import { lmap } from '@/utils/loading-value';
 import { formatNumber, formatPercent } from '@/utils/formatNumber';
 import { textH2, textH3 } from '@/styles/mixins/text-styles';
-import { noop } from '@/utils/noop';
 
 type NetHoldings = {
   currentNetApr: Loading<number>;
@@ -41,18 +40,14 @@ const Heading: FC<{
       <Title>YOUR NET HOLDINGS</Title>
       <TogglerRow>
         <SeriesToggler
-          active={false}
-          onClick={noop}
           text={'NET APR'}
           value={lmap(currentNetApr, formatPercent)}
-          suffix={'%'}
+          suffix={' %'}
         />
         <SeriesToggler
-          active={false}
-          onClick={noop}
           text={'PORTFOLIO VALUE'}
           value={lmap(currentNetValue, formatNumber)}
-          suffix={'USD'}
+          suffix={' USD'}
         />
       </TogglerRow>
     </HeadingContainer>
@@ -60,27 +55,21 @@ const Heading: FC<{
 };
 
 type SeriesTogglerProps = {
-  active: boolean;
-  onClick: MouseEventHandler;
   text: string;
   value: Loading<string>;
   suffix: string;
 };
 
-const SeriesToggler: FC<SeriesTogglerProps> = ({
-  active,
-  onClick,
-  text,
-  value,
-  suffix,
-}) => (
-  <TogglerContainer active={active} onClick={onClick}>
+const SeriesToggler: FC<SeriesTogglerProps> = ({ text, value, suffix }) => (
+  <VerticalFlex>
     <TogglerText>{text}</TogglerText>
     <TogglerValue>
-      <LoadingText value={value} />
-      <TogglerValueSuffix>{suffix}</TogglerValueSuffix>
+      <LoadingText
+        value={value}
+        suffix={<TogglerValueSuffix>{suffix}</TogglerValueSuffix>}
+      />
     </TogglerValue>
-  </TogglerContainer>
+  </VerticalFlex>
 );
 
 const VerticalFlex = styled.div`
@@ -93,26 +82,16 @@ const HeadingContainer = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  margin: 30px;
 `;
 
 const Title = styled.h1`
   margin: 0;
 `;
 
-const TogglerContainer = styled(VerticalFlex)<{ active?: boolean }>`
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-
-  ${({ active }) => active && `border-bottom: 2px solid white;`}
-
-  transition: all .5s ease;
-`;
-
 const TogglerRow = styled.div`
   display: flex;
-  gap: 2.625rem;
-  margin-top: 20px;
+  gap: 2.5rem;
+  margin-top: 2rem;
 `;
 
 const TogglerText = styled.h3`
@@ -125,8 +104,6 @@ const TogglerValue = styled.span`
 `;
 
 const TogglerValueSuffix = styled.span`
-  ${textH3}
-
-  padding-left: 0.25rem;
+  ${textH3};
   color: ${({ theme }) => theme.colors.greyLight};
 `;
