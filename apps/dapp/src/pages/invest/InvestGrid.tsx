@@ -1,7 +1,8 @@
+import { useState } from 'react';
+import styled from 'styled-components';
+
 import type { HistoricPeriod, Metric, HistoryPoint } from '@/api/types';
 
-import { Fragment, useState } from 'react';
-import styled, { css } from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import { LoadingText } from '@/components/commons/LoadingText';
 import {
@@ -10,12 +11,19 @@ import {
   tickPercent,
   tickValue,
 } from '@/components/HistoricLineChart';
-import { textH3, textH5, textP1 } from '@/styles/mixins/text-styles';
+import { AsyncButton } from '@/components/commons/Button';
+
 import { useAsyncLoad } from '@/hooks/use-async-result';
+import { useMediaQuery } from '@/hooks/use-media-query';
+
 import { formatNumber, formatPercent } from '@/utils/formatNumber';
 import { lmap, Loading } from '@/utils/loading-value';
-import { AsyncButton } from '@/components/commons/Button';
+
+import { theme } from '@/styles/theme';
+import { textH3, textH5, textP1 } from '@/styles/mixins/text-styles';
 import { tabActiveGradientStyles } from '@/styles/mixins/tab-styles';
+import breakpoints from '@/styles/responsive-breakpoints';
+import sunkenStyles from '@/styles/mixins/cards/sunken';
 
 export interface InvestGridItem {
   icon: string;
@@ -44,111 +52,117 @@ export function InvestGrid(props: InvestGridProps): JSX.Element {
   const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('day');
 
   const headings = (
-    <Fragment key="headings">
-      <Heading col={3}>APR</Heading>
-      <Heading col={4}>TVL</Heading>
-      <Heading col={5}>CHAIN</Heading>
-    </Fragment>
+    <HeadingGrid>
+      <Heading col={2}>APR</Heading>
+      <Heading col={3}>TVL</Heading>
+      <Heading col={4}>CHAIN</Heading>
+    </HeadingGrid>
   );
 
   const items = props.items.map((item: InvestGridItem, i: number) => {
-    const row = i * 2 + 2;
-    const expanded = i == iexpanded;
     return (
-      <Fragment key={item.name}>
-        <PoolInset row={row} />
-        <ItemFragment
-          row={row}
-          item={item}
-          expanded={expanded}
-          histSeries={histSeries}
-          setHistSeries={setHistSeries}
-          onClick={() => setIExpanded(expanded ? undefined : i)}
-        />
-        {expanded && (
-          <ExpandedItemFragment
-            row={row}
-            item={item}
-            histSeries={histSeries}
-            histPeriod={histPeriod}
-            setHistPeriod={setHistPeriod}
-          />
-        )}
-      </Fragment>
+      <ItemFragment
+        key={item.name}
+        item={item}
+        isExpanded={i === iexpanded}
+        onExpand={() => setIExpanded(iexpanded === i ? undefined : i)}
+        histPeriod={histPeriod}
+        setHistPeriod={setHistPeriod}
+        histSeries={histSeries}
+        setHistSeries={setHistSeries}
+      />
     );
   });
 
   return (
-    <StyledGrid>
+    <CardColumn>
       {headings}
       {items}
-    </StyledGrid>
+    </CardColumn>
   );
 }
 
 interface ItemFragmentProps {
-  row: number;
   item: InvestGridItem;
-  expanded: boolean;
+  isExpanded: boolean;
+  onExpand: () => void;
+  histPeriod: HistoricPeriod;
+  setHistPeriod(p: HistoricPeriod): void;
   histSeries: Metric;
   setHistSeries(s: Metric): void;
-  onClick(): void;
 }
 
 function ItemFragment({
-  row,
   item,
-  expanded,
+  isExpanded,
+  onExpand,
+  histPeriod,
+  setHistPeriod,
   histSeries,
   setHistSeries,
-  onClick,
 }: ItemFragmentProps): JSX.Element {
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
+
   return (
-    <Fragment>
-      <IconHolder row={row} onClick={onClick}>
-        <Icon iconName={item.icon} hasBackground />
-      </IconHolder>
-      <NameHolder row={row} onClick={onClick}>
-        <LPName>{item.name}</LPName>
-        <LPDescription>{item.description}</LPDescription>
-      </NameHolder>
-      <GridValue
-        active={expanded && histSeries === 'apr'}
-        row={row}
-        col={3}
-        onClick={() => {
-          expanded || onClick();
-          setHistSeries('apr');
-        }}
-      >
-        <LoadingText
-          value={lmap(item.apr, formatPercent)}
-          suffix={<SuffixSpan> %</SuffixSpan>}
-        />
-      </GridValue>
-      <GridValue
-        active={expanded && histSeries === 'tvl'}
-        row={row}
-        col={4}
-        onClick={() => {
-          expanded || onClick();
-          setHistSeries('tvl');
-        }}
-      >
-        <LoadingText value={lmap(item.tvl, formatNumber)} />
-      </GridValue>
-      <GridValue row={row} col={5} subdued>
-        {item.chain.toUpperCase()}
-      </GridValue>
-      <ButtonHolder row={row}>
-        <AsyncButton label="INVEST" secondary wide onClick={item.onInvest} />
-      </ButtonHolder>
-    </Fragment>
+    <Card>
+      <CardContent>
+        <IconNameHolder onClick={onExpand}>
+          <Icon iconName={item.icon} hasBackground />
+          <NameHolder row={0}>
+            <LPName>{item.name}</LPName>
+            <LPDescription>{item.description}</LPDescription>
+          </NameHolder>
+        </IconNameHolder>
+
+        <GridValue
+          active={isExpanded && histSeries === 'apr'}
+          onClick={() => {
+            isExpanded || onExpand();
+            setHistSeries('apr');
+          }}
+        >
+          <LoadingText
+            value={lmap(item.apr, formatPercent)}
+            suffix={<SuffixSpan> % {!isDesktop && ' APR'}</SuffixSpan>}
+          />
+        </GridValue>
+        <GridValue
+          active={isExpanded && histSeries === 'tvl'}
+          onClick={() => {
+            isExpanded || onExpand();
+            setHistSeries('tvl');
+          }}
+        >
+          <LoadingText
+            value={lmap(item.tvl, formatNumber)}
+            suffix={<SuffixSpan>{!isDesktop && '  TVL'}</SuffixSpan>}
+          />
+        </GridValue>
+        <GridValue subdued>{item.chain.toUpperCase()}</GridValue>
+        {isDesktop && (
+          <ButtonHolder>
+            <AsyncButton
+              label="INVEST"
+              secondary
+              wide
+              onClick={item.onInvest}
+            />
+          </ButtonHolder>
+        )}
+        {isExpanded && (
+          <ExpandedItemFragment
+            item={item}
+            histSeries={histSeries}
+            setHistPeriod={setHistPeriod}
+            histPeriod={histPeriod}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
 interface ExpandedItemFragmentProps {
-  row: number;
   item: InvestGridItem;
   histSeries: Metric;
   setHistPeriod(s: HistoricPeriod): void;
@@ -156,7 +170,6 @@ interface ExpandedItemFragmentProps {
 }
 
 function ExpandedItemFragment({
-  row,
   item,
   histSeries,
   setHistPeriod,
@@ -167,10 +180,11 @@ function ExpandedItemFragment({
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),
     [histPeriod, histSeries]
   );
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
 
-  const result = (
-    <Fragment>
-      <Graph row={row + 1}>
+  return (
+    <>
+      <Graph>
         <HistoricLineChart
           values={values}
           histPeriod={histPeriod}
@@ -178,7 +192,7 @@ function ExpandedItemFragment({
           yTickFormat={histSeries === 'apr' ? tickPercent : tickValue}
         />
       </Graph>
-      <InfoBox row={row + 1}>
+      <InfoBox>
         <p>{item.info}</p>
         {item.moreInfoUrl && (
           <p>
@@ -192,26 +206,91 @@ function ExpandedItemFragment({
           </p>
         )}
       </InfoBox>
-    </Fragment>
+      {!isDesktop && (
+        <ButtonHolder>
+          <AsyncButton label="INVEST" secondary wide onClick={item.onInvest} />
+        </ButtonHolder>
+      )}
+    </>
   );
-  return result;
 }
-const IconHolder = styled.div<{ row: number }>`
-  cursor: pointer;
-  grid-row: ${(props) => props.row};
-  grid-column: 1;
-  margin: 1rem 1rem 0.5rem;
+
+const CardColumn = styled.section`
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
-const ButtonHolder = styled.div<{ row: number }>`
-  box-sizing: border-box;
-  height: 100%;
+const HeadingGrid = styled.div`
+  width: 100%;
+  display: none;
+  grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
+  ${breakpoints.md(`
+    display: grid;
+  `)}
+`;
+
+const Heading = styled.div<{ col: number }>`
+  justify-self: center;
+  color: ${({ theme }) => theme.colors.greyLight};
+  grid-column: ${({ col }) => col};
+  display: none;
+  ${breakpoints.md(`
+    display: inline-block;
+  `)}
+`;
+
+const Card = styled.div`
+  padding: 1rem;
+  border-radius: 2.5rem;
+  background-color: ${({ theme }) => theme.colors.bgMid};
+  ${sunkenStyles};
+`;
+
+const CardContent = styled.div`
+  display: grid;
+  row-gap: 1rem;
+  grid-template-columns: 1fr 1fr 1fr;
+  ${breakpoints.md(`
+    grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
+  `)}
+`;
+
+const IconNameHolder = styled.div`
+  cursor: pointer;
   display: flex;
-  justify-content: center;
+  gap: 1rem;
+  grid-column: 1/-1;
+  ${breakpoints.md(`
+    grid-column: 1;
+  `)}
+`;
+
+const GridValue = styled.div<{
+  active?: boolean;
+  subdued?: boolean;
+}>`
+  ${textH3};
+  display: flex;
   align-items: center;
-  grid-row: ${(props) => props.row};
-  grid-column: 6;
-  padding: 1rem 1.5rem 0.5rem;
+  justify-content: center;
+  text-align: center;
+  color: ${({ subdued, theme }) =>
+    subdued ? theme.colors.greyLight : theme.colors.white};
+  border-bottom: 0.125rem solid transparent;
+  ${({ active }) => active && tabActiveGradientStyles};
+  transition: 300ms ease color;
+  cursor: ${({ onClick }) => onClick && 'pointer'};
+
+  min-height: 2rem;
+  ${breakpoints.md(`
+    min-height: unset;
+  `)}
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.greyLight};
+  }
 `;
 
 const LPName = styled.div`
@@ -221,10 +300,8 @@ const LPName = styled.div`
 `;
 
 const NameHolder = styled.div<{ row: number }>`
-  cursor: pointer;
-  grid-row: ${(props) => props.row};
-  grid-column: 2;
-  padding: 1rem 0 0.5rem;
+  display: flex;
+  flex-direction: column;
   &:hover {
     ${LPName} {
       color: ${({ theme }) => theme.colors.greyLight};
@@ -232,60 +309,27 @@ const NameHolder = styled.div<{ row: number }>`
   }
 `;
 
-const StyledGrid = styled.div`
-  display: grid;
-  grid-template-columns: 0.3fr 3fr 1fr 1fr 1fr 1fr;
-  grid-template-rows: auto;
-  align-items: center;
-  row-gap: 0.5rem;
-  background-color: ${({ theme }) => theme.colors.bgLight};
-  margin: 2rem 0;
-`;
-
-const Heading = styled.div<{ col: number }>`
-  justify-self: center;
-  color: ${({ theme }) => theme.colors.greyLight};
-  grid-row: 1;
-  grid-column: ${(props) => props.col};
-`;
-
-const GridValue = styled.div<{
-  row: number;
-  col: number;
-  active?: boolean;
-  subdued?: boolean;
-}>`
+const ButtonHolder = styled.div`
   box-sizing: border-box;
+  height: 100%;
   display: flex;
-  width: 100%;
-  align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 1rem 0 0.5rem;
-  grid-row: ${(props) => props.row};
-  grid-column: ${(props) => props.col};
-  color: ${({ theme }) => theme.colors.white};
-  border-bottom: 0.125rem solid transparent;
-  ${textH3}
-  border-bottom-width: 0.125rem;
-  transition: 300ms ease color;
+  align-items: center;
+  width: 100%;
+  grid-column: 1/-1;
+  margin-bottom: 1rem;
 
-  &:hover {
-    color: ${({ theme }) => theme.colors.greyLight};
+  button {
+    min-width: 100%;
   }
 
-  ${(props) => props.active && tabActiveGradientStyles};
-
-  ${(props) =>
-    props.onClick &&
-    css`
-      cursor: pointer;
-    `}
-  ${({ subdued, theme }) =>
-    subdued &&
-    css`
-      color: ${theme.colors.greyLight};
-    `}
+  ${breakpoints.md(`
+    margin-bottom: 0;
+    grid-column: 5;
+    button {
+    min-width: initial;
+  }
+  `)}
 `;
 
 const LPDescription = styled.div`
@@ -293,32 +337,34 @@ const LPDescription = styled.div`
   color: ${({ theme }) => theme.colors.greyLight};
 `;
 
-const Graph = styled.div<{ row: number }>`
-  height: 300px;
+const Graph = styled.div`
+  height: 18.75rem;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  grid-row: ${(props) => props.row};
-  grid-column: 1 / 5;
+  grid-column: 1/-1;
+  div {
+    margin-bottom: 0;
+  }
+  ${breakpoints.md(`
+    grid-column: 1/4;
+  `)}
 `;
 
-export const InfoBox = styled.div<{ row: number }>`
+export const InfoBox = styled.div`
   color: ${({ theme }) => theme.colors.greyLight};
   align-self: stretch;
-  grid-row: ${(props) => props.row};
-  grid-column: 5 / span 2;
-  margin: 0 15px;
-`;
+  margin: 0;
 
-const PoolInset = styled.div<{ row: number }>`
-  color: black;
-  border-radius: 2.5rem;
-  background-color: ${({ theme }) => theme.colors.bgMid};
-  box-shadow: inset 1px 3px 5px rgba(0, 0, 0, 0.2);
-  grid-row: ${(props) => props.row} / span 2;
-  grid-column: 1 / -1;
-  align-self: stretch;
+  p {
+    margin: 0;
+  }
+  grid-column: 1/-1;
+  ${breakpoints.md(`
+      grid-column: 4 / span 2;
+      margin: 0 1rem;
+    `)}
 `;
 
 export const Link = styled.a`
