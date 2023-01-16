@@ -47,7 +47,11 @@ export const Navigation = () => {
 
   return (
     <>
-      <HamburgerIcon iconName="settings" onClick={() => setPanelOpen(true)} />
+      <HamburgerIcon
+        iconName="menu"
+        size={32}
+        onClick={() => setPanelOpen(true)}
+      />
       {panelOpen && (
         <RightPanelOverlay
           Content={() => <MenuItems />}
