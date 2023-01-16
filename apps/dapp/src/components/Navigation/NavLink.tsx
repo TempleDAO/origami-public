@@ -13,6 +13,7 @@ export type NavLinkProps = {
   routes?: string[];
   currentRoute?: string;
   className?: string;
+  onClick?(): void;
 };
 
 export const NavLink: FC<NavLinkProps> = ({
@@ -21,12 +22,13 @@ export const NavLink: FC<NavLinkProps> = ({
   routes,
   currentRoute,
   className = '',
+  onClick,
 }) => {
   const isCurrent = !!routes && !!currentRoute && routes.includes(currentRoute);
 
   return (
     <Link href={href} removedecoration>
-      <StyledLink className={className} $current={isCurrent}>
+      <StyledLink className={className} $current={isCurrent} onClick={onClick}>
         {label}
       </StyledLink>
     </Link>

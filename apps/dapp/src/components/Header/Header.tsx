@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import { Navigation } from '@/components/Navigation/Navigation';
 import { Logo } from './Logo';
-import { ConnectWalletButton } from '../commons/ConnectWalletButton';
 import { Link } from '../commons/Link';
 
 export const Header = () => (
@@ -10,10 +9,7 @@ export const Header = () => (
       <Link href={'/'}>
         <Logo />
       </Link>
-      <ButtonRow>
-        <Navigation />
-        <ConnectWalletButton />
-      </ButtonRow>
+      <Navigation />
     </Row>
   </Container>
 );
@@ -36,10 +32,4 @@ const Row = styled.div`
   align-items: center;
   width: 100%;
   height: 100%;
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 2rem;
 `;
