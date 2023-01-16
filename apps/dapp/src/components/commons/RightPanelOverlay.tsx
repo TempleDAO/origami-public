@@ -81,8 +81,8 @@ const SLIDE_MS = 700;
 
 const BackButton = styled(Icon)`
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 2rem;
+  right: 2rem;
   cursor: pointer;
   ${breakpoints.md(`
     display: none;
