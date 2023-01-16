@@ -3,7 +3,6 @@ import type { FC } from 'react';
 import styled from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import breakpoints from '@/styles/responsive-breakpoints';
-import { Link } from '../commons/Link';
 import { Image } from '../commons/Image';
 
 const SUBTEXT_FONT_SIZE = '0.9rem';
@@ -20,12 +19,12 @@ const Footer = () => (
     <CopyrightContainer>
       <Image src="/header-logo.svg" alt="ORIGAMI" width={100} height={30} />
       <TextContainer>
-        <CopyrightText>© 2022 ORIGAMI. All rights reserved.</CopyrightText>
+        <CopyrightText>© 2023 ORIGAMI. All rights reserved.</CopyrightText>
         <Disclaimer href="/disclaimer">Disclaimer</Disclaimer>
       </TextContainer>
     </CopyrightContainer>
     <div>
-      <p>COMMUNITY</p>
+      <CommunityTitle>COMMUNITY</CommunityTitle>
       <SocialsIconsContainer>
         {socials.map((props) => (
           <SocialsIconLink key={props.iconName} {...props} />
@@ -41,9 +40,9 @@ const SocialsIconLink: FC<{ href: string; iconName: string }> = ({
   href,
   iconName,
 }) => (
-  <Link href={href}>
-    <Icon iconName={iconName} />
-  </Link>
+  <a href={href}>
+    <IconStyled iconName={iconName} />
+  </a>
 );
 
 const FooterContainer = styled.footer`
@@ -54,7 +53,11 @@ const FooterContainer = styled.footer`
   padding: 1rem 2rem;
   margin-top: auto;
   justify-content: space-between;
-
+  flex-direction: column;
+  ${breakpoints.sm(`
+    
+    flex-direction: row;
+  `)}
   ${breakpoints.md(`
     height: 8rem;
   `)}
@@ -89,6 +92,17 @@ const Disclaimer = styled.a`
   font-weight: bold;
   text-decoration: underline;
   filter: brightness(1.3);
+  transition: color 300ms ease;
+  &:hover {
+    color: ${({ theme }) => theme.colors.white};
+  }
+`;
+
+const IconStyled = styled(Icon)`
+  transition: filter 300ms ease;
+  &:hover {
+    filter: contrast(1000%);
+  }
 `;
 
 const SocialsIconsContainer = styled.div`
@@ -96,7 +110,7 @@ const SocialsIconsContainer = styled.div`
   flex-shrink: 1;
   flex-wrap: wrap;
   justify-content: space-between;
-
+  margin-top: 1rem;
   & > * {
     margin-right: 1rem;
     margin-bottom: 1rem;
@@ -104,6 +118,12 @@ const SocialsIconsContainer = styled.div`
 
   ${breakpoints.sm(`
     flex-wrap: nowrap;
-    flex-direction: row;
+  `)}
+`;
+
+const CommunityTitle = styled.p`
+  display: none;
+  ${breakpoints.sm(`
+    display: inline;
   `)}
 `;
