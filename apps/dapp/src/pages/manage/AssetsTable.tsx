@@ -165,10 +165,20 @@ const Table = styled(VerticalFlex)`
   margin-bottom: 2rem;
 `;
 
+const Primary = styled.span`
+  transition: 300ms ease color;
+  ${textH3}
+`;
+
 const Row = styled.div`
   padding-right: 0.9375rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
+  &:hover {
+    ${Primary} {
+      color: ${({ theme }) => theme.colors.greyLight};
+    }
+  }
 
   ${breakpoints.md(`
       grid-template-columns: 5.5fr 1fr 1fr 1fr;
@@ -179,7 +189,6 @@ const Row = styled.div`
 const Item = styled.div<{ col: number }>`
   text-align: center;
   align-self: center;
-
   ${({ col }) => css`
     grid-row: 2;
     grid-column: ${col - 1};
@@ -211,10 +220,6 @@ const Balance = styled(Item)<{ col: number }>`
     grid-row: 1;
     grid-column: 4;
   `)}
-`;
-
-const Primary = styled.span`
-  ${textH3}
 `;
 
 const Secondary = styled.span`

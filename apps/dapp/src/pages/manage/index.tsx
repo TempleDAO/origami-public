@@ -232,12 +232,18 @@ const BackButton = styled.div`
     cursor: pointer;
     user-select: none;
   }
+  &:hover {
+    * {
+      color: ${({ theme }) => theme.colors.white};
+    }
+  }
 `;
 
 const BackButtonLabel = styled(Text)`
   display: inline-block;
   color: ${({ theme }) => theme.colors.greyLight};
   text-decoration: underline;
+  transition: 300ms ease color;
 `;
 
 const BackIcon = styled(Icon).attrs({
