@@ -231,18 +231,24 @@ const ChartTogglesRow = styled.div`
   margin-bottom: 0.5rem;
 `;
 
+const TogglerValue = styled.span`
+  ${textH2}
+  transition: 300ms ease color;
+`;
+
 const SeriesToggler = styled(VerticalFlex)<{ active?: boolean }>`
   cursor: pointer;
-  ${({ active }) => active && tabActiveGradientStyles}
+  ${({ active }) => active && tabActiveGradientStyles};
+  &:hover {
+    ${TogglerValue} {
+      color: ${({ theme }) => theme.colors.greyLight};
+    }
+  }
 `;
 
 const TogglerText = styled.h3`
   margin: 0;
   color: ${({ theme }) => theme.colors.greyLight};
-`;
-
-const TogglerValue = styled.span`
-  ${textH2}
 `;
 
 const TogglerValueSuffix = styled.span`
