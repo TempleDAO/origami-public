@@ -88,7 +88,6 @@ export const FieldDbn: FC<FiledDbnProps> = ({
 const InputBox = styled.div<{ error?: boolean }>`
   display: flex;
   justify-content: space-between;
-  flex-direction: column;
   align-items: start;
   width: 100%;
   max-width: 75rem;

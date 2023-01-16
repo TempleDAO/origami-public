@@ -1,7 +1,9 @@
+import breakpoints from '@/styles/responsive-breakpoints';
 import { FC, KeyboardEventHandler } from 'react';
 
 import { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import { Icon } from './Icon';
 
 export type OverlayContentProps = { startDismiss: () => void };
 export type OverlayContentComponent = FC<OverlayContentProps>;
@@ -32,7 +34,7 @@ export function RightPanelOverlay(props: RightPanelOverlayProps): JSX.Element {
   }, [props.hidePanel]);
 
   const handleKeyPress: KeyboardEventHandler = useCallback(
-    e => {
+    (e) => {
       if (e.key === 'Escape' && enableDismissFromContext) {
         startDismiss();
       }
@@ -63,9 +65,10 @@ export function RightPanelOverlay(props: RightPanelOverlayProps): JSX.Element {
           widthPercent={props.widthPercent || 50}
           maxWidthRem={props.maxWidthRem}
           slideIn={slideIn}
-          onClick={e => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
-          <ContentPanelInner onClick={e => e.stopPropagation()}>
+          <BackButton iconName="close" onClick={startDismiss} size={16} />
+          <ContentPanelInner onClick={(e) => e.stopPropagation()}>
             <props.Content startDismiss={startDismiss} />
           </ContentPanelInner>
         </ContentPanel>
@@ -76,6 +79,16 @@ export function RightPanelOverlay(props: RightPanelOverlayProps): JSX.Element {
 
 const SLIDE_MS = 700;
 
+const BackButton = styled(Icon)`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  cursor: pointer;
+  ${breakpoints.md(`
+    display: none;
+  `)}
+`;
+
 const WindowOverlay = styled.div<{ slideIn: boolean }>`
   z-index: 9999;
   position: fixed;
@@ -84,7 +97,7 @@ const WindowOverlay = styled.div<{ slideIn: boolean }>`
   height: 100%;
   top: 0;
   left: 0;
-  background-color: ${props =>
+  background-color: ${(props) =>
     props.slideIn ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0)'};
   transition: background-color ${SLIDE_MS}ms ease;
 `;
@@ -98,15 +111,20 @@ const ContentPanel = styled.div<{
   position: fixed;
   display: flex;
   overflow-y: auto;
-  width: ${props => props.widthPercent + '%'};
-  max-width: ${props => props.maxWidthRem && `${props.maxWidthRem}rem`};
   height: 100%;
   top: 0;
   right: 0;
   background-color: ${({ theme }) => theme.colors.bgLight};
-  transform: ${props =>
+  transform: ${(props) =>
     props.slideIn ? 'translateX(0%)' : `translateX(100%)`};
   transition: transform ${SLIDE_MS}ms ease;
+  width: 100vw;
+  ${({ widthPercent, maxWidthRem }) => css`
+    ${breakpoints.md(`
+      width: ${widthPercent + '%'};
+      max-width: ${maxWidthRem && `${maxWidthRem}rem`};
+    `)}
+  `}
 `;
 
 const ContentPanelInner = styled.div`
