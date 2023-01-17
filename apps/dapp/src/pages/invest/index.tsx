@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { InvestGrid, Link, InvestGridItem } from './InvestGrid';
+import { InvestGrid, InvestGridItem } from './InvestGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
 import { ChainId, InvestmentConfig } from '@/api/types';
@@ -65,12 +65,13 @@ export const PageContent = (props: PageContentProps) => {
 
   return (
     <FlexDown>
-      <Title>INVESTMENT OPPORTUNITIES</Title>
+      <Title>INVESTMENT VAULTS</Title>
       <InfoBox>
-        Origami aims to provide a rewards-boosted liquidity layer on a selection
-        of low-risk, high-volume investments, to improve the usual staking of LP
-        tokens for rewards. Note that Investments made in liquidity pools have
-        the potential to suffer <Link>impermanent loss</Link>.
+        Origami provides auto-compounding investment vaults on a carefully
+        selected set of protocols. No staking or locking required.
+        <br />
+        Your assets are put to work in the most optimal way, and you can exit at
+        any time.
       </InfoBox>
       <InvestGrid items={gridItems} expanded={0} />
       {activeFlow}

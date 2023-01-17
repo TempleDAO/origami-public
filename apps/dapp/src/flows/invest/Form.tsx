@@ -117,13 +117,8 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
       <Title>INVEST</Title>
 
       <P>
-        Deposit <EM>any token</EM> and receive back{' '}
+        Invest with <EM>{investment.supportedAssetsDescription}</EM> and receive{' '}
         <EM>{receiptToken.symbol}</EM>.
-      </P>
-      <P>
-        <EM>Important:</EM> Converting to {receiptToken.symbol} is not
-        reversible. Secondary markets are provided to allow the exchange of{' '}
-        {receiptToken.symbol} at varying market rates.
       </P>
 
       <FlexDown>
@@ -148,15 +143,17 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
             max={availableBalance}
             maxLabel="MAX"
           />
-          <InvestTokenSelect
-            id={selectId}
-            instanceId={selectId}
-            options={investFromOptions}
-            value={investOption(investment.chain, investFrom)}
-            onChange={(newOption) =>
-              newOption && setInvestFrom((newOption as InvestOption).value)
-            }
-          />
+          <div>
+            <InvestTokenSelect
+              id={selectId}
+              instanceId={selectId}
+              options={investFromOptions}
+              value={investOption(investment.chain, investFrom)}
+              onChange={(newOption) =>
+                newOption && setInvestFrom((newOption as InvestOption).value)
+              }
+            />
+          </div>
         </FlexRightSpaced>
       </FlexDown>
 
@@ -233,7 +230,7 @@ const FlexRightSpaced = styled.div`
 `;
 
 const InvestTokenSelect = styled(Select)`
-  width: 100px;
+  width: 110px;
 `;
 
 export const Title = styled.div`

@@ -51,9 +51,11 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
   },
   icon: 'gmx',
   name: 'ovGMX',
-  description: 'Origami investment vault for the GMX utility token',
+  description: "GMX's utility and governance token ($GMX)",
+  supportedAssetsDescription: 'GMX',
   info: `
-  Info on the GMX investment vault. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+  Investors deposit GMX and are issued shares in the ovGMX vault.
+  The price of ovGMX increases as rewards from staked GMX are harvested and auto-compounded. Yield is further boosted from staking derived esGMX and multiplier point rewards.
   `,
   moreInfoUrl:
     'https://mumbai.polygonscan.com/address/0xd085fe61150Ed7C721E9a4cCe891e35Bf5483148',
@@ -66,9 +68,11 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   },
   icon: 'glp',
   name: 'ovGLP',
-  description: 'Origami investment vault for the GMX liquidity provider token',
+  description: "GMX's liquidity provider token ($GLP)",
+  supportedAssetsDescription: 'staked GLP or one of the underlying GLP assets',
   info: `
-  Info on the GLP investment vault. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+  Investors deposit their existing staked GLP, or one of the underlying GLP assets (https://app.gmx.io/#/buy_glp) and are issued shares in the ovGMX vault.
+  The price of ovGMX increases as rewards from staked GLP are harvested and auto-compounded. 
   `,
   moreInfoUrl:
     'https://mumbai.polygonscan.com/address/0x09317dcf1450b62E8aa092d680fee7905CeCC99f',

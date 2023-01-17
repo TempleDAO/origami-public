@@ -94,15 +94,17 @@ export const ActionCard: FC<ActionCardProps> = ({
         <ActionRow>
           <AsyncButton secondary label="Invest" onClick={showInvestFlow} />
           <InfoText small>
-            Swap some <Highlight>supported token</Highlight> for{' '}
-            <Highlight>{receiptToken}</Highlight>.
+            Invest with{' '}
+            <Highlight>{investment.supportedAssetsDescription}</Highlight> and
+            receive <Highlight>{receiptToken}</Highlight>.
           </InfoText>
         </ActionRow>
         <ActionRow>
           <AsyncButton secondary label="Exit" onClick={showExitFlow} />
           <InfoText small>
-            Swap <Highlight>{receiptToken}</Highlight> for some{' '}
-            <Highlight>supported token</Highlight> .
+            Exit <Highlight>{investment.receiptToken.symbol}</Highlight> to
+            receive{' '}
+            <Highlight>{investment.supportedAssetsDescription}</Highlight>.
           </InfoText>
         </ActionRow>
       </VerticalFlex>

@@ -296,6 +296,7 @@ export function gmxInvestment(): Investment {
     icon: 'gmx',
     name: 'ovGMX',
     description: 'Origami investment in the GMX utility token',
+    supportedAssetsDescription: 'GMX',
     receiptToken: ovGmx(),
     acceptedInvestTokens: acceptedTokens.get,
     acceptedExitTokens: acceptedTokens.get,
@@ -339,6 +340,8 @@ export function glpInvestment(): Investment {
     icon: 'glp',
     name: 'ovGLP',
     description: 'Origami investment in the GMX liquidity provider (LP) token',
+    supportedAssetsDescription:
+      'staked GLP or one of the underlying GLP assets',
     receiptToken: ovGlp(),
     acceptedInvestTokens: acceptedTokens.get,
     acceptedExitTokens: acceptedTokens.get,

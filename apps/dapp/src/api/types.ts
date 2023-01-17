@@ -51,6 +51,7 @@ export interface InvestmentConfig {
   icon: string;
   name: string;
   description: string;
+  supportedAssetsDescription: string;
   info: string;
   moreInfoUrl?: string;
 }

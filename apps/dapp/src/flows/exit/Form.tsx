@@ -19,7 +19,13 @@ import {
 } from '@/components/AdvancedOptions';
 
 import { formatDecimalBigNumber } from '@/utils/formatNumber';
-import { textH1, textH2, textH3, textP1 } from '@/styles/mixins/text-styles';
+import {
+  textH1,
+  textH2,
+  textH3,
+  textP1,
+  textP2,
+} from '@/styles/mixins/text-styles';
 import { Chain, TokenOrNative } from '@/api/types';
 import { decimalBigNumberField } from '@/utils/fields/ethers';
 import { useTypedFieldState } from '@/utils/fields/hooks';
@@ -107,24 +113,27 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
     <FlexDownSpaced>
       <Title>EXIT</Title>
 
+      <P>
+        Exit <EM>{investment.receiptToken.symbol}</EM> to receive{' '}
+        <EM>{investment.supportedAssetsDescription}</EM>.
+      </P>
+
       <FlexDown>
         <Label>Exiting from:</Label>
-        <InvestmentHolder>
-          <FlexRightSpaced>
-            <Icon iconName={investment.icon} hasBackground />
-            <FlexDown>
-              <LPName>{investment.name}</LPName>
-              <LPDescription>
-                {investment.description.toUpperCase()}
-              </LPDescription>
-            </FlexDown>
-          </FlexRightSpaced>
-        </InvestmentHolder>
+        <FlexRightSpaced>
+          <Icon iconName={investment.icon} hasBackground />
+          <FlexDown>
+            <LPName>{investment.name}</LPName>
+            <LPDescription>
+              {investment.description.toUpperCase()}
+            </LPDescription>
+          </FlexDown>
+        </FlexRightSpaced>
       </FlexDown>
 
       <FlexDown>
         <FlexRightSpaced>
-          <Label>Exit by swapping {investment.receiptToken.symbol} for:</Label>
+          <Label>Token To Receive:</Label>
           <Select
             id={selectId}
             instanceId={selectId}
@@ -219,9 +228,6 @@ const FlexRightSpaced = styled.div`
   gap: 20px;
 `;
 
-const InvestmentHolder = styled.div`
-  margin-top: 20px;
-`;
 export const Title = styled.div`
   ${textH1}
   color: ${(props) => props.theme.colors.white};
@@ -259,4 +265,17 @@ const LPDescription = styled.div`
 const FontLarger = styled.div`
   font-size: 1.1rem;
   font-weight: bold;
+`;
+
+const EM = styled.em`
+  font-style: normal;
+  color: ${({ theme }) => theme.colors.white};
+  ${textP2}
+`;
+
+const P = styled.p`
+  margin-block-start: 0px;
+  margin-block-end: 0px;
+  margin-top: 0px;
+  margin-bottom: 0px;
 `;
