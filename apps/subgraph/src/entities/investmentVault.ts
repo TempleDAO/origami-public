@@ -8,7 +8,7 @@ import { dayFromTimestamp, hourFromTimestamp } from '../utils/dates'
 import { ipow, toDecimal } from '../utils/decimals'
 import { getOrCreateInvestment } from './investment'
 import { getMetric, updateMetric } from './metric'
-import { getOrCreateRewardToken } from './rewardToken'
+import { getOrCreatePricedToken } from './pricedToken'
 
 
 function createInvestmentVault(address: Address, timestamp: BigInt): InvestmentVault {
@@ -33,11 +33,17 @@ function createInvestmentVault(address: Address, timestamp: BigInt): InvestmentV
 
   const tokenPrices = investmentVaultContract.tokenPrices()
   investmentVault.tokenPrices = tokenPrices
+  const reserveToken = investmentVaultContract.reserveToken()
+  investmentVault.reserveToken = getOrCreatePricedToken(reserveToken, tokenPrices, timestamp).id
 
-  investmentVault.reserveToken = getOrCreateRewardToken(address, tokenPrices, timestamp).id
+  investmentVault.investmentManager = investmentVaultContract.investmentManager()
+  investmentVault.investment = getOrCreateInvestment(reserveToken, timestamp).id
+  investmentVault.vaultToken = getOrCreatePricedToken(address, tokenPrices, timestamp).id
 
-  const investmentAddress = investmentVaultContract.reserveToken()
-  investmentVault.investment = getOrCreateInvestment(investmentAddress, timestamp).id
+  const perfFee = investmentVaultContract.performanceFee()
+  const numerator = perfFee.value0.toBigDecimal()
+  const denominator = perfFee.value1.toBigDecimal()
+  investmentVault.performanceFee = numerator.times(BIG_DECIMAL_100).div(denominator)
 
   investmentVault.tvl = BIG_DECIMAL_0
   investmentVault.tvlUSD = BIG_DECIMAL_0
@@ -74,10 +80,10 @@ export function getOrCreateInvestmentVault(address: Address, timestamp: BigInt):
   return investmentVault as InvestmentVault
 }
 
-export function getInvestmentVault(address: Address): InvestmentVault {
+export function getInvestmentVault(address: Address): InvestmentVault | null {
   let investmentVault = InvestmentVault.load(address.toHexString())
 
-  return investmentVault as InvestmentVault
+  return investmentVault
 }
 
 export function updateInvestmentVault(investmentVault: InvestmentVault, timestamp: BigInt): void {
@@ -146,6 +152,7 @@ export function updateOrCreateDayData(investmentVault: InvestmentVault, timestam
   dayData.reservesPerShare = investmentVault.reservesPerShare
   dayData.totalReserves = investmentVault.totalReserves
   dayData.totalSupply = investmentVault.totalSupply
+  dayData.performanceFee = investmentVault.performanceFee
   dayData.userCount = investmentVault.userCount
   dayData.save()
 }
@@ -171,6 +178,7 @@ export function updateOrCreateHourData(investmentVault: InvestmentVault, timesta
   hourData.reservesPerShare = investmentVault.reservesPerShare
   hourData.totalReserves = investmentVault.totalReserves
   hourData.totalSupply = investmentVault.totalSupply
+  hourData.performanceFee = investmentVault.performanceFee
   hourData.userCount = investmentVault.userCount
   hourData.save()
 }

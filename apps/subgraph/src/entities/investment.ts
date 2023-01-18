@@ -4,8 +4,7 @@ import { OrigamiInvestment as InvestmentContract } from '../../generated/GmxInve
 import { Investment } from '../../generated/schema'
 
 import { getMetric, updateMetric } from './metric'
-import { BIG_DECIMAL_0, TOKEN_PRICES } from '../utils/constants'
-import { getOrCreateRewardToken } from './rewardToken'
+import { BIG_DECIMAL_0 } from '../utils/constants'
 
 
 function createInvestment(address: Address, timestamp: BigInt): Investment {
@@ -27,8 +26,6 @@ function createInvestment(address: Address, timestamp: BigInt): Investment {
     exitTokens[i] = acceptedExTokens[i]
   }
   investment.acceptedExitTokens = exitTokens
-
-  investment.investmentToken = getOrCreateRewardToken(address, TOKEN_PRICES, timestamp).id
 
   investment.tvl = BIG_DECIMAL_0
   investment.tvlUSD = BIG_DECIMAL_0

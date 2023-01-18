@@ -14,8 +14,8 @@ export function getMetric(): Metric {
     metric.investmentCount = 0
     metric.investmentVaults = []
     metric.investmentVaultCount = 0
-    metric.rewardTokens = []
-    metric.rewardTokenCount = 0
+    metric.pricedTokens = []
+    metric.pricedTokenCount = 0
     metric.userCount = 0
   }
 
@@ -43,7 +43,7 @@ export function updateOrCreateDayData(metric: Metric, timestamp: BigInt): void {
   dayData.timestamp = timestamp
   dayData.investmentCount = metric.investmentCount
   dayData.investmentVaultCount = metric.investmentVaultCount
-  dayData.rewardTokenCount = metric.rewardTokenCount
+  dayData.pricedTokenCount = metric.pricedTokenCount
   dayData.userCount = metric.userCount
   dayData.save()
 }

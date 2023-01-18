@@ -2,12 +2,12 @@ import { AnswerUpdated } from '../../generated/HourlyScheduler/OffchainAggregato
 
 import { updateInvestmentVaults } from '../entities/investmentVault'
 import { getMetric, updateMetric } from '../entities/metric'
-import { updateRewardTokenPrices } from '../entities/rewardToken'
+import { updatePricedTokenPrices } from '../entities/pricedToken'
 
 
 export function onAnswerUpdated(event: AnswerUpdated): void {
-    // Update reward token prices
-    updateRewardTokenPrices(event.block.timestamp)
+    // Update priced token prices
+    updatePricedTokenPrices(event.block.timestamp)
 
     // Update investments
     updateInvestmentVaults(event.block.timestamp)

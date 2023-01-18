@@ -4,7 +4,7 @@ import { UserInvestment } from '../../generated/schema'
 import { getOrCreateUser } from './user'
 import { toDecimal } from '../utils/decimals'
 import { getOrCreateUserBalance, updateUserBalance } from './userBalance'
-import { getOrCreateRewardToken } from './rewardToken'
+import { getOrCreatePricedToken } from './pricedToken'
 import { getOrCreateToken } from './token'
 import { BIG_DECIMAL_0 } from '../utils/constants'
 import { getOrCreateInvestmentVault, updateInvestmentVault } from './investmentVault'
@@ -19,7 +19,7 @@ export function createUserInvestment(event: InvestedVault): UserInvestment {
 
   const fromToken = getOrCreateToken(event.params.fromToken, timestamp)
   const fromTokenAmount = toDecimal(event.params.fromTokenAmount, fromToken.decimals)
-  const toToken = getOrCreateRewardToken(event.address, investmentVault.tokenPrices, timestamp)
+  const toToken = getOrCreatePricedToken(event.address, investmentVault.tokenPrices, timestamp)
   const toTokenAmount = toDecimal(event.params.investmentAmount, toToken.decimals)
 
   const userInvID = userBalance.id + '-' + userBalance.investCount.toString()

@@ -5,8 +5,8 @@ type Metric @entity {
   investmentCount: Int!
   investmentVaults: [InvestmentVault!]!
   investmentVaultCount: Int!
-  rewardTokens: [RewardToken!]!
-  rewardTokenCount: Int!
+  pricedTokens: [PricedToken!]!
+  pricedTokenCount: Int!
   userCount: Int!
   metricDailySnapshots: [MetricDailySnapshot!]! @derivedFrom(field: "metric")
 }
@@ -18,7 +18,7 @@ type MetricDailySnapshot @entity {
   metric: Metric!
   investmentCount: Int!
   investmentVaultCount: Int!
-  rewardTokenCount: Int!
+  pricedTokenCount: Int!
   userCount: Int!
 }
 
@@ -36,9 +36,12 @@ type InvestmentVault @entity {
   totalSupply: BigDecimal!
   acceptedInvestTokens: [Bytes!]!
   acceptedExitTokens: [Bytes!]!
-  reserveToken: RewardToken!
+  vaultToken: PricedToken!
+  reserveToken: PricedToken!
+  investmentManager: Bytes!
   investment: Investment!
   tokenPrices: Bytes!
+  performanceFee: BigDecimal!
   userCount: Int!
   investmentVaultDailySnapshots: [InvestmentVaultDailySnapshot!]! @derivedFrom(field: "investmentVault")
   investmentVaultHourlySnapshots: [InvestmentVaultHourlySnapshot!]! @derivedFrom(field: "investmentVault")
@@ -58,6 +61,7 @@ type InvestmentVaultDailySnapshot @entity {
   reservesPerShare: BigDecimal!
   totalReserves: BigDecimal!
   totalSupply: BigDecimal!
+  performanceFee: BigDecimal!
   userCount: Int!
 }
 
@@ -75,6 +79,7 @@ type InvestmentVaultHourlySnapshot @entity {
   reservesPerShare: BigDecimal!
   totalReserves: BigDecimal!
   totalSupply: BigDecimal!
+  performanceFee: BigDecimal!
   userCount: Int!
 }
 
@@ -85,7 +90,6 @@ type Investment @entity {
   tvlUSD: BigDecimal!
   volume: BigDecimal!
   volumeUSD: BigDecimal!
-  investmentToken: RewardToken!
   acceptedInvestTokens: [Bytes!]!
   acceptedExitTokens: [Bytes!]!
   userCount: Int!
@@ -135,7 +139,7 @@ type UserInvestment @entity(immutable: true) {
   userBalance: UserBalance!
   user: User!
   tokenIn: Token!
-  tokenOut: RewardToken!
+  tokenOut: PricedToken!
   amountIn: BigDecimal!
   amountOut: BigDecimal!
 }
@@ -146,7 +150,7 @@ type UserExit @entity(immutable: true) {
   transaction: Bytes!
   userBalance: UserBalance!
   user: User!
-  tokenIn: RewardToken!
+  tokenIn: PricedToken!
   tokenOut: Token!
   amountIn: BigDecimal!
   amountOut: BigDecimal!
@@ -161,7 +165,7 @@ type Token @entity(immutable: true) {
   decimals: Int!
 }
 
-type RewardToken @entity {
+type PricedToken @entity {
   id: ID!
   timestamp: BigInt!
   name: String!
@@ -169,15 +173,15 @@ type RewardToken @entity {
   decimals: Int!
   price: BigDecimal!
   tokenPrices: Bytes!
-  rewardTokenHourlySnapshots: [RewardTokenHourlySnapshot!]! @derivedFrom(field: "rewardToken")
-  rewardTokenDailySnapshots: [RewardTokenDailySnapshot!]! @derivedFrom(field: "rewardToken")
+  pricedTokenHourlySnapshots: [PricedTokenHourlySnapshot!]! @derivedFrom(field: "pricedToken")
+  pricedTokenDailySnapshots: [PricedTokenDailySnapshot!]! @derivedFrom(field: "pricedToken")
 }
 
-type RewardTokenHourlySnapshot @entity {
+type PricedTokenHourlySnapshot @entity {
   id: ID!
   timestamp: BigInt!
   timeframe: BigInt!
-  rewardToken: RewardToken!
+  pricedToken: PricedToken!
   name: String!
   symbol: String!
   decimals: Int!
@@ -185,11 +189,11 @@ type RewardTokenHourlySnapshot @entity {
   tokenPrices: Bytes!
 }
 
-type RewardTokenDailySnapshot @entity {
+type PricedTokenDailySnapshot @entity {
   id: ID!
   timestamp: BigInt!
   timeframe: BigInt!
-  rewardToken: RewardToken!
+  pricedToken: PricedToken!
   name: String!
   symbol: String!
   decimals: Int!

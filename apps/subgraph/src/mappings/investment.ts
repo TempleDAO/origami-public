@@ -1,7 +1,7 @@
 import { Invested, Exited } from '../../generated/GmxInvestment/OrigamiInvestment'
 import { getOrCreateInvestment, updateInvestment } from '../entities/investment'
 
-import { getRewardToken } from '../entities/rewardToken'
+import { getPricedToken } from '../entities/pricedToken'
 import { getOrCreateToken } from '../entities/token'
 import { toDecimal } from '../utils/decimals'
 
@@ -12,7 +12,7 @@ export function onInvested(event: Invested): void {
     const investment = getOrCreateInvestment(event.address, timestamp)
 
     const fromToken = getOrCreateToken(event.params.fromToken, timestamp)
-    const toToken = getRewardToken(investment.id, timestamp)
+    const toToken = getPricedToken(investment.id, timestamp)
     const toTokenAmount = toDecimal(event.params.investmentAmount, toToken.decimals)
 
     investment.tvl = investment.tvl.plus(toTokenAmount)
@@ -27,7 +27,7 @@ export function onExited(event: Exited): void {
 
     const investment = getOrCreateInvestment(event.address, timestamp)
 
-    const fromToken = getRewardToken(investment.id, timestamp)
+    const fromToken = getPricedToken(investment.id, timestamp)
     const fromTokenAmount = toDecimal(event.params.investmentAmount, fromToken.decimals)
     const toToken = getOrCreateToken(event.params.toToken, timestamp)
 

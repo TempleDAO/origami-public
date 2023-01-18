@@ -4,7 +4,7 @@ import { UserExit } from '../../generated/schema'
 import { getOrCreateUser } from './user'
 import { toDecimal } from '../utils/decimals'
 import { getOrCreateUserBalance, updateUserBalance } from './userBalance'
-import { getRewardToken } from './rewardToken'
+import { getPricedToken } from './pricedToken'
 import { getOrCreateToken } from './token'
 import { getOrCreateInvestmentVault, updateInvestmentVault } from './investmentVault'
 import { BIG_DECIMAL_0, BIG_INT_0 } from '../utils/constants'
@@ -17,7 +17,7 @@ export function createUserExit(event: ExitedVault): UserExit {
   const user = getOrCreateUser(event.params.user, timestamp)
   const userBalance = getOrCreateUserBalance(user, investmentVault.id, timestamp)
 
-  const fromToken = getRewardToken(investmentVault.id, timestamp)
+  const fromToken = getPricedToken(investmentVault.id, timestamp)
   const fromTokenAmount = toDecimal(event.params.investmentAmount, fromToken.decimals)
   const toToken = getOrCreateToken(event.params.toToken, timestamp)
   const toTokenAmount = toDecimal(event.params.toTokenAmount, toToken.decimals)

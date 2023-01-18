@@ -86,6 +86,8 @@ dataSources:
         - name: TokenPrices
           file: ./abis/TokenPrices.json
       eventHandlers:
+        - event: InvestmentManagerSet(indexed address)
+          handler: onInvestmentManagerSet
         - event: Invested(indexed address,uint256,indexed address,uint256)
           handler: onInvestedVault
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
@@ -94,6 +96,10 @@ dataSources:
           handler: onReservesAdded
         - event: ReservesRemoved(uint256)
           handler: onReservesRemoved
+        - event: TokenPricesSet(indexed address)
+          handler: onTokenPricesSet
+        - event: PerformanceFeeSet(uint128,uint128)
+          handler: onPerformanceFeeSet
   - kind: ethereum/contract
     name: GlpInvestmentVault
     network: {{network}}
@@ -118,6 +124,8 @@ dataSources:
         - name: TokenPrices
           file: ./abis/TokenPrices.json
       eventHandlers:
+        - event: InvestmentManagerSet(indexed address)
+          handler: onInvestmentManagerSet
         - event: Invested(indexed address,uint256,indexed address,uint256)
           handler: onInvestedVault
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
@@ -126,6 +134,10 @@ dataSources:
           handler: onReservesAdded
         - event: ReservesRemoved(uint256)
           handler: onReservesRemoved
+        - event: TokenPricesSet(indexed address)
+          handler: onTokenPricesSet
+        - event: PerformanceFeeSet(uint128,uint128)
+          handler: onPerformanceFeeSet
   # Access Controlled Offchain Aggregator
   - kind: ethereum/contract
     name: HourlyScheduler
