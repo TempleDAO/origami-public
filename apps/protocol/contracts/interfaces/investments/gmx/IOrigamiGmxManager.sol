@@ -67,4 +67,13 @@ interface IOrigamiGmxManager {
         uint256 slippageBps, 
         address recipient
     ) external returns (uint256 amountOut);
+
+    struct Paused {
+        bool glpInvestmentsPaused;
+        bool gmxInvestmentsPaused;
+
+        bool glpExitsPaused;
+        bool gmxExitsPaused;
+    }
+    function paused() external view returns (Paused memory);
 }

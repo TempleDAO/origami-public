@@ -12,6 +12,7 @@ import {IGmxRewardRouter} from "../../interfaces/external/gmx/IGmxRewardRouter.s
 import {IGmxRewardTracker} from "../../interfaces/external/gmx/IGmxRewardTracker.sol";
 import {IGmxRewardDistributor} from "../../interfaces/external/gmx/IGmxRewardDistributor.sol";
 import {IGmxVester} from "../../interfaces/external/gmx/IGmxVester.sol";
+import {IGlpManager} from "../../interfaces/external/gmx/IGlpManager.sol";
 import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
 
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
@@ -66,6 +67,12 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     /// This is a separate instance when the esGMX is obtained via staked GLP, vs staked GMX
     IGmxVester public esGmxVester;
  
+    /// @notice Whether GLP purchases are paused
+    bool public override glpInvestmentsPaused;
+
+    /// @notice The last timestamp that staked GLP was transferred out of this account.
+    uint256 public override glpLastTransferredAt;
+
     struct GmxPositions {
         uint256 unstakedGmx;
         uint256 stakedGmx;
@@ -87,7 +94,10 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         uint256 claimableVestedGmx;
     }
 
+    error GlpInvestmentsPaused();
+
     event StakedGlpTransferred(address receiver, uint256 amount);
+    event SetGlpInvestmentsPaused(bool pause);
 
     event RewardsHarvested(
         uint256 wrappedNativeFromGmx,
@@ -183,6 +193,8 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     /// @notice Buy and stake $GLP using GMX.io's contracts using a whitelisted token.
     /// @dev GMX.io takes fees dependent on the pool constituents.
     function mintAndStakeGlp(uint256 fromAmount, address fromToken, uint256 minUsdg, uint256 minGlp, uint256 slippageBps) external override onlyOperators returns (uint256) {
+        if (glpInvestmentsPaused) revert GlpInvestmentsPaused();
+
         IERC20Upgradeable(fromToken).safeIncreaseAllowance(glpRewardRouter.glpManager(), fromAmount);
         return glpRewardRouter.mintAndStakeGlp(
             fromToken, 
@@ -207,6 +219,36 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     function transferStakedGlp(uint256 glpAmount, address receiver) external override onlyOperators {
         stakedGlp.safeTransfer(receiver, glpAmount);
         emit StakedGlpTransferred(receiver, glpAmount);
+    }
+
+    function glpInvestmentCooldownExpiry() public override view returns (uint256) {
+        IGlpManager glpManager = IGlpManager(glpRewardRouter.glpManager());
+        return glpManager.lastAddedAt(address(this)) + glpManager.cooldownDuration();
+    }
+    
+    function _setGlpInvestmentsPaused(bool pause) internal {
+        glpInvestmentsPaused = pause;
+        emit SetGlpInvestmentsPaused(pause);
+    }
+
+    /// @notice Attempt to transfer staked $GLP to another receiver. This will unstake from this contract and restake to another user.
+    /// @dev If the transfer cannot happen in this transaction due to the GLP cooldown
+    /// then future GLP deposits will be paused such that it can be attempted again.
+    /// When the transfer succeeds in the future, deposits will be unpaused.
+    function transferStakedGlpOrPause(uint256 glpAmount, address receiver) external override onlyOperators {
+        uint256 cooldownExpiry = glpInvestmentCooldownExpiry();
+
+        if (block.timestamp > cooldownExpiry) {
+            stakedGlp.safeTransfer(receiver, glpAmount);
+            glpLastTransferredAt = block.timestamp;
+            emit StakedGlpTransferred(receiver, glpAmount);
+
+            if (glpInvestmentsPaused) {
+                _setGlpInvestmentsPaused(false);
+            }
+        } else if (!glpInvestmentsPaused) {
+            _setGlpInvestmentsPaused(true);
+        }
     }
 
     /// @notice The current wrappedNative and esGMX rewards per second

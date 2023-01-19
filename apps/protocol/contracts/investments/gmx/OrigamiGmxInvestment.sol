@@ -44,7 +44,21 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     function acceptedExitTokens() external override view returns (address[] memory) {
         return origamiGmxManager.acceptedOGmxTokens();
     }
-    
+        
+    /**
+     * @notice Whether new investments are paused.
+     */
+    function areInvestmentsPaused() external override view returns (bool) {
+        return origamiGmxManager.paused().gmxInvestmentsPaused;
+    }
+
+    /**
+     * @notice Whether exits are temporarily paused.
+     */
+    function areExitsPaused() external override view returns (bool) {
+        return origamiGmxManager.paused().gmxExitsPaused;
+    }
+
     /**
      * @notice Get a quote to buy the oGMX using GMX.
      * @param fromTokenAmount How much of GMX to invest with
@@ -70,7 +84,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     function investWithToken(
         InvestQuoteData calldata quoteData, 
         uint256 slippageBps
-    ) external override whenNotPaused returns (uint256 investmentAmount) {
+    ) external override returns (uint256 investmentAmount) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
         // Send the investment token to the gmx manager
@@ -118,7 +132,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
         ExitQuoteData calldata quoteData, 
         uint256 slippageBps, 
         address recipient
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 toTokenAmountOut
     ) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();

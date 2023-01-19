@@ -20,6 +20,16 @@ export async function shouldRevertErc20Balance(p: Promise<any>) {
   await expect(p).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 }
 
+export async function shouldRevertNotOperator(
+    p: Promise<any>,
+    contract: { interface: any },
+    signer: Signer,
+) {
+    await expect(p)
+        .to.be.revertedWithCustomError(contract, "OnlyOperators")
+        .withArgs(await signer.getAddress());
+}
+
 export async function forkMainnet(
   blockNumber: number = 14702622, 
   rpcUrl: string | undefined = process.env.MAINNET_RPC_URL

@@ -11,6 +11,7 @@ library CommonEventsAndErrors {
     error InvalidAmount(address token, uint256 amount);
     error ExpectedNonZero();
     error Slippage(uint256 minAmountExpected, uint256 acutalAmount);
-
+    error IsPaused();
+    
     event TokenRecovered(address indexed to, address indexed token, uint256 amount);
 }

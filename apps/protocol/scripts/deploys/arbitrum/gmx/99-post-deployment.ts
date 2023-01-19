@@ -107,6 +107,12 @@ async function setupPrices(contracts: ContractInstances, DEPLOYED: GmxDeployedCo
     const encodedGlpUsd = encodedGlpPrice(DEPLOYED.GMX.CORE.GLP_MANAGER);
     await contracts.tokenPrices.setTokenPriceFunction(DEPLOYED.GMX.TOKENS.GLP_TOKEN, encodedGlpUsd);
 
+    // $sGLP -- staked GLP
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.STAKING.STAKED_GLP,
+        encodedAliasFor(DEPLOYED.GMX.TOKENS.GLP_TOKEN)
+    ));
+    
     // $oGMX
     await contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.ORIGAMI.GMX.oGMX,
@@ -142,6 +148,11 @@ async function main() {
     // The Investments are added as manager operators such that they can sell oGLP/oGMX
     await mine(contracts.gmxManager.addOperator(contracts.oGMX.address));
     await mine(contracts.glpManager.addOperator(contracts.oGLP.address));
+
+    // The reward aggregators are added as manager operators so they can call harvestRewards()
+    await mine(contracts.gmxManager.addOperator(contracts.gmxRewardsAggregator.address));
+    await mine(contracts.glpManager.addOperator(contracts.gmxRewardsAggregator.address));
+    await mine(contracts.glpManager.addOperator(contracts.glpRewardsAggregator.address));
 
     // The Investments & managers are added as operators such that they can buy/sell/stake/unstake GLP/GMX
     await mine(contracts.gmxEarnAccount.addOperator(contracts.oGMX.address));

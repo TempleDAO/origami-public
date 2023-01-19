@@ -2,6 +2,7 @@ import { ethers, upgrades } from "hardhat";
 import { Signer, BigNumber, BigNumberish, ContractTransaction } from "ethers";
 import { expect } from "chai";
 import { 
+    blockTimestamp,
     deployUupsProxy,
     mineForwardSeconds, recoverToken, 
     shouldRevertNotOwner, 
@@ -135,6 +136,9 @@ describe("Origami GMX Earn Account", async () => {
             await expect(origamiGmxEarnAccount.connect(alan).transferStakedGlp(0, ZERO_ADDRESS))
                 .to.be.revertedWithCustomError(origamiGmxEarnAccount, "OnlyOperators")
                 .withArgs(await alan.getAddress());
+            await expect(origamiGmxEarnAccount.connect(alan).transferStakedGlpOrPause(0, ZERO_ADDRESS))
+                .to.be.revertedWithCustomError(origamiGmxEarnAccount, "OnlyOperators")
+                .withArgs(await alan.getAddress());   
             
             // Happy Paths
             await expect(origamiGmxEarnAccount.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
@@ -156,6 +160,8 @@ describe("Origami GMX Earn Account", async () => {
                 .to.be.revertedWith("RewardRouter: invalid _glpAmount");
             await origamiGmxEarnAccount.connect(alan).harvestRewards({numerator: 100, denominator: 100});
             await expect(origamiGmxEarnAccount.connect(alan).transferStakedGlp(0, ZERO_ADDRESS))
+                .to.be.revertedWith("StakedGlp: transfer to the zero address");
+            await expect(origamiGmxEarnAccount.connect(alan).transferStakedGlpOrPause(0, ZERO_ADDRESS))
                 .to.be.revertedWith("StakedGlp: transfer to the zero address");
 
             await origamiGmxEarnAccount.connect(alan).handleRewards(handleRewardsParams);
@@ -183,7 +189,9 @@ describe("Origami GMX Earn Account", async () => {
             expect(await origamiGmxEarnAccount.stakedGmxTracker()).eq(gmxContracts.stakedGmxTracker.address); 
             expect(await origamiGmxEarnAccount.feeGmxTracker()).eq(gmxContracts.feeGmxTracker.address); 
             expect(await origamiGmxEarnAccount.esGmxVester()).eq(esGmxVester.address); 
-            expect(await origamiGmxEarnAccount.stakedGlp()).eq(gmxContracts.stakedGlp.address); 
+            expect(await origamiGmxEarnAccount.stakedGlp()).eq(gmxContracts.stakedGlp.address);
+            expect(await origamiGmxEarnAccount.glpInvestmentsPaused()).eq(false);
+            expect(await origamiGmxEarnAccount.glpLastTransferredAt()).eq(0);
         });
         
         it("should add operator", async() => {
@@ -364,6 +372,73 @@ describe("Origami GMX Earn Account", async () => {
             await expect(origamiGmxEarnAccount.connect(operator).transferStakedGlp(glpAmount, alan.getAddress()))
                 .to.emit(origamiGmxEarnAccount, "StakedGlpTransferred")
                 .withArgs(await alan.getAddress(), glpAmount);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(0);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(alan.getAddress())).eq(glpAmount);
+        });
+
+        it("should transfer staked GLP in cooldown", async () => {
+            const tokenAddr = gmxContracts.bnbToken.address;
+            const amount = ethers.utils.parseEther("100");
+
+            let glpAmount;
+            let now;
+            {
+                await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
+                const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr)).quoteData;
+                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
+                await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedQuote.expectedUsdg, quote.expectedInvestmentAmount, 0);
+                now = await blockTimestamp();
+
+                // No BNB, but it has staked GLP
+                expect(await gmxContracts.bnbToken.balanceOf(origamiGmxEarnAccount.address)).eq(0);
+                expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(quote.expectedInvestmentAmount);
+                glpAmount = quote.expectedInvestmentAmount;
+            }
+
+            const expiry = await origamiGmxEarnAccount.glpInvestmentCooldownExpiry();
+            expect(slightlyGte(expiry, BigNumber.from(now+15*60), 5)).eq(true);
+
+            const transfer1Amount = glpAmount.div(2);
+            const transfer2Amount = glpAmount.sub(transfer1Amount);
+
+            // Doesn't transfer, but does pause glp deposits.
+            await expect(origamiGmxEarnAccount.connect(operator).transferStakedGlpOrPause(transfer1Amount, alan.getAddress()))
+                .to.emit(origamiGmxEarnAccount, "SetGlpInvestmentsPaused")
+                .withArgs(true);
+            expect(await origamiGmxEarnAccount.glpInvestmentsPaused()).eq(true);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(glpAmount);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(alan.getAddress())).eq(0);
+
+            // And calling again is effectively a no-op
+            await expect(origamiGmxEarnAccount.connect(operator).transferStakedGlpOrPause(transfer1Amount, alan.getAddress()))
+                .to.not.emit(origamiGmxEarnAccount, "SetGlpInvestmentsPaused");
+            expect(await origamiGmxEarnAccount.glpInvestmentsPaused()).eq(true);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(glpAmount);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(alan.getAddress())).eq(0);
+
+            // Can't mintAndStake GLP now - it's paused.
+            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, 0, 0, 0))
+                .to.revertedWithCustomError(origamiGmxEarnAccount, "GlpInvestmentsPaused");
+
+            // Sleep off the cooldown.
+            await mineForwardSeconds(15*60);
+
+            // Can now transfer
+            await expect(origamiGmxEarnAccount.connect(operator).transferStakedGlpOrPause(transfer1Amount, alan.getAddress()))
+                .to.emit(origamiGmxEarnAccount, "SetGlpInvestmentsPaused")
+                .withArgs(false)
+                .to.emit(origamiGmxEarnAccount, "StakedGlpTransferred")
+                .withArgs(await alan.getAddress(), transfer1Amount);
+            expect(await origamiGmxEarnAccount.glpInvestmentsPaused()).eq(false);
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(glpAmount.sub(transfer1Amount));
+            expect(await gmxContracts.stakedGlpTracker.balanceOf(alan.getAddress())).eq(transfer1Amount);
+
+            // And again when still clear of cooldown - this time no unpaused event
+            await expect(origamiGmxEarnAccount.connect(operator).transferStakedGlpOrPause(transfer2Amount, alan.getAddress()))
+                .to.emit(origamiGmxEarnAccount, "StakedGlpTransferred")
+                .withArgs(await alan.getAddress(), transfer2Amount)
+                .to.not.emit(origamiGmxEarnAccount, "SetGlpInvestmentsPaused");
+            expect(await origamiGmxEarnAccount.glpInvestmentsPaused()).eq(false);
             expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(0);
             expect(await gmxContracts.stakedGlpTracker.balanceOf(alan.getAddress())).eq(glpAmount);
         });

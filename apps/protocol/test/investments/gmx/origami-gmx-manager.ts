@@ -5,12 +5,13 @@ import {
     mineForwardSeconds,
     impersonateSigner, ZERO_ADDRESS, recoverToken, 
     shouldRevertNotOwner, shouldRevertPaused, 
-    slightlyGtePred, slightlyGte, forkMainnet, deployUupsProxy
+    slightlyGtePred, slightlyGte, forkMainnet, deployUupsProxy, shouldRevertNotOperator
 } from "../../helpers";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxManager, OrigamiGmxManager__factory, 
-    MintableToken, MintableToken__factory,
+    MintableToken, MintableToken__factory, 
+    IOrigamiGmxManager,
 } from "../../../typechain";
 import { 
     addDefaultGlpLiquidity, connectToGmx, decodeGlpUnderlyingInvestQuoteData, deployGmx, 
@@ -179,8 +180,13 @@ describe("Origami GMX Manager", async () => {
                 await shouldRevertNotOwner(origamiGmxManager.connect(alan).addOperator(await operator.getAddress()));
                 await shouldRevertNotOwner(origamiGmxManager.connect(alan).removeOperator(await operator.getAddress()));
                 await shouldRevertNotOwner(origamiGmxManager.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
-                await shouldRevertNotOwner(origamiGmxManager.connect(alan).pause());
-                await shouldRevertNotOwner(origamiGmxManager.connect(alan).unpause());
+                const paused = {
+                    glpInvestmentsPaused: true,
+                    gmxInvestmentsPaused: true,
+                    glpExitsPaused: false,
+                    gmxExitsPaused: false,
+                };
+                await shouldRevertNotOwner(origamiGmxManager.connect(alan).setPaused(paused));
 
                 await shouldRevertNotOwner(origamiGmxManager.connect(alan).initGmxContracts(
                     gmxContracts.gmxRewardRouter.address,
@@ -189,21 +195,39 @@ describe("Origami GMX Manager", async () => {
 
                 const investGmxQuote = await origamiGmxManager.investOGmxQuote(100, gmxContracts.gmxToken.address);
                 const exitGmxQuote = await origamiGmxManager.exitOGmxQuote(100, gmxContracts.gmxToken.address);
-                await expect(origamiGmxManager.connect(alan).investOGmx(investGmxQuote.quoteData, 0))
-                    .to.revertedWithCustomError(origamiGmxManager, "OnlyOperators")
-                    .withArgs(await alan.getAddress());
-                await expect(origamiGmxManager.connect(alan).exitOGmx(exitGmxQuote.quoteData, 0, ZERO_ADDRESS))
-                    .to.revertedWithCustomError(origamiGmxManager, "OnlyOperators")
-                    .withArgs(await alan.getAddress());
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).investOGmx(investGmxQuote.quoteData, 0),
+                    origamiGmxManager, alan
+                );
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).exitOGmx(exitGmxQuote.quoteData, 0, ZERO_ADDRESS),
+                    origamiGmxManager, alan
+                );
 
                 const investGlpQuote = await origamiGmxManager.investOGlpQuote(100, gmxContracts.bnbToken.address);
                 const exitGlpQuote = await origamiGmxManager.exitOGlpQuote(100, gmxContracts.bnbToken.address);
-                await expect(origamiGmxManager.connect(alan).investOGlp(gmxContracts.bnbToken.address, investGlpQuote.quoteData, 0))
-                    .to.revertedWithCustomError(origamiGmxManager, "OnlyOperators")
-                    .withArgs(await alan.getAddress());
-                await expect(origamiGmxManager.connect(alan).exitOGlp(gmxContracts.bnbToken.address, exitGlpQuote.quoteData, 0, ZERO_ADDRESS))
-                    .to.revertedWithCustomError(origamiGmxManager, "OnlyOperators")
-                    .withArgs(await alan.getAddress());
+
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).investOGlp(gmxContracts.bnbToken.address, investGlpQuote.quoteData, 0),
+                    origamiGmxManager, alan
+                );
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).exitOGlp(gmxContracts.bnbToken.address, exitGlpQuote.quoteData, 0, ZERO_ADDRESS),
+                    origamiGmxManager, alan
+                );
+
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).applyGmx(0),
+                    origamiGmxManager, alan
+                );
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).harvestRewards(),
+                    origamiGmxManager, alan
+                );
+                await shouldRevertNotOperator(
+                    origamiGmxManager.connect(alan).harvestSecondaryRewards(),
+                    origamiGmxManager, alan
+                );
 
                 // Happy Paths
                 await origamiGmxManager.setOGmxRewardsFeeRate(100, 100);
@@ -216,7 +240,11 @@ describe("Origami GMX Manager", async () => {
                 await expect(origamiGmxManager.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
                     .to.revertedWith("ERC20: transfer amount exceeds balance");
 
-                await origamiGmxManager.addOperator(operator.getAddress());
+                await expect(origamiGmxManager.connect(operator).applyGmx(0))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "ExpectedNonZero");
+                await origamiGmxManager.connect(operator).harvestRewards();
+                await origamiGmxManager.connect(operator).harvestSecondaryRewards();
+                    
                 await expect(origamiGmxManager.connect(operator).investOGmx(investGmxQuote.quoteData, 0))
                     .to.revertedWith("BaseToken: transfer amount exceeds balance");
                 await expect(origamiGmxManager.connect(operator).exitOGmx(exitGmxQuote.quoteData, 0, ZERO_ADDRESS))
@@ -226,8 +254,7 @@ describe("Origami GMX Manager", async () => {
                 await expect(origamiGmxManager.connect(operator).exitOGlp(gmxContracts.bnbToken.address, exitGlpQuote.quoteData, 0, ZERO_ADDRESS))
                     .to.revertedWith("ERC20: transfer amount exceeds balance");
                 await origamiGmxManager.removeOperator(operator.getAddress());
-                await origamiGmxManager.pause();
-                await origamiGmxManager.unpause();
+                await origamiGmxManager.setPaused(paused);
                 await origamiGmxManager.initGmxContracts(
                     gmxContracts.gmxRewardRouter.address, 
                     gmxContracts.glpRewardRouter.address, 
@@ -235,16 +262,61 @@ describe("Origami GMX Manager", async () => {
             });
 
             it("pause/unpause", async () => {
-                // Pause the contract
-                await origamiGmxManager.pause();
-        
-                await shouldRevertPaused(origamiGmxManager.harvestRewards());
-                await shouldRevertPaused(origamiGmxManager.harvestSecondaryRewards());
-                await shouldRevertPaused(origamiGmxManager.applyGmx(0));
-        
-                // Unpause the contract and check one of the functions can now still run
-                await origamiGmxManager.unpause();
-                await origamiGmxManager.harvestRewards();
+                const paused: IOrigamiGmxManager.PausedStruct = {
+                    glpInvestmentsPaused: true,
+                    gmxInvestmentsPaused: true,
+                    glpExitsPaused: true,
+                    gmxExitsPaused: true,
+                };
+                await expect(origamiGmxManager.setPaused(paused))
+                    .to.emit(origamiGmxManager, "PausedSet");
+                await expect(origamiGlpManager.setPaused(paused))
+                    .to.emit(origamiGlpManager, "PausedSet");
+
+                const checkPaused = (actual: IOrigamiGmxManager.PausedStructOutput, expected: IOrigamiGmxManager.PausedStruct) => {
+                    expect(actual.glpInvestmentsPaused).eq(expected.glpInvestmentsPaused);
+                    expect(actual.gmxInvestmentsPaused).eq(expected.gmxInvestmentsPaused);
+                    expect(actual.glpExitsPaused).eq(expected.glpExitsPaused);
+                    expect(actual.gmxExitsPaused).eq(expected.gmxExitsPaused);
+                }
+                checkPaused(await origamiGlpManager.paused(), paused);
+                checkPaused(await origamiGmxManager.paused(), paused);
+
+                const investGmxQuote = await origamiGmxManager.investOGmxQuote(100, gmxContracts.gmxToken.address);
+                const exitGmxQuote = await origamiGmxManager.exitOGmxQuote(100, gmxContracts.gmxToken.address);
+                const investGlpQuote = await origamiGmxManager.investOGlpQuote(100, gmxContracts.bnbToken.address);
+                const exitGlpQuote = await origamiGmxManager.exitOGlpQuote(100, gmxContracts.bnbToken.address);
+
+                await expect(origamiGmxManager.connect(operator).investOGmx(investGmxQuote.quoteData, 1))
+                    .to.revertedWithCustomError(origamiGmxManager, "IsPaused");
+                await expect(origamiGmxManager.connect(operator).exitOGmx(exitGmxQuote.quoteData, 0, ZERO_ADDRESS))
+                    .to.revertedWithCustomError(origamiGmxManager, "IsPaused");
+                await expect(origamiGlpManager.connect(operator).investOGlp(gmxContracts.bnbToken.address, investGlpQuote.quoteData, 1))
+                    .to.revertedWithCustomError(origamiGmxManager, "IsPaused");
+                await expect(origamiGlpManager.connect(operator).exitOGlp(gmxContracts.bnbToken.address, exitGlpQuote.quoteData, 0, ZERO_ADDRESS))
+                    .to.revertedWithCustomError(origamiGmxManager, "IsPaused");
+
+                const unpaused: IOrigamiGmxManager.PausedStruct = {
+                    glpInvestmentsPaused: false,
+                    gmxInvestmentsPaused: false,
+                    glpExitsPaused: false,
+                    gmxExitsPaused: false,
+                };
+                await expect(origamiGmxManager.setPaused(unpaused))
+                    .to.emit(origamiGmxManager, "PausedSet");
+                await expect(origamiGlpManager.setPaused(unpaused))
+                    .to.emit(origamiGlpManager, "PausedSet");
+                checkPaused(await origamiGlpManager.paused(), unpaused);
+                checkPaused(await origamiGmxManager.paused(), unpaused);
+
+                await expect(origamiGmxManager.connect(operator).investOGmx(investGmxQuote.quoteData, 0))
+                    .to.revertedWith("BaseToken: transfer amount exceeds balance");
+                await expect(origamiGmxManager.connect(operator).exitOGmx(exitGmxQuote.quoteData, 0, ZERO_ADDRESS))
+                    .to.revertedWith("ERC20: burn amount exceeds balance");
+                await expect(origamiGlpManager.connect(operator).investOGlp(gmxContracts.bnbToken.address, investGlpQuote.quoteData, 0))
+                    .to.revertedWith("ERC20: transfer amount exceeds balance");
+                await expect(origamiGlpManager.connect(operator).exitOGlp(gmxContracts.bnbToken.address, exitGlpQuote.quoteData, 0, ZERO_ADDRESS))
+                    .to.revertedWith("ERC20: burn amount exceeds balance");
             });
 
             it("should add operator", async() => {
@@ -383,7 +455,7 @@ describe("Origami GMX Manager", async () => {
         
             it("harvestRewards - GMX - no vesting", async () => {
                 // Nothing staked -> nothing earnt
-                await expect(origamiGmxManager.harvestRewards())
+                await expect(origamiGmxManager.connect(operator).harvestRewards())
                     .to.emit(gmxEarnAccount, "RewardsHarvested")
                     .withArgs(0, 0, 0, 0, 0, 0);
                 
@@ -406,7 +478,7 @@ describe("Origami GMX Manager", async () => {
                     let rewardRates = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
                     expectedEth = ethPerSecond.mul(86401);
                     expectedEsGmx = esGmxPerSecond.mul(86401);
-                    await expect(origamiGmxManager.harvestRewards())
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             slightlyGtePred(expectedEth, 0.001), 0, // ETH from GMX, 0 from GLP
@@ -443,7 +515,7 @@ describe("Origami GMX Manager", async () => {
                     // The expected bonus is based off the new total esGMX held
                     expectedEth = ethPerSecond.mul(86401);
                     expectedEsGmx = esGmxPerSecond.mul(86401);
-                    await expect(origamiGmxManager.harvestRewards())
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             slightlyGtePred(expectedEth, 0.001), 0, // ETH from GMX, 0 from GLP
@@ -472,7 +544,7 @@ describe("Origami GMX Manager", async () => {
 
             it("harvestRewards - GMX - no vesting - 100% fees", async () => {
                 // Nothing staked -> nothing earnt
-                await expect(origamiGmxManager.harvestRewards())
+                await expect(origamiGmxManager.connect(operator).harvestRewards())
                     .to.emit(gmxEarnAccount, "RewardsHarvested")
                     .withArgs(0, 0, 0, 0, 0, 0);
                 
@@ -489,7 +561,7 @@ describe("Origami GMX Manager", async () => {
                     const harvestableRewards = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
                     const expectedEth = ethPerSecond.mul(86401);
                     const expectedEsGmx = esGmxPerSecond.mul(86401);
-                    await expect(origamiGmxManager.harvestRewards())
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             slightlyGtePred(expectedEth, 0.0001), 0, // ETH for GMX, 0 for GLP
@@ -537,7 +609,7 @@ describe("Origami GMX Manager", async () => {
                     let rewardRates = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
                     expectedEth = ethPerSecond.mul(86401);
                     expectedEsGmx = esGmxPerSecond.mul(86401);
-                    await expect(origamiGmxManager.harvestRewards())
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             slightlyGtePred(expectedEth, 0.001), 0, // ETH for GMX, 0 for GLP
@@ -572,7 +644,7 @@ describe("Origami GMX Manager", async () => {
                     expectedEth = ethPerSecond.mul(86400);
                     expectedEsGmx = esGmxPerSecond.mul(86400);
                     const expectedVestedGmx = expectedEsGmx.mul(30).div(100).mul(86400).div(oneYear);
-                    await expect(origamiGmxManager.harvestRewards())
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             slightlyGtePred(expectedEth, 0.001), 0, // ETH for GMX, 0 for GLP
@@ -630,7 +702,7 @@ describe("Origami GMX Manager", async () => {
                     let rewardRatesGmx = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
                     expectedEth = ethPerSecond.mul(86400);
                     expectedEsGmx = esGmxPerSecond.mul(86400);
-                    await expect(origamiGmxManager.harvestRewards({gasLimit:5000000}))
+                    await expect(origamiGmxManager.connect(operator).harvestRewards({gasLimit:5000000}))
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             0, slightlyGtePred(expectedEth, 0.001),  // ETH only from GLP
@@ -671,7 +743,7 @@ describe("Origami GMX Manager", async () => {
 
                     expectedEth = ethPerSecond.mul(86400);
                     expectedEsGmx = esGmxPerSecond.mul(86400);
-                    await expect(origamiGmxManager.harvestRewards({gasLimit:5000000}))
+                    await expect(origamiGmxManager.connect(operator).harvestRewards({gasLimit:5000000}))
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
                             slightlyGtePred(expectedEth, 0.001), slightlyGtePred(expectedEth, 0.001), // ETH
@@ -723,7 +795,7 @@ describe("Origami GMX Manager", async () => {
                     let harvestableRewardsGlp = await origamiGlpManager.harvestableRewards(GmxVaultType.GLP);
                     const expectedEth = ethPerSecond.mul(86400);
                     const expectedEsGmx = esGmxPerSecond.mul(86400);
-                    await origamiGlpManager.harvestRewards({gasLimit:5000000});
+                    await origamiGlpManager.connect(operator).harvestRewards({gasLimit:5000000});
 
                     // The harvestableRewards are 100% fees - so nothing here
                     expect(harvestableRewardsGlp).deep.eq([expectedEth.sub(1),0]);
@@ -762,7 +834,7 @@ describe("Origami GMX Manager", async () => {
                     await mineForwardSeconds(86400);
                     let rewardRatesGlp = await origamiGlpManager.harvestableSecondaryRewards(GmxVaultType.GLP);
                     const expectedEth = ethPerSecond.mul(86400); //.div(2);
-                    await origamiGlpManager.harvestSecondaryRewards({gasLimit:5000000});
+                    await origamiGlpManager.connect(operator).harvestSecondaryRewards({gasLimit:5000000});
 
                     // Only expeect ETH rewards, no oGMX rewards.
                     expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);

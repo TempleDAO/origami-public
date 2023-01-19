@@ -18,6 +18,9 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
     uint256 public investFee = 100; // 1%
     uint256 public exitFee = 500; // 5%
 
+    bool public investmentsPaused;
+    bool public exitsPaused;
+
     constructor(
         string memory _name,
         string memory _symbol,
@@ -38,6 +41,25 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
         tokens[0] = exitToken;
     }
 
+    function setPaused(bool investments, bool exits) external {
+        investmentsPaused = investments;
+        exitsPaused = exits; 
+    }
+
+    /**
+     * @notice Whether new investments are paused.
+     */
+    function areInvestmentsPaused() external override view returns (bool) {
+        return investmentsPaused;
+    }
+
+    /**
+     * @notice Whether exits are temporarily paused.
+     */
+    function areExitsPaused() external override view returns (bool) {
+        return exitsPaused;
+    }
+
     function investQuote(
         uint256 fromTokenAmount, 
         address fromToken
@@ -55,9 +77,10 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
     function investWithToken(
          InvestQuoteData calldata quoteData, 
          uint256 /*slippageBps*/
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 investmentAmount
     ) {
+        if (investmentsPaused) revert CommonEventsAndErrors.IsPaused();
         if (quoteData.fromToken != investToken) revert CommonEventsAndErrors.InvalidToken(quoteData.fromToken);
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
@@ -71,9 +94,10 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
     function investWithNative(
         InvestQuoteData calldata quoteData,
         uint256 /*slippageBps*/
-    ) external payable override whenNotPaused returns (
+    ) external payable override returns (
         uint256 investmentAmount
     ) {
+        if (investmentsPaused) revert CommonEventsAndErrors.IsPaused();
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.fromTokenAmount != msg.value) revert CommonEventsAndErrors.InvalidAmount(address(0), msg.value);
         if (quoteData.fromToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.fromToken);
@@ -101,9 +125,10 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
         ExitQuoteData calldata quoteData, 
         uint256 /*slippageBps*/, 
         address recipient
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 toTokenAmount
     ) {
+        if (exitsPaused) revert CommonEventsAndErrors.IsPaused();
         if (quoteData.toToken != exitToken) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
@@ -118,9 +143,10 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
         ExitQuoteData calldata quoteData,
         uint256 /*slippageBps*/, 
         address payable recipient
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 nativeAmount
     ) {
+        if (exitsPaused) revert CommonEventsAndErrors.IsPaused();
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.toToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
 

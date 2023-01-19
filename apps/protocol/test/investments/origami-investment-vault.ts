@@ -164,8 +164,6 @@ describe("Origami Investment Vault", async () => {
     });
 
     it("admin", async () => {
-        await shouldRevertNotOwner(ovToken.connect(alan).pause());
-        await shouldRevertNotOwner(ovToken.connect(alan).unpause());
         await shouldRevertNotOwner(ovToken.connect(alan).setInvestmentManager(investmentManager.address));
         await shouldRevertNotOwner(ovToken.connect(alan).setTokenPrices(tokenPrices.address));
         await shouldRevertNotOwner(ovToken.connect(alan).setPerformanceFee(80, 100));
@@ -178,8 +176,6 @@ describe("Origami Investment Vault", async () => {
             .withArgs(await alan.getAddress());
 
         // Happy paths
-        await ovToken.pause();
-        await ovToken.unpause();
         await ovToken.setInvestmentManager(investmentManager.address);
         await ovToken.setTokenPrices(tokenPrices.address);
         await ovToken.setPerformanceFee(80, 100);
@@ -214,23 +210,16 @@ describe("Origami Investment Vault", async () => {
         expect(denominator.toNumber()).to.eq(100);
     });
 
-    it("pause/unpause", async () => {
-        // Pause the contract
-        await ovToken.pause();
+    it("areInvestmentsPaused/areExitsPaused should be correct", async () => {
+        // Not paused by default
+        expect(await ovToken.areInvestmentsPaused()).eq(false);
+        expect(await ovToken.areExitsPaused()).eq(false);
 
-        const {quoteData: investQuote, } = await ovToken.investQuote(10, oToken.address);
-        await shouldRevertPaused(ovToken.investWithToken(investQuote, 0));
-        await shouldRevertPaused(ovToken.investWithNative(investQuote, 0, {value: 0}));
+        // Set to be disabled on the underlying oToken
+        await oToken.setPaused(true, true);
 
-        const {quoteData: exitQuote, } = await ovToken.exitQuote(10, oToken.address);
-        await shouldRevertPaused(ovToken.exitToToken(exitQuote, 0, alan.getAddress()));
-        await shouldRevertPaused(ovToken.exitToNative(exitQuote, 0, alan.getAddress()));
-
-        await ovToken.unpause();
-
-        // Works again, invalid quote for 0 ovToken's
-        await expect(ovToken.investWithToken(investQuote, 0))
-            .to.be.revertedWith("ERC20: insufficient allowance");
+        expect(await ovToken.areInvestmentsPaused()).eq(true);
+        expect(await ovToken.areExitsPaused()).eq(true);
     });
 
     it("correctly wrapped accepted tokens", async () => {

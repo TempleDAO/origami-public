@@ -46,6 +46,16 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
     function acceptedExitTokens() external view returns (address[] memory);
 
     /**
+     * @notice Whether new investments are paused.
+     */
+    function areInvestmentsPaused() external view returns (bool);
+
+    /**
+     * @notice Whether exits are temporarily paused.
+     */
+    function areExitsPaused() external view returns (bool);
+
+    /**
      * @notice Quote data required when entering into this investment.
      */
     struct InvestQuoteData {

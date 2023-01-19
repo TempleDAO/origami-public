@@ -1,0 +1,1080 @@
+[
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "GlpInvestmentsPaused",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyOperators",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "AddedOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "previousAdmin",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "newAdmin",
+        "type": "address"
+      }
+    ],
+    "name": "AdminChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "beacon",
+        "type": "address"
+      }
+    ],
+    "name": "BeaconUpgraded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "RemovedOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "wrappedNativeFromGmx",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "wrappedNativeFromGlp",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "esGmxFromGmx",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "esGmxFromGlp",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "vestedGmx",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "esGmxVesting",
+        "type": "uint256"
+      }
+    ],
+    "name": "RewardsHarvested",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "pause",
+        "type": "bool"
+      }
+    ],
+    "name": "SetGlpInvestmentsPaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "StakedGlpTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "implementation",
+        "type": "address"
+      }
+    ],
+    "name": "Upgraded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_address",
+        "type": "address"
+      }
+    ],
+    "name": "addOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "bnGmxAddr",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_esGmxVester",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "depositIntoEsGmxVesting",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "esGmxToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20Upgradeable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "esGmxVester",
+    "outputs": [
+      {
+        "internalType": "contract IGmxVester",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeGlpTracker",
+    "outputs": [
+      {
+        "internalType": "contract IGmxRewardTracker",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeGmxTracker",
+    "outputs": [
+      {
+        "internalType": "contract IGmxRewardTracker",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpInvestmentCooldownExpiry",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpInvestmentsPaused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpLastTransferredAt",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpRewardRouter",
+    "outputs": [
+      {
+        "internalType": "contract IGmxRewardRouter",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gmxRewardRouter",
+    "outputs": [
+      {
+        "internalType": "contract IGmxRewardRouter",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gmxToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20Upgradeable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "shouldClaimGmx",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldStakeGmx",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldClaimEsGmx",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldStakeEsGmx",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldStakeMultiplierPoints",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldClaimWeth",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldConvertWethToEth",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxEarnAccount.HandleGmxRewardParams",
+        "name": "params",
+        "type": "tuple"
+      }
+    ],
+    "name": "handleRewards",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "wrappedNativeFromGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "wrappedNativeFromGlp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "esGmxFromGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "esGmxFromGlp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "vestedGmx",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxEarnAccount.ClaimedRewards",
+        "name": "claimedRewards",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint128",
+            "name": "numerator",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "denominator",
+            "type": "uint128"
+          }
+        ],
+        "internalType": "struct FractionalAmount.Data",
+        "name": "_esGmxVestingRate",
+        "type": "tuple"
+      }
+    ],
+    "name": "harvestRewards",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "wrappedNativeFromGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "wrappedNativeFromGlp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "esGmxFromGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "esGmxFromGlp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "vestedGmx",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxEarnAccount.ClaimedRewards",
+        "name": "claimedRewards",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IOrigamiGmxEarnAccount.VaultType",
+        "name": "vaultType",
+        "type": "uint8"
+      }
+    ],
+    "name": "harvestableRewards",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "wrappedNativeAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "esGmxAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gmxRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_glpRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_esGmxVester",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_stakedGlp",
+        "type": "address"
+      }
+    ],
+    "name": "initGmxContracts",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gmxRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_glpRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_esGmxVester",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_stakedGlp",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "fromAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "fromToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minUsdg",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minGlp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slippageBps",
+        "type": "uint256"
+      }
+    ],
+    "name": "mintAndStakeGlp",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "operators",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "positions",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "unstakedGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stakedGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "unstakedEsGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stakedEsGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "stakedMultiplierPoints",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableNative",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableEsGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableMultPoints",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "vestingEsGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableVestedGmx",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct OrigamiGmxEarnAccount.GmxPositions",
+        "name": "gmxPositions",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "stakedGlp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableNative",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableEsGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "vestingEsGmx",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "claimableVestedGmx",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct OrigamiGmxEarnAccount.GlpPositions",
+        "name": "glpPositions",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proxiableUUID",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "recoverToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_address",
+        "type": "address"
+      }
+    ],
+    "name": "removeOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IOrigamiGmxEarnAccount.VaultType",
+        "name": "vaultType",
+        "type": "uint8"
+      }
+    ],
+    "name": "rewardRates",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "wrappedNativeTokensPerSec",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "esGmxTokensPerSec",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "stakeEsGmx",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "stakeGmx",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakedGlp",
+    "outputs": [
+      {
+        "internalType": "contract IERC20Upgradeable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakedGlpTracker",
+    "outputs": [
+      {
+        "internalType": "contract IGmxRewardTracker",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakedGmxTracker",
+    "outputs": [
+      {
+        "internalType": "contract IGmxRewardTracker",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "glpAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "transferStakedGlp",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "glpAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "transferStakedGlpOrPause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "glpAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "toToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "unstakeAndRedeemGlp",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "unstakeEsGmx",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "unstakeGmx",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      }
+    ],
+    "name": "upgradeTo",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newImplementation",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "upgradeToAndCall",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_esGmxVester",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawFromEsGmxVesting",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wrappedNativeToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20Upgradeable",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

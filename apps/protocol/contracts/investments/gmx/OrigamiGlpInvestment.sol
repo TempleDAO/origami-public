@@ -67,6 +67,20 @@ contract OrigamiGlpInvestment is OrigamiInvestment, ReentrancyGuard {
     }
     
     /**
+     * @notice Whether new investments are paused.
+     */
+    function areInvestmentsPaused() external override view returns (bool) {
+        return origamiGlpManager.paused().glpInvestmentsPaused;
+    }
+
+    /**
+     * @notice Whether exits are temporarily paused.
+     */
+    function areExitsPaused() external override view returns (bool) {
+        return origamiGlpManager.paused().glpExitsPaused;
+    }
+
+    /**
      * @notice Get a quote to buy the oGLP using one of the approved tokens, inclusive of GMX.io fees.
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param fromTokenAmount How much of `fromToken` to invest with
@@ -93,7 +107,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment, ReentrancyGuard {
     function investWithToken(
         InvestQuoteData calldata quoteData, 
         uint256 slippageBps
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 investmentAmount
     ) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -115,7 +129,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment, ReentrancyGuard {
       */
     function investWithNative(
         InvestQuoteData calldata quoteData, uint256 slippageBps
-    ) external payable override whenNotPaused nonReentrant returns (uint256 investmentAmount) {
+    ) external payable override nonReentrant returns (uint256 investmentAmount) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.fromTokenAmount != msg.value) revert CommonEventsAndErrors.InvalidAmount(address(0), msg.value);
         if (quoteData.fromToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.fromToken);
@@ -161,7 +175,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment, ReentrancyGuard {
         ExitQuoteData calldata quoteData, 
         uint256 slippageBps, 
         address recipient
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 toTokenAmount
     ) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -184,7 +198,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment, ReentrancyGuard {
         ExitQuoteData calldata quoteData, 
         uint256 slippageBps, 
         address payable recipient
-    ) external override whenNotPaused nonReentrant returns (
+    ) external override nonReentrant returns (
         uint256 nativeAmount
     ) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();

@@ -2,7 +2,6 @@ pragma solidity ^0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/OrigamiInvestmentVault.sol)
 
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -22,7 +21,7 @@ import {FractionalAmount} from "../common/FractionalAmount.sol";
  * The pricePerShare() will increase over time as upstream rewards are claimed by the protocol added to the reserves.
  * This makes the Origami Investment Vault auto-compounding.
  */
-contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Pausable, ReentrancyGuard {
+contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice The quote data required to exit from the underlying Origami Investment reserve token
@@ -55,18 +54,18 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
         FractionalAmount.set(performanceFee, uint128(_performanceFeePercent), 100);
     }
     
-    /** 
-     * @notice Protocol can pause the investment.
+    /**
+     * @notice Whether new investments are paused.
      */
-    function pause() public onlyOwner {
-        _pause();
+    function areInvestmentsPaused() external override view returns (bool) {
+        return IOrigamiInvestment(reserveToken).areInvestmentsPaused();
     }
 
-    /** 
-     * @notice Protocol can unpause the investment.
+    /**
+     * @notice Whether exits are temporarily paused.
      */
-    function unpause() public onlyOwner {
-        _unpause();
+    function areExitsPaused() external override view returns (bool) {
+        return IOrigamiInvestment(reserveToken).areExitsPaused();
     }
 
     function setInvestmentManager(address _investmentManager) external onlyOwner {
@@ -165,7 +164,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
     function investWithToken(
         InvestQuoteData calldata quoteData,
         uint256 slippageBps
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 investmentAmount
     ) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -210,7 +209,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
     function investWithNative(
         InvestQuoteData calldata quoteData,
         uint256 slippageBps
-    ) external override whenNotPaused nonReentrant payable returns (
+    ) external override nonReentrant payable returns (
         uint256 investmentAmount
     ) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -294,7 +293,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
         ExitQuoteData calldata quoteData, 
         uint256 slippageBps, 
         address recipient
-    ) external override whenNotPaused returns (
+    ) external override returns (
         uint256 toTokenAmount
     ) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -342,7 +341,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Paus
         ExitQuoteData calldata quoteData, 
         uint256 slippageBps, 
         address payable recipient
-    ) external override whenNotPaused nonReentrant returns (uint256 nativeAmount) {
+    ) external override nonReentrant returns (uint256 nativeAmount) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.toToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
 

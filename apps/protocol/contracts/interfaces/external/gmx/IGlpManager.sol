@@ -8,4 +8,6 @@ interface IGlpManager {
     function usdg() external view returns (address);
     function vault() external view returns (address);
     function getAums() external view returns (uint256[] memory);
+    function cooldownDuration() external view returns (uint256);
+    function lastAddedAt(address a) external view returns (uint256);
 }

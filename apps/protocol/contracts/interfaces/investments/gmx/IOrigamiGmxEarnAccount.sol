@@ -55,5 +55,9 @@ interface IOrigamiGmxEarnAccount {
         address receiver
     ) external returns (uint256);
     function transferStakedGlp(uint256 glpAmount, address receiver) external;
+    function transferStakedGlpOrPause(uint256 glpAmount, address receiver) external;
     function stakedGlp() external view returns (IERC20Upgradeable);
+    function glpInvestmentCooldownExpiry() external view returns (uint256);
+    function glpLastTransferredAt() external view returns (uint256);
+    function glpInvestmentsPaused() external view returns (bool);
 }

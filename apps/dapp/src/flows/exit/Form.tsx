@@ -133,7 +133,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
 
       <FlexDown>
         <FlexRightSpaced>
-          <Label>Token To Receive:</Label>
+          <Label>Token to receive:</Label>
           <Select
             id={selectId}
             instanceId={selectId}

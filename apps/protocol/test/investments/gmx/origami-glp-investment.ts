@@ -5,7 +5,7 @@ import {
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxManager, OrigamiGmxManager__factory,
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory, 
-    OrigamiGmxInvestment, OrigamiGmxInvestment__factory, 
+    OrigamiGmxInvestment, OrigamiGmxInvestment__factory, IOrigamiGmxManager, 
 } from "../../../typechain";
 import { addDefaultGlpLiquidity, decodeGlpUnderlyingInvestQuoteData, deployGmx, encodeGlpUnderlyingInvestQuoteData, GmxContracts } from "./gmx-helpers";
 import { deployUupsProxy, EmptyBytes, expectBalancesChangeBy, mineForwardSeconds, recoverToken, shouldRevertNotOwner, shouldRevertPaused, ZERO_ADDRESS } from "../../helpers";
@@ -117,35 +117,55 @@ describe("Origami GLP Investment", async () => {
     it("admin", async () => {
         await shouldRevertNotOwner(oGLP.connect(alan).setOrigamiGlpManager(ZERO_ADDRESS));
         await shouldRevertNotOwner(oGLP.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
-        await shouldRevertNotOwner(oGLP.connect(alan).pause());
-        await shouldRevertNotOwner(oGLP.connect(alan).unpause());
 
         // Happy paths
         await oGLP.setOrigamiGlpManager(origamiGlpManager.address);
         await expect(oGLP.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
             .to.revertedWith("ERC20: transfer amount exceeds balance");
-        await oGLP.pause();
-        await oGLP.unpause();
     });
 
-    it("pause/unpause", async () => {
-        // Pause the contract
-        await oGLP.pause();
+    it("areInvestmentsPaused/areExitsPaused should be correct", async () => {
+        // Not paused by default
+        expect(await oGLP.areInvestmentsPaused()).eq(false);
+        expect(await oGLP.areExitsPaused()).eq(false);
 
-        const {quoteData: investQuote, } = await oGLP.investQuote(10, gmxContracts.bnbToken.address);
-        const {quoteData: exitQuote, } = await oGLP.exitQuote(10, gmxContracts.bnbToken.address);
+        // Buy and immediately transfer transfer staked GLP so the secondary earn account is paused
+        const glpAmount = ethers.utils.parseEther("10");
+        {
+            const tokenAddr = gmxContracts.bnbToken.address;
+            const investAmount = ethers.utils.parseEther("100");
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            await gmxContracts.bnbToken.mint(fred.getAddress(), investAmount);
+            await gmxContracts.bnbToken.connect(fred).approve(oGLP.address, investAmount);
+            await oGLP.connect(fred).investWithToken(investQuote.quoteData, 0);
+            await secondaryEarnAccount.connect(dailyTransferKeeper).transferStakedGlpOrPause(glpAmount, primaryEarnAccount.address);
+            expect(await secondaryEarnAccount.glpInvestmentsPaused()).eq(true);
+        }
 
-        await shouldRevertPaused(oGLP.investWithToken(investQuote, 0));
-        await shouldRevertPaused(oGLP.investWithNative(investQuote, 0, {value: 0}));
-        await shouldRevertPaused(oGLP.exitToToken(exitQuote, 0, alan.getAddress()));
-        await shouldRevertPaused(oGLP.exitToNative(exitQuote, 0, alan.getAddress()));
+        // Now GLP investments are paused, exits are still open
+        expect(await oGLP.areInvestmentsPaused()).eq(true);
+        expect(await oGLP.areExitsPaused()).eq(false);
 
-        // Unpause the contract and check one of the function's now works
-        await oGLP.unpause();
+        // Wait for the cooldown and do the transfer so glp investments are unpaused
+        {
+            await mineForwardSeconds(15*60);
+            await secondaryEarnAccount.connect(dailyTransferKeeper).transferStakedGlpOrPause(glpAmount, primaryEarnAccount.address);
+        }
+
+        // Unpaused again
+        expect(await oGLP.areInvestmentsPaused()).eq(false);
+        expect(await oGLP.areExitsPaused()).eq(false);
         
-        const quote = await oGLP.investQuote(100, gmxContracts.bnbToken.address);
-        await expect(oGLP.investWithToken(quote.quoteData, 0))
-            .to.be.revertedWith("ERC20: transfer amount exceeds balance");
+        // Finally set to be paused on the gmx manager.
+        const paused: IOrigamiGmxManager.PausedStruct = {
+            glpInvestmentsPaused: true,
+            gmxInvestmentsPaused: true,
+            glpExitsPaused: true,
+            gmxExitsPaused: true,
+        };
+        await origamiGlpManager.setPaused(paused);
+        expect(await oGLP.areInvestmentsPaused()).eq(true);
+        expect(await oGLP.areExitsPaused()).eq(true);
     });
 
     it("owner can recover tokens", async () => {           

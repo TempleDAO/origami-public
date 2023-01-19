@@ -88,7 +88,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
 
   let contract: T;
   if (network.name != "localhost" && existingProxyAddress && isAddress(existingProxyAddress)) {
-    console.log(`*******UPGRADING ${name} on ${network.name} and initializing with args ${renderedArgs}`);
+    console.log(`*******UPGRADING ${name} on ${network.name}`);
     const oldImplAddress = await getImplementationAddress(ethers.provider, existingProxyAddress);
     console.log(`Old implementation address: ${oldImplAddress}`);
     contract = await upgrades.upgradeProxy(existingProxyAddress, factory, {kind}) as T;

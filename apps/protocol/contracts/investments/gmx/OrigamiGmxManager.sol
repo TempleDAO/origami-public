@@ -5,7 +5,6 @@ pragma solidity ^0.8.17;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IGmxRewardRouter} from "../../interfaces/external/gmx/IGmxRewardRouter.sol";
 import {IOrigamiInvestment} from "../../interfaces/investments/IOrigamiInvestment.sol";
@@ -22,7 +21,7 @@ import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 
 /// @title Origami GMX/GLP Manager
 /// @notice Manages Origami's GMX and GLP positions, policy decisions and rewards harvesting/compounding.
-contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
+contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     using SafeERC20 for IERC20;
     using SafeERC20 for IMintableToken;
     using FractionalAmount for FractionalAmount.Data;
@@ -88,6 +87,9 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     // not reset the cooldown clock.
     IOrigamiGmxEarnAccount public secondaryEarnAccount;
 
+    /// @notice The current paused/unpaused state of investments/exits.
+    IOrigamiGmxManager.Paused private _paused;
+
     struct GlpUnderlyingInvestQuoteData {
         uint256 expectedUsdg;
     }
@@ -99,6 +101,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     event RewardsAggregatorsSet(address gmxRewardsAggregator, address glpRewardsAggregator);
     event PrimaryEarnAccountSet(address indexed account);
     event SecondaryEarnAccountSet(address indexed account);
+    event PausedSet(Paused paused);
 
     constructor(
         address _gmxRewardRouter,
@@ -142,12 +145,23 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
         gmxVault = IGmxVault(glpManager.vault());
     }
 
-    function pause() public onlyOwner {
-        _pause();
+    function paused() external view override returns (IOrigamiGmxManager.Paused memory) {
+        // GLP investments can also be temporarily paused if it's paused in order to 
+        // transfer staked glp from secondary -> primary
+        bool areSecondaryGlpInvestmentsPaused = (address(secondaryEarnAccount) == address(0))
+            ? false
+            : secondaryEarnAccount.glpInvestmentsPaused();
+        return IOrigamiGmxManager.Paused({
+            glpInvestmentsPaused: _paused.glpInvestmentsPaused || areSecondaryGlpInvestmentsPaused,
+            gmxInvestmentsPaused: _paused.gmxInvestmentsPaused,
+            glpExitsPaused: _paused.glpExitsPaused,
+            gmxExitsPaused: _paused.gmxExitsPaused
+        });
     }
 
-    function unpause() public onlyOwner {
-        _unpause();
+    function setPaused(Paused memory updatedPaused) external onlyOwner {
+        _paused = updatedPaused;
+        emit PausedSet(_paused);
     }
 
     /// @notice Set the fee rate Origami takes on oGMX rewards
@@ -260,7 +274,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
      * 4/ Minted oGMX (from esGMX 1:1)
      *     Collect a portion as protocol fees and send the rest to the reward aggregators
      */
-    function harvestRewards() external override whenNotPaused {
+    function harvestRewards() external override onlyOperators {
         // Harvest the rewards from the primary earn account which has staked positions at GMX.io
         IOrigamiGmxEarnAccount.ClaimedRewards memory claimed = primaryEarnAccount.harvestRewards(esGmxVestingRate);
 
@@ -314,7 +328,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
      * @notice Claim any ETH/AVAX rewards from the secondary earn account,
      * and perpetually stake any esGMX/multiplier points.
      */
-    function harvestSecondaryRewards() external override whenNotPaused {
+    function harvestSecondaryRewards() external override onlyOperators {
         IOrigamiGmxEarnAccount.ClaimedRewards memory claimed = secondaryEarnAccount.handleRewards(
             IOrigamiGmxEarnAccount.HandleGmxRewardParams({
                 shouldClaimGmx: false,
@@ -341,7 +355,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     }
 
     /// @notice Apply any unstaked GMX (eg from user deposits) of $GMX into Origami's GMX staked position.
-    function applyGmx(uint256 _amount) external whenNotPaused {
+    function applyGmx(uint256 _amount) external onlyOperators {
         if (_amount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         _applyGmx(_amount);
     }
@@ -394,6 +408,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     ) external override onlyOperators returns (
         uint256 investmentAmount
     ) {
+        if (_paused.gmxInvestmentsPaused) revert CommonEventsAndErrors.IsPaused();
+
         // Transfer the GMX straight to the primary earn account which stakes the GMX at GMX.io
         // NB: There is no cooldown when transferring GMX, so using the primary earn account for deposits is fine.
         gmxToken.safeTransfer(address(primaryEarnAccount), quoteData.fromTokenAmount);
@@ -439,6 +455,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
         uint256 /*slippageBps currently unused*/,
         address recipient
     ) external override onlyOperators returns (uint256) {
+        if (_paused.gmxExitsPaused) revert CommonEventsAndErrors.IsPaused();
+
         (uint256 fees, uint256 nonFees) = sellFeeRate.split(quoteData.investmentTokenAmount);
 
         // Send the oGlp fees to the fee collector
@@ -533,6 +551,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
     ) external override onlyOperators returns (
         uint256 investmentAmount
     ) {
+        if (_paused.glpInvestmentsPaused) revert CommonEventsAndErrors.IsPaused();
+
         if (fromToken == address(primaryEarnAccount.stakedGlp())) {
             // Pull staked GLP tokens from the user and transfer directly to the primary Origami earn account contract, responsible for staking.
             // This doesn't reset the cooldown clock for withdrawals, so it's ok to send directly to the primary earn account.
@@ -607,6 +627,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators, Pausable {
         uint256 slippageBps, 
         address recipient
     ) external override onlyOperators returns (uint256 amountOut) {
+        if (_paused.glpExitsPaused) revert CommonEventsAndErrors.IsPaused();
+
         (uint256 fees, uint256 nonFees) = sellFeeRate.split(quoteData.investmentTokenAmount);
 
         // Send the oGlp fees to the fee collector

@@ -133,6 +133,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 ovGmxToken.address,
             );
             await origamiGmxRewardsAggr.setRewardsDistributor(origamiGmxRewardsDistributor.getAddress());
+            await origamiGmxManager.addOperator(origamiGmxRewardsAggr.address);
+            await origamiGlpManager.addOperator(origamiGmxRewardsAggr.address);
 
             origamiGlpRewardsAggr = await new OrigamiGmxRewardsAggregator__factory(owner).deploy(
                 GmxVaultType.GLP,
@@ -141,6 +143,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 ovGlpToken.address,
             );
             await origamiGlpRewardsAggr.setRewardsDistributor(origamiGlpRewardsDistributor.getAddress());
+            await origamiGlpManager.addOperator(origamiGlpRewardsAggr.address);
 
             // GLP aggregator not required for GMX Manager
             await origamiGmxManager.setRewardsAggregators(origamiGmxRewardsAggr.address, ZERO_ADDRESS);

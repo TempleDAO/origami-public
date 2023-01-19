@@ -3,13 +3,10 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { 
     DummyOrigamiInvestment, DummyOrigamiInvestment__factory, 
-    IOrigamiInvestment,
     MintableToken__factory, 
 } from "../../typechain";
 import { 
-    EmptyBytes, ZERO_ADDRESS, 
     expectBalancesChangeBy, 
-    shouldRevertNotOwner, shouldRevertPaused
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
@@ -42,14 +39,6 @@ describe("Origami Investment Base Class", async () => {
         } = await loadFixture(setup));
     });
 
-    it("admin", async () => {
-        await shouldRevertNotOwner(oToken.connect(alan).pause());
-        await shouldRevertNotOwner(oToken.connect(alan).unpause());
-
-        await oToken.pause();
-        await oToken.unpause();
-    });
-
     it("can mint receipt token", async () => {
         await expectBalancesChangeBy(async () => { 
             await oToken.mint(alan.getAddress(), 100);
@@ -59,35 +48,5 @@ describe("Origami Investment Base Class", async () => {
         );
 
         expect(await oToken.totalSupply()).eq(100);
-    });
-
-    it("pause/unpause", async () => {
-        // Pause the contract
-        await oToken.pause();
-
-        const investQuote: IOrigamiInvestment.InvestQuoteDataStruct = {
-            fromToken: ZERO_ADDRESS,
-            fromTokenAmount: 0,
-            expectedInvestmentAmount: 0,
-            underlyingInvestmentQuoteData: EmptyBytes,
-        };
-
-        await shouldRevertPaused(oToken.investWithToken(investQuote, 0));
-        await shouldRevertPaused(oToken.investWithNative(investQuote, 0, {value: 0}));
-
-        const exitQuote: IOrigamiInvestment.ExitQuoteDataStruct = {
-            investmentTokenAmount: 0,
-            toToken: ZERO_ADDRESS,
-            expectedToTokenAmount: 0,
-            underlyingInvestmentQuoteData: EmptyBytes,
-        };
-        await shouldRevertPaused(oToken.exitToToken(exitQuote, 0, alan.getAddress()));
-        await shouldRevertPaused(oToken.exitToNative(exitQuote, 0, alan.getAddress()));
-
-        await oToken.unpause();
-
-        // Works again, but unsupported token
-        await expect(oToken.investWithToken(investQuote, 0))
-            .to.be.revertedWithCustomError(oToken, "InvalidToken");
     });
 });

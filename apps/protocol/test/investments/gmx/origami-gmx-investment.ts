@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxManager, OrigamiGmxManager__factory,
-    OrigamiGmxInvestment, OrigamiGmxInvestment__factory, 
+    OrigamiGmxInvestment, OrigamiGmxInvestment__factory, IOrigamiGmxManager, 
 } from "../../../typechain";
 import { deployGmx, GmxContracts } from "./gmx-helpers";
 import { 
@@ -100,36 +100,28 @@ describe("Origami GMX Investment", async () => {
 
         await shouldRevertNotOwner(oGMX.connect(alan).setOrigamiGmxManager(ZERO_ADDRESS));
         await shouldRevertNotOwner(oGMX.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
-        await shouldRevertNotOwner(oGMX.connect(alan).pause());
-        await shouldRevertNotOwner(oGMX.connect(alan).unpause());
 
         // Happy paths
         await oGMX.setOrigamiGmxManager(origamiGmxManager.address);
         await expect(oGMX.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
             .to.revertedWith("ERC20: transfer amount exceeds balance");
-        await oGMX.pause();
-        await oGMX.unpause();
     });
 
-    it("pause/unpause", async () => {
-        // Pause the contract
-        await oGMX.pause();
-
-        const {quoteData: investQuote, } = await oGMX.investQuote(10, gmxContracts.gmxToken.address);
-        const {quoteData: exitQuote, } = await oGMX.exitQuote(10, gmxContracts.gmxToken.address);
-
-        await shouldRevertPaused(oGMX.investWithToken(investQuote, 0));
-        await expect(oGMX.investWithNative(investQuote, 0, {value: 0}))
-            .to.be.revertedWithCustomError(oGMX, "Unsupported");
-        await shouldRevertPaused(oGMX.exitToToken(exitQuote, 0, alan.getAddress()));
-        await expect(oGMX.exitToNative(exitQuote, 0, alan.getAddress()))
-            .to.be.revertedWithCustomError(oGMX, "Unsupported");
-
-        // Unpause the contract and check one of the functions is unpaused again
-        await oGMX.unpause();
-
-        await expect(oGMX.investWithToken(investQuote, 0))
-            .to.be.revertedWith("BaseToken: transfer amount exceeds allowance");
+    it("areInvestmentsPaused/areExitsPaused should be correct", async () => {
+        // Not paused by default
+        expect(await oGMX.areInvestmentsPaused()).eq(false);
+        expect(await oGMX.areExitsPaused()).eq(false);
+        
+        // Set to be paused on the gmx manager.
+        const paused: IOrigamiGmxManager.PausedStruct = {
+            glpInvestmentsPaused: true,
+            gmxInvestmentsPaused: true,
+            glpExitsPaused: true,
+            gmxExitsPaused: true,
+        };
+        await origamiGmxManager.setPaused(paused);
+        expect(await oGMX.areInvestmentsPaused()).eq(true);
+        expect(await oGMX.areExitsPaused()).eq(true);
     });
 
     it("owner can recover tokens", async () => {           

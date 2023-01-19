@@ -133,7 +133,7 @@
             "label": "gmxRewardRouter",
             "offset": 0,
             "slot": "255",
-            "type": "t_contract(IGmxRewardRouter)7313",
+            "type": "t_contract(IGmxRewardRouter)2046",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:45"
           },
@@ -141,7 +141,7 @@
             "label": "glpRewardRouter",
             "offset": 0,
             "slot": "256",
-            "type": "t_contract(IGmxRewardRouter)7313",
+            "type": "t_contract(IGmxRewardRouter)2046",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:48"
           },
@@ -149,7 +149,7 @@
             "label": "stakedGmxTracker",
             "offset": 0,
             "slot": "257",
-            "type": "t_contract(IGmxRewardTracker)7356",
+            "type": "t_contract(IGmxRewardTracker)2089",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:51"
           },
@@ -157,7 +157,7 @@
             "label": "feeGmxTracker",
             "offset": 0,
             "slot": "258",
-            "type": "t_contract(IGmxRewardTracker)7356",
+            "type": "t_contract(IGmxRewardTracker)2089",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:54"
           },
@@ -165,7 +165,7 @@
             "label": "stakedGlpTracker",
             "offset": 0,
             "slot": "259",
-            "type": "t_contract(IGmxRewardTracker)7356",
+            "type": "t_contract(IGmxRewardTracker)2089",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:57"
           },
@@ -173,7 +173,7 @@
             "label": "feeGlpTracker",
             "offset": 0,
             "slot": "260",
-            "type": "t_contract(IGmxRewardTracker)7356",
+            "type": "t_contract(IGmxRewardTracker)2089",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:60"
           },
@@ -189,7 +189,7 @@
             "label": "esGmxVester",
             "offset": 0,
             "slot": "262",
-            "type": "t_contract(IGmxVester)7541",
+            "type": "t_contract(IGmxVester)2133",
             "contract": "OrigamiGmxEarnAccount",
             "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:67"
           }
@@ -215,15 +215,255 @@
             "label": "contract IERC20Upgradeable",
             "numberOfBytes": "20"
           },
-          "t_contract(IGmxRewardRouter)7313": {
+          "t_contract(IGmxRewardRouter)2046": {
             "label": "contract IGmxRewardRouter",
             "numberOfBytes": "20"
           },
-          "t_contract(IGmxRewardTracker)7356": {
+          "t_contract(IGmxRewardTracker)2089": {
             "label": "contract IGmxRewardTracker",
             "numberOfBytes": "20"
           },
-          "t_contract(IGmxVester)7541": {
+          "t_contract(IGmxVester)2133": {
+            "label": "contract IGmxVester",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "50119ab999a27fd16d77cb647edfb1dd73efe3c59815515e5e9d5f225bffb121": {
+      "address": "0x8F2AFe6529D5A2ec01Ba5de9Fdd72F983617dF53",
+      "txHash": "0x9e1e72a8101f0951de044dfefbe02ca02677339ee72dfd7362b990ea34c4a5a7",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "operators",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "OperatorsUpgradeable",
+            "src": "contracts/common/access/OperatorsUpgradeable.sol:11"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OperatorsUpgradeable",
+            "src": "contracts/common/access/OperatorsUpgradeable.sol:56"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
+          },
+          {
+            "label": "gmxToken",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:34"
+          },
+          {
+            "label": "esGmxToken",
+            "offset": 0,
+            "slot": "252",
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:37"
+          },
+          {
+            "label": "wrappedNativeToken",
+            "offset": 0,
+            "slot": "253",
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:40"
+          },
+          {
+            "label": "bnGmxAddr",
+            "offset": 0,
+            "slot": "254",
+            "type": "t_address",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:43"
+          },
+          {
+            "label": "gmxRewardRouter",
+            "offset": 0,
+            "slot": "255",
+            "type": "t_contract(IGmxRewardRouter)7316",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:46"
+          },
+          {
+            "label": "glpRewardRouter",
+            "offset": 0,
+            "slot": "256",
+            "type": "t_contract(IGmxRewardRouter)7316",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:49"
+          },
+          {
+            "label": "stakedGmxTracker",
+            "offset": 0,
+            "slot": "257",
+            "type": "t_contract(IGmxRewardTracker)7359",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:52"
+          },
+          {
+            "label": "feeGmxTracker",
+            "offset": 0,
+            "slot": "258",
+            "type": "t_contract(IGmxRewardTracker)7359",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:55"
+          },
+          {
+            "label": "stakedGlpTracker",
+            "offset": 0,
+            "slot": "259",
+            "type": "t_contract(IGmxRewardTracker)7359",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:58"
+          },
+          {
+            "label": "feeGlpTracker",
+            "offset": 0,
+            "slot": "260",
+            "type": "t_contract(IGmxRewardTracker)7359",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:61"
+          },
+          {
+            "label": "stakedGlp",
+            "offset": 0,
+            "slot": "261",
+            "type": "t_contract(IERC20Upgradeable)903",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:64"
+          },
+          {
+            "label": "esGmxVester",
+            "offset": 0,
+            "slot": "262",
+            "type": "t_contract(IGmxVester)7544",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:68"
+          },
+          {
+            "label": "glpInvestmentsPaused",
+            "offset": 20,
+            "slot": "262",
+            "type": "t_bool",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:71"
+          },
+          {
+            "label": "glpLastTransferredAt",
+            "offset": 0,
+            "slot": "263",
+            "type": "t_uint256",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:74"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IERC20Upgradeable)903": {
+            "label": "contract IERC20Upgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGmxRewardRouter)7316": {
+            "label": "contract IGmxRewardRouter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGmxRewardTracker)7359": {
+            "label": "contract IGmxRewardTracker",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGmxVester)7544": {
             "label": "contract IGmxVester",
             "numberOfBytes": "20"
           },
