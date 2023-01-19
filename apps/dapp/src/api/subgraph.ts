@@ -135,16 +135,16 @@ type InvestmentVaultDailySnapshotsResp = z.infer<
 
 //----------------------------------------------------------------------------------------------------
 
-export function queryRewardTokenHourlySnapshots(
+export function queryPricedTokenHourlySnapshots(
   token: Token,
   first: number
-): SubGraphQuery<RewardTokenHourlySnapshotsResp> {
-  const label = 'queryRewardTokenHourlySnapshots';
+): SubGraphQuery<PricedTokenHourlySnapshotsResp> {
+  const label = 'queryPricedTokenHourlySnapshots';
   const tokenAddress = token.config.address.toLowerCase();
   const request = `
   {
-    rewardTokenHourlySnapshots(
-      where: {rewardToken: "${tokenAddress}"}
+    pricedTokenHourlySnapshots(
+      where: {pricedToken: "${tokenAddress}"}
       orderBy: timestamp
       first: ${first}
       orderDirection: desc
@@ -159,12 +159,12 @@ export function queryRewardTokenHourlySnapshots(
   return {
     label,
     request,
-    parse: RewardTokenHourlySnapshotsResp.parse,
+    parse: PricedTokenHourlySnapshotsResp.parse,
   };
 }
 
-const RewardTokenHourlySnapshotsResp = z.object({
-  rewardTokenHourlySnapshots: z.array(
+const PricedTokenHourlySnapshotsResp = z.object({
+  pricedTokenHourlySnapshots: z.array(
     z.object({
       timeframe: z.string(),
       timestamp: z.string(),
@@ -172,22 +172,22 @@ const RewardTokenHourlySnapshotsResp = z.object({
     })
   ),
 });
-type RewardTokenHourlySnapshotsResp = z.infer<
-  typeof RewardTokenHourlySnapshotsResp
+type PricedTokenHourlySnapshotsResp = z.infer<
+  typeof PricedTokenHourlySnapshotsResp
 >;
 
 //----------------------------------------------------------------------------------------------------
 
-export function queryRewardTokenDailySnapshots(
+export function queryPricedTokenDailySnapshots(
   token: Token,
   first: number
-): SubGraphQuery<RewardTokenDailySnapshotsResp> {
+): SubGraphQuery<PricedTokenDailySnapshotsResp> {
   const label = 'queryTokenPriceDailySnapshots';
   const tokenAddress = token.config.address.toLowerCase();
   const request = `
   {
-    rewardTokenDailySnapshots(
-      where: {rewardToken: "${tokenAddress}"}
+    pricedTokenDailySnapshots(
+      where: {pricedToken: "${tokenAddress}"}
       orderBy: timestamp
       first: ${first}
       orderDirection: desc
@@ -202,12 +202,12 @@ export function queryRewardTokenDailySnapshots(
   return {
     label,
     request,
-    parse: RewardTokenDailySnapshotsResp.parse,
+    parse: PricedTokenDailySnapshotsResp.parse,
   };
 }
 
-const RewardTokenDailySnapshotsResp = z.object({
-  rewardTokenDailySnapshots: z.array(
+const PricedTokenDailySnapshotsResp = z.object({
+  pricedTokenDailySnapshots: z.array(
     z.object({
       timeframe: z.string(),
       timestamp: z.string(),
@@ -215,8 +215,8 @@ const RewardTokenDailySnapshotsResp = z.object({
     })
   ),
 });
-type RewardTokenDailySnapshotsResp = z.infer<
-  typeof RewardTokenDailySnapshotsResp
+type PricedTokenDailySnapshotsResp = z.infer<
+  typeof PricedTokenDailySnapshotsResp
 >;
 
 //----------------------------------------------------------------------------------------------------

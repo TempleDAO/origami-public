@@ -61,8 +61,8 @@ import {
   queryInvestmentVaultDailySnapshots as queryInvestmentVaultDailySnapshots,
   queryInvestmentVaultHourlySnapshots,
   queryInvestmentVaultMetrics,
-  queryRewardTokenDailySnapshots,
-  queryRewardTokenHourlySnapshots,
+  queryPricedTokenDailySnapshots,
+  queryPricedTokenHourlySnapshots,
   subgraphQuery,
 } from './subgraph';
 import { ITokenPrices__factory } from '@/typechain/factories/ITokenPrices__factory';
@@ -416,18 +416,18 @@ class ProviderApiImpl implements ProviderApi {
     const { first, qtype } = this.historicTimeParams(req.period);
 
     if (qtype === 'hourly') {
-      const query = queryRewardTokenHourlySnapshots(req.token, first);
+      const query = queryPricedTokenHourlySnapshots(req.token, first);
       const result = await subgraphQuery(url, query);
-      return result.rewardTokenHourlySnapshots.map((p) => {
+      return result.pricedTokenHourlySnapshots.map((p) => {
         return {
           t: dateFromTimestamp(p.timeframe),
           v: parseFloat(p.price),
         };
       });
     } else {
-      const query = queryRewardTokenDailySnapshots(req.token, first);
+      const query = queryPricedTokenDailySnapshots(req.token, first);
       const result = await subgraphQuery(url, query);
-      return result.rewardTokenDailySnapshots.map((p) => {
+      return result.pricedTokenDailySnapshots.map((p) => {
         return {
           t: dateFromTimestamp(p.timeframe),
           v: parseFloat(p.price),
