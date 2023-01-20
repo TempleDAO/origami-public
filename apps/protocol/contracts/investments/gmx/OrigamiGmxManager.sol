@@ -46,11 +46,11 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /// @notice $oGMX - The Origami ERC20 receipt token over $GMX
     /// Users get oGMX for initial $GMX deposits, and for each esGMX which Origami is rewarded,
     /// minus a fee.
-    IMintableToken public immutable oGmxToken;
+    IMintableToken public immutable override oGmxToken;
 
     /// @notice $oGLP - The Origami ECR20 receipt token over $GLP
     /// Users get oGLP for initial $GLP deposits.
-    IMintableToken public immutable oGlpToken;
+    IMintableToken public immutable override oGlpToken;
 
     /// @notice Percentages of oGMX rewards (minted based off esGMX rewards) that Origami retains as a fee
     FractionalAmount.Data public oGmxRewardsFeeRate;
@@ -117,8 +117,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         oGmxToken = IMintableToken(_oGmxTokenAddr);
         oGlpToken = IMintableToken(_oGlpTokenAddr);
 
-        // Reward tokens are effectively immutable
-        rewardTokens = [wrappedNativeToken, _oGmxTokenAddr];
+        rewardTokens = [wrappedNativeToken, _oGmxTokenAddr, _oGlpTokenAddr];
 
         primaryEarnAccount = IOrigamiGmxEarnAccount(_primaryEarnAccount);
         secondaryEarnAccount = IOrigamiGmxEarnAccount(_secondaryEarnAccount);
@@ -229,7 +228,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /// @param vaultType If GLP, get the reward rates for just staked GLP rewards. If GMX, get the reward rates for combined GMX/esGMX/mult points
     /// ie the net amount after Origami has deducted it's fees.
     function harvestableRewards(IOrigamiGmxEarnAccount.VaultType vaultType) external override view returns (uint256[] memory amounts) {
-        amounts = new uint256[](2);
+        amounts = new uint256[](rewardTokens.length);
 
         // Pull the currently claimable amount from Origami's staked positions at GMX.
         // Secondary earn account rewards aren't automatically harvested, so intentionally not included here.
@@ -238,13 +237,14 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         // Ignore any portions we will be retaining as fees.
         amounts[0] = nativeAmount;
         (, amounts[1]) = oGmxRewardsFeeRate.split(esGmxAmount);
+        // amounts[2] is reserved for oGLP while compounding
     }
 
     /// @notice The current native token and oGMX reward rates per second
     /// @param vaultType If GLP, get the reward rates for just staked GLP rewards. If GMX, get the reward rates for combined GMX/esGMX/mult points
     /// @dev Based on the current total Origami rewards, minus any portion of fees which we will take
     function projectedRewardRates(IOrigamiGmxEarnAccount.VaultType vaultType) external override view returns (uint256[] memory amounts) {
-        amounts = new uint256[](2);
+        amounts = new uint256[](rewardTokens.length);
 
         // Pull the reward rates from Origami's staked positions at GMX.
         (uint256 primaryNativeRewardRate, uint256 primaryEsGmxRewardRate) = primaryEarnAccount.rewardRates(vaultType);
@@ -260,6 +260,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         // Ignore any portions we will be retaining as fees.
         amounts[0] = primaryNativeRewardRate + secondaryNativeRewardRate;
         (, amounts[1]) = oGmxRewardsFeeRate.split(primaryEsGmxRewardRate);
+        // amounts[2] is reserved for oGLP while compounding
     }
 
     /** 
@@ -348,7 +349,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /// @param vaultType If GLP, get the reward rates for just staked GLP rewards. If GMX, get the reward rates for combined GMX/esGMX/mult points
     /// ie the net amount after Origami has deducted it's fees.
     function harvestableSecondaryRewards(IOrigamiGmxEarnAccount.VaultType vaultType) external view returns (uint256[] memory amounts) {
-        amounts = new uint256[](2);
+        amounts = new uint256[](rewardTokens.length);
 
         // esGMX rewards aren't harvestable from the secondary earn account as they are perpetually staked - so intentionally not included here.
         (amounts[0],) = secondaryEarnAccount.harvestableRewards(vaultType);

@@ -36,8 +36,8 @@ contract DummyOrigamiInvestmentManager is IOrigamiInvestmentManager {
         return rewardTokens;
     }
 
-    function harvestRewards() external override returns (uint256[] memory amounts) {
-        amounts = _pendingRewards();
+    function harvestRewards(bytes calldata /*harvestParams*/) external override {
+        uint256[] memory amounts = _pendingRewards();
         lastDistributionTime = block.timestamp;
 
         // Send the amount to the caller.

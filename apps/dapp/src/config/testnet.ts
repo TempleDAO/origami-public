@@ -46,7 +46,7 @@ const MUMBAI_PRICE_CONTRACT: PriceContractConfig = {
 
 const GMX_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0xd085fe61150Ed7C721E9a4cCe891e35Bf5483148',
+    address: '0x3553F668a936758bA9edff93D35D9903802196A4',
     chainId: MUMBAI.id,
   },
   icon: 'gmx',
@@ -63,7 +63,7 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
 
 const GLP_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x09317dcf1450b62E8aa092d680fee7905CeCC99f',
+    address: '0x8f92595Ba9cFBF941838e158bf35244eBF401E99',
     chainId: MUMBAI.id,
   },
   icon: 'glp',
@@ -79,18 +79,18 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
 };
 
 const OVGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0x09317dcf1450b62E8aa092d680fee7905CeCC99f',
-  chainId: MUMBAI.id,
-  iconName: 'glp',
-  symbol: 'ovGLP',
+  address: GLP_ON_MUMBAI.contractAddress.address,
+  chainId: GLP_ON_MUMBAI.contractAddress.chainId,
+  iconName: GLP_ON_MUMBAI.icon,
+  symbol: GLP_ON_MUMBAI.name,
   decimals: 18,
 };
 
 const OVGMX_TOKEN: ExtendedTokenConfig = {
-  address: '0xd085fe61150Ed7C721E9a4cCe891e35Bf5483148',
-  chainId: MUMBAI.id,
-  iconName: 'gmx',
-  symbol: 'ovGMX',
+  address: GMX_ON_MUMBAI.contractAddress.address,
+  chainId: GMX_ON_MUMBAI.contractAddress.chainId,
+  iconName: GMX_ON_MUMBAI.icon,
+  symbol: GMX_ON_MUMBAI.name,
   decimals: 18,
 };
 
@@ -103,7 +103,7 @@ const GMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGMX_TOKEN: ExtendedTokenConfig = {
-  address: '0x50b732da6E8549610E8A509D66302D7C5e16535D',
+  address: '0x56561230c92e9bDD97b33Cc6cA76F30b32F54a8A',
   chainId: MUMBAI.id,
   iconName: 'gmx',
   symbol: 'oGMX',
@@ -119,7 +119,7 @@ const SGLP_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0xD100984adaA40b45f8260be11a0155aF1173cc9D',
+  address: '0xe8A3f2005fc81773D5CAA647722478bDc94E8296',
   chainId: MUMBAI.id,
   iconName: 'glp',
   symbol: 'oGLP',

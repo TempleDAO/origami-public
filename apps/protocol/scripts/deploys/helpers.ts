@@ -2,6 +2,9 @@ import { ethers, network, upgrades } from "hardhat";
 import { BaseContract, BigNumber, Contract, ContractFactory, ContractTransaction } from "ethers";
 import { getImplementationAddress, ProxyKindOption } from '@openzeppelin/upgrades-core';
 import { isAddress } from "ethers/lib/utils";
+import axios from 'axios';
+import { stringify as qsStringify } from 'qs';
+import { OrigamiGmxRewardsAggregator } from "../../typechain";
 
 /**
  * Current block timestamp
@@ -176,3 +179,61 @@ export enum GmxVaultType {
     GLP = 0,
     GMX,
 };
+
+export type ZeroExQuoteParams = {
+    sellToken: string,
+    buyToken:  string,
+    sellAmount: string ,
+    priceImpactProtectionPercentage: number,
+    enableSlippageProtection: boolean,
+    slippagePercentage: number,
+}
+
+export type ZeroExQuoteResponse = {
+   price: string
+   guaranteedPrice: string
+   estimatedPriceImpact: string
+   to: string
+   data: string
+   value: string
+   buyAmount: string
+   sellAmount: string 
+   expectedSlippage: string
+}
+
+export const zeroExQuote = async (network: string, quoteParams: ZeroExQuoteParams): Promise<ZeroExQuoteResponse> => {
+    try {
+        const fullUrl = `https://${network}.api.0x.org/swap/v1/quote?${qsStringify(quoteParams)}`;
+        console.log(`zeroExQuote: ${fullUrl}`);
+        const { data } = await axios.get<ZeroExQuoteResponse>(fullUrl);
+        return data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            console.log(error.toJSON());
+            throw error;
+        } else {
+            throw error;
+       }
+   }
+}
+
+const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint256 expectedInvestmentAmount, bytes underlyingInvestmentQuoteData)';
+const exitQuoteTypes = 'tuple(uint256 investmentTokenAmount, address toToken, uint256 expectedToTokenAmount, bytes underlyingInvestmentQuoteData)';
+
+export const encodeGlpHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct): string => {
+    const types = `tuple(${exitQuoteTypes} oGmxExitQuoteData, bytes gmxToNativeSwapData, ` +
+        `${investQuoteTypes} oGlpInvestQuoteData, uint256 oGmxExitSlippageBps, ` +
+        `uint256 oGlpInvestSlippageBps, uint256 addToReserveAmount)`; 
+    return ethers.utils.defaultAbiCoder.encode(
+        [types], 
+        [params],
+    );
+}
+
+export const encodeGmxHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct): string => {
+    const types = `tuple(bytes nativeToGmxSwapData, ${investQuoteTypes} oGmxInvestQuoteData, uint256 oGmxInvestSlippageBps, uint256 addToReserveAmount)`; 
+    return ethers.utils.defaultAbiCoder.encode(
+        [types], 
+        [params],
+    );
+}

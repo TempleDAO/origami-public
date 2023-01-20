@@ -9,7 +9,9 @@ import {
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory,
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory,
     OrigamiInvestmentVault, OrigamiInvestmentVault__factory,
-    TokenPrices, TokenPrices__factory,
+    TokenPrices, TokenPrices__factory, 
+    GMX_GMX, GMX_NamedToken, 
+    GMX_GMX__factory, GMX_NamedToken__factory,
 } from '../../../../typechain';
 import {
     ensureExpectedEnvvars,
@@ -30,6 +32,8 @@ interface ContractInstances {
     ovGMX: OrigamiInvestmentVault,
     ovGLP: OrigamiInvestmentVault,
     tokenPrices: TokenPrices,
+    gmxToken: GMX_GMX,
+    wethToken: GMX_NamedToken,
 }
 
 function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAddress): ContractInstances {
@@ -46,6 +50,8 @@ function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAdd
         ovGMX: OrigamiInvestmentVault__factory.connect(DEPLOYED.ORIGAMI.GMX.ovGMX, owner),
         ovGLP: OrigamiInvestmentVault__factory.connect(DEPLOYED.ORIGAMI.GMX.ovGLP, owner),
         tokenPrices: TokenPrices__factory.connect(DEPLOYED.ORIGAMI.TOKEN_PRICES, owner),
+        gmxToken: GMX_GMX__factory.connect(DEPLOYED.GMX.TOKENS.GMX_TOKEN, owner),
+        wethToken: GMX_NamedToken__factory.connect(DEPLOYED.GMX.LIQUIDITY_POOL.WETH_TOKEN, owner),
     }
 }
 
@@ -167,6 +173,10 @@ async function main() {
     await mine(contracts.ovGMX.setInvestmentManager(contracts.gmxRewardsAggregator.address));
     await mine(contracts.ovGLP.setInvestmentManager(contracts.glpRewardsAggregator.address));
     
+    // The rewards aggregator compounds and adds reserves to the vaults
+    await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.GMX.GMX_REWARDS_AGGREGATOR));
+    await mine(contracts.ovGLP.addOperator(DEPLOYED.ORIGAMI.GMX.GLP_REWARDS_AGGREGATOR));
+
     // Set the multisig as an operator on ovGMX/ovGLP.
     // The OZ defender relayer will also be added when we automate adding new reserves
     await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
@@ -175,10 +185,10 @@ async function main() {
     await mine(contracts.ovGLP.addOperator(owner.getAddress()));
 
     // Give the reward distributors as the multisig for day 1. Will be updated to OZ defender relayer
-    await mine(contracts.gmxRewardsAggregator.setRewardsDistributor(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.gmxRewardsAggregator.setRewardsDistributor(owner.getAddress()));
-    await mine(contracts.glpRewardsAggregator.setRewardsDistributor(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpRewardsAggregator.setRewardsDistributor(owner.getAddress()));
+    await mine(contracts.gmxRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.gmxRewardsAggregator.addOperator(owner.getAddress()));
+    await mine(contracts.glpRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpRewardsAggregator.addOperator(owner.getAddress()));
 
     // Set the investment managers in both the GMX & GLP Manager
     await mine(contracts.gmxManager.setRewardsAggregators(
@@ -216,6 +226,10 @@ async function main() {
     await mine(contracts.oGLP.addMinter(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.oGMX.addMinter(owner.getAddress()));
     await mine(contracts.oGLP.addMinter(owner.getAddress()));
+
+    // testnet only - load the dummy dex up with a tonne of GMX and weth for swaps
+    await mine(contracts.gmxToken.mint(DEPLOYED.ZERO_EX_PROXY, ethers.utils.parseEther("100000")));
+    await mine(contracts.wethToken.mint(DEPLOYED.ZERO_EX_PROXY,  ethers.utils.parseEther("100000")));
   }
   
   // We recommend this pattern to be able to use async/await everywhere

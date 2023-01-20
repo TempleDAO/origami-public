@@ -9,10 +9,20 @@
     "lint": "eslint --max-warnings=0 src",
     "test": "mocha ./test/**/*.test.ts",
     "clean": "rm -rf dist",
-    "build:transfer-staked-glp:mumbai": "yarn clean && ROLLUP_INPUT=./src/transfer-staked-glp/mumbai.ts rollup --config ./rollup.config.mjs",
+    "build:transfer-staked-glp:mumbai": "yarn clean && ROLLUP_INPUT=./src/investments/gmx/transfer-staked-glp/mumbai.ts rollup --config ./rollup.config.mjs",
     "deploy:transfer-staked-glp:mumbai": "yarn build:transfer-staked-glp:mumbai && defender-autotask update-code 25a66f4c-b888-44da-b3e6-6fa77dd87f5b ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/25a66f4c-b888-44da-b3e6-6fa77dd87f5b'",
-    "build:transfer-staked-glp-alert:mumbai": "yarn clean && ROLLUP_INPUT=./src/transfer-staked-glp-alert/mumbai.ts rollup --config ./rollup.config.mjs",
-    "deploy:transfer-staked-glp-alert:mumbai": "yarn build:transfer-staked-glp-alert:mumbai && defender-autotask update-code 5d0a8599-2314-489a-9e98-e534df4a6bb8 ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/5d0a8599-2314-489a-9e98-e534df4a6bb8'"
+    "build:transfer-staked-glp-alert:mumbai": "yarn clean && ROLLUP_INPUT=./src/investments/gmx/transfer-staked-glp-alert/mumbai.ts rollup --config ./rollup.config.mjs",
+    "deploy:transfer-staked-glp-alert:mumbai": "yarn build:transfer-staked-glp-alert:mumbai && defender-autotask update-code 5d0a8599-2314-489a-9e98-e534df4a6bb8 ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/5d0a8599-2314-489a-9e98-e534df4a6bb8'",
+
+    "build:gmx-auto-compounder:mumbai": "yarn clean && ROLLUP_INPUT=./src/investments/gmx/gmx-auto-compounder/mumbai.ts rollup --config ./rollup.config.mjs",
+    "deploy:gmx-auto-compounder:mumbai": "yarn build:gmx-auto-compounder:mumbai && defender-autotask update-code 3cc8286d-0fe1-42c6-ad20-ab82e63739f3 ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/3cc8286d-0fe1-42c6-ad20-ab82e63739f3'",
+    "build:gmx-auto-compounder-alert:mumbai": "yarn clean && ROLLUP_INPUT=./src/investments/gmx/gmx-auto-compounder-alert/mumbai.ts rollup --config ./rollup.config.mjs",
+    "deploy:gmx-auto-compounder-alert:mumbai": "yarn build:gmx-auto-compounder-alert:mumbai && defender-autotask update-code 70c6f7c6-a0d7-4fd8-abe9-3582d5240175 ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/70c6f7c6-a0d7-4fd8-abe9-3582d5240175'",
+
+    "build:glp-auto-compounder:mumbai": "yarn clean && ROLLUP_INPUT=./src/investments/gmx/glp-auto-compounder/mumbai.ts rollup --config ./rollup.config.mjs",
+    "deploy:glp-auto-compounder:mumbai": "yarn build:glp-auto-compounder:mumbai && defender-autotask update-code 8d8c1165-af65-4e75-974e-d129f9d026f1 ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/8d8c1165-af65-4e75-974e-d129f9d026f1'",
+    "build:glp-auto-compounder-alert:mumbai": "yarn clean && ROLLUP_INPUT=./src/investments/gmx/glp-auto-compounder-alert/mumbai.ts rollup --config ./rollup.config.mjs",
+    "deploy:glp-auto-compounder-alert:mumbai": "yarn build:glp-auto-compounder-alert:mumbai && defender-autotask update-code 4809bd9a-07a7-4e5e-9628-2196276540f7 ./dist && echo 'View at https://defender.openzeppelin.com/#/autotask/4809bd9a-07a7-4e5e-9628-2196276540f7'"
   },
   "devDependencies": {
     "@datadog/datadog-api-client": "^1.0.0-beta.5",

@@ -2,6 +2,8 @@ pragma solidity ^0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/investments/gmx/IOrigamiGmxManager.sol)
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IMintableToken} from "../../common/IMintableToken.sol";
 import {IOrigamiGmxEarnAccount} from "./IOrigamiGmxEarnAccount.sol";
 import {IOrigamiInvestment} from "../IOrigamiInvestment.sol";
 
@@ -11,6 +13,10 @@ interface IOrigamiGmxManager {
     function harvestRewards() external;
     function harvestSecondaryRewards() external;
     function rewardTokensList() external view returns (address[] memory tokens);
+    function gmxToken() external view returns (IERC20);
+    function glpToken() external view returns (IERC20);
+    function oGmxToken() external view returns (IMintableToken);
+    function oGlpToken() external view returns (IMintableToken);
 
     function acceptedOGmxTokens() external view returns (address[] memory);
     function investOGmxQuote(

@@ -1,8 +1,8 @@
 import { AutotaskEvent, SentinelConditionRequest, SentinelConditionResponse } from 'defender-autotask-utils';
-import { createCommonConfig } from '../config';
-import { autotaskConnect } from '../connect';
+import { createCommonConfig } from '@/config';
+import { autotaskConnect } from '@/connect';
 import { getAlertResponse } from './alert-response';
-import { TRANSACTION_NAME } from '../transfer-staked-glp/transfer-staked-glp';
+import { TRANSACTION_NAME } from '../glp-auto-compounder/glp-compounder';
 
 const COMMON_CONFIG = createCommonConfig(
     'mumbai',

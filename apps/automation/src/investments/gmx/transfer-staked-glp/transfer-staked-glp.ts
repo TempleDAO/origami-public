@@ -1,18 +1,18 @@
-import { AutotaskResult, createdTransaction, noop, timeout } from "../autotask-result";
-import { CommonConfig } from "../config";
-import { AutotaskConnection } from "../connect";
+import { AutotaskResult, createdTransaction, noop, timeout } from "@/autotask-result";
+import { CommonConfig } from "@/config";
+import { AutotaskConnection } from "@/connect";
 import { 
     OrigamiGmxEarnAccount,
     OrigamiGmxEarnAccount__factory, 
     OrigamiGmxManager__factory
-} from "../typechain";
-import { getBlockTimestamp, sendTransaction } from '../ethers';
-import { tryUntilTimeout, waitForLastTransactionToFinish } from "../utils";
+} from "@/typechain";
+import { getBlockTimestamp, sendTransaction } from '@/ethers';
+import { tryUntilTimeout, waitForLastTransactionToFinish } from "@/utils";
 
 export const TRANSACTION_NAME = 'transfer-staked-glp';
 
 export interface TransferStakedGlpConfig {
-    GLP_MANAGER: string, // The address of GMX.io's GLP Manager contract
+    GLP_MANAGER: string, // The address of Origami's GLP Manager contract
     MIN_TRANSFER_INTERVAL_SECS: number, // How frequently the transfer is allowed to occur.
 }
 
@@ -89,7 +89,6 @@ export async function transferStakedGlp(
     const timeSinceLastTransfer = currentBlockTime.sub(glpLastTransferredAt);
 
     // If the position has been transferred recently, then nothing to do.
-    // The 
     if (timeSinceLastTransfer.lte(config.MIN_TRANSFER_INTERVAL_SECS)) {
         console.log(
             `Already transferred recently. currentBlockTime = [${currentBlockTime.toNumber()}] ` +

@@ -1,30 +1,28 @@
 import '@nomiclabs/hardhat-ethers';
 import { ethers } from 'hardhat';
-import { OrigamiGmxRewardsAggregator__factory } from '../../../../typechain';
+import { DummyDex__factory } from '../../../../typechain';
 import {
-  GmxVaultType,
   deployAndMine,
   ensureExpectedEnvvars,
 } from '../../helpers';
-import {getDeployedContracts} from './contract-addresses';
+import { getDeployedContracts } from './contract-addresses';
+import { BigNumber } from 'ethers';
 
 async function main() {
   ensureExpectedEnvvars();
   const [owner] = await ethers.getSigners();
   const GMX_DEPLOYED_CONTRACTS = getDeployedContracts();
 
-  const factory = new OrigamiGmxRewardsAggregator__factory(owner);
+  const factory = new DummyDex__factory(owner);
   await deployAndMine(
-    'origamiGlpRewardsAggregator', factory, factory.deploy,
-    GmxVaultType.GLP,
-    GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GMX_MANAGER,
-    GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GLP_MANAGER,
-    GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.ovGLP,
+    'Dummy ZeroEx DEX', factory, factory.deploy,
+    GMX_DEPLOYED_CONTRACTS.GMX.TOKENS.GMX_TOKEN,
     GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.WETH_TOKEN,
-    GMX_DEPLOYED_CONTRACTS.ZERO_EX_PROXY,
+    ethers.utils.parseUnits("1", 30), // Match the test oracle price. 1 ETH ~= 46.357 GMX
+    ethers.utils.parseUnits("46.356982031850672597547879488562", 30),
   );
 }
-
+        
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main()

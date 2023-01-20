@@ -154,7 +154,7 @@ describe("Origami GMX Manager", async () => {
                 expect(await origamiGmxManager.oGlpToken()).eq(oGlpToken.address);
                 expect(await origamiGmxManager.gmxVault()).eq(gmxContracts.vault.address);
 
-                expect(await origamiGmxManager.rewardTokensList()).deep.eq([gmxContracts.wrappedNativeToken.address, oGmxToken.address]);
+                expect(await origamiGmxManager.rewardTokensList()).deep.eq([gmxContracts.wrappedNativeToken.address, oGmxToken.address, oGlpToken.address]);
                 expect(await origamiGmxManager.feeCollector()).eq(await feeCollector.getAddress());
 
                 expect((await origamiGmxManager.oGmxRewardsFeeRate()).denominator).eq(100);
@@ -427,8 +427,8 @@ describe("Origami GMX Manager", async () => {
                 // Nothing staked -> nothing earnt
                 let rewardRatesGlp = await origamiGmxManager.harvestableRewards(GmxVaultType.GLP);
                 let rewardRatesGmx = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
-                expect(rewardRatesGlp).deep.eq([0, 0]);
-                expect(rewardRatesGmx).deep.eq([0, 0]);
+                expect(rewardRatesGlp).deep.eq([0, 0, 0]);
+                expect(rewardRatesGmx).deep.eq([0, 0, 0]);
 
                 // Origami applies some GMX, it has 100% so gets the full reward rate
                 const amount = ethers.utils.parseEther("250");
@@ -439,17 +439,18 @@ describe("Origami GMX Manager", async () => {
                 await mineForwardSeconds(86400);
                 rewardRatesGlp = await origamiGmxManager.harvestableRewards(GmxVaultType.GLP);
                 rewardRatesGmx = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
-                expect(rewardRatesGlp).deep.eq([0, 0]);
-                expect(rewardRatesGmx).deep.eq([ethPerSecond.mul(86400), esGmxPerSecond.mul(86400)]);
+                expect(rewardRatesGlp).deep.eq([0, 0, 0]);
+                expect(rewardRatesGmx).deep.eq([ethPerSecond.mul(86400), esGmxPerSecond.mul(86400), 0]);
 
                 // With fees - get 70% (2 extra seconds from these two mine's)
                 await origamiGmxManager.setOGmxRewardsFeeRate(30, 100);
                 rewardRatesGlp = await origamiGmxManager.harvestableRewards(GmxVaultType.GLP);
                 rewardRatesGmx = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
-                expect(rewardRatesGlp).deep.eq([0, 0]);
+                expect(rewardRatesGlp).deep.eq([0, 0, 0]);
                 expect(rewardRatesGmx).deep.eq([
                     ethPerSecond.mul(86401),
                     esGmxPerSecond.mul(86401).mul(70).div(100),
+                    0,
                 ]);
             });
         
@@ -490,6 +491,7 @@ describe("Origami GMX Manager", async () => {
                     // The harvestableRewards also match this amount
                     expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
                     expect(slightlyGte(expectedEsGmx, rewardRates[1], 0.1)).eq(true);
+                    expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
                     oGmxFees = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -527,6 +529,7 @@ describe("Origami GMX Manager", async () => {
                     // The harvestableRewards also match this amount
                     expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
                     expect(slightlyGte(expectedEsGmx.mul(70).div(100), rewardRates[1], 0.1)).eq(true);
+                    expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
                     const oGmxFees2 = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -571,7 +574,7 @@ describe("Origami GMX Manager", async () => {
                         );
 
                     // The harvestableRewards are 100% fees - so nothing here
-                    expect(harvestableRewards).deep.eq([ethPerSecond.mul(86400),0]);
+                    expect(harvestableRewards).deep.eq([ethPerSecond.mul(86400), 0, 0]);
 
                     // The oGMX gets minted
                     const oGmxFees = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -621,6 +624,7 @@ describe("Origami GMX Manager", async () => {
                     // The harvestableRewards also match this amount
                     expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
                     expect(slightlyGte(expectedEsGmx, rewardRates[1], 0.1)).eq(true);
+                    expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
                     oGmxFees = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -656,6 +660,7 @@ describe("Origami GMX Manager", async () => {
                     // The harvestableRewards also match this amount
                     expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
                     expect(slightlyGte(expectedEsGmx, rewardRates[1], 0.1)).eq(true);
+                    expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
                     const oGmxFees2 = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -714,7 +719,8 @@ describe("Origami GMX Manager", async () => {
                     // The harvestableRewards also match this amount
                     expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);
                     expect(slightlyGte(rewardRatesGlp[1].add(1), expectedEsGmx, 0.001)).eq(true);
-                    expect(rewardRatesGmx).deep.eq([0, 0]); // No GMX rewards as no staked esGMX yet.
+                    expect(rewardRatesGlp[2]).eq(0);
+                    expect(rewardRatesGmx).deep.eq([0, 0, 0]); // No GMX rewards as no staked esGMX yet.
 
                     // The oGMX gets minted
                     oGmxFees = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -755,8 +761,10 @@ describe("Origami GMX Manager", async () => {
                     // The harvestableRewards also match this amount - now in both GLP (original deposit) and also the esGMX rewards side
                     expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);
                     expect(slightlyGte(rewardRatesGlp[1].add(1), expectedEsGmx, 0.1)).eq(true);
+                    expect(rewardRatesGlp[2]).eq(0);
                     expect(slightlyGte(rewardRatesGmx[0].add(1), expectedEth, 0.001)).eq(true);
                     expect(slightlyGte(rewardRatesGmx[1].add(1), expectedEsGmx, 0.1)).eq(true);
+                    expect(rewardRatesGmx[2]).eq(0);
 
                     // The oGMX gets minted
                     const oGmxFees2 = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -798,7 +806,7 @@ describe("Origami GMX Manager", async () => {
                     await origamiGlpManager.connect(operator).harvestRewards({gasLimit:5000000});
 
                     // The harvestableRewards are 100% fees - so nothing here
-                    expect(harvestableRewardsGlp).deep.eq([expectedEth.sub(1),0]);
+                    expect(harvestableRewardsGlp).deep.eq([expectedEth.sub(1), 0, 0]);
 
                     // The oGMX gets minted
                     const oGmxFees = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -839,6 +847,7 @@ describe("Origami GMX Manager", async () => {
                     // Only expeect ETH rewards, no oGMX rewards.
                     expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);
                     expect(rewardRatesGlp[1]).eq(0);
+                    expect(rewardRatesGlp[2]).eq(0);
 
                     // No oGMX is minted
                     const oGmxFees = await oGmxToken.balanceOf(feeCollector.getAddress());
@@ -860,8 +869,8 @@ describe("Origami GMX Manager", async () => {
                 // Origami has nothing staked -> 0
                 let rewardRatesGlp = await origamiGmxManager.projectedRewardRates(GmxVaultType.GLP);
                 let rewardRatesGmx = await origamiGmxManager.projectedRewardRates(GmxVaultType.GMX);
-                expect(rewardRatesGlp).deep.eq([0, 0]);
-                expect(rewardRatesGmx).deep.eq([0, 0]);
+                expect(rewardRatesGlp).deep.eq([0, 0, 0]);
+                expect(rewardRatesGmx).deep.eq([0, 0, 0]);
 
                 // Origami applies some GMX, it has 100% so gets the full reward rate
                 const amount = ethers.utils.parseEther("250");
@@ -871,17 +880,18 @@ describe("Origami GMX Manager", async () => {
                 // No fees - get 100% (may get diluted by other non-Origami gmx's)
                 rewardRatesGlp = await origamiGmxManager.projectedRewardRates(GmxVaultType.GLP);
                 rewardRatesGmx = await origamiGmxManager.projectedRewardRates(GmxVaultType.GMX);
-                expect(rewardRatesGlp).deep.eq([0, 0]);
-                expect(rewardRatesGmx).deep.eq([ethPerSecond, esGmxPerSecond]);
+                expect(rewardRatesGlp).deep.eq([0, 0, 0]);
+                expect(rewardRatesGmx).deep.eq([ethPerSecond, esGmxPerSecond, 0]);
 
                 // With fees - get 70%
                 await origamiGmxManager.setOGmxRewardsFeeRate(30, 100);
                 rewardRatesGlp = await origamiGmxManager.projectedRewardRates(GmxVaultType.GLP);
                 rewardRatesGmx = await origamiGmxManager.projectedRewardRates(GmxVaultType.GMX);
-                expect(rewardRatesGlp).deep.eq([0, 0]);
+                expect(rewardRatesGlp).deep.eq([0, 0, 0]);
                 expect(rewardRatesGmx).deep.eq([
                     ethPerSecond,
                     esGmxPerSecond.mul(70).div(100),
+                    0,
                 ]);
             });
         });

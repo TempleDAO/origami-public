@@ -42,6 +42,8 @@ export interface GmxDeployedContracts {
         NATIVE_GMX_POOL: string,
     },
 
+    ZERO_EX_PROXY: string,
+
     GMX: {
         LIQUIDITY_POOL: {
             // Arbitrum tokens
@@ -131,6 +133,8 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
             AVAX_USD_ORACLE: '',
         },
 
+        ZERO_EX_PROXY: '0xDef1C0ded9bec7F1a1670819833240f027b25EfF',
+
         GMX: {
             LIQUIDITY_POOL: {
                 WETH_TOKEN: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
@@ -218,6 +222,8 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
             FRAX_USD_ORACLE: '',
         },
 
+        ZERO_EX_PROXY: '0xDef1C0ded9bec7F1a1670819833240f027b25EfF',
+
         GMX: {
             LIQUIDITY_POOL: {
                 WAVAX_TOKEN: '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7',
@@ -292,6 +298,8 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
             // Unused in Arbi
             AVAX_USD_ORACLE: '',
         },
+
+        ZERO_EX_PROXY: '0xDef1C0ded9bec7F1a1670819833240f027b25EfF',
 
         GMX: {
             LIQUIDITY_POOL: {

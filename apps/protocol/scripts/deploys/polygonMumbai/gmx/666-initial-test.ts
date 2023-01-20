@@ -7,13 +7,20 @@ import {
     GMX_StakedGlp, GMX_StakedGlp__factory, 
     GMX_GMX, GMX_GMX__factory, 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory, 
-    OrigamiInvestmentVault, OrigamiInvestmentVault__factory, OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
+    OrigamiInvestmentVault, OrigamiInvestmentVault__factory, 
+    OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory, 
+    DummyDex, DummyDex__factory, 
+    OrigamiGmxManager,
+    OrigamiGmxManager__factory,
 } from '../../../../typechain';
 import {
+    encodeGlpHarvestParams,
+    encodeGmxHarvestParams,
     ensureExpectedEnvvars,
     mine,
 } from '../../helpers';
 import { GmxDeployedContracts, getDeployedContracts } from './contract-addresses';
+import { BigNumber, Signer } from 'ethers';
 
 /**
  * NOTE: This script is useful to run immediately after a fresh testnet deploy
@@ -39,6 +46,9 @@ interface ContractInstances {
 
     gmxRewardsAggregator: OrigamiGmxRewardsAggregator,
     glpRewardsAggregator: OrigamiGmxRewardsAggregator,
+
+    dex: DummyDex,
+    gmxManager: OrigamiGmxManager,
 }
 
 function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAddress): ContractInstances {
@@ -60,7 +70,137 @@ function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAdd
 
         gmxRewardsAggregator: OrigamiGmxRewardsAggregator__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_REWARDS_AGGREGATOR, owner),
         glpRewardsAggregator: OrigamiGmxRewardsAggregator__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_REWARDS_AGGREGATOR, owner),
+
+        dex: DummyDex__factory.connect(DEPLOYED.ZERO_EX_PROXY, owner),
+        gmxManager: OrigamiGmxManager__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_MANAGER, owner),
     }
+}
+
+async function getAggregatorRewardBalances(contracts: ContractInstances, aggregator: OrigamiGmxRewardsAggregator) {
+    return {
+        oGmx: await contracts.oGMX.balanceOf(aggregator.address),
+        oGlp: await contracts.oGLP.balanceOf(aggregator.address),
+    };
+}
+
+const SLIPPAGE_BPS = 50; // 0.5%
+const applySlippage = (bn: BigNumber) => bn.mul(10_000-SLIPPAGE_BPS).div(10_000);
+
+const harvestGlp = async (contracts: ContractInstances, signer: Signer) => {
+    console.log("HARVESTING GLP");
+    const _harvestableRewards = await contracts.glpRewardsAggregator.harvestableRewards();
+    const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
+    console.log(`\tGLP Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
+
+    // Get a quote to swap $oGMX rewards -> $GMX
+    // NB: No slippage when exiting the oGMX position as it's redeemed in situ (not via a dex)
+    const oGmxToGmxExitQuote = await contracts.oGMX.exitQuote(harvestableRewards.oGmx, contracts.gmx.address);
+    console.log(`\toGMX -> GMX Exit Quote: ${oGmxToGmxExitQuote}`);
+
+    const sellAmount = oGmxToGmxExitQuote.quoteData.expectedToTokenAmount;
+    console.log(`\tSelling [${sellAmount.toString()}] GMX for wETH`);
+    
+    const buyWethAmount = sellAmount
+        .mul(await contracts.dex.gmxPrice())
+        .div(await contracts.dex.wrappedNativePrice());
+    console.log(`\tExpected wETH Amount Bought: [${buyWethAmount.toString()}]`);
+
+    const minWethExpected = applySlippage(buyWethAmount);
+    console.log(`\tMin wETH Amount Bought: [${minWethExpected.toString()}]`);
+
+    const gmxToWethQuoteData = contracts.dex.interface.encodeFunctionData("swapToWrappedNative", [sellAmount]);
+
+    // The total $WETH we have to sell = 
+    //   1/ The expected amount of $WETH we will receive from selling the $GMX +
+    //   2/ The harvested $WETH
+    const wethToInvestInOGlp = minWethExpected.add(harvestableRewards.weth);
+    console.log(`\twethToInvestInOGlp=[${wethToInvestInOGlp.toString()}]`);
+
+    // Get a quote to swap $WETH -> $oGLP
+    // There may be slippage on the expected output, as the underlying GLP purchase is executed via GMX.io
+    const wethToOglpInvestQuote = await contracts.oGLP.investQuote(wethToInvestInOGlp, contracts.weth.address);
+    const minOglpFromSwaps = applySlippage(wethToOglpInvestQuote.quoteData.expectedInvestmentAmount);
+    console.log(`\tWETH -> oGLP Invest Quote: ${wethToOglpInvestQuote}`);
+    console.log(`\tminOglpFromSwaps=[${minOglpFromSwaps.toString()}]`);
+
+    // The total $oGLP expected in the aggregator = 
+    //   1/ The min expected amount after the oGMX->GMX->wETH->oGLP swaps
+    //   2/ The amount of oGlp already existing in the aggregator - given by the harvestableRewards()
+    const totalOGlpAvailable = minOglpFromSwaps.add(harvestableRewards.oGlp);
+    console.log(`\ttotalOGlpAvailable=[${totalOGlpAvailable.toString()}]`);
+
+    // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
+    // each day.
+    const addToReserveAmount = totalOGlpAvailable.mul(1_000).div(10_000);
+    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+
+    const harvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
+        oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
+        gmxToNativeSwapData: gmxToWethQuoteData,
+        oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
+        oGmxExitSlippageBps: 100,
+        oGlpInvestSlippageBps: 100,
+        addToReserveAmount: addToReserveAmount,
+    };
+    console.log("\tHarvest Params:", harvestParams);
+
+    console.log("\tovGLP Reserves Before:", await contracts.ovGLP.totalReserves());
+    await mine(contracts.glpRewardsAggregator.connect(signer).harvestRewards(encodeGlpHarvestParams(harvestParams)));
+    console.log("\tovGLP Reserves After:", await contracts.ovGLP.totalReserves(), "\n");
+}
+
+const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
+    console.log("HARVESTING GMX");
+
+    const _harvestableRewards = await contracts.gmxRewardsAggregator.harvestableRewards();
+    const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
+    console.log(`\tGMX Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
+
+    const sellAmount = harvestableRewards.weth;
+    console.log(`\tSelling [${sellAmount.toString()}] wETH for GMX`);
+    const buyGmxAmount = sellAmount
+        .mul(await contracts.dex.wrappedNativePrice())
+        .div(await contracts.dex.gmxPrice());
+    console.log(`\tExpected GMX Amount Bought: [${buyGmxAmount.toString()}]`);
+
+    const minGmxExpected = applySlippage(buyGmxAmount);
+    console.log(`\tMin GMX Amount Bought: [${minGmxExpected.toString()}]`);
+
+    const wethToGmxQuoteData = contracts.dex.interface.encodeFunctionData("swapToGMX", [sellAmount]);
+
+    // Get a quote to swap $GMX -> $oGMX
+    // NB: No slippage when investing in the oGMX position as it's minted in situ (not via a dex)
+    const gmxToOgmxInvestQuote = await contracts.oGMX.investQuote(minGmxExpected, contracts.gmx.address);
+    const minOgmxFromSwaps = gmxToOgmxInvestQuote.quoteData.expectedInvestmentAmount;
+    console.log(`\tGMX -> oGMX Invest Quote: ${gmxToOgmxInvestQuote}`);
+    console.log(`\tminOgmxFromSwaps=[${minOgmxFromSwaps.toString()}]`);
+
+    // The total $oGMX expected in the aggregator = 
+    //   1/ The min expected amount after the wETH->GMX->oGMX swaps
+    //   2/ The amount of oGMX already existing + harvested in the aggregator - given by the harvestableRewards()
+    const totalOGmxAvailable = minOgmxFromSwaps.add(harvestableRewards.oGmx);
+    console.log(`\ttotalOGmxAvailable=[${totalOGmxAvailable.toString()}]`);
+
+    // To smooth the bump up out, we only add a percentage of the total available oGMX as reserves
+    // each day.
+    const addToReserveAmount = totalOGmxAvailable.mul(1_000).div(10_000); // 10%
+    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+
+    const harvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
+        nativeToGmxSwapData: wethToGmxQuoteData,
+        oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
+        oGmxInvestSlippageBps: SLIPPAGE_BPS,
+        addToReserveAmount: addToReserveAmount,
+    };
+    console.log("\tHarvest Params:", harvestParams);
+
+    console.log("\tovGMX Reserves Before:", await contracts.ovGMX.totalReserves());
+    await mine(contracts.gmxRewardsAggregator.connect(signer).harvestRewards(encodeGmxHarvestParams(harvestParams)));
+    console.log("\tovGMX Reserves After:", await contracts.ovGMX.totalReserves(), "\n");
+}
+
+function sleep(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
 }
 
 async function main() {
@@ -116,6 +256,9 @@ async function main() {
             console.log("Invested into ovGLP", ethers.utils.formatEther(quote.quoteData.expectedInvestmentAmount));
         }
 
+        console.log("Waiting for the cooldown to end (15mins)...");
+        await sleep(15*60*1000);
+
         // transfer from secondary earn account -> primary earn account
         {
             const secondaryPositions = await contracts.glpSecondaryEarnAccount.positions();
@@ -142,8 +285,16 @@ async function main() {
 
         // Harvest
         {
-            await mine(contracts.gmxRewardsAggregator.harvestRewards());
-            await mine(contracts.glpRewardsAggregator.harvestRewards());
+            // Botstrap Origami with some GMX so it can harvest (need to convert oGMX -> GMX)
+            {
+                const seedAmount = ethers.utils.parseEther("5000");
+                await mine(contracts.gmx.mint(contracts.gmxManager.address, seedAmount));
+                await mine(contracts.gmxManager.addOperator(owner.getAddress()));
+                await mine(contracts.gmxManager.applyGmx(seedAmount));
+            }
+
+            await harvestGmx(contracts, owner);
+            await harvestGlp(contracts, owner);
         }
 
         // Add/Remove Reserves

@@ -5,21 +5,22 @@ pragma solidity ^0.8.17;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IOrigamiInvestmentManager} from "../../interfaces/investments/IOrigamiInvestmentManager.sol";
 import {IOrigamiInvestmentVault} from "../../interfaces/investments/IOrigamiInvestmentVault.sol";
 import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
+import {IOrigamiInvestment} from "../../interfaces/investments/IOrigamiInvestment.sol";
 import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
+import {Operators} from "../../common/access/Operators.sol";
 
 /// @title Origami GMX/GLP Rewards Aggregator
 /// @notice Manages the collation and selection of GMX.io rewards sources to the correct Origami investment vault.
 /// ie the Origami GMX vault and the Origami GLP vault
 /// @dev This implements the IOrigamiInvestmentManager interface -- the Origami GMX/GLP Rewards Distributor 
 /// calls to harvest aggregated rewards.
-contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Pausable {
+contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Operators {
     using SafeERC20 for IERC20;
 
     /**
@@ -42,21 +43,72 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
     /// The GMX vault picks staked GMX/esGMX/mult points from the GLP Manager
     IOrigamiGmxManager public glpManager;
 
+    /// @notice $wrappedNative - wrapped ETH/AVAX
+    IERC20 public immutable wrappedNativeToken;
+
+    /// @notice The address of the 0x proxy for GMX <--> ETH swaps
+    address public immutable zeroExProxy;
+
     /// @notice The set of reward tokens that the GMX manager yields to users.
     /// [ ETH/AVAX, oGMX ]
     address[] public rewardTokens;
 
-    /// @notice The contract/EOA responsible for harvesting rewards and distributing to the staking contract.
-    address public rewardsDistributor;
-
     /// @notice The ovToken that rewards will compound into when harvested/swapped. 
     IOrigamiInvestmentVault public immutable ovToken;
+
+    /// @notice The last timestamp that the harvest successfully ran.
+    uint256 public lastHarvestedAt;
+
+    /// @notice Parameters required when compounding ovGMX rewards
+    struct HarvestGmxParams {
+        /// @dev The required calldata to swap from wETH/wAVAX -> GMX
+        bytes nativeToGmxSwapData;
+
+        /// @dev The quote to invest in oGMX with GMX
+        IOrigamiInvestment.InvestQuoteData oGmxInvestQuoteData;
+
+        /// @dev The max slippage from the GMX -> oGMX invest
+        uint256 oGmxInvestSlippageBps;
+
+        /// @dev How much of the oGMX to add as reserves to ovGMX
+        uint256 addToReserveAmount;
+    }
+
+    /// @notice Parameters required when compounding ovGLP rewards
+    struct HarvestGlpParams {
+        /// @dev The quote to exit from oGMX -> GMX
+        IOrigamiInvestment.ExitQuoteData oGmxExitQuoteData;
+
+        /// @dev The required calldata to swap from GMX -> wETH/wAVAX
+        bytes gmxToNativeSwapData;
+
+        /// @dev The quote to invest in oGLP with wETH/wAVAX
+        IOrigamiInvestment.InvestQuoteData oGlpInvestQuoteData;
+
+        /// @dev The max slippage from the oGMX -> GMX exit
+        uint256 oGmxExitSlippageBps;
+
+        /// @dev The max slippage from the wETH/wAVAX -> oGMX invest
+        uint256 oGlpInvestSlippageBps;
+
+        /// @dev How much of the oGLP to add as reserves to ovGLP
+        uint256 addToReserveAmount;
+    }
     
     event OrigamiGmxManagersSet(IOrigamiGmxEarnAccount.VaultType _vaultType, address indexed gmxManager, address indexed glpManager);
-    event RewardsDistributorSet(address indexed rewardsDistributor);
-    error OnlyRewardsDistributor(address caller);
+    event CompoundOvGmx(HarvestGmxParams harvestParams);
+    event CompoundOvGlp(HarvestGlpParams harvestParams);
 
-    constructor(IOrigamiGmxEarnAccount.VaultType _vaultType, address _gmxManager, address _glpManager, address _ovToken) {
+    error UnknownSwapError(bytes result);
+
+    constructor(
+        IOrigamiGmxEarnAccount.VaultType _vaultType,
+        address _gmxManager,
+        address _glpManager,
+        address _ovToken,
+        address _wrappedNativeToken,
+        address _zeroExProxy
+    ) {
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
         glpManager = IOrigamiGmxManager(_glpManager);
@@ -64,16 +116,34 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
             ? glpManager.rewardTokensList() 
             : gmxManager.rewardTokensList();
         ovToken = IOrigamiInvestmentVault(_ovToken);
+        wrappedNativeToken = IERC20(_wrappedNativeToken);
+        zeroExProxy = _zeroExProxy;
+
+        // Set approvals for compounding
+        {
+            uint256 maxAllowance = type(uint256).max;
+            if (_vaultType == IOrigamiGmxEarnAccount.VaultType.GLP) {
+                address oGlpAddr = address(gmxManager.oGlpToken());
+                wrappedNativeToken.safeIncreaseAllowance(oGlpAddr, maxAllowance);
+                gmxManager.gmxToken().safeIncreaseAllowance(zeroExProxy, maxAllowance);
+                IERC20(oGlpAddr).safeIncreaseAllowance(address(ovToken), maxAllowance);
+            } else {
+                address oGmxAddr = address(gmxManager.oGmxToken());
+                wrappedNativeToken.safeIncreaseAllowance(zeroExProxy, maxAllowance);
+                gmxManager.gmxToken().safeIncreaseAllowance(oGmxAddr, maxAllowance);
+                IERC20(oGmxAddr).safeIncreaseAllowance(address(ovToken), maxAllowance);
+            }           
+        }
     }
 
-    function pause() public onlyOwner {
-        _pause();
+    function addOperator(address _address) external override onlyOwner {
+        _addOperator(_address);
     }
 
-    function unpause() public onlyOwner {
-        _unpause();
+    function removeOperator(address _address) external override onlyOwner {
+        _removeOperator(_address);
     }
-
+    
     /// @notice Set the Origami GMX Manager contract used to apply GMX to earn rewards.
     function setOrigamiGmxManagers(
         IOrigamiGmxEarnAccount.VaultType _vaultType, 
@@ -84,13 +154,6 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
         gmxManager = IOrigamiGmxManager(_gmxManager);
         glpManager = IOrigamiGmxManager(_glpManager);
         emit OrigamiGmxManagersSet(_vaultType, _gmxManager, _glpManager);
-    }
-
-    /// @notice Set the Origami staking and rewards distributor contracts.
-    function setRewardsDistributor(address _rewardsDistributor) external onlyOwner {
-        if (_rewardsDistributor == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        rewardsDistributor = _rewardsDistributor;
-        emit RewardsDistributorSet(_rewardsDistributor);
     }
 
     /// @notice The set of reward tokens we give to the staking contract.
@@ -117,7 +180,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
         }
 
         // And also add in any not-yet-distributed harvested amounts (ie if gmxManager.harvestRewards() was called directly),
-        // and sitting in this adggregator, but not yet sent to the rewardsDistributor.
+        // and sitting in this adggregator, but not yet converted & compounded
         for (i=0; i < rewardTokens.length; ++i) {
             amounts[i] += IERC20(rewardTokens[i]).balanceOf(address(this));
         }
@@ -153,8 +216,8 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
      * Performance fees are not collected here, they are collected after the rewards have been converted into the
      * Origami Investment token.
      */
-    function harvestRewards() external override whenNotPaused returns (uint256[] memory amounts) {
-        if (msg.sender != rewardsDistributor) revert OnlyRewardsDistributor(msg.sender);
+    function harvestRewards(bytes calldata harvestParams) external override onlyOperators {
+        lastHarvestedAt = block.timestamp;
 
         // Pull the GLP manager rewards - for both GMX and GLP vaults
         glpManager.harvestRewards();
@@ -162,20 +225,70 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Paus
         // The GLP vault doesn't need to harvest from the GMX vault - it won't have any rewards.
         if (vaultType == IOrigamiGmxEarnAccount.VaultType.GMX) {
             gmxManager.harvestRewards();
+            _compoundOvGmxRewards(harvestParams);
+        } else {
+            _compoundOvGlpRewards(harvestParams);
+        }
+    }
+
+    function _compoundOvGmxRewards(bytes calldata harvestParams) internal {
+        HarvestGmxParams memory params = abi.decode(harvestParams, (HarvestGmxParams));
+        emit CompoundOvGmx(params);
+
+        for (uint256 i; i < rewardTokens.length; ++i) {
+            // Swap native Token to GMX
+            if (rewardTokens[i] == address(wrappedNativeToken)) {
+                _swapAssetToAsset0x(params.nativeToGmxSwapData);
+            }
         }
 
-        // Pull the GMX manager rewards - only relevant for the GMX vault
-        // Then transfer any accrued balance of each reward token to the rewardsDistributor
-        IERC20 rewardToken;
-        uint256 amount;
-        amounts = new uint256[](rewardTokens.length);
+        // Swap GMX -> oGMX
+        IOrigamiInvestment oGmx = IOrigamiInvestment(address(gmxManager.oGmxToken()));
+        oGmx.investWithToken(params.oGmxInvestQuoteData, params.oGmxInvestSlippageBps);
+
+        // Add the oGLP as reserves into ovGLP
+        ovToken.addReserves(params.addToReserveAmount);
+    }
+
+    function _compoundOvGlpRewards(bytes calldata harvestParams) internal {
+        HarvestGlpParams memory params = abi.decode(harvestParams, (HarvestGlpParams));
+        emit CompoundOvGlp(params);
+
+        address oGmxAddr = address(gmxManager.oGmxToken());
+        IOrigamiInvestment oGmx = IOrigamiInvestment(oGmxAddr);
+        
         for (uint256 i; i < rewardTokens.length; ++i) {
-            rewardToken = IERC20(rewardTokens[i]);
-            amount = rewardToken.balanceOf(address(this));
-            amounts[i] = amount;
-            if (amount > 0) {
-                rewardToken.safeTransfer(rewardsDistributor, amount);
+            if (rewardTokens[i] == oGmxAddr) {
+                // Swap oGMX -> GMX 
+                oGmx.exitToToken(params.oGmxExitQuoteData, params.oGmxExitSlippageBps, address(this));
+
+                // Swap GMX -> wrappedNativeToken
+                _swapAssetToAsset0x(params.gmxToNativeSwapData);
             }
+        }
+
+        // Swap wrappedNativeToken -> oGLP
+        IOrigamiInvestment oGlp = IOrigamiInvestment(address(glpManager.oGlpToken()));
+        oGlp.investWithToken(params.oGlpInvestQuoteData, params.oGlpInvestSlippageBps);
+
+        // Add the oGLP as reserves into ovGLP
+        ovToken.addReserves(params.addToReserveAmount);
+    }
+
+    /// @notice Use external aggregators 0x to contract the swap transaction
+    function _swapAssetToAsset0x(bytes memory swapData) internal {
+        (bool success, bytes memory returndata) = zeroExProxy.call(swapData);
+        
+        if (!success) {
+            if (returndata.length > 0) {
+                // Look for revert reason and bubble it up if present
+                // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Address.sol#L232
+                assembly {
+                    let returndata_size := mload(returndata)
+                    revert(add(32, returndata), returndata_size)
+                }
+            }
+            revert UnknownSwapError(returndata);
         }
     }
 

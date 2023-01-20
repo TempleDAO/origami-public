@@ -10,6 +10,9 @@
       "resolveJsonModule": true,
       "esModuleInterop": true,
       "forceConsistentCasingInFileNames": true,
+      "paths": {
+        "@/*": ["./src/*"]
+      }
     },
     "include": ["./src"]
 }

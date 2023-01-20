@@ -178,14 +178,18 @@ async function main() {
     await mine(contracts.ovGMX.setInvestmentManager(contracts.gmxRewardsAggregator.address));
     await mine(contracts.ovGLP.setInvestmentManager(contracts.glpRewardsAggregator.address));
 
+    // The rewards aggregator compounds and adds reserves to the vaults
+    await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.GMX.GMX_REWARDS_AGGREGATOR));
+    await mine(contracts.ovGLP.addOperator(DEPLOYED.ORIGAMI.GMX.GLP_REWARDS_AGGREGATOR));
+
     // Set the multisig as an operator on ovGMX/ovGLP.
     // The OZ defender relayer will also be added when we automate adding new reserves
     await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.ovGLP.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
 
     // Give the reward distributors as the multisig for day 1. Will be updated to OZ defender relayer
-    await mine(contracts.gmxRewardsAggregator.setRewardsDistributor(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpRewardsAggregator.setRewardsDistributor(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.gmxRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
 
     // Set the investment managers in both the GMX & GLP Manager
     await mine(contracts.gmxManager.setRewardsAggregators(

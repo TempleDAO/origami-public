@@ -73,6 +73,11 @@
     "type": "error"
   },
   {
+    "inputs": [],
+    "name": "IsPaused",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -170,13 +175,35 @@
     "anonymous": false,
     "inputs": [
       {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "glpInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "glpExitsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxExitsPaused",
+            "type": "bool"
+          }
+        ],
         "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
+        "internalType": "struct IOrigamiGmxManager.Paused",
+        "name": "paused",
+        "type": "tuple"
       }
     ],
-    "name": "Paused",
+    "name": "PausedSet",
     "type": "event"
   },
   {
@@ -254,19 +281,6 @@
       }
     ],
     "name": "SellFeeRateSet",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Unpaused",
     "type": "event"
   },
   {
@@ -986,19 +1000,34 @@
   },
   {
     "inputs": [],
-    "name": "pause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "paused",
     "outputs": [
       {
-        "internalType": "bool",
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "glpInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "glpExitsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxExitsPaused",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxManager.Paused",
         "name": "",
-        "type": "bool"
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",
@@ -1194,6 +1223,41 @@
   {
     "inputs": [
       {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "glpInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "glpExitsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxExitsPaused",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxManager.Paused",
+        "name": "updatedPaused",
+        "type": "tuple"
+      }
+    ],
+    "name": "setPaused",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "_primaryEarnAccount",
         "type": "address"
@@ -1262,13 +1326,6 @@
       }
     ],
     "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "unpause",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

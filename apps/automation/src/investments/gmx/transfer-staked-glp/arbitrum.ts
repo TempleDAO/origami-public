@@ -1,11 +1,11 @@
 import { AutotaskEvent } from 'defender-autotask-utils';
-import { CommonConfig } from '../config';
-import { AutotaskResult, isFailure } from '../autotask-result';
-import { autotaskConnect } from '../connect';
+import { CommonConfig } from '@/config';
+import { AutotaskResult, isFailure } from '@/autotask-result';
+import { autotaskConnect } from '@/connect';
 import { TRANSACTION_NAME, TransferStakedGlpConfig, transferStakedGlp } from './transfer-staked-glp';
 
 const COMMON_CONFIG: CommonConfig = {
-    NETWORK: 'mumbai',
+    NETWORK: 'arbitrum',
     TRANSACTION_NAME: TRANSACTION_NAME,
     TRANSACTION_VALID_FOR_SECS: 900, // 15 mins
     TRANSACTION_SPEED: 'fast',
@@ -16,7 +16,7 @@ const COMMON_CONFIG: CommonConfig = {
 };
 
 const CONFIG: TransferStakedGlpConfig = {
-    GLP_MANAGER: '0x1F5833FE2c382A015fD3f7dC7656Cc677e14e903',
+    GLP_MANAGER: '',
     MIN_TRANSFER_INTERVAL_SECS: 60*60, // 1 hour
 };
 
@@ -24,7 +24,8 @@ export async function handler(event: AutotaskEvent): Promise<AutotaskResult> {
     const connection = await autotaskConnect(event, COMMON_CONFIG);
     const result = await transferStakedGlp(connection, COMMON_CONFIG, CONFIG);
     if (isFailure(result)) {
-        throw new Error("Transfer Staked GLP");
+        console.log(result);
+        throw new Error(TRANSACTION_NAME);
     }
     return result;
 }

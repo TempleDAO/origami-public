@@ -3,7 +3,7 @@ import { IKeyValueStoreClient } from "defender-kvstore-client/lib/types";
 import { BigNumber, ethers } from "ethers";
 import { CommonConfig } from "./config";
 import { getLastTxTimeKey } from "./ethers";
-import { AutotaskConnection, CHAIN_NAME } from "./connect";
+import { AutotaskConnection } from "./connect";
 
 export async function popStore(store: IKeyValueStoreClient, key: string): Promise<string | undefined> {
     const value = await store.get(key);
@@ -112,4 +112,15 @@ export const waitForLastTransactionToFinish = (
         );
         return false;
     });
+}
+
+export const applySlippage = (bn: BigNumber, slippageBps: number) => {
+    return bn
+        .mul(10_000 - slippageBps)
+        .div(10_000);
+};
+
+export function bpsToFraction(bps: number): number {
+    // eg 100 -> 0.01 (1%)
+    return bps / 10_000;
 }
