@@ -50,8 +50,15 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
 
     /// @notice Owner can recover tokens
     function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
-        IERC20(_token).safeTransfer(_to, _amount);
+        // If the _token is the reserve token, the owner can only remove any surplus reserves (ie donation reserves).
+        // It can't dip into the actual reserves
+        if (_token == reserveToken) {
+            uint256 bal = IERC20(reserveToken).balanceOf(address(this));
+            if (_amount > (bal - totalReserves)) revert CommonEventsAndErrors.InvalidAmount(_token, _amount);
+        }
+        
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
+        IERC20(_token).safeTransfer(_to, _amount);
     }
 
     /// @notice Returns the number of decimals used to get its user representation.
@@ -122,8 +129,8 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
     }
 
     function _addReserves(uint256 amount) private {
-        totalReserves += amount;
         emit ReservesAdded(amount);
+        totalReserves += amount;
     }
 
     function removeReserves(uint256 amount) external override onlyOperators {
@@ -132,7 +139,7 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
     }
 
     function _removeReserves(uint256 amount) private {
-        totalReserves -= amount;
         emit ReservesRemoved(amount);
+        totalReserves -= amount;
     }
 }

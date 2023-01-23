@@ -70,20 +70,20 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
 
     function setInvestmentManager(address _investmentManager) external onlyOwner {
         if (_investmentManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        investmentManager = IOrigamiInvestmentManager(_investmentManager);
         emit InvestmentManagerSet(_investmentManager);
+        investmentManager = IOrigamiInvestmentManager(_investmentManager);
     }
 
     function setTokenPrices(address _tokenPrices) external onlyOwner {
         if (_tokenPrices == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        tokenPrices = ITokenPrices(_tokenPrices);
         emit TokenPricesSet(_tokenPrices);
+        tokenPrices = ITokenPrices(_tokenPrices);
     }
 
     /// @notice Set the vault performance fee
     function setPerformanceFee(uint128 _numerator, uint128 _denominator) external onlyOwner {
-        FractionalAmount.set(performanceFee, _numerator, _denominator);
         emit PerformanceFeeSet(_numerator, _denominator);
+        FractionalAmount.set(performanceFee, _numerator, _denominator);
     }
 
     /// @dev The reseve token is a valid invest/exit token, and needs to be appended.

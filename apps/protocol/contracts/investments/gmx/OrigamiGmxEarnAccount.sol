@@ -17,14 +17,14 @@ import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiG
 
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
-import {OperatorsUpgradeable} from "../../common/access/OperatorsUpgradeable.sol";
+import {Operators} from "../../common/access/Operators.sol";
 
 /// @title Origami's account used for earning rewards for staking GMX/GLP 
 /// @notice The Origami contract responsible for managing GMX/GLP staking and harvesting/compounding rewards.
 /// This contract is kept relatively simple acting as a proxy to GMX.io staking/unstaking/rewards collection/etc,
 /// as it would be difficult to upgrade (multiplier points may be burned which would be detrimental to the product).
 /// @dev The Owner will be the Origami msig. The Operators will be the OrigamiGmxManager and OrigamiGmxLocker/OrigamiGlpLocker
-contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, OwnableUpgradeable, OperatorsUpgradeable, UUPSUpgradeable {
+contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, OwnableUpgradeable, Operators, UUPSUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // Note: The below contracts are GMX.io contracts which can be found
@@ -239,13 +239,14 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         uint256 cooldownExpiry = glpInvestmentCooldownExpiry();
 
         if (block.timestamp > cooldownExpiry) {
-            stakedGlp.safeTransfer(receiver, glpAmount);
             glpLastTransferredAt = block.timestamp;
             emit StakedGlpTransferred(receiver, glpAmount);
 
             if (glpInvestmentsPaused) {
                 _setGlpInvestmentsPaused(false);
             }
+
+            stakedGlp.safeTransfer(receiver, glpAmount);
         } else if (!glpInvestmentsPaused) {
             _setGlpInvestmentsPaused(true);
         }
@@ -457,7 +458,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
 
     /// @notice Owner can recover tokens
     function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
-        IERC20Upgradeable(_token).safeTransfer(_to, _amount);
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
+        IERC20Upgradeable(_token).safeTransfer(_to, _amount);
     }
 }

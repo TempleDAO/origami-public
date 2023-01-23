@@ -46,7 +46,7 @@ contract MintableToken is IMintableToken, ERC20Permit, Ownable, AccessControl {
 
     /// @notice Owner can recover tokens
     function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
-        IERC20(_token).safeTransfer(_to, _amount);
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
+        IERC20(_token).safeTransfer(_to, _amount);
     }
 }

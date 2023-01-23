@@ -37,8 +37,8 @@ contract TokenPrices is ITokenPrices, Ownable {
 
     /// @notice Map a token address to a function calldata defining how to retrieve the price
     function setTokenPriceFunction(address token, bytes calldata fnCalldata) external onlyOwner {
-        priceFnCalldata[token] = fnCalldata;
         emit TokenPriceFunctionSet(token, fnCalldata);
+        priceFnCalldata[token] = fnCalldata;
     }
 
     /** TOKEN->PRICE LOOKUP FUNCTIONS */

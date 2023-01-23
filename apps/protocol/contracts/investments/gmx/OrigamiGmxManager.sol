@@ -159,56 +159,56 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     }
 
     function setPaused(Paused memory updatedPaused) external onlyOwner {
-        _paused = updatedPaused;
         emit PausedSet(_paused);
+        _paused = updatedPaused;
     }
 
     /// @notice Set the fee rate Origami takes on oGMX rewards
     /// (which are minted based off the quantity of esGMX rewards we receive)
     function setOGmxRewardsFeeRate(uint128 _numerator, uint128 _denominator) external onlyOwner {
-        oGmxRewardsFeeRate.set(_numerator, _denominator);
         emit OGmxRewardsFeeRateSet(_numerator, _denominator);
+        oGmxRewardsFeeRate.set(_numerator, _denominator);
     }
 
     /// @notice Set the proportion of esGMX that we vest whenever rewards are harvested.
     /// The remainder are staked.
     function setEsGmxVestingRate(uint128 _numerator, uint128 _denominator) external onlyOwner {
-        esGmxVestingRate.set(_numerator, _denominator);
         emit EsGmxVestingRateSet(_numerator, _denominator);
+        esGmxVestingRate.set(_numerator, _denominator);
     }
 
     /// @notice Set the proportion of fees oGMX/oGLP Origami retains when users sell out
     /// of their position.
     function setSellFeeRate(uint128 _numerator, uint128 _denominator) external onlyOwner {
-        sellFeeRate.set(_numerator, _denominator);
         emit SellFeeRateSet(_numerator, _denominator);
+        sellFeeRate.set(_numerator, _denominator);
     }
 
     /// @notice Set the address for where Origami fees are sent
     function setFeeCollector(address _feeCollector) external onlyOwner {
-        feeCollector = _feeCollector;
         emit FeeCollectorSet(_feeCollector);
+        feeCollector = _feeCollector;
     }
 
     /// @notice Set the Origami account responsible for holding the majority of staked GMX/GLP/esGMX/mult points on GMX.io
     function setPrimaryEarnAccount(address _primaryEarnAccount) external onlyOwner {
         if (_primaryEarnAccount == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        primaryEarnAccount = IOrigamiGmxEarnAccount(_primaryEarnAccount);
         emit PrimaryEarnAccountSet(_primaryEarnAccount);
+        primaryEarnAccount = IOrigamiGmxEarnAccount(_primaryEarnAccount);
     }
 
     /// @notice Set the Origami account responsible for holding a smaller/initial amount of staked GMX/GLP/esGMX/mult points on GMX.io
     /// @dev This is allowed to be set to 0x, ie unset.
     function setSecondaryEarnAccount(address _secondaryEarnAccount) external onlyOwner {
-        secondaryEarnAccount = IOrigamiGmxEarnAccount(_secondaryEarnAccount);
         emit SecondaryEarnAccountSet(_secondaryEarnAccount);
+        secondaryEarnAccount = IOrigamiGmxEarnAccount(_secondaryEarnAccount);
     }
 
     /// @notice Set the Origami GMX/GLP rewards aggregators
     function setRewardsAggregators(address _gmxRewardsAggregator, address _glpRewardsAggregator) external onlyOwner {
+        emit RewardsAggregatorsSet(_gmxRewardsAggregator, _glpRewardsAggregator);
         gmxRewardsAggregator = _gmxRewardsAggregator;
         glpRewardsAggregator = _glpRewardsAggregator;
-        emit RewardsAggregatorsSet(_gmxRewardsAggregator, _glpRewardsAggregator);
     }
 
     function addOperator(address _address) external override onlyOwner {
@@ -767,7 +767,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         address _to,
         uint256 _amount
     ) external onlyOwner {
-        IERC20(_token).safeTransfer(_to, _amount);
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
+        IERC20(_token).safeTransfer(_to, _amount);
     }
 }

@@ -43,8 +43,8 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     /// @notice Set the Origami GLP Manager contract used to apply GLP to earn rewards.
     function setOrigamiGlpManager(address _origamiGlpManager) external onlyOwner {
         if (_origamiGlpManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        origamiGlpManager = IOrigamiGmxManager(_origamiGlpManager);
         emit OrigamiGlpManagerSet(_origamiGlpManager);
+        origamiGlpManager = IOrigamiGmxManager(_origamiGlpManager);
     }
 
     /**
@@ -114,9 +114,10 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
         IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(origamiGlpManager), quoteData.fromTokenAmount);
         investmentAmount = origamiGlpManager.investOGlp(quoteData.fromToken, quoteData, slippageBps);
 
+        emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
+
         // Mint the oGLP for the user
         _mint(msg.sender, investmentAmount);
-        emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
     }
 
     /** 
@@ -139,9 +140,10 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
         IERC20(wrappedNativeToken).safeTransfer(address(origamiGlpManager), quoteData.fromTokenAmount);
         investmentAmount = origamiGlpManager.investOGlp(wrappedNativeToken, quoteData, slippageBps);
 
+        emit Invested(msg.sender, msg.value, address(0), investmentAmount);
+
         // Mint the oGLP for the user
         _mint(msg.sender, investmentAmount);
-        emit Invested(msg.sender, msg.value, address(0), investmentAmount);
     }
 
     /**
@@ -183,9 +185,10 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
         uint256 oGlpToBurn;
         (toTokenAmount, oGlpToBurn) = origamiGlpManager.exitOGlp(quoteData.toToken, quoteData, slippageBps, recipient);
 
+        emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
+
         // Burn the oGlp
         _burn(address(origamiGlpManager), oGlpToBurn);
-        emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
     }
 
     /** 
@@ -210,9 +213,10 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
         uint256 oGlpToBurn;
         (nativeAmount, oGlpToBurn) = origamiGlpManager.exitOGlp(wrappedNativeToken, quoteData, slippageBps, address(this));
 
+        emit Exited(msg.sender, quoteData.investmentTokenAmount, address(0), nativeAmount, recipient);
+        
         // Burn the oGlp
         _burn(address(origamiGlpManager), oGlpToBurn);
-        emit Exited(msg.sender, quoteData.investmentTokenAmount, address(0), nativeAmount, recipient);
 
         // Convert the wrapped native token (weth/wavax) to the native token (ETH/AVAX)
         IWrappedToken(wrappedNativeToken).withdraw(nativeAmount);

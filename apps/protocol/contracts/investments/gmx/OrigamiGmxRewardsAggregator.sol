@@ -150,10 +150,10 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         address _gmxManager, 
         address _glpManager
     ) external onlyOwner {
+        emit OrigamiGmxManagersSet(_vaultType, _gmxManager, _glpManager);
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
         glpManager = IOrigamiGmxManager(_glpManager);
-        emit OrigamiGmxManagersSet(_vaultType, _gmxManager, _glpManager);
     }
 
     /// @notice The set of reward tokens we give to the staking contract.
@@ -246,7 +246,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiInvestment oGmx = IOrigamiInvestment(address(gmxManager.oGmxToken()));
         oGmx.investWithToken(params.oGmxInvestQuoteData, params.oGmxInvestSlippageBps);
 
-        // Add the oGLP as reserves into ovGLP
+        // Add the oGMX as reserves into ovGMX
         ovToken.addReserves(params.addToReserveAmount);
     }
 
@@ -298,7 +298,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         address _to,
         uint256 _amount
     ) external onlyOwner {
-        IERC20(_token).safeTransfer(_to, _amount);
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
+        IERC20(_token).safeTransfer(_to, _amount);
     }
 }

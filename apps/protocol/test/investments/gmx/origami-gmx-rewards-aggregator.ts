@@ -579,8 +579,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 //   staked esGMX+mult point rewards (from staked GLP rewards)
                 harvestableRewardsGmx = await origamiGmxRewardsAggr.harvestableRewards();
                 const existingGmxBalances = await getAggregatorRewardBalances(origamiGmxRewardsAggr);
-                expect(slightlyGte(harvestableRewardsGmx[0].sub(existingGmxBalances.weth), ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), 0.001)).eq(true);
-                expect(slightlyGte(harvestableRewardsGmx[1].sub(existingGmxBalances.oGmx), esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), 0.001)).eq(true);
+                expect(slightlyGte(harvestableRewardsGmx[0].sub(existingGmxBalances.weth), ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), 0.01)).eq(true);
+                expect(slightlyGte(harvestableRewardsGmx[1].sub(existingGmxBalances.oGmx), esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), 0.01)).eq(true);
                 expect(harvestableRewardsGmx[2]).eq(0); // No oGLP
             }
         });

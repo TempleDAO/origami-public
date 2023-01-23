@@ -82,10 +82,46 @@ describe("Repricing Token", async () => {
         // removeOperator() test covered by operators.ts
     });
     
-    it("owner can recover tokens", async () => {           
-        const amount = 50;
-        await reserveToken.mint(repricingToken.address, amount);
-        await recoverToken(reserveToken, amount, repricingToken, owner);
+    it("owner can recover tokens", async () => {
+        // Add some reserves.
+        {
+            const amount = 50;
+            await reserveToken.mint(operator.getAddress(), amount);
+            await reserveToken.connect(operator).approve(repricingToken.address, amount);
+            await repricingToken.connect(operator).addReserves(amount);
+        }
+
+        // Can't recover <= the balance of reserve tokens
+        {
+            await expect(recoverToken(reserveToken, 1, repricingToken, owner))
+                .to.be.revertedWithCustomError(repricingToken, "InvalidAmount")
+                .withArgs(reserveToken.address, 1);
+
+            await expect(recoverToken(reserveToken, 50, repricingToken, owner))
+                .to.be.revertedWithCustomError(repricingToken, "InvalidAmount")
+                .withArgs(reserveToken.address, 50);
+        }
+        
+        // Any extra direct dontaions (no add reserves) can be recovered
+        {
+            const amount = 5;
+            await reserveToken.mint(repricingToken.address, amount);
+
+            await expect(recoverToken(reserveToken, amount+1, repricingToken, owner))
+                .to.be.revertedWithCustomError(repricingToken, "InvalidAmount")
+                .withArgs(reserveToken.address, amount+1);
+
+            await recoverToken(reserveToken, amount, repricingToken, owner);
+        }
+        
+        // Any other token can be recovered too
+        {
+            const amount = 50;
+            const rando = await new MintableToken__factory(owner).deploy("rando", "rando");
+            await rando.addMinter(owner.getAddress());
+            await rando.mint(repricingToken.address, amount);
+            await recoverToken(rando, amount, repricingToken, owner);
+        }
     });
 
     async function addReservesAndMint(reservesAmount: BigNumberish, repricingAmount: BigNumberish) {

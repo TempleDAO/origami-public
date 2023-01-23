@@ -26,8 +26,8 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     /// @notice Set the Origami GMX Manager contract used to apply GMX to earn rewards.
     function setOrigamiGmxManager(address _origamiGmxManager) external onlyOwner {
         if (_origamiGmxManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        origamiGmxManager = IOrigamiGmxManager(_origamiGmxManager);
         emit OrigamiGmxManagerSet(_origamiGmxManager);
+        origamiGmxManager = IOrigamiGmxManager(_origamiGmxManager);
     }
 
     /**
@@ -90,9 +90,10 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
         IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(origamiGmxManager), quoteData.fromTokenAmount);
         investmentAmount = origamiGmxManager.investOGmx(quoteData, slippageBps);
 
+        emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
+
         // Mint the oGMX for the user
         _mint(msg.sender, investmentAmount);
-        emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
     }
 
     /** 
@@ -142,9 +143,10 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
         uint256 oGmxToBurn;
         (toTokenAmount, oGmxToBurn) = origamiGmxManager.exitOGmx(quoteData, slippageBps, recipient);
         
+        emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
+        
         // Burn the oGMX
         _burn(address(origamiGmxManager), oGmxToBurn);
-        emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
     }
 
     /** 
