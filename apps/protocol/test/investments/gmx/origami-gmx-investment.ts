@@ -5,6 +5,8 @@ import {
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxManager, OrigamiGmxManager__factory,
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory, IOrigamiGmxManager, 
+    MintableToken,
+    MintableToken__factory, 
 } from "../../../typechain";
 import { deployGmx, GmxContracts } from "./gmx-helpers";
 import { 
@@ -12,7 +14,6 @@ import {
     EmptyBytes, 
     recoverToken, 
     shouldRevertNotOwner, 
-    shouldRevertPaused, 
     ZERO_ADDRESS
 } from "../../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
@@ -27,6 +28,7 @@ describe("Origami GMX Investment", async () => {
 
     let gmxContracts: GmxContracts;
     let gmxEarnAccount: OrigamiGmxEarnAccount;
+    let randoErc20: MintableToken;
 
     before( async () => {
         [owner, alan, feeCollector] = await ethers.getSigners();
@@ -67,14 +69,18 @@ describe("Origami GMX Investment", async () => {
         await gmxEarnAccount.addOperator(oGMX.address);
 
         // The origamiGmxManager mints/burns oGlp tokens
-        await oGMX.addMinter(origamiGmxManager.address);
         await oGMX.addMinter(owner.getAddress());
 
+        randoErc20 = await new MintableToken__factory(owner).deploy("rando", "rando");
+        await randoErc20.addMinter(owner.getAddress());
+        await randoErc20.mint(owner.getAddress(), ethers.utils.parseEther("1"));
+        
         return {
             gmxContracts,
             gmxEarnAccount,
             origamiGmxManager,
             oGMX,
+            randoErc20,
         };
     }
 
@@ -84,6 +90,7 @@ describe("Origami GMX Investment", async () => {
             gmxEarnAccount,
             origamiGmxManager,
             oGMX,
+            randoErc20,
         } = await loadFixture(setup));
     });
 
@@ -202,12 +209,27 @@ describe("Origami GMX Investment", async () => {
         });
 
         it("Invest OGmx with GMX", async () => {
-            const manualQuote = {
-                ...(await oGMX.investQuote(100, gmxContracts.gmxToken.address)).quoteData,
-                fromTokenAmount: BigNumber.from(0),
-            };
-            await expect(oGMX.investWithToken(manualQuote, 0))
-                .to.be.revertedWithCustomError(origamiGmxManager, "ExpectedNonZero");
+            // 0 fromTokenAmount errors
+            {
+                const manualQuote = {
+                    ...(await oGMX.investQuote(100, gmxContracts.gmxToken.address)).quoteData,
+                    fromTokenAmount: BigNumber.from(0),
+                };
+                await expect(oGMX.investWithToken(manualQuote, 0))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "ExpectedNonZero");
+            }
+
+            // Non-gmx token errors
+            {
+                const manualQuote = {
+                    ...(await oGMX.investQuote(100, gmxContracts.gmxToken.address)).quoteData,
+                    fromToken: randoErc20.address
+                };
+                await randoErc20.approve(oGMX.address, 100);
+                await expect(oGMX.investWithToken(manualQuote, 0))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidToken")
+                    .withArgs(randoErc20.address);
+            }
 
             const amount = ethers.utils.parseEther("100");
             const quote = await oGMX.investQuote(amount, gmxContracts.gmxToken.address);
@@ -246,13 +268,6 @@ describe("Origami GMX Investment", async () => {
         });
 
         it("Exit OGmx to GMX", async () => {
-            const manualQuote = {
-                ...(await oGMX.exitQuote(100, gmxContracts.gmxToken.address)).quoteData,
-                investmentTokenAmount: BigNumber.from(0),
-            };
-            await expect(oGMX.exitToToken(manualQuote, 0, alan.getAddress()))
-                .to.be.revertedWithCustomError(origamiGmxManager, "ExpectedNonZero");
-
             const amount = ethers.utils.parseEther("100");
             const quote = await oGMX.exitQuote(amount, gmxContracts.gmxToken.address);
             await expect(oGMX.connect(alan).exitToToken(quote.quoteData, 0, alan.getAddress()))
@@ -272,6 +287,28 @@ describe("Origami GMX Investment", async () => {
 
             // Can now exit out of the position
             const exitQuote = await oGMX.exitQuote(amount, gmxContracts.gmxToken.address);
+
+            // 0 investmentTokenAmount errors
+            {
+                const manualQuote = {
+                    ...exitQuote.quoteData,
+                    investmentTokenAmount: BigNumber.from(0),
+                };
+                await expect(oGMX.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "ExpectedNonZero");
+            }
+
+            // Non-gmx token errors
+            {
+                const manualQuote = {
+                    ...exitQuote.quoteData,
+                    toToken: randoErc20.address,
+                };
+                await expect(oGMX.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidToken")
+                    .withArgs(randoErc20.address);
+            }
+
             {
                 await expect(oGMX.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
                     .to.emit(oGMX, "Exited")

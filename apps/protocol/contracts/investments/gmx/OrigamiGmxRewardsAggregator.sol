@@ -280,7 +280,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         (bool success, bytes memory returndata) = zeroExProxy.call(swapData);
         
         if (!success) {
-            if (returndata.length > 0) {
+            if (returndata.length != 0) {
                 // Look for revert reason and bubble it up if present
                 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Address.sol#L232
                 assembly {

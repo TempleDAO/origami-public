@@ -6,6 +6,7 @@ import {
     OrigamiGmxManager, OrigamiGmxManager__factory,
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory, 
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory, IOrigamiGmxManager, 
+    MintableToken, MintableToken__factory, 
 } from "../../../typechain";
 import { addDefaultGlpLiquidity, decodeGlpUnderlyingInvestQuoteData, deployGmx, encodeGlpUnderlyingInvestQuoteData, GmxContracts } from "./gmx-helpers";
 import { deployUupsProxy, EmptyBytes, expectBalancesChangeBy, mineForwardSeconds, recoverToken, shouldRevertNotOwner, shouldRevertPaused, ZERO_ADDRESS } from "../../helpers";
@@ -22,6 +23,7 @@ describe("Origami GLP Investment", async () => {
     let oGMX: OrigamiGmxInvestment;  
     let oGLP: OrigamiGlpInvestment;
     let gmxContracts: GmxContracts;
+    let randoErc20: MintableToken;
 
     // GMX Reward rates
     const ethPerSecond = BigNumber.from("41335970000000"); // 0.00004133597 ETH per second
@@ -85,10 +87,13 @@ describe("Origami GLP Investment", async () => {
         await secondaryEarnAccount.addOperator(dailyTransferKeeper.getAddress());
 
         // The origamiGlpManager mints/burns oGlp tokens
-        await oGLP.addMinter(origamiGlpManager.address);
         await oGLP.addMinter(owner.getAddress());
 
         await addDefaultGlpLiquidity(bob, gmxContracts);
+
+        randoErc20 = await new MintableToken__factory(owner).deploy("rando", "rando");
+        await randoErc20.addMinter(owner.getAddress());
+        await randoErc20.mint(owner.getAddress(), ethers.utils.parseEther("1"));
 
         return {
             gmxContracts,
@@ -96,6 +101,7 @@ describe("Origami GLP Investment", async () => {
             secondaryEarnAccount,
             origamiGlpManager,
             oGLP,
+            randoErc20,
         }
     }
 
@@ -106,6 +112,7 @@ describe("Origami GLP Investment", async () => {
             secondaryEarnAccount,
             origamiGlpManager,
             oGLP,
+            randoErc20,
         } = await loadFixture(setup));
     });
 
@@ -246,12 +253,29 @@ describe("Origami GLP Investment", async () => {
 
         it("Invest oGLP with token", async () => {
             const tokenAddr = gmxContracts.bnbToken.address;
-            const manualQuote = {
-                ...(await oGLP.investQuote(100, tokenAddr)).quoteData,
-                fromTokenAmount: BigNumber.from(0),
-            };
-            await expect(oGLP.investWithToken(manualQuote, 0))
-                .to.be.revertedWithCustomError(origamiGlpManager, "ExpectedNonZero");
+
+            // 0 amount errors
+            {
+                const manualQuote = {
+                    ...(await oGLP.investQuote(100, tokenAddr)).quoteData,
+                    fromTokenAmount: BigNumber.from(0),
+                };
+                await expect(oGLP.investWithToken(manualQuote, 0))
+                    .to.be.revertedWithCustomError(origamiGlpManager, "ExpectedNonZero");
+            }
+
+            // Non-glp token errors
+            {
+                const manualQuote = {
+                    ...(await oGLP.investQuote(100, tokenAddr)).quoteData,
+                    fromToken: randoErc20.address,
+                };
+
+                await randoErc20.approve(oGLP.address, 100);
+                await expect(oGLP.investWithToken(manualQuote, 0))
+                    .to.be.revertedWithCustomError(origamiGlpManager, "InvalidToken")
+                    .withArgs(randoErc20.address)
+            }
 
             const amount = ethers.utils.parseEther("100");
             const quote = await oGLP.investQuote(amount, tokenAddr);
@@ -588,13 +612,6 @@ describe("Origami GLP Investment", async () => {
             await expect(oGLP.connect(alan).exitToToken(quote.quoteData, 0, alan.getAddress()))
                 .to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
-            const manualQuote = {
-                ...quote.quoteData,
-                investmentTokenAmount: 0,
-            };
-            await expect(oGLP.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
-                .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
-
             // Alan invests some oGlp
             const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
             {
@@ -603,6 +620,27 @@ describe("Origami GLP Investment", async () => {
                 await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
             }
             
+            // 0 amount errors
+            {
+                const manualQuote = {
+                    ...quote.quoteData,
+                    investmentTokenAmount: 0,
+                };
+                await expect(oGLP.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
+                    .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
+            }
+            
+            // non-glp token fails
+            {
+                const manualQuote = {
+                    ...quote.quoteData,
+                    toToken: gmxContracts.gmxToken.address
+                };
+                await expect(oGLP.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
+                    .to.be.revertedWithCustomError(oGLP, "InvalidToken")
+                    .withArgs(gmxContracts.gmxToken.address);
+            }
+
             // Can now immediately exit out of the position
             const exitAmount = investQuote.quoteData.expectedInvestmentAmount;
             const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr);
@@ -797,15 +835,31 @@ describe("Origami GLP Investment", async () => {
                 await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
             }
 
-            // Can now exit
+            // Can now exit to token
+            const glpAmount1 = glpAmount.div(2);
             await expectBalancesChangeBy(async () => {
-                const exitQuote = await oGLP.exitQuote(glpAmount, gmxContracts.stakedGlp.address);
+                const exitQuote = await oGLP.exitQuote(glpAmount1, gmxContracts.stakedGlp.address);
                 await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
                     .to.emit(oGLP, "Exited")
-                    .withArgs(await alan.getAddress(), glpAmount, gmxContracts.stakedGlp.address, 0, await alan.getAddress());
+                    .withArgs(await alan.getAddress(), glpAmount1, gmxContracts.stakedGlp.address, 0, await alan.getAddress());
             },
-                [oGLP, alan, glpAmount.mul(-1)], 
-                [oGLP, feeCollector, glpAmount], 
+                [oGLP, alan, glpAmount1.mul(-1)], 
+                [oGLP, feeCollector, glpAmount1], 
+                [gmxContracts.stakedGlpTracker, alan, 0], // Alan gets nothing - all collected as fees
+                [gmxContracts.stakedGlpTracker, primaryEarnAccount, 0], // Nothing to unstake since all were taken as fees
+                [gmxContracts.stakedGlpTracker, secondaryEarnAccount, 0],
+            );
+
+            // And to native
+            const glpAmount2 = glpAmount.sub(glpAmount1);
+            await expectBalancesChangeBy(async () => {
+                const exitQuote = await oGLP.exitQuote(glpAmount2, ZERO_ADDRESS);
+                await expect(oGLP.connect(alan).exitToNative(exitQuote.quoteData, 0, alan.getAddress()))
+                    .to.emit(oGLP, "Exited")
+                    .withArgs(await alan.getAddress(), glpAmount2, ZERO_ADDRESS, 0, await alan.getAddress());
+            },
+                [oGLP, alan, glpAmount2.mul(-1)], 
+                [oGLP, feeCollector, glpAmount2], 
                 [gmxContracts.stakedGlpTracker, alan, 0], // Alan gets nothing - all collected as fees
                 [gmxContracts.stakedGlpTracker, primaryEarnAccount, 0], // Nothing to unstake since all were taken as fees
                 [gmxContracts.stakedGlpTracker, secondaryEarnAccount, 0],

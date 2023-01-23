@@ -43,7 +43,7 @@ interface IOrigamiGmxManager {
         IOrigamiInvestment.ExitQuoteData memory quoteData, 
         uint256 slippageBps, 
         address recipient
-    ) external returns (uint256 amountOut);
+    ) external returns (uint256 toTokenAmount, uint256 toBurnAmount);
 
     function acceptedGlpTokens() external view returns (address[] memory);
     function investOGlpQuote(
@@ -72,7 +72,7 @@ interface IOrigamiGmxManager {
         IOrigamiInvestment.ExitQuoteData memory quoteData, 
         uint256 slippageBps, 
         address recipient
-    ) external returns (uint256 amountOut);
+    ) external returns (uint256 toTokenAmount, uint256 toBurnAmount);
 
     struct Paused {
         bool glpInvestmentsPaused;

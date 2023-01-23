@@ -108,7 +108,6 @@ describe("Origami GMX Manager", async () => {
                 await glpSecondaryEarnAccount.addOperator(origamiGlpManager.address);
                 await origamiGlpManager.addOperator(operator.getAddress());
                 await oGmxToken.addMinter(origamiGlpManager.address);
-                await oGlpToken.addMinter(origamiGlpManager.address);
             }
 
             // Manual signers as the rewards aggregators
@@ -312,11 +311,11 @@ describe("Origami GMX Manager", async () => {
                 await expect(origamiGmxManager.connect(operator).investOGmx(investGmxQuote.quoteData, 0))
                     .to.revertedWith("BaseToken: transfer amount exceeds balance");
                 await expect(origamiGmxManager.connect(operator).exitOGmx(exitGmxQuote.quoteData, 0, ZERO_ADDRESS))
-                    .to.revertedWith("ERC20: burn amount exceeds balance");
+                    .to.revertedWith("RewardTracker: _amount exceeds stakedAmount");
                 await expect(origamiGlpManager.connect(operator).investOGlp(gmxContracts.bnbToken.address, investGlpQuote.quoteData, 0))
                     .to.revertedWith("ERC20: transfer amount exceeds balance");
                 await expect(origamiGlpManager.connect(operator).exitOGlp(gmxContracts.bnbToken.address, exitGlpQuote.quoteData, 0, ZERO_ADDRESS))
-                    .to.revertedWith("ERC20: burn amount exceeds balance");
+                    .to.revertedWith("RewardTracker: _amount exceeds stakedAmount");
             });
 
             it("should add operator", async() => {

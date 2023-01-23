@@ -164,7 +164,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
     function investWithToken(
         InvestQuoteData calldata quoteData,
         uint256 slippageBps
-    ) external override returns (
+    ) external override nonReentrant returns (
         uint256 investmentAmount
     ) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();

@@ -280,7 +280,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         IOrigamiGmxEarnAccount.ClaimedRewards memory claimed = primaryEarnAccount.harvestRewards(esGmxVestingRate);
 
         // Apply any of the newly vested GMX
-        if (claimed.vestedGmx > 0) {
+        if (claimed.vestedGmx != 0) {
             _applyGmx(claimed.vestedGmx);
         }
 
@@ -290,21 +290,21 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         uint256 _rewards;
         {
             // Any rewards claimed from staked GMX/esGMX/mult points => GMX Rewards Aggregator
-            if (claimed.esGmxFromGmx > 0) {
+            if (claimed.esGmxFromGmx != 0) {
                 (_fees, _rewards) = oGmxRewardsFeeRate.split(claimed.esGmxFromGmx);
                 totalFees += _fees;
-                if (_rewards > 0) oGmxToken.mint(gmxRewardsAggregator, _rewards);
+                if (_rewards != 0) oGmxToken.mint(gmxRewardsAggregator, _rewards);
             }
 
             // Any rewards claimed from staked GLP => GLP Rewards Aggregator
-            if (claimed.esGmxFromGlp > 0) {
+            if (claimed.esGmxFromGlp != 0) {
                 (_fees, _rewards) = oGmxRewardsFeeRate.split(claimed.esGmxFromGlp);
                 totalFees += _fees;
-                if (_rewards > 0) oGmxToken.mint(glpRewardsAggregator, _rewards);
+                if (_rewards != 0) oGmxToken.mint(glpRewardsAggregator, _rewards);
             }
 
             // Mint the total oGMX fees
-            if (totalFees > 0) {
+            if (totalFees != 0) {
                 oGmxToken.mint(feeCollector, totalFees);
             }
         }
@@ -315,12 +315,12 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
 
     function _processNativeRewards(IOrigamiGmxEarnAccount.ClaimedRewards memory claimed) internal {
         // Any rewards claimed from staked GMX/esGMX/mult points => GMX Investment Manager
-        if (claimed.wrappedNativeFromGmx > 0) {
+        if (claimed.wrappedNativeFromGmx != 0) {
             IERC20(wrappedNativeToken).safeTransfer(gmxRewardsAggregator, claimed.wrappedNativeFromGmx);
         }
 
         // Any rewards claimed from staked GLP => GLP Investment Manager
-        if (claimed.wrappedNativeFromGlp > 0) {
+        if (claimed.wrappedNativeFromGlp != 0) {
             IERC20(wrappedNativeToken).safeTransfer(glpRewardsAggregator, claimed.wrappedNativeFromGlp);
         }
     }
@@ -410,6 +410,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         uint256 investmentAmount
     ) {
         if (_paused.gmxInvestmentsPaused) revert CommonEventsAndErrors.IsPaused();
+        if (quoteData.fromToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(quoteData.fromToken);
 
         // Transfer the GMX straight to the primary earn account which stakes the GMX at GMX.io
         // NB: There is no cooldown when transferring GMX, so using the primary earn account for deposits is fine.
@@ -449,25 +450,29 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /** 
       * @notice Sell oGMX to receive GMX. 
       * @param quoteData The quote data received from exitQuote()
-      * @param recipient The receiving address of the `t\oToken`
+      * @param recipient The receiving address of the GMX
+      * @return toTokenAmount The number of GMX tokens received upon selling the oGMX.
+      * @return toBurnAmount The number of oGLP to be burnt after exiting this position
       */
     function exitOGmx(
         IOrigamiInvestment.ExitQuoteData memory quoteData, 
         uint256 /*slippageBps currently unused*/,
         address recipient
-    ) external override onlyOperators returns (uint256) {
+    ) external override onlyOperators returns (uint256 toTokenAmount, uint256 toBurnAmount) {
         if (_paused.gmxExitsPaused) revert CommonEventsAndErrors.IsPaused();
+        if (quoteData.toToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
 
         (uint256 fees, uint256 nonFees) = sellFeeRate.split(quoteData.investmentTokenAmount);
+        toTokenAmount = nonFees;
 
         // Send the oGlp fees to the fee collector
-        if (fees > 0) {
+        if (fees != 0) {
             oGmxToken.safeTransfer(feeCollector, fees);
         }
 
-        if (nonFees > 0) {
-            // Burn the users oGmx
-            oGmxToken.burn(address(this), nonFees);
+        if (nonFees != 0) {
+            // Burn the remaining oGmx
+            toBurnAmount = nonFees;
 
             // Unstake the GMX - NB this burns any multiplier points
             primaryEarnAccount.unstakeGmx(nonFees);
@@ -475,8 +480,6 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             // Send the GMX to the recipient
             gmxToken.safeTransfer(recipient, nonFees);
         }
-
-        return nonFees;
     }
 
     /// @notice The set of whitelisted GMX.io tokens which can be used to buy GLP (and hence oGLP)
@@ -560,6 +563,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             IERC20(fromToken).safeTransfer(address(primaryEarnAccount), quoteData.fromTokenAmount);
             investmentAmount = quoteData.fromTokenAmount;
         } else {
+            if (!gmxVault.whitelistedTokens(fromToken)) revert CommonEventsAndErrors.InvalidToken(fromToken);
+
             // Pull ERC20 tokens from the user and send to the secondary Origami earn account contract which purchases GLP on GMX.io and stakes it
             // This DOES reset the cooldown clock for withdrawals, so the secondary account is used in order 
             // to avoid withdrawals blocking from cooldown in the primary account.
@@ -620,26 +625,27 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
       * @param quoteData The quote data received from exitQuote()
       * @param slippageBps Acceptable slippage, applied to the encodedQuote params
       * @param recipient The receiving address of the `toToken`
-      * @return amountOut The number of `toToken` tokens received upon selling the Origami receipt token.
+      * @return toTokenAmount The number of `toToken` tokens received upon selling the oGLP
+      * @return toBurnAmount The number of oGLP to be burnt after exiting this position
       */
     function exitOGlp(
         address toToken,
         IOrigamiInvestment.ExitQuoteData calldata quoteData, 
         uint256 slippageBps, 
         address recipient
-    ) external override onlyOperators returns (uint256 amountOut) {
+    ) external override onlyOperators returns (uint256 toTokenAmount, uint256 toBurnAmount) {
         if (_paused.glpExitsPaused) revert CommonEventsAndErrors.IsPaused();
 
         (uint256 fees, uint256 nonFees) = sellFeeRate.split(quoteData.investmentTokenAmount);
 
         // Send the oGlp fees to the fee collector
-        if (fees > 0) {
+        if (fees != 0) {
             oGlpToken.safeTransfer(feeCollector, fees);
         }
 
-        if (nonFees > 0) {
+        if (nonFees != 0) {
             // Burn the remaining oGlp
-            oGlpToken.burn(address(this), nonFees);
+            toBurnAmount = nonFees;
 
             if (toToken == address(primaryEarnAccount.stakedGlp())) {
                 // Transfer the remaining staked GLP to the recipient
@@ -647,10 +653,12 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
                     nonFees,
                     recipient
                 );
-                amountOut = nonFees;
+                toTokenAmount = nonFees;
             } else {
+                if (!gmxVault.whitelistedTokens(toToken)) revert CommonEventsAndErrors.InvalidToken(toToken);
+
                 // Sell from the primary earn account and send the resulting token to the recipient.
-                amountOut = primaryEarnAccount.unstakeAndRedeemGlp(
+                toTokenAmount = primaryEarnAccount.unstakeAndRedeemGlp(
                     nonFees,
                     toToken,
                     quoteData.expectedToTokenAmount,

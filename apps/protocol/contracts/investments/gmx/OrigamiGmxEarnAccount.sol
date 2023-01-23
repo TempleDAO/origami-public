@@ -338,11 +338,11 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
             uint256 totalEsGmxClaimed = claimedRewards.esGmxFromGmx + claimedRewards.esGmxFromGlp;
 
             uint256 esGmxReinvested;
-            if (totalEsGmxClaimed > 0) {
+            if (totalEsGmxClaimed != 0) {
                 (esGmxVesting, esGmxReinvested) = FractionalAmount.split(_esGmxVestingRate, totalEsGmxClaimed);
 
                 // Vest a portion of esGMX
-                if (esGmxVesting > 0) {
+                if (esGmxVesting != 0) {
                     // There's a limit on how much we are allowed to vest at GMX.io, based on the rewards which
                     // have been earnt vs how much has been staked already.
                     // So use the min(requested, allowed)
@@ -356,13 +356,13 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
                     }
 
                     // Deposit the amount to vest in the vesting contract.
-                    if (esGmxVesting > 0) {
+                    if (esGmxVesting != 0) {
                         esGmxVester.deposit(esGmxVesting);
                     }
                 }
 
                 // Stake the remainder.
-                if (esGmxReinvested > 0) {
+                if (esGmxReinvested != 0) {
                     gmxRewardRouter.stakeEsGmx(esGmxReinvested);
                 }
             }
@@ -407,7 +407,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
 
         // Calculate how many ETH rewards were awarded and send to the receiver
         uint256 claimed = wrappedNativeToken.balanceOf(address(this)) - wrappedNativeBefore;
-        if (claimed > 0) {
+        if (claimed != 0) {
             wrappedNativeToken.safeTransfer(_receiver, claimed);
         }
         claimedRewards.wrappedNativeFromGmx = subtractWithFloorAtZero(claimed, claimedRewards.wrappedNativeFromGlp);
@@ -418,7 +418,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
 
         // Calculate how many GMX were claimed from vested esGMX, and send to the receiver
         claimedRewards.vestedGmx = gmxToken.balanceOf(address(this)) - gmxBefore;
-        if (claimedRewards.vestedGmx > 0) {
+        if (claimedRewards.vestedGmx != 0) {
             gmxToken.safeTransfer(_receiver, claimedRewards.vestedGmx);
         }
     }

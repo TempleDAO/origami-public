@@ -172,7 +172,6 @@ async function main() {
     // The GLP manager also needs mint access on oGMX, for rewards.
     await mine(contracts.oGMX.addMinter(contracts.gmxManager.address));
     await mine(contracts.oGMX.addMinter(contracts.glpManager.address));
-    await mine(contracts.oGLP.addMinter(contracts.glpManager.address));
 
     // Set the investment manager as the rewards aggregator in the ovGMX/ovGLP, for APR calcs
     await mine(contracts.ovGMX.setInvestmentManager(contracts.gmxRewardsAggregator.address));

@@ -106,7 +106,7 @@ contract TokenPrices is ITokenPrices, Ownable {
         uint256 avgAum = (aums[0] + aums[1]) / 2;
         uint256 glpSupply = IERC20(glpManager.glp()).totalSupply();
 
-        if (avgAum > 0 && glpSupply > 0) {
+        if (avgAum != 0 && glpSupply != 0) {
             // GMX reports price to 30 dp
             return scaleToPrecision(avgAum * 1e18 / glpSupply, 30);
         } else {
