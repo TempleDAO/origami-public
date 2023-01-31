@@ -138,6 +138,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
         <Label>Amount to invest:</Label>
         <FlexRightSpaced>
           <FieldDbn
+            autoFocus
             value={investAmountState.text}
             onChange={investAmountState.setText}
             max={availableBalance}

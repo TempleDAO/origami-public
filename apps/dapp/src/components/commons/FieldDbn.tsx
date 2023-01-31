@@ -16,6 +16,7 @@ export type FiledDbnProps = {
   className?: string;
   disabled?: boolean;
   error?: boolean;
+  autoFocus?: boolean;
 };
 
 export const FieldDbn: FC<FiledDbnProps> = ({
@@ -27,6 +28,7 @@ export const FieldDbn: FC<FiledDbnProps> = ({
   value,
   className,
   disabled,
+  autoFocus,
 }) => {
   const handleInput = (event: React.FormEvent<HTMLInputElement>) => {
     const val = event.currentTarget.value;
@@ -64,6 +66,7 @@ export const FieldDbn: FC<FiledDbnProps> = ({
     <InputBox className={className} error={error}>
       <InputContainer>
         <StyledInput
+          autoFocus={autoFocus}
           onChange={handleInput}
           placeholder="0.00"
           value={value}
