@@ -53,7 +53,18 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
 
   return (
     <FlexDownSpaced>
-      <Title>EXIT</Title>
+      <Title>
+        EXIT
+        {result && (
+          <StyledAnchor
+            href={result.txExplorerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon iconName="open-in-new" size={20} />
+          </StyledAnchor>
+        )}
+      </Title>
       <FlexDown>
         <div>
           <SpanH2>{formatDecimalBigNumber(receiptTokenAmount)}</SpanH2>{' '}
@@ -113,28 +124,42 @@ const FlexRightSpaced = styled.div`
 
 export const Title = styled.div`
   ${textH1}
-  color: ${(props) => props.theme.colors.white}
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  color: ${(props) => props.theme.colors.white};
 `;
+
 const DivP1_ = styled.div`
   ${textP1}
 `;
+
 const SpanH2 = styled.span`
   ${textH2}
-  color: ${(props) => props.theme.colors.white}
+  color: ${(props) => props.theme.colors.white};
 `;
+
 const SpanH3 = styled.span`
   ${textH3}
-  color: ${(props) => props.theme.colors.greyLight}
+  color: ${(props) => props.theme.colors.greyLight};
 `;
+
 const DivP1 = styled.div`
   ${textP1}
-  color: ${(props) => props.theme.colors.greyLight}
+  color: ${(props) => props.theme.colors.greyLight};
 `;
+
 const DivP2 = styled.div`
   ${textP2}
 `;
+
 const ActionLabel = styled.div<{ active: boolean }>`
   ${textP1}
   color: ${(props) =>
     props.active ? props.theme.colors.white : props.theme.colors.greyLight};
+`;
+
+const StyledAnchor = styled.a`
+  display: flex;
 `;

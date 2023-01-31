@@ -92,7 +92,16 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
       {result && (
         <>
           <FlexDown>
-            <DivH3>TRANSACTION SUCCESSFUL</DivH3>
+            <DivH3>
+              TRANSACTION SUCCESSFUL
+              <StyledAnchor
+                href={result.txExplorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Icon iconName="open-in-new" size={20} />
+              </StyledAnchor>
+            </DivH3>
             <DivP1_>You received:</DivP1_>
             <div>
               <SpanH2>{formatDecimalBigNumber(receivedAmount)}</SpanH2>{' '}
@@ -131,31 +140,46 @@ const FlexRightSpaced = styled.div`
 
 export const Title = styled.div`
   ${textH1}
-  color: ${(props) => props.theme.colors.white}
+  color: ${(props) => props.theme.colors.white};
 `;
+
 const DivP1_ = styled.div`
   ${textP1}
 `;
+
 const DivH3 = styled.div`
-  ${textH3}
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  ${textH3};
 `;
+
 const SpanH2 = styled.span`
   ${textH2}
-  color: ${(props) => props.theme.colors.white}
+  color: ${(props) => props.theme.colors.white};
 `;
+
 const SpanH3 = styled.span`
   ${textH3}
-  color: ${(props) => props.theme.colors.greyLight}
+  color: ${(props) => props.theme.colors.greyLight};
 `;
+
 const DivP1 = styled.div`
   ${textP1}
-  color: ${(props) => props.theme.colors.greyLight}
+  color: ${(props) => props.theme.colors.greyLight};
 `;
+
 const DivP2 = styled.div`
   ${textP2}
 `;
+
 const ActionLabel = styled.div<{ active: boolean }>`
   ${textP1}
   color: ${(props) =>
     props.active ? props.theme.colors.white : props.theme.colors.greyLight};
+`;
+
+const StyledAnchor = styled.a`
+  display: flex;
 `;

@@ -275,6 +275,7 @@ class ProviderApiImpl implements ProviderApi {
         id: chain.id,
         name: chain.name,
         nativeCurrency: chain.nativeCurrency,
+        explorer: chain.explorer,
       },
       receiptToken,
       acceptedInvestTokens,
@@ -695,6 +696,7 @@ class SignerApiImpl implements SignerApi {
           investEvent.args.investmentAmount,
           req.quote.investment.receiptToken.decimals
         ),
+        txExplorerUrl: chain.explorer.transactionUrl(receipt.transactionHash),
       };
       req.onStage && req.onStage({ kind: 'done', result });
       return result;
@@ -712,7 +714,8 @@ class SignerApiImpl implements SignerApi {
   }
 
   private async exit_(req: ExitReq): Promise<ExitResp> {
-    if (req.quote.investment.chain.id != this.chainId) {
+    const chain = req.quote.investment.chain;
+    if (chain.id != this.chainId) {
       throw new Error("Signer and investment chain ids don't match");
     }
     const toAmountDecimals = tokenOrNativeAmountDecimals(req.quote.to);
@@ -756,6 +759,7 @@ class SignerApiImpl implements SignerApi {
           exitEvent.args.toTokenAmount,
           toAmountDecimals
         ),
+        txExplorerUrl: chain.explorer.transactionUrl(receipt.transactionHash),
       };
       req.onStage && req.onStage({ kind: 'done', result });
       return result;

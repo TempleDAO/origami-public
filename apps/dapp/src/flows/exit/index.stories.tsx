@@ -146,6 +146,7 @@ const TEST_EXIT_REQ: ExitReq = {
 
 const TEXT_EXIT_RESP: ExitResp = {
   amountOut: DecimalBigNumber.parseUnits('34.99', 2),
+  txExplorerUrl: 'https://dummy-explorer/tx/0x12345',
 };
 
 const Main = styled.main`

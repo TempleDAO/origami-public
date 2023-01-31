@@ -16,6 +16,7 @@ import {
 import {
   Chain,
   ChainConfig,
+  ChainExplorer,
   ChainId,
   HistoricPeriod,
   HistoryPoint,
@@ -93,6 +94,7 @@ class TestProviderApiImpl implements TestProviderApi {
       rpcUrl: 'http://something',
       walletRpcUrl: 'http://something',
       subgraphUrl: 'http://something',
+      explorer: dummyExplorer(),
     });
   }
 
@@ -195,7 +197,8 @@ class TestSignerApiImpl implements TestSignerApi {
   signerAddress = TEST_SIGNER_ADDRESS;
   sleepMs = 1000;
 
-  chainId = arbitrum().id;
+  chain = arbitrum();
+  chainId = this.chain.id;
 
   async invest(req: InvestReq): Promise<InvestResp> {
     req.onStage && req.onStage({ kind: 'approve' });
@@ -204,6 +207,7 @@ class TestSignerApiImpl implements TestSignerApi {
     await sleep(this.sleepMs);
     const result = {
       receiptTokenAmount: req.quote.receiptTokenAmount,
+      txExplorerUrl: this.chain.explorer.transactionUrl('0x1234'),
     };
     req.onStage && req.onStage({ kind: 'done', result });
     return result;
@@ -216,6 +220,7 @@ class TestSignerApiImpl implements TestSignerApi {
     await sleep(this.sleepMs);
     const result = {
       amountOut: req.quote.toAmount,
+      txExplorerUrl: this.chain.explorer.transactionUrl('0x1234'),
     };
     req.onStage && req.onStage({ kind: 'done', result });
     return result;
@@ -235,6 +240,14 @@ export function arbitrum(): Chain {
       name: 'Ether',
       decimals: 18,
     },
+    explorer: dummyExplorer(),
+  };
+}
+
+export function dummyExplorer(): ChainExplorer {
+  return {
+    transactionUrl: (hash) => `https:/dummy-explorer/tx/${hash}`,
+    tokenUrl: (hash) => `https:/dummy-explorer/token/${hash}`,
   };
 }
 

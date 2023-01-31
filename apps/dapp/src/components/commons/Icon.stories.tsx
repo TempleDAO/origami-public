@@ -48,6 +48,7 @@ const iconList = [
   'swap-circle',
   'gmx',
   'glp',
+  'open-in-new',
 ];
 
 export const Icons = () => (

@@ -37,6 +37,10 @@ const MUMBAI: ChainConfig = {
   },
   subgraphUrl:
     'https://api.thegraph.com/subgraphs/name/medariox/origami-mumbai',
+  explorer: {
+    transactionUrl: (hash) => `https://mumbai.polygonscan.com/tx/${hash}`,
+    tokenUrl: (hash) => `https://mumbai.polygonscan.com/token/${hash}`,
+  },
 };
 
 const MUMBAI_PRICE_CONTRACT: PriceContractConfig = {

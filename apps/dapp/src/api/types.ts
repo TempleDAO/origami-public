@@ -13,6 +13,12 @@ export interface Chain {
   id: ChainId;
   name: string;
   nativeCurrency: NativeCurrency;
+  explorer: ChainExplorer;
+}
+
+export interface ChainExplorer {
+  transactionUrl(txhash: string): string;
+  tokenUrl(tokenHash: string): string;
 }
 
 export interface ChainConfig extends Chain {

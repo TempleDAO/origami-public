@@ -16,6 +16,10 @@ const _ARBITRUM: ChainConfig = {
     decimals: 18,
   },
   subgraphUrl: 'https://TODO',
+  explorer: {
+    transactionUrl: (hash) => `https://arbiscan.io/tx/${hash}`,
+    tokenUrl: (hash) => `https://arbiscan.io/token/${hash}`,
+  },
 };
 
 const _AVALANCHE: ChainConfig = {
@@ -29,4 +33,8 @@ const _AVALANCHE: ChainConfig = {
     decimals: 18,
   },
   subgraphUrl: 'https://TODO',
+  explorer: {
+    transactionUrl: (hash) => `https://snowtrace.io/tx/${hash}`,
+    tokenUrl: (hash) => `https://snowtrace.io/token${hash}`,
+  },
 };
