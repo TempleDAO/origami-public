@@ -11,7 +11,6 @@ export function onInvested(event: Invested): void {
 
     const investment = getOrCreateInvestment(event.address, timestamp)
 
-    const fromToken = getOrCreateToken(event.params.fromToken, timestamp)
     const toToken = getPricedToken(investment.id, timestamp)
     const toTokenAmount = toDecimal(event.params.investmentAmount, toToken.decimals)
 
@@ -29,7 +28,6 @@ export function onExited(event: Exited): void {
 
     const fromToken = getPricedToken(investment.id, timestamp)
     const fromTokenAmount = toDecimal(event.params.investmentAmount, fromToken.decimals)
-    const toToken = getOrCreateToken(event.params.toToken, timestamp)
 
     investment.tvl = investment.tvl.minus(fromTokenAmount)
     investment.tvlUSD = investment.tvl.times(fromToken.price)
