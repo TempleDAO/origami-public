@@ -2,6 +2,15 @@
 
 ## Getting Started
 
+### Submodules
+
+Some tests are written in forge, which uses [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules) for std libs.
+Initialise those submodules with:
+
+```bash
+git submodule update --init --recursive
+```
+
 ### Requirements
 
 * node
@@ -63,10 +72,13 @@ tl;dr;
 ## Slither Static Code Analysis
 
 1. Install `slither-analyzer`:
-   1. v0.9.0 cannot handle events emitted from Solidity libraries: https://github.com/crytic/slither/issues/1407
-   2. Until the following PR is merged and released, use this patched version: https://github.com/crytic/slither/pull/1419
-   3. `pip install git+https://@github.com/crytic/slither.git@c15e88d94443cdfe33d238085453efab6609bf94#egg=slither-analyzer`
+   1. `pip3 install -r slither.requirements.txt`
 2. `yarn slither`
 3. For each category + finding, analyse and either:
    1. Fix the issue or
    2. If it's a false positive then ignore the finding by typing the list index number in the triage.
+
+## Forge Testing
+
+1. Install foundry locally: https://book.getfoundry.sh/getting-started/installation
+2. `yarn forge-test`

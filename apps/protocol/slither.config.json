@@ -1,4 +1,4 @@
 {
     "detectors_to_exclude": "naming-convention,similar-names",
-    "filter_paths": "node_modules/@openzeppelin,node_modules/@uniswap,contracts/test"
+    "filter_paths": "(node_modules/|contracts/test/|test/|lib/)"
 }

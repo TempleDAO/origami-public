@@ -57,14 +57,17 @@
     "size": "hardhat size-contracts",
     "test": "hardhat test",
     "coverage": "hardhat coverage",
-    "slither": "slither $PWD --triage-mode",
+    "slither": "slither $PWD --triage-mode --foundry-out-directory ./artifacts-foundry --hardhat-cache-directory ./cache-hardhat --hardhat-artifacts-directory ./artifacts-hardhat",
+    "slither-check": "slither $PWD --foundry-out-directory ./artifacts-foundry --hardhat-cache-directory ./cache-hardhat --hardhat-artifacts-directory ./artifacts-hardhat",
     "local-node": "hardhat node",
     "hardhat:local": "hardhat --network localhost",
     "hardhat:arbitrum": "hardhat --network arbitrum",
     "hardhat:avalanche": "hardhat --network avalanche",
     "local-fork:arbitrum": "hardhat node --fork https://arb-mainnet.g.alchemy.com/v2/Wpi5oKPY2NTrKdxCVlcqK3JrijSLHI7B --fork-block-number 53856600",
     "local-fork:deploy:gmx": "$PWD/scripts/deploys/localhost/gmx/deploy-localhost-fork.sh",
-    "local-fork:test:gmx": "hardhat run --network localhost scripts/deploys/localhost/gmx/999-localhost-fork-test.ts"
+    "local-fork:test:gmx": "hardhat run --network localhost scripts/deploys/localhost/gmx/999-localhost-fork-test.ts",
+    "forge-test": "forge test",
+    "forge-coverage": "forge coverage --report lcov && genhtml lcov.info -o report --branch-coverage --legend"
   },
   "engines": {
     "node": "16.x"

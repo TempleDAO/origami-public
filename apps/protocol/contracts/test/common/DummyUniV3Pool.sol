@@ -1,4 +1,4 @@
-pragma solidity ^0.8.17;
+pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
