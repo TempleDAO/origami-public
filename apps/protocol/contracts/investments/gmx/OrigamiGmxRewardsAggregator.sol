@@ -59,6 +59,9 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
     /// @notice The last timestamp that the harvest successfully ran.
     uint256 public lastHarvestedAt;
 
+    /// @notice The address used to collect the Origami performance fees.
+    address public performanceFeeCollector;
+
     /// @notice Parameters required when compounding ovGMX rewards
     struct HarvestGmxParams {
         /// @dev The required calldata to swap from wETH/wAVAX -> GMX
@@ -98,6 +101,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
     event OrigamiGmxManagersSet(IOrigamiGmxEarnAccount.VaultType _vaultType, address indexed gmxManager, address indexed glpManager);
     event CompoundOvGmx(HarvestGmxParams harvestParams);
     event CompoundOvGlp(HarvestGlpParams harvestParams);
+    event PerformanceFeeCollectorSet(address indexed performanceFeeCollector);
 
     error UnknownSwapError(bytes result);
 
@@ -107,7 +111,8 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         address _glpManager,
         address _ovToken,
         address _wrappedNativeToken,
-        address _zeroExProxy
+        address _zeroExProxy,
+        address _performanceFeeCollector
     ) {
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
@@ -118,6 +123,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         ovToken = IOrigamiInvestmentVault(_ovToken);
         wrappedNativeToken = IERC20(_wrappedNativeToken);
         zeroExProxy = _zeroExProxy;
+        performanceFeeCollector = _performanceFeeCollector;
 
         // Set approvals for compounding
         {
@@ -154,6 +160,12 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
         glpManager = IOrigamiGmxManager(_glpManager);
+    }
+
+    /// @notice Set the address for where Origami performance fees are sent
+    function setPerformanceFeeCollector(address _performanceFeeCollector) external onlyOwner {
+        emit PerformanceFeeCollectorSet(_performanceFeeCollector);
+        performanceFeeCollector = _performanceFeeCollector;
     }
 
     /// @notice The set of reward tokens we give to the staking contract.
@@ -246,8 +258,8 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiInvestment oGmx = IOrigamiInvestment(address(gmxManager.oGmxToken()));
         oGmx.investWithToken(params.oGmxInvestQuoteData, params.oGmxInvestSlippageBps);
 
-        // Add the oGMX as reserves into ovGMX
-        ovToken.addReserves(params.addToReserveAmount);
+        // Add the oGMX reserves, taking a performance fee.
+        _addReserves(address(oGmx), params.addToReserveAmount);
     }
 
     function _compoundOvGlpRewards(bytes calldata harvestParams) internal {
@@ -271,8 +283,24 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiInvestment oGlp = IOrigamiInvestment(address(glpManager.oGlpToken()));
         oGlp.investWithToken(params.oGlpInvestQuoteData, params.oGlpInvestSlippageBps);
 
-        // Add the oGLP as reserves into ovGLP
-        ovToken.addReserves(params.addToReserveAmount);
+        // Add the oGLP reserves, taking a performance fee.
+        _addReserves(address(oGlp), params.addToReserveAmount);
+    }
+
+    function _addReserves(address reserveToken, uint256 totalReservesAmount) internal {
+        // Collect performance fees
+        (uint128 feeNumerator, uint128 feeDenominator) = ovToken.performanceFee();
+        (uint256 fees, uint256 reserves) = FractionalAmount.split(feeNumerator, feeDenominator, totalReservesAmount);
+        
+        if (fees != 0) {
+            emit PerformanceFeesCollected(reserveToken, fees, performanceFeeCollector);
+            IERC20(reserveToken).safeTransfer(performanceFeeCollector, fees);
+        }
+
+        // Add the oGMX as reserves into ovGMX
+        if (reserves != 0) {
+            ovToken.addReserves(reserves);
+        }
     }
 
     /// @notice Use external aggregators 0x to contract the swap transaction
