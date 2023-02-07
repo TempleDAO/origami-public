@@ -12,19 +12,19 @@ import {
     testErc20Permit
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { OrigamiSignerWithAddress, getSigners } from "../signers";
 
 describe("Repricing Token", async () => {
     let reserveToken: MintableToken;
     let repricingToken: DummyRepricingToken;
-    let owner: SignerWithAddress
-    let operator: SignerWithAddress;
-    let alan: SignerWithAddress;
-    let bob: SignerWithAddress;
-    let spender: SignerWithAddress;
+    let owner: OrigamiSignerWithAddress
+    let operator: OrigamiSignerWithAddress;
+    let alan: OrigamiSignerWithAddress;
+    let bob: OrigamiSignerWithAddress;
+    let spender: OrigamiSignerWithAddress;
 
     before(async () => {
-        [owner, operator, alan, bob, spender] = await ethers.getSigners();
+        [owner, operator, alan, bob, spender] = await getSigners();
     });
 
     async function setup() {

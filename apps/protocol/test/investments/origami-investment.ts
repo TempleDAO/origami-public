@@ -9,6 +9,7 @@ import {
     expectBalancesChangeBy, 
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { getSigners } from "../signers";
 
 describe("Origami Investment Base Class", async () => {
     let owner: Signer;
@@ -16,7 +17,7 @@ describe("Origami Investment Base Class", async () => {
     let oToken: DummyOrigamiInvestment;
     
     before( async () => {
-        [owner, alan] = await ethers.getSigners();
+        [owner, alan] = await getSigners();
     });
 
     async function setup() {

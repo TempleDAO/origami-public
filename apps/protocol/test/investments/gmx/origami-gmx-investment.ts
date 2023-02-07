@@ -17,6 +17,7 @@ import {
     ZERO_ADDRESS
 } from "../../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { getSigners } from "../../signers";
 
 describe("Origami GMX Investment", async () => {
     let owner: Signer;
@@ -31,7 +32,7 @@ describe("Origami GMX Investment", async () => {
     let randoErc20: MintableToken;
 
     before( async () => {
-        [owner, alan, feeCollector] = await ethers.getSigners();
+        [owner, alan, feeCollector] = await getSigners();
     });
     
     async function setup() {

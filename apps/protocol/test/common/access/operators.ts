@@ -5,13 +5,14 @@ import {
     DummyOperators__factory,
     DummyOperatorsUpgradeable__factory,
 } from "../../../typechain";
+import { getSigners } from "../../signers";
 
 describe("Operators", async () => {
     let owner: Signer;
     let alan: Signer;
 
     before( async () => {
-        [owner, alan] = await ethers.getSigners();
+        [owner, alan] = await getSigners();
     });
 
     it("Can add/remove/etc", async () => {

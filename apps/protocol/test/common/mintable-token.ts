@@ -3,17 +3,17 @@ import { expect } from "chai";
 import { MintableToken, MintableToken__factory } from "../../typechain";
 import { recoverToken, shouldRevertNotOwner, testErc20Permit } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { OrigamiSignerWithAddress, getSigners } from "../signers";
 
 describe("Mintable Token", async () => {
     let token: MintableToken;
-    let owner: SignerWithAddress
-    let minter: SignerWithAddress
-    let alan: SignerWithAddress
-    let spender: SignerWithAddress
+    let owner: OrigamiSignerWithAddress
+    let minter: OrigamiSignerWithAddress
+    let alan: OrigamiSignerWithAddress
+    let spender: OrigamiSignerWithAddress
 
     before(async () => {
-        [owner, minter, alan, spender] = await ethers.getSigners();
+        [owner, minter, alan, spender] = await getSigners();
     });
 
     async function setup() {

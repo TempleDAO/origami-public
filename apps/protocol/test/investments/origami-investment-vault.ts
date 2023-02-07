@@ -13,16 +13,20 @@ import {
 } from "../../typechain";
 import { 
     expectBalancesChangeBy, 
-    shouldRevertNotOwner, shouldRevertPaused, 
+    shouldRevertNotOwner, 
     ZERO_ADDRESS, EmptyBytes, 
-    slightlyGte, slightlyLte,
     getEthBalance,
     encodeInvestQuoteData,
-    decodeInvestQuoteData, 
+    decodeInvestQuoteData,
+    expectApproxEqRel, 
+    tolerance, 
+    ONE_ETH,
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { getSigners } from "../signers";
 
-const ONE_ETH = ethers.utils.parseEther("1");
+// 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
+const MAX_REL_DELTA = tolerance(0.001);
 
 describe("Origami Investment Vault", async () => {
     let owner: Signer;
@@ -39,7 +43,7 @@ describe("Origami Investment Vault", async () => {
     let rewardToken2: MintableToken;
     
     before( async () => {
-        [owner, operator, alan, bob] = await ethers.getSigners();
+        [owner, operator, alan, bob] = await getSigners();
     });
 
     async function setup() {
@@ -542,7 +546,7 @@ describe("Origami Investment Vault", async () => {
             const bobEthBefore = await getEthBalance(bob);
             const oTokenEthBefore = await getEthBalance(oToken);
 
-            await expectBalancesChangeBy(async () => { 
+            await expectBalancesChangeBy(async () => {
                 await expect(ovToken.connect(bob).investWithNative(quote.quoteData, 0, {value: amount}))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
@@ -555,7 +559,10 @@ describe("Origami Investment Vault", async () => {
 
             const bobEthAfter = await getEthBalance(bob);
             const oTokenEthAfter = await getEthBalance(oToken);
-            expect(slightlyGte(bobEthAfter.sub(bobEthBefore).mul(-1), amount, 0.0005)).true;
+
+            // A very rough expectation of gas cost to bob which gets deducted from the expected diff.
+            const expectedGas = ethers.utils.parseEther("0.0001");
+            expectApproxEqRel(bobEthAfter.sub(bobEthBefore).mul(-1).sub(expectedGas), amount, tolerance(0.01));
             expect(oTokenEthAfter.sub(oTokenEthBefore)).eq(amount);
             
             expect(await oToken.totalSupply()).eq(oTokenSupply.add(expectedNewReserves));
@@ -849,7 +856,7 @@ describe("Origami Investment Vault", async () => {
 
             const bobEthAfter = await getEthBalance(bob);
             const oTokenEthAfter = await getEthBalance(oToken);
-            expect(slightlyLte(bobEthAfter.sub(bobEthBefore), quote.quoteData.expectedToTokenAmount, 0.0005)).true;
+            expectApproxEqRel(bobEthAfter.sub(bobEthBefore), quote.quoteData.expectedToTokenAmount, MAX_REL_DELTA);
             expect(oTokenEthAfter.sub(oTokenEthBefore).mul(-1)).eq(quote.quoteData.expectedToTokenAmount);
             
             expect(await oToken.totalSupply()).eq(oTokenSupply.sub(expectedReserveAmount));
@@ -923,7 +930,7 @@ describe("Origami Investment Vault", async () => {
             .mul(99).div(100) // 1% invest fee
             .mul(reservesPerShare).div(one_eth)
             .mul(95).div(100);  // 5% exit fee
-        expect(slightlyGte(finalAmount, expectedFinalAmount, BigNumber.from(10000)));
+        expectApproxEqRel(finalAmount, expectedFinalAmount, MAX_REL_DELTA);
     });
 
     it("Calculate APR", async () => {

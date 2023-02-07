@@ -14,6 +14,7 @@ import {
 import { forkMainnet, shouldRevertNotOwner, ZERO_ADDRESS } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { deployGmx } from "../investments/gmx/gmx-helpers";
+import { getSigners } from "../signers";
 
 const AVAX_RPC = "https://api.avax.network/ext/bc/C/rpc";
 const ARBITRUM_RPC = "https://rpc.ankr.com/arbitrum";
@@ -28,7 +29,7 @@ describe("Token Prices", async () => {
     const pricePrecision = 30;
 
     before( async () => {
-        [owner, alan] = await ethers.getSigners();
+        [owner, alan] = await getSigners();
         tokenPricesInterface = new ethers.utils.Interface(JSON.stringify(TokenPrices__factory.abi));
     });
 

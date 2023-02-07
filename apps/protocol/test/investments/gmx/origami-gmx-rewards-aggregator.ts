@@ -3,8 +3,14 @@ import { Signer, BigNumber } from "ethers";
 import { expect } from "chai";
 import { 
     mineForwardSeconds,
-    ZERO_ADDRESS, recoverToken, 
-    shouldRevertNotOwner, slightlyGte, deployUupsProxy, slightlyLte, shouldRevertNotOperator
+    ZERO_ADDRESS, 
+    recoverToken, 
+    shouldRevertNotOwner, 
+    deployUupsProxy, 
+    shouldRevertNotOperator, 
+    expectApproxEqAbs,
+    expectApproxEqRel, 
+    tolerance
 } from "../../helpers";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
@@ -22,6 +28,10 @@ import {
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { GmxVaultType, encodeGlpHarvestParams, encodeGmxHarvestParams } from "../../../scripts/deploys/helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { getSigners } from "../../signers";
+
+// 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
+const MAX_REL_DELTA = tolerance(0.001);
 
 describe("Origami GMX Rewards Aggregator", async () => {
     let owner: Signer;
@@ -55,7 +65,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
     const esGmxPerSecond = BigNumber.from("20667989410000000"); // 0.02066798941 esGmx per second
 
     before( async () => {
-        [owner, bob, alan, operator, feeCollector, compoundingFeeCollector] = await ethers.getSigners();
+        [owner, bob, alan, operator, feeCollector, compoundingFeeCollector] = await getSigners();
     });
 
     async function setup() {
@@ -73,7 +83,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 gmxContracts.wrappedNativeToken.address,
                 ethers.utils.parseEther("1"), // Use a price of 1 ETH == 100 GMX
                 ethers.utils.parseEther("100"),
-            )
+            );
             await gmxContracts.gmxToken.mint(dex.address, ethers.utils.parseEther("100000"));
             await gmxContracts.wrappedNativeToken.mint(dex.address,  ethers.utils.parseEther("100000"));
         }
@@ -467,8 +477,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
             // GLP aggregator gets ~50% of staked GLP rewards
             harvestableRewardsGlp = await origamiGlpRewardsAggr.harvestableRewards();
             const {primaryGlpRatio, } = await getOrigamiStakedGlpRatios(precision);
-            expect(slightlyGte(harvestableRewardsGlp[0], ethPerSecond.mul(86402).mul(primaryGlpRatio).div(precision), 0.0001)).eq(true);
-            expect(slightlyGte(harvestableRewardsGlp[1], esGmxPerSecond.mul(86402).mul(primaryGlpRatio).div(precision), 0.01)).eq(true);
+            expectApproxEqRel(harvestableRewardsGlp[0], ethPerSecond.mul(86402).mul(primaryGlpRatio).div(precision), MAX_REL_DELTA);
+            expectApproxEqRel(harvestableRewardsGlp[1], esGmxPerSecond.mul(86402).mul(primaryGlpRatio).div(precision), MAX_REL_DELTA);
             expect(harvestableRewardsGlp[2]).eq(0); // No carry over oGlp yet
 
             // Harvest such that we stake the earnt esGMX
@@ -480,8 +490,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
             const {primaryGlpRatio: primaryGlpRatio2, } = await getOrigamiStakedGlpRatios(precision);
 
             const existingBalances = await getAggregatorRewardBalances(origamiGlpRewardsAggr);
-            expect(slightlyGte(harvestableRewardsGlp[0].sub(existingBalances.weth), ethPerSecond.mul(86400).mul(primaryGlpRatio2).div(precision), 0.0001)).eq(true);
-            expect(slightlyGte(harvestableRewardsGlp[1].sub(existingBalances.oGmx), esGmxPerSecond.mul(86400).mul(primaryGlpRatio2).div(precision), 0.0001)).eq(true);
+            expectApproxEqRel(harvestableRewardsGlp[0].sub(existingBalances.weth), ethPerSecond.mul(86400).mul(primaryGlpRatio2).div(precision), MAX_REL_DELTA);
+            expectApproxEqRel(harvestableRewardsGlp[1].sub(existingBalances.oGmx), esGmxPerSecond.mul(86400).mul(primaryGlpRatio2).div(precision), MAX_REL_DELTA);
 
             const feeCollectorBalanceAfter = await oGlpToken.balanceOf(compoundingFeeCollector.getAddress());
 
@@ -516,8 +526,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
             // GMX aggregator gets 50% of staked GMX rewards
             harvestableRewardsGmx = await origamiGmxRewardsAggr.harvestableRewards();
             let {expectedEsGmxRatio, expectedEthRatio} = await getOrigamiStakedGmxRatios(precision);
-            expect(slightlyGte(harvestableRewardsGmx[0], ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), 0.00001)).eq(true);
-            expect(slightlyGte(harvestableRewardsGmx[1], esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), 0.01)).eq(true);
+            expectApproxEqRel(harvestableRewardsGmx[0], ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), MAX_REL_DELTA);
+            expectApproxEqRel(harvestableRewardsGmx[1], esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), MAX_REL_DELTA);
             expect(harvestableRewardsGmx[2]).eq(0); // No oGLP
 
             await harvestGmx();
@@ -527,8 +537,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
             harvestableRewardsGmx = await origamiGmxRewardsAggr.harvestableRewards();
             ({expectedEsGmxRatio, expectedEthRatio} = await getOrigamiStakedGmxRatios(precision));
             const existingBalances = await getAggregatorRewardBalances(origamiGmxRewardsAggr);
-            expect(slightlyGte(harvestableRewardsGmx[0].sub(existingBalances.weth), ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), 0.0001)).eq(true);
-            expect(slightlyGte(harvestableRewardsGmx[1].sub(existingBalances.oGmx), esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), 0.0001)).eq(true);
+            expectApproxEqRel(harvestableRewardsGmx[0].sub(existingBalances.weth), ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), MAX_REL_DELTA);
+            expectApproxEqRel(harvestableRewardsGmx[1].sub(existingBalances.oGmx), esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), MAX_REL_DELTA);
             expect(harvestableRewardsGmx[2]).eq(0); // No oGLP
         });
 
@@ -580,8 +590,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 
                 // GLP aggregator gets 50% of staked GLP rewards\
                 const {primaryGlpRatio, } = await getOrigamiStakedGlpRatios(precision);
-                expect(slightlyGte(harvestableRewardsGlp[0], ethPerSecond.mul(86405).mul(primaryGlpRatio).div(precision), 0.001)).eq(true);
-                expect(slightlyGte(harvestableRewardsGlp[1], esGmxPerSecond.mul(86405).mul(primaryGlpRatio).div(precision), 0.001)).eq(true);
+                expectApproxEqRel(harvestableRewardsGlp[0], ethPerSecond.mul(86405).mul(primaryGlpRatio).div(precision), MAX_REL_DELTA);
+                expectApproxEqRel(harvestableRewardsGlp[1], esGmxPerSecond.mul(86405).mul(primaryGlpRatio).div(precision), MAX_REL_DELTA);
                 expect(harvestableRewardsGlp[2]).eq(0);
             }
                 
@@ -590,8 +600,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 harvestableRewardsGmx = await origamiGmxRewardsAggr.harvestableRewards();
 
                 const { expectedEsGmxRatio, expectedEthRatio} = await getOrigamiStakedGmxRatios(precision);
-                expect(slightlyGte(harvestableRewardsGmx[0], ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), 0.001)).eq(true);
-                expect(slightlyGte(harvestableRewardsGmx[1], esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), 0.001)).eq(true);
+                expectApproxEqRel(harvestableRewardsGmx[0], ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), MAX_REL_DELTA);
+                expectApproxEqRel(harvestableRewardsGmx[1], esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), MAX_REL_DELTA);
                 expect(harvestableRewardsGlp[2]).eq(0);
             }
 
@@ -605,8 +615,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 const existingGlpBalances = await getAggregatorRewardBalances(origamiGlpRewardsAggr);
                 const {primaryGlpRatio, } = await getOrigamiStakedGlpRatios(precision);
 
-                expect(slightlyGte(harvestableRewardsGlp[0].sub(existingGlpBalances.weth), ethPerSecond.mul(86400).mul(primaryGlpRatio).div(precision), 0.001)).eq(true);
-                expect(slightlyGte(harvestableRewardsGlp[1].sub(existingGlpBalances.oGmx), esGmxPerSecond.mul(86400).mul(primaryGlpRatio).div(precision), 0.001)).eq(true);
+                expectApproxEqRel(harvestableRewardsGlp[0].sub(existingGlpBalances.weth), ethPerSecond.mul(86400).mul(primaryGlpRatio).div(precision), MAX_REL_DELTA);
+                expectApproxEqRel(harvestableRewardsGlp[1].sub(existingGlpBalances.oGmx), esGmxPerSecond.mul(86400).mul(primaryGlpRatio).div(precision), MAX_REL_DELTA);
                 expect(harvestableRewardsGlp[2]).eq(existingGlpBalances.oGlp); // We left 10% of the amount in to carry over
             }
 
@@ -620,8 +630,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 //   staked esGMX+mult point rewards (from staked GLP rewards)
                 harvestableRewardsGmx = await origamiGmxRewardsAggr.harvestableRewards();
                 const existingGmxBalances = await getAggregatorRewardBalances(origamiGmxRewardsAggr);
-                expect(slightlyGte(harvestableRewardsGmx[0].sub(existingGmxBalances.weth), ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), 0.01)).eq(true);
-                expect(slightlyGte(harvestableRewardsGmx[1].sub(existingGmxBalances.oGmx), esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), 0.01)).eq(true);
+                expectApproxEqRel(harvestableRewardsGmx[0].sub(existingGmxBalances.weth), ethPerSecond.mul(86400).mul(expectedEthRatio).div(precision), MAX_REL_DELTA);
+                expectApproxEqRel(harvestableRewardsGmx[1].sub(existingGmxBalances.oGmx), esGmxPerSecond.mul(86400).mul(expectedEsGmxRatio).div(precision), MAX_REL_DELTA);
                 expect(harvestableRewardsGmx[2]).eq(0); // No oGLP
             }
         });
@@ -677,16 +687,16 @@ describe("Origami GMX Rewards Aggregator", async () => {
             {
                 rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates(true);
                 const {primaryGlpRatio, secondaryGlpRatio} = await getOrigamiStakedGlpRatios(precision);
-                expect(slightlyGte(rewardRatesGlp[0], removePerfFee(ethPerSecond.mul(primaryGlpRatio.add(secondaryGlpRatio)).div(precision)), 0.0001)).eq(true);
-                expect(slightlyGte(rewardRatesGlp[1], removePerfFee(esGmxPerSecond.mul(primaryGlpRatio).div(precision)), 0.0001)).eq(true);
+                expectApproxEqRel(rewardRatesGlp[0], removePerfFee(ethPerSecond.mul(primaryGlpRatio.add(secondaryGlpRatio)).div(precision)), MAX_REL_DELTA);
+                expectApproxEqRel(rewardRatesGlp[1], removePerfFee(esGmxPerSecond.mul(primaryGlpRatio).div(precision)), MAX_REL_DELTA);
             }
 
             // Check GMX
             {
                 rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates(true);
                 const { expectedEsGmxRatio, expectedEthRatio } = await getOrigamiStakedGmxRatios(precision);
-                expect(slightlyGte(rewardRatesGmx[0], removePerfFee(ethPerSecond.mul(expectedEthRatio).div(precision)), 0.0001)).eq(true);
-                expect(slightlyGte(rewardRatesGmx[1], removePerfFee(esGmxPerSecond.mul(expectedEsGmxRatio).div(precision)), 0.0001)).eq(true);
+                expectApproxEqRel(rewardRatesGmx[0], removePerfFee(ethPerSecond.mul(expectedEthRatio).div(precision)), MAX_REL_DELTA);
+                expectApproxEqRel(rewardRatesGmx[1], removePerfFee(esGmxPerSecond.mul(expectedEsGmxRatio).div(precision)), MAX_REL_DELTA);
             }
 
             await harvestGlp();
@@ -696,8 +706,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
             // Now GLP aggregator still only gets 50% of staked GLP rewards
             rewardRatesGlp = await origamiGlpRewardsAggr.projectedRewardRates(true);
             const {primaryGlpRatio, secondaryGlpRatio} = await getOrigamiStakedGlpRatios(precision);
-            expect(slightlyGte(rewardRatesGlp[0], removePerfFee(ethPerSecond.mul(primaryGlpRatio.add(secondaryGlpRatio)).div(precision)), 0.0001)).eq(true);
-            expect(slightlyGte(rewardRatesGlp[1], removePerfFee(esGmxPerSecond.mul(primaryGlpRatio).div(precision)), 0.0001)).eq(true);
+            expectApproxEqRel(rewardRatesGlp[0], removePerfFee(ethPerSecond.mul(primaryGlpRatio.add(secondaryGlpRatio)).div(precision)), MAX_REL_DELTA);
+            expectApproxEqRel(rewardRatesGlp[1], removePerfFee(esGmxPerSecond.mul(primaryGlpRatio).div(precision)), MAX_REL_DELTA);
 
             // But the GMX aggregator gets rewards based off it's total GMX+esGMX 
             // from both the GMX and GLP manager vs the rest of the pool (bob had 50% originally)
@@ -707,13 +717,13 @@ describe("Origami GMX Rewards Aggregator", async () => {
             //   staked esGMX+mult point rewards (from staked GMX rewards)
             //   staked esGMX+mult point rewards (from staked GLP rewards)
             rewardRatesGmx = await origamiGmxRewardsAggr.projectedRewardRates(true);
-            expect(slightlyGte(rewardRatesGmx[0], removePerfFee(ethPerSecond.mul(expectedEthRatio).div(precision)), 0.0001)).eq(true);
-            expect(slightlyGte(rewardRatesGmx[1], removePerfFee(esGmxPerSecond.mul(expectedEsGmxRatio).div(precision)), 0.0001)).eq(true);
+            expectApproxEqRel(rewardRatesGmx[0], removePerfFee(ethPerSecond.mul(expectedEthRatio).div(precision)), MAX_REL_DELTA);
+            expectApproxEqRel(rewardRatesGmx[1], removePerfFee(esGmxPerSecond.mul(expectedEsGmxRatio).div(precision)), MAX_REL_DELTA);
 
             // projected rewards without taking out performance fees matches (slight rounding)
             const rewardRatesGmxNoFees = await origamiGmxRewardsAggr.projectedRewardRates(false);
-            expect(slightlyLte(removePerfFee(rewardRatesGmxNoFees[0]), rewardRatesGmx[0], BigNumber.from(1))).eq(true);
-            expect(slightlyLte(removePerfFee(rewardRatesGmxNoFees[1]), rewardRatesGmx[1], BigNumber.from(1))).eq(true);
+            expectApproxEqRel(removePerfFee(rewardRatesGmxNoFees[0]), rewardRatesGmx[0], MAX_REL_DELTA);
+            expectApproxEqRel(removePerfFee(rewardRatesGmxNoFees[1]), rewardRatesGmx[1], MAX_REL_DELTA);
         });
     });
 
@@ -739,20 +749,19 @@ describe("Origami GMX Rewards Aggregator", async () => {
 
         const harvestAndCheckGmx = async () => {
             const reservesBefore = await ovGmxToken.totalReserves();
-            const feeCollectorBalanceBefore = await ovGmxToken.balanceOf(compoundingFeeCollector.getAddress());
+            const feeCollectorBalanceBefore = await oGmxToken.balanceOf(compoundingFeeCollector.getAddress());
             const {totalOGmxAvailable, reservesAddedAfterFee} = await harvestGmx();
             const reservesAfter = await ovGmxToken.totalReserves();
             const reservesAdded = reservesAfter.sub(reservesBefore);
-            expect(reservesAdded).gte(reservesAddedAfterFee);
-            expect(reservesAdded).lte(reservesAddedAfterFee.add(1)); // rounding
+            expectApproxEqAbs(reservesAdded, reservesAddedAfterFee, 1); // div rounding
 
             // Dust left for eth/oGMX. 10% left in oGLP that wasn't added as reserves
             const balances = await getAggregatorRewardBalances(origamiGmxRewardsAggr);
             expect(balances.weth).lt(ethers.utils.parseEther("0.1"));
 
-            const feeCollectorBalanceAfter = await oGlpToken.balanceOf(compoundingFeeCollector.getAddress());
+            const feeCollectorBalanceAfter = await oGmxToken.balanceOf(compoundingFeeCollector.getAddress());
             const feesCollected = feeCollectorBalanceAfter.sub(feeCollectorBalanceBefore);
-            expect(slightlyGte(balances.oGmx.add(reservesAdded).add(feesCollected), totalOGmxAvailable, 0.1));
+            expectApproxEqRel(balances.oGmx.add(reservesAdded).add(feesCollected), totalOGmxAvailable, MAX_REL_DELTA);
             expect(balances.oGlp).eq(0);
         }
 

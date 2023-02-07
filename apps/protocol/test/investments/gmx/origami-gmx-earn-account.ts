@@ -4,9 +4,14 @@ import { expect } from "chai";
 import { 
     blockTimestamp,
     deployUupsProxy,
-    mineForwardSeconds, recoverToken, 
+    expectApproxEqRel,
+    mineForwardSeconds, 
+    recoverToken, 
     shouldRevertNotOwner, 
-    slightlyGte, upgradeUupsProxy, upgradeUupsProxyAndCall, ZERO_ADDRESS, 
+    tolerance, 
+    upgradeUupsProxy, 
+    upgradeUupsProxyAndCall, 
+    ZERO_ADDRESS, 
 } from "../../helpers";
 import { 
     IGmxVester, IGmxVester__factory, GMX_Vester__factory,
@@ -18,6 +23,11 @@ import { GmxContracts, decodeGlpUnderlyingInvestQuoteData, deployGmx, updateDist
 import { Result } from "ethers/lib/utils";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { GmxVaultType } from "../../../scripts/deploys/helpers";
+import { getSigners } from "../../signers";
+
+// 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
+const MAX_REL_DELTA = tolerance(0.001);
+const BN_ZERO = BigNumber.from(0);
 
 describe("Origami GMX Earn Account", async () => {
     let owner: Signer;
@@ -34,10 +44,11 @@ describe("Origami GMX Earn Account", async () => {
     const esGmxPerSecond = BigNumber.from("20667989410000000"); // 0.02066798941 esGmx per second
 
     before( async () => {
-        [owner, alan, bob, operator] = await ethers.getSigners();
+        [owner, alan, bob, operator] = await getSigners();
     });
     
     async function setup() {
+        const startTs = await blockTimestamp();
         gmxContracts = await deployGmx(owner, esGmxPerSecond, esGmxPerSecond, ethPerSecond, ethPerSecond);
 
         // Mint some GMX to owner
@@ -64,6 +75,11 @@ describe("Origami GMX Earn Account", async () => {
             origamiGmxEarnAccount.address,
             ZERO_ADDRESS, // No secondary account required for this test.
         );
+        
+        // Ensure the starting timestamp is always consistent (1000 seconds) so the known rewards are locked in.
+        // Sometimes `yarn coverage` vs `yarn test` has an extra second or two within the deploy steps.
+        const elapsedSecs = (await blockTimestamp()) - startTs;
+        await mineForwardSeconds(1000 - elapsedSecs);
 
         return {
             gmxContracts,
@@ -396,7 +412,7 @@ describe("Origami GMX Earn Account", async () => {
             }
 
             const expiry = await origamiGmxEarnAccount.glpInvestmentCooldownExpiry();
-            expect(slightlyGte(expiry, BigNumber.from(now+15*60), 5)).eq(true);
+            expectApproxEqRel(expiry, BigNumber.from(now+15*60), MAX_REL_DELTA);
 
             const transfer1Amount = glpAmount.div(2);
             const transfer2Amount = glpAmount.sub(transfer1Amount);
@@ -623,8 +639,8 @@ describe("Origami GMX Earn Account", async () => {
 
             const stakeAmount = ethers.utils.parseEther("250");
 
-            let expectedStakedGmxAmount = BigNumber.from(0);
-            let expectedStakedGlpAmount = BigNumber.from(0);
+            let expectedStakedGmxAmount = BN_ZERO;
+            let expectedStakedGlpAmount = BN_ZERO;
             if (useGlp) {
                 await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, stakeAmount);
                 const origamiGmxManager = await new OrigamiGmxManager__factory(owner).deploy(
@@ -999,43 +1015,44 @@ describe("Origami GMX Earn Account", async () => {
 
     describe("Positions", async () => {
         async function verifyPositions(
-            unstakedGmx: BigNumber = BigNumber.from(0),
-            stakedGmx: BigNumber = BigNumber.from(0),
-            unstakedEsGmx: BigNumber = BigNumber.from(0),
-            stakedEsGmx: BigNumber = BigNumber.from(0),
-            stakedMultiplierPoints: BigNumber = BigNumber.from(0),
-            claimableNativeFromGmx: BigNumber = BigNumber.from(0),
-            claimableEsGmxFromGmx: BigNumber = BigNumber.from(0),
-            claimableMultPointsFromGmx: BigNumber = BigNumber.from(0),
-            vestingEsGmxFromGmx: BigNumber = BigNumber.from(0),
-            claimableVestedGmxFromGmx: BigNumber = BigNumber.from(0),
+            unstakedGmx: BigNumber = BN_ZERO,
+            stakedGmx: BigNumber = BN_ZERO,
+            unstakedEsGmx: BigNumber = BN_ZERO,
+            stakedEsGmx: BigNumber = BN_ZERO,
+            stakedMultiplierPoints: BigNumber = BN_ZERO,
+            claimableNativeFromGmx: BigNumber = BN_ZERO,
+            claimableEsGmxFromGmx: BigNumber = BN_ZERO,
+            claimableMultPointsFromGmx: BigNumber = BN_ZERO,
+            vestingEsGmxFromGmx: BigNumber = BN_ZERO,
+            claimableVestedGmxFromGmx: BigNumber = BN_ZERO,
 
-            stakedGlp: BigNumber = BigNumber.from(0),
-            claimableNativeFromGlp: BigNumber = BigNumber.from(0),
-            claimableEsGmxFromGlp: BigNumber = BigNumber.from(0),
-            vestingEsGmxFromGlp: BigNumber = BigNumber.from(0),
-            claimableVestedGmxFromGlp: BigNumber = BigNumber.from(0),
+            stakedGlp: BigNumber = BN_ZERO,
+            claimableNativeFromGlp: BigNumber = BN_ZERO,
+            claimableEsGmxFromGlp: BigNumber = BN_ZERO,
+            vestingEsGmxFromGlp: BigNumber = BN_ZERO,
+            claimableVestedGmxFromGlp: BigNumber = BN_ZERO,
         ) {
-            const delta = 0.1;
             const {gmxPositions, glpPositions} = await origamiGmxEarnAccount.positions();
-            expect(slightlyGte(gmxPositions.unstakedGmx, unstakedGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.stakedGmx, stakedGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.unstakedEsGmx, unstakedEsGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.stakedEsGmx, stakedEsGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.stakedMultiplierPoints, stakedMultiplierPoints, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.claimableNative, claimableNativeFromGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.claimableEsGmx, claimableEsGmxFromGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.claimableMultPoints, claimableMultPointsFromGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.vestingEsGmx, vestingEsGmxFromGmx, delta)).eq(true);
-            expect(slightlyGte(gmxPositions.claimableVestedGmx, claimableVestedGmxFromGmx, delta)).eq(true);
+            expect(gmxPositions.unstakedGmx).eq(unstakedGmx);
+            expect(gmxPositions.stakedGmx).eq(stakedGmx);
+            expect(gmxPositions.unstakedEsGmx).eq(unstakedEsGmx);
+            expect(gmxPositions.stakedEsGmx).eq(stakedEsGmx);
+            expect(gmxPositions.stakedMultiplierPoints).eq(stakedMultiplierPoints);
+            expect(gmxPositions.claimableNative).eq(claimableNativeFromGmx);
+            expect(gmxPositions.claimableEsGmx).eq(claimableEsGmxFromGmx);
+            expect(gmxPositions.claimableMultPoints).eq(claimableMultPointsFromGmx);
+            expect(gmxPositions.vestingEsGmx).eq(vestingEsGmxFromGmx);
+            expect(gmxPositions.claimableVestedGmx).eq(claimableVestedGmxFromGmx);
 
-            expect(slightlyGte(glpPositions.stakedGlp, stakedGlp, delta)).eq(true);
-            expect(slightlyGte(glpPositions.claimableNative, claimableNativeFromGlp, delta)).eq(true);
-            expect(slightlyGte(glpPositions.claimableEsGmx, claimableEsGmxFromGlp, delta)).eq(true);
-            expect(slightlyGte(glpPositions.vestingEsGmx, vestingEsGmxFromGlp, delta)).eq(true);
-            expect(slightlyGte(glpPositions.claimableVestedGmx, claimableVestedGmxFromGlp, delta)).eq(true);
+            expect(glpPositions.stakedGlp).eq(stakedGlp);
+            expect(glpPositions.claimableNative).eq(claimableNativeFromGlp);
+            expect(glpPositions.claimableEsGmx).eq(claimableEsGmxFromGlp);
+            expect(glpPositions.vestingEsGmx).eq(vestingEsGmxFromGlp);
+            expect(glpPositions.claimableVestedGmx).eq(claimableVestedGmxFromGlp);
         }
 
+        // NB: Not testing the underlying GMX calcs of what rewards we get (that's done elsewhere)
+        // -- just that the position amounts match expectation. So pluming exact reward numbers in directly.
         it("gmx based positions", async () => {
             // Starts off empty
             await verifyPositions();
@@ -1044,7 +1061,8 @@ describe("Origami GMX Earn Account", async () => {
             const amount = ethers.utils.parseEther("250");
             await gmxContracts.gmxToken.transfer(origamiGmxEarnAccount.address, amount.mul(2));
             await origamiGmxEarnAccount.connect(operator).stakeGmx(amount);
-            await verifyPositions(amount, amount);
+            let claimableMultPoints = ethers.utils.parseEther("0.007546930492135971");
+            await verifyPositions(amount, amount, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, claimableMultPoints);
 
             // claim + stake esGMX + mult points
             await mineForwardSeconds(86400);
@@ -1060,13 +1078,13 @@ describe("Origami GMX Earn Account", async () => {
 
             // staked esGMX and mult points have now increased after claiming+staking
             const expectedStakedEsGmx = ethers.utils.parseEther("1785.73495301341");
-            const expectedStakedMultPoints = ethers.utils.parseEther("0.685533992897006595");
-            await verifyPositions(amount, amount, BigNumber.from(0), expectedStakedEsGmx, expectedStakedMultPoints);
+            const expectedStakedMultPoints = ethers.utils.parseEther("0.692486364789446981");
+            await verifyPositions(amount, amount, BN_ZERO, expectedStakedEsGmx, expectedStakedMultPoints);
 
             // Unstake some esGMX
             const unstakedEsGmx = ethers.utils.parseEther("1000");
             await origamiGmxEarnAccount.connect(operator).unstakeEsGmx(unstakedEsGmx);
-            const expectedStakedMultPoints2 = ethers.utils.parseEther("0.348816714274067925"); // mult points get burnt from unstaking esGMX
+            const expectedStakedMultPoints2 = ethers.utils.parseEther("0.352353920610624382"); // mult points get burnt from unstaking esGMX
             let updatedStakedEsGMX = expectedStakedEsGmx.sub(unstakedEsGmx);
             let claimableNative = ethers.utils.parseEther("0.000041335969999999");
             let claimableEsGmx = ethers.utils.parseEther("0.020667989409999999");
@@ -1079,7 +1097,7 @@ describe("Origami GMX Earn Account", async () => {
             updatedStakedEsGMX = updatedStakedEsGMX.add(restakedEsGmx);
             claimableNative = ethers.utils.parseEther("0.000082671939999998");
             claimableEsGmx = ethers.utils.parseEther("0.041335978819999998");
-            let claimableMultPoints = ethers.utils.parseEther("0.000032842939910368");
+            claimableMultPoints = ethers.utils.parseEther("0.000032842939910368");
             await verifyPositions(amount, amount, updatedUnstakedEsGmx, updatedStakedEsGMX, expectedStakedMultPoints2, claimableNative, claimableEsGmx, claimableMultPoints);
 
             // Deposit some esGMX into vesting
@@ -1110,8 +1128,8 @@ describe("Origami GMX Earn Account", async () => {
             const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
             await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedQuote.expectedUsdg, quote.expectedInvestmentAmount, 0);
             await verifyPositions(
-                BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0),
-                BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), 
+                BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO,
+                BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, 
                 quote.expectedInvestmentAmount);
 
             // claim + stake esGMX + mult points
@@ -1128,24 +1146,24 @@ describe("Origami GMX Earn Account", async () => {
 
             // staked esGMX and mult points have now increased after claiming+staking
             const expectedStakedEsGmx = ethers.utils.parseEther("1785.734953013409999999");
-            const expectedStakedMultPoints = ethers.utils.parseEther("4.896728050380125669");
+            const expectedStakedMultPoints = ethers.utils.parseEther("4.946388424358840807");
             await verifyPositions(
-                BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), expectedStakedEsGmx, expectedStakedMultPoints, 
-                BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), 
+                BN_ZERO, BN_ZERO, BN_ZERO, expectedStakedEsGmx, expectedStakedMultPoints, 
+                BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, 
                 quote.expectedInvestmentAmount);
 
             // Unstake some esGMX
             const unstakedEsGmx = ethers.utils.parseEther("1000");
             await origamiGmxEarnAccount.connect(operator).unstakeEsGmx(unstakedEsGmx);
-            const expectedStakedMultPoints2 = ethers.utils.parseEther("2.154616994284013716"); // mult points get burnt from unstaking esGMX
+            const expectedStakedMultPoints2 = ethers.utils.parseEther("2.176467880692967311"); // mult points get burnt from unstaking esGMX
             let updatedStakedEsGMX = expectedStakedEsGmx.sub(unstakedEsGmx);
             let claimableNativeFromGmx = ethers.utils.parseEther("0.000041335969999999");
             let claimableEsGmxFromGmx = ethers.utils.parseEther("0.020667989409999999");
             let claimableNativeFromGlp = ethers.utils.parseEther("0.000041335969999999");
             let claimableEsGmxFromGlp = ethers.utils.parseEther("0.020667989409999999");
             await verifyPositions(
-                BigNumber.from(0), BigNumber.from(0), unstakedEsGmx, updatedStakedEsGMX, expectedStakedMultPoints2,
-                claimableNativeFromGmx, claimableEsGmxFromGmx, BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), 
+                BN_ZERO, BN_ZERO, unstakedEsGmx, updatedStakedEsGMX, expectedStakedMultPoints2,
+                claimableNativeFromGmx, claimableEsGmxFromGmx, BN_ZERO, BN_ZERO, BN_ZERO, 
                 quote.expectedInvestmentAmount, claimableNativeFromGlp, claimableEsGmxFromGlp);
 
             // Deposit some esGMX into GLP vesting
@@ -1154,25 +1172,26 @@ describe("Origami GMX Earn Account", async () => {
             claimableEsGmxFromGmx = ethers.utils.parseEther("0.041335978819999998");
             claimableNativeFromGlp = ethers.utils.parseEther("0.000082671939999999");
             claimableEsGmxFromGlp = ethers.utils.parseEther("0.041335978819999999");
+            let claimableMultPointsFromGmx = ethers.utils.parseEther("0.000024915491914427");
             await origamiGmxEarnAccount.connect(operator).depositIntoEsGmxVesting(gmxContracts.glpVester.address, vestingEsGmx);
             await verifyPositions(
-                BigNumber.from(0), BigNumber.from(0), unstakedEsGmx.sub(vestingEsGmx), updatedStakedEsGMX, expectedStakedMultPoints2,
-                claimableNativeFromGmx, claimableEsGmxFromGmx, BigNumber.from(0), BigNumber.from(0), BigNumber.from(0), 
-                quote.expectedInvestmentAmount, claimableNativeFromGlp, claimableEsGmxFromGlp, vestingEsGmx, BigNumber.from(0));
+                BN_ZERO, BN_ZERO, unstakedEsGmx.sub(vestingEsGmx), updatedStakedEsGMX, expectedStakedMultPoints2,
+                claimableNativeFromGmx, claimableEsGmxFromGmx, claimableMultPointsFromGmx, BN_ZERO, BN_ZERO, 
+                quote.expectedInvestmentAmount, claimableNativeFromGlp, claimableEsGmxFromGlp, vestingEsGmx, BN_ZERO);
 
             // Wait some time and we have claimable vested GMX from esGMX
             await mineForwardSeconds(86400);
 
             claimableNativeFromGmx = ethers.utils.parseEther("3.571510479939999998");
             claimableEsGmxFromGmx = ethers.utils.parseEther("1785.755621002819999998");
-            let claimableMultPoints = ethers.utils.parseEther("2.152723416898517166");
+            claimableMultPointsFromGmx = ethers.utils.parseEther("2.152723416898517166");
 
             claimableNativeFromGlp = ethers.utils.parseEther("3.571510479939999999");
             claimableEsGmxFromGlp = ethers.utils.parseEther("1785.755621002819999999");
             const expectedClaimableGmx = ethers.utils.parseEther("0.342465753424657534");
             await verifyPositions(
-                BigNumber.from(0), BigNumber.from(0), unstakedEsGmx.sub(vestingEsGmx), updatedStakedEsGMX, expectedStakedMultPoints2,
-                claimableNativeFromGmx, claimableEsGmxFromGmx, claimableMultPoints, BigNumber.from(0), BigNumber.from(0), 
+                BN_ZERO, BN_ZERO, unstakedEsGmx.sub(vestingEsGmx), updatedStakedEsGMX, expectedStakedMultPoints2,
+                claimableNativeFromGmx, claimableEsGmxFromGmx, claimableMultPointsFromGmx, BN_ZERO, BN_ZERO, 
                 quote.expectedInvestmentAmount, claimableNativeFromGlp, claimableEsGmxFromGlp, vestingEsGmx, expectedClaimableGmx);
         });
     });

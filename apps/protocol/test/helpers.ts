@@ -4,16 +4,14 @@ import { assert, expect } from "chai";
 import { CommonEventsAndErrors__factory, ERC20Permit, IOrigamiInvestment } from "../typechain";
 import { impersonateAccount, time as timeHelpers } from "@nomicfoundation/hardhat-network-helpers";
 import { isAddress, splitSignature } from "ethers/lib/utils";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { AssertionError } from "assert";
+import { OrigamiSignerWithAddress } from "./signers";
 
 export const EmptyBytes = "0x";
+export const ONE_ETH = ethers.utils.parseEther("1");
 
 export async function shouldRevertNotOwner(p: Promise<any>) {
   await expect(p).to.be.revertedWith("Ownable: caller is not the owner");
-}
-
-export async function shouldRevertPaused(p: Promise<any>) {
-  await expect(p).to.be.revertedWith("Pausable: paused");
 }
 
 export async function shouldRevertErc20Balance(p: Promise<any>) {
@@ -211,28 +209,83 @@ export function fromAtto(n: BigNumber): number {
 
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export const slightlyGte = (lhs: BigNumber, rhs: BigNumber, epsilon: BigNumberish) => {
-  if (typeof epsilon === 'number') {
-    epsilon = toAtto(epsilon);
-  }
-
-  // console.log("slightlyGte", lhs, rhs, epsilon, lhs.gte(rhs) && lhs.lte(rhs.add(epsilon)));
-  return lhs.gte(rhs) && lhs.lte(rhs.add(epsilon));
-} 
-
-export const slightlyLte = (lhs: BigNumber, rhs: BigNumber, epsilon: BigNumberish) => {
-    if (typeof epsilon === 'number') {
-      epsilon = toAtto(epsilon);
-    }
-  
-    // console.log("slightlyLte", lhs, rhs, epsilon, lhs.lte(rhs) && lhs.gte(rhs.sub(epsilon)));
-    return lhs.lte(rhs) && lhs.gte(rhs.sub(epsilon));
+export const delta = (a: BigNumberish, b: BigNumberish): BigNumber => {
+    return BigNumber.from(a).gt(b) ? BigNumber.from(a).sub(b) : BigNumber.from(b).sub(a);
 }
 
-// Hardhat matcher predicate, where the value matches an expected value 
-// to within a certain precision.
-export const slightlyGtePred = (rhs: BigNumber, epsilon: number) => {
-  return (lhs: BigNumber) => slightlyGte(lhs, rhs, epsilon);
+export const percentDelta = (a: BigNumberish, b: BigNumberish): BigNumber => {
+    return delta(a, b).mul(ONE_ETH).div(b);
+}
+
+// deltaPct of 1.0 == 100%
+export const tolerance = (deltaPct: number): BigNumber => {
+    const pctStr = (deltaPct / 100).toString();
+    return ethers.utils.parseEther(pctStr);
+}
+
+export const expectApproxEqAbs = (actual: BigNumberish, expected: BigNumberish, maxDelta: BigNumberish) => {
+    const d = delta(actual, expected);
+
+    if (d.gt(maxDelta)) {
+        console.error("Error: a ~= b not satisfied");
+        console.log("  Expected:", expected);
+        console.log("    Actual:", actual);
+        console.log(" Max Delta:", maxDelta);
+        console.log("     Delta:", d);
+    // } else {
+    //     //     // Uncomment to also show when it is satisfied - useful to know how close things are to the limit.
+    //     console.log("Error: a ~= b IS satisfied");
+    //     console.log("  Expected:", expected);
+    //     console.log("    Actual:", actual);
+    //     console.log(" Max Delta:", maxDelta);
+    //     console.log("     Delta:", d);
+    }
+    expect(d).lte(maxDelta);
+}
+
+// maxPercentDelta should be in 1e18 terms.
+// eg ethers.utils.parseEther("0.0005"); == 0.05%
+export const expectApproxEqRel = (actual: BigNumberish, expected: BigNumberish, maxPercentDelta: BigNumberish) => {
+    const actualBn = BigNumber.from(actual);
+    const expectedBn = BigNumber.from(expected);
+    const maxPercentDeltaBn = BigNumber.from(maxPercentDelta);
+    if (expectedBn.isZero()) return expect(actualBn).eq(expectedBn);
+    const pctDeltaBn = percentDelta(actualBn, expectedBn);
+
+    if (pctDeltaBn.gt(maxPercentDeltaBn)) {
+        console.error("Error: a ~= b not satisfied");
+        console.log("    Expected:", expectedBn.toString());
+        console.log("      Actual:", actualBn.toString());
+        console.log("   Abs Delta:", delta(actualBn, expectedBn).toString());
+        console.log(" Max % Delta:", maxPercentDeltaBn.toString());
+        console.log("     % Delta:", pctDeltaBn.toString());
+    // } else {
+    //     // Uncomment to also show when it is satisfied - useful to know how close things are to the limit.
+    //     console.log("Error: a ~= b IS satisfied");
+    //     console.log("    Expected:", expectedBn.toString());
+    //     console.log("      Actual:", actualBn.toString());
+    //     console.log("   Abs Delta:", delta(actualBn, expectedBn).toString());
+    //     console.log(" Max % Delta:", maxPercentDeltaBn.toString());
+    //     console.log("     % Delta:", pctDeltaBn.toString());
+    }
+    expect(pctDeltaBn).lte(maxPercentDeltaBn);
+}
+
+export const expectApproxEqRelPred = (expected: BigNumber, maxPercentDelta: BigNumberish) => {
+    return (actual: BigNumber) => {
+        // This will throw if false
+        try {
+            expectApproxEqRel(actual, expected, maxPercentDelta);
+            return true;
+        } catch (e: unknown) {
+            if (e instanceof AssertionError) {
+                console.error(e.message);
+            } else {
+                throw e;
+            }
+            return false;
+        }
+    };
 }
 
 const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint256 expectedInvestmentAmount, bytes underlyingInvestmentQuoteData)';
@@ -251,7 +304,7 @@ export const decodeInvestQuoteData = (encodedQuoteData: string): IOrigamiInvestm
 }
 
 export const signedPermit = async(
-    signer: SignerWithAddress,
+    signer: OrigamiSignerWithAddress,
     token: ERC20Permit,
     spender: string,
     amount: BigNumberish,
@@ -292,7 +345,7 @@ export const signedPermit = async(
 
 export const testErc20Permit = async (
     token: ERC20Permit, 
-    signer: SignerWithAddress, 
+    signer: OrigamiSignerWithAddress, 
     spender: Signer, 
     amount: BigNumberish
 ) => {

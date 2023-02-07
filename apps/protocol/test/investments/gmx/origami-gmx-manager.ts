@@ -3,9 +3,16 @@ import { Signer, BigNumber, BigNumberish } from "ethers";
 import { expect } from "chai";
 import { 
     mineForwardSeconds,
-    impersonateSigner, ZERO_ADDRESS, recoverToken, 
-    shouldRevertNotOwner, shouldRevertPaused, 
-    slightlyGtePred, slightlyGte, forkMainnet, deployUupsProxy, shouldRevertNotOperator
+    impersonateSigner, 
+    ZERO_ADDRESS, 
+    recoverToken, 
+    shouldRevertNotOwner, 
+    forkMainnet, 
+    deployUupsProxy, 
+    shouldRevertNotOperator, 
+    expectApproxEqRelPred, 
+    tolerance, 
+    expectApproxEqRel
 } from "../../helpers";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
@@ -18,6 +25,10 @@ import {
     GmxContracts, updateDistributionTime } from "./gmx-helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { GmxVaultType } from "../../../scripts/deploys/helpers";
+import { getSigners } from "../../signers";
+
+// 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
+const MAX_REL_DELTA = tolerance(0.001);
 
 describe("Origami GMX Manager", async () => {
     let owner: Signer;
@@ -45,7 +56,7 @@ describe("Origami GMX Manager", async () => {
     const oneYear = 365 * 60 * 60 * 24;
 
     before( async () => {
-        [owner, bob, alan, operator, feeCollector, origamiGmxRewardsAggr, origamiGlpRewardsAggr] = await ethers.getSigners();
+        [owner, bob, alan, operator, feeCollector, origamiGmxRewardsAggr, origamiGlpRewardsAggr] = await getSigners();
     });
 
     describe("Local setup", async () => {
@@ -481,15 +492,15 @@ describe("Origami GMX Manager", async () => {
                     await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            slightlyGtePred(expectedEth, 0.001), 0, // ETH from GMX, 0 from GLP
-                            slightlyGtePred(expectedEsGmx, 0.1), 0,  // oGMX, 0 from GLP
+                            expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), 0, // ETH from GMX, 0 from GLP
+                            expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA), 0,  // oGMX, 0 from GLP
                             0,  // GMX vested
                             0,  // esGMX deposited into vesting
                         );
 
                     // The harvestableRewards also match this amount
-                    expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
-                    expect(slightlyGte(expectedEsGmx, rewardRates[1], 0.1)).eq(true);
+                    expectApproxEqRel(ethPerSecond.mul(86400), rewardRates[0], MAX_REL_DELTA);
+                    expectApproxEqRel(esGmxPerSecond.mul(86400), rewardRates[1], MAX_REL_DELTA);
                     expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
@@ -514,32 +525,32 @@ describe("Origami GMX Manager", async () => {
                     let rewardRates = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
 
                     // The expected bonus is based off the new total esGMX held
-                    expectedEth = ethPerSecond.mul(86401);
-                    expectedEsGmx = esGmxPerSecond.mul(86401);
+                    expectedEth = ethPerSecond.mul(86402);
+                    expectedEsGmx = esGmxPerSecond.mul(86402);
                     await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            slightlyGtePred(expectedEth, 0.001), 0, // ETH from GMX, 0 from GLP
-                            slightlyGtePred(expectedEsGmx, 0.1), 0,  // oGMX, 0 from GLP
+                            expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), 0, // ETH from GMX, 0 from GLP
+                            expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA), 0,  // oGMX, 0 from GLP
                             0, // GMX vested
                             0, // esGMX deposited into vesting
                         );
 
                     // The harvestableRewards also match this amount
-                    expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
-                    expect(slightlyGte(expectedEsGmx.mul(70).div(100), rewardRates[1], 0.1)).eq(true);
+                    expectApproxEqRel(ethPerSecond.mul(86401), rewardRates[0], MAX_REL_DELTA);
+                    expectApproxEqRel(esGmxPerSecond.mul(86401).mul(70).div(100), rewardRates[1], MAX_REL_DELTA);
                     expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
                     const oGmxFees2 = await oGmxToken.balanceOf(feeCollector.getAddress());
                     const oGmxRewards2 = await oGmxToken.balanceOf(origamiGmxRewardsAggr.getAddress());
                     expect(oGmxRewards2).gte(oGmxRewards.add(expectedEsGmx.mul(70).div(100)));
-                    expect(oGmxFees2).gte(oGmxFees.add(expectedEsGmx.mul(30).div(100)));
+                    expect(oGmxFees2).gte(oGmxFees.add(expectedEsGmx.mul(30).div(100)).sub(1)); // slight rounding diff
 
                     // The ETH/AVAX gets transferred
                     const ethFees2 = await gmxContracts.wrappedNativeToken.balanceOf(feeCollector.getAddress());
                     const ethRewards2 = await gmxContracts.wrappedNativeToken.balanceOf(origamiGmxRewardsAggr.getAddress());
-                    expect(ethRewards2).gte(ethRewards.add(expectedEth.mul(90).div(100)));
+                    expect(ethRewards2).gte(ethRewards.add(expectedEth.mul(90).div(100)).sub(1)); // slight rounding diff
                     expect(ethFees2).gte(ethFees);
                 }
             });
@@ -566,8 +577,8 @@ describe("Origami GMX Manager", async () => {
                     await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            slightlyGtePred(expectedEth, 0.0001), 0, // ETH for GMX, 0 for GLP
-                            slightlyGtePred(expectedEsGmx, 0.1), 0,  // oGMX for GMX, 0 for GLP
+                            expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), 0, // ETH for GMX, 0 for GLP
+                            expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA), 0,  // oGMX for GMX, 0 for GLP
                             0, // GMX vested
                             0, // esGMX deposited into vesting
                         );
@@ -614,15 +625,15 @@ describe("Origami GMX Manager", async () => {
                     await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            slightlyGtePred(expectedEth, 0.001), 0, // ETH for GMX, 0 for GLP
-                            slightlyGtePred(expectedEsGmx, 0.1), 0,  // oGMX for GMX, 0 for GLP
+                            expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), 0, // ETH for GMX, 0 for GLP
+                            expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA), 0,  // oGMX for GMX, 0 for GLP
                             0,  // GMX vested
-                            slightlyGtePred(expectedEsGmx.mul(30).div(100), 0.1), // esGMX deposited into vesting
+                            expectApproxEqRelPred(expectedEsGmx.mul(30).div(100), MAX_REL_DELTA), // esGMX deposited into vesting
                         );
 
                     // The harvestableRewards also match this amount
-                    expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
-                    expect(slightlyGte(expectedEsGmx, rewardRates[1], 0.1)).eq(true);
+                    expectApproxEqRel(ethPerSecond.mul(86400), rewardRates[0], MAX_REL_DELTA);
+                    expectApproxEqRel(esGmxPerSecond.mul(86400), rewardRates[1], MAX_REL_DELTA);
                     expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
@@ -644,33 +655,33 @@ describe("Origami GMX Manager", async () => {
                     await mineForwardSeconds(86400);
                     let rewardRates = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
 
-                    expectedEth = ethPerSecond.mul(86400);
-                    expectedEsGmx = esGmxPerSecond.mul(86400);
-                    const expectedVestedGmx = expectedEsGmx.mul(30).div(100).mul(86400).div(oneYear);
+                    expectedEth = ethPerSecond.mul(86401);
+                    expectedEsGmx = esGmxPerSecond.mul(86401);
+                    const expectedVestedGmx = expectedEsGmx.mul(30).div(100).mul(86401).div(oneYear);
                     await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            slightlyGtePred(expectedEth, 0.001), 0, // ETH for GMX, 0 for GLP
-                            slightlyGtePred(expectedEsGmx, 0.1), 0,  // oGMX for GMX, 0 for GLP
-                            slightlyGtePred(expectedVestedGmx, 0.001),  // GMX vested
-                            slightlyGtePred(expectedEsGmx.mul(30).div(100), 0.1), // esGMX deposited into vesting
+                            expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), 0, // ETH for GMX, 0 for GLP
+                            expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA), 0,  // oGMX for GMX, 0 for GLP
+                            expectApproxEqRelPred(expectedVestedGmx, MAX_REL_DELTA),  // GMX vested
+                            expectApproxEqRelPred(expectedEsGmx.mul(30).div(100), MAX_REL_DELTA), // esGMX deposited into vesting
                         );
 
                     // The harvestableRewards also match this amount
-                    expect(slightlyGte(expectedEth, rewardRates[0], 0.001)).eq(true);
-                    expect(slightlyGte(expectedEsGmx, rewardRates[1], 0.1)).eq(true);
+                    expectApproxEqRel(ethPerSecond.mul(86400), rewardRates[0], MAX_REL_DELTA);
+                    expectApproxEqRel(esGmxPerSecond.mul(86400), rewardRates[1], MAX_REL_DELTA);
                     expect(rewardRates[2]).eq(0);
 
                     // The oGMX gets minted
                     const oGmxFees2 = await oGmxToken.balanceOf(feeCollector.getAddress());
                     const oGmxRewards2 = await oGmxToken.balanceOf(origamiGmxRewardsAggr.getAddress());
-                    expect(oGmxRewards2).gte(oGmxRewards.add(expectedEsGmx));
+                    expect(oGmxRewards2).gte(oGmxRewards.add(expectedEsGmx).sub(1)); // Slight rounding diff
                     expect(oGmxFees2).eq(0);
 
                     // The ETH/AVAX gets transferred
                     const ethFees2 = await gmxContracts.wrappedNativeToken.balanceOf(feeCollector.getAddress());
                     const ethRewards2 = await gmxContracts.wrappedNativeToken.balanceOf(origamiGmxRewardsAggr.getAddress());
-                    expect(ethRewards2).gte(ethRewards.add(expectedEth));
+                    expect(ethRewards2).gte(ethRewards.add(expectedEth).sub(1)); // Slight rounding diff
                     expect(ethFees2).eq(0);
 
                     // The earn account has now staked more vested GMX
@@ -704,20 +715,20 @@ describe("Origami GMX Manager", async () => {
                     await mineForwardSeconds(86400);
                     let rewardRatesGlp = await origamiGmxManager.harvestableRewards(GmxVaultType.GLP);
                     let rewardRatesGmx = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
-                    expectedEth = ethPerSecond.mul(86400);
-                    expectedEsGmx = esGmxPerSecond.mul(86400);
-                    await expect(origamiGmxManager.connect(operator).harvestRewards({gasLimit:5000000}))
+                    expectedEth = ethPerSecond.mul(86401);
+                    expectedEsGmx = esGmxPerSecond.mul(86401);
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            0, slightlyGtePred(expectedEth, 0.001),  // ETH only from GLP
-                            0, slightlyGtePred(expectedEsGmx, 0.1),  // oGMX only from GLP
+                            0, expectApproxEqRelPred(expectedEth, MAX_REL_DELTA),  // ETH only from GLP
+                            0, expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA),  // oGMX only from GLP
                             0,  // esGMX vesting
                             0   // vested GMX
                         );
 
                     // The harvestableRewards also match this amount
-                    expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);
-                    expect(slightlyGte(rewardRatesGlp[1].add(1), expectedEsGmx, 0.001)).eq(true);
+                    expectApproxEqRel(rewardRatesGlp[0], ethPerSecond.mul(86400), MAX_REL_DELTA);
+                    expectApproxEqRel(rewardRatesGlp[1], esGmxPerSecond.mul(86400), MAX_REL_DELTA);
                     expect(rewardRatesGlp[2]).eq(0);
                     expect(rewardRatesGmx).deep.eq([0, 0, 0]); // No GMX rewards as no staked esGMX yet.
 
@@ -726,7 +737,7 @@ describe("Origami GMX Manager", async () => {
                     oGmxRewardsGlp = await oGmxToken.balanceOf(origamiGlpRewardsAggr.getAddress());
                     oGmxRewardsGmx = await oGmxToken.balanceOf(origamiGmxRewardsAggr.getAddress());
                     expect(oGmxFees).eq(0);
-                    expect(oGmxRewardsGlp).gte(expectedEsGmx);
+                    expect(oGmxRewardsGlp).gte(expectedEsGmx.sub(1)); // Rounding
                     expect(oGmxRewardsGmx).eq(0);
 
                     // The ETH/AVAX gets transferred
@@ -734,7 +745,7 @@ describe("Origami GMX Manager", async () => {
                     ethRewardsGlp = await gmxContracts.wrappedNativeToken.balanceOf(origamiGlpRewardsAggr.getAddress());
                     ethRewardsGmx = await gmxContracts.wrappedNativeToken.balanceOf(origamiGmxRewardsAggr.getAddress());
                     expect(ethFees).eq(0);
-                    expect(ethRewardsGlp).gte(expectedEth);
+                    expect(ethRewardsGlp).gte(expectedEth.sub(1)); // Rounding
                     expect(ethRewardsGmx).eq(0);
                 }
 
@@ -746,39 +757,39 @@ describe("Origami GMX Manager", async () => {
                     let rewardRatesGlp = await origamiGmxManager.harvestableRewards(GmxVaultType.GLP);
                     let rewardRatesGmx = await origamiGmxManager.harvestableRewards(GmxVaultType.GMX);
 
-                    expectedEth = ethPerSecond.mul(86400);
-                    expectedEsGmx = esGmxPerSecond.mul(86400);
-                    await expect(origamiGmxManager.connect(operator).harvestRewards({gasLimit:5000000}))
+                    expectedEth = ethPerSecond.mul(86401);
+                    expectedEsGmx = esGmxPerSecond.mul(86401);
+                    await expect(origamiGmxManager.connect(operator).harvestRewards())
                         .to.emit(gmxEarnAccount, "RewardsHarvested")
                         .withArgs(
-                            slightlyGtePred(expectedEth, 0.001), slightlyGtePred(expectedEth, 0.001), // ETH
-                            slightlyGtePred(expectedEsGmx, 1), slightlyGtePred(expectedEsGmx, 0.1),  // oGMX
+                            expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), expectApproxEqRelPred(expectedEth, MAX_REL_DELTA), // ETH
+                            expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA), expectApproxEqRelPred(expectedEsGmx, MAX_REL_DELTA),  // oGMX
                             0,  // esGMX vested
                             0   // vested GMX
                         );
 
                     // The harvestableRewards also match this amount - now in both GLP (original deposit) and also the esGMX rewards side
-                    expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);
-                    expect(slightlyGte(rewardRatesGlp[1].add(1), expectedEsGmx, 0.1)).eq(true);
+                    expectApproxEqRel(rewardRatesGlp[0], ethPerSecond.mul(86400), MAX_REL_DELTA);
+                    expectApproxEqRel(rewardRatesGlp[1], esGmxPerSecond.mul(86400), MAX_REL_DELTA);
                     expect(rewardRatesGlp[2]).eq(0);
-                    expect(slightlyGte(rewardRatesGmx[0].add(1), expectedEth, 0.001)).eq(true);
-                    expect(slightlyGte(rewardRatesGmx[1].add(1), expectedEsGmx, 0.1)).eq(true);
+                    expectApproxEqRel(rewardRatesGmx[0], ethPerSecond.mul(86400), MAX_REL_DELTA);
+                    expectApproxEqRel(rewardRatesGmx[1], esGmxPerSecond.mul(86400), MAX_REL_DELTA);
                     expect(rewardRatesGmx[2]).eq(0);
 
                     // The oGMX gets minted
                     const oGmxFees2 = await oGmxToken.balanceOf(feeCollector.getAddress());
                     const oGmxRewards2Glp = await oGmxToken.balanceOf(origamiGlpRewardsAggr.getAddress());
                     const oGmxRewards2Gmx = await oGmxToken.balanceOf(origamiGmxRewardsAggr.getAddress());
-                    expect(oGmxRewards2Glp).gte(oGmxRewardsGlp.add(expectedEsGmx));
-                    expect(oGmxRewards2Gmx).gte(oGmxRewardsGmx.add(expectedEsGmx));
+                    expect(oGmxRewards2Glp).gte(oGmxRewardsGlp.add(expectedEsGmx).sub(1)); // Rounding
+                    expect(oGmxRewards2Gmx).gte(oGmxRewardsGmx.add(expectedEsGmx).sub(1)); // Rounding
                     expect(oGmxFees2).eq(0);
 
                     // The ETH/AVAX gets transferred
                     const ethFees2 = await gmxContracts.wrappedNativeToken.balanceOf(feeCollector.getAddress());
                     const ethRewards2Glp = await gmxContracts.wrappedNativeToken.balanceOf(origamiGlpRewardsAggr.getAddress());
                     const ethRewards2Gmx = await gmxContracts.wrappedNativeToken.balanceOf(origamiGmxRewardsAggr.getAddress());
-                    expect(ethRewards2Glp).gte(ethRewardsGlp.add(expectedEth));
-                    expect(ethRewards2Gmx).gte(ethRewardsGmx.add(expectedEth));
+                    expect(ethRewards2Glp).gte(ethRewardsGlp.add(expectedEth).sub(1)); // Rounding
+                    expect(ethRewards2Gmx).gte(ethRewardsGmx.add(expectedEth).sub(1)); // Rounding
                     expect(ethFees2).gte(0);
                 }
             });
@@ -802,7 +813,7 @@ describe("Origami GMX Manager", async () => {
                     let harvestableRewardsGlp = await origamiGlpManager.harvestableRewards(GmxVaultType.GLP);
                     const expectedEth = ethPerSecond.mul(86400);
                     const expectedEsGmx = esGmxPerSecond.mul(86400);
-                    await origamiGlpManager.connect(operator).harvestRewards({gasLimit:5000000});
+                    await origamiGlpManager.connect(operator).harvestRewards();
 
                     // The harvestableRewards are 100% fees - so nothing here
                     expect(harvestableRewardsGlp).deep.eq([expectedEth.sub(1), 0, 0]);
@@ -817,7 +828,7 @@ describe("Origami GMX Manager", async () => {
                     const ethFees = await gmxContracts.wrappedNativeToken.balanceOf(feeCollector.getAddress());
                     const ethRewards = await gmxContracts.wrappedNativeToken.balanceOf(origamiGlpRewardsAggr.getAddress());
                     expect(ethFees).eq(0);
-                    expect(slightlyGte(ethRewards, expectedEth, ethers.utils.parseEther("0.001"))).true;
+                    expectApproxEqRel(ethRewards, ethPerSecond.mul(86401), MAX_REL_DELTA);
                 }
             });
 
@@ -840,11 +851,11 @@ describe("Origami GMX Manager", async () => {
                 {
                     await mineForwardSeconds(86400);
                     let rewardRatesGlp = await origamiGlpManager.harvestableSecondaryRewards(GmxVaultType.GLP);
-                    const expectedEth = ethPerSecond.mul(86400); //.div(2);
-                    await origamiGlpManager.connect(operator).harvestSecondaryRewards({gasLimit:5000000});
+                    const expectedEth = ethPerSecond.mul(86400);
+                    await origamiGlpManager.connect(operator).harvestSecondaryRewards();
 
                     // Only expeect ETH rewards, no oGMX rewards.
-                    expect(slightlyGte(rewardRatesGlp[0].add(1), expectedEth, 0.001)).eq(true);
+                    expectApproxEqRel(rewardRatesGlp[0], expectedEth, MAX_REL_DELTA);
                     expect(rewardRatesGlp[1]).eq(0);
                     expect(rewardRatesGlp[2]).eq(0);
 
@@ -858,7 +869,7 @@ describe("Origami GMX Manager", async () => {
                     const ethFees = await gmxContracts.wrappedNativeToken.balanceOf(feeCollector.getAddress());
                     const ethRewards = await gmxContracts.wrappedNativeToken.balanceOf(origamiGlpRewardsAggr.getAddress());
                     expect(ethFees).eq(0);
-                    expect(slightlyGte(ethRewards, expectedEth, 0.001)).eq(true);
+                    expectApproxEqRel(ethRewards, ethPerSecond.mul(86401), MAX_REL_DELTA);
                 }
             });
 
@@ -1066,8 +1077,7 @@ describe("Origami GMX Manager", async () => {
             const largeLinkHolder = await impersonateSigner("0x1714400FF23dB4aF24F9fd64e7039e6597f18C2b");
             await owner.sendTransaction({
                 to: await largeLinkHolder.getAddress(),
-                value: ethers.utils.parseEther("0.5"),
-                gasLimit:5000000
+                value: ethers.utils.parseEther("0.5")
             });
             await gmxContracts.bnbToken.connect(largeLinkHolder).transfer(bob.getAddress(), amount);
             await gmxContracts.bnbToken.connect(bob).approve(glpManagerAddr, amount);
@@ -1098,7 +1108,6 @@ describe("Origami GMX Manager", async () => {
             // And perform the sell using the quote as the min amounts.
             await expect(gmxContracts.glpRewardRouter.connect(bob).unstakeAndRedeemGlp(
                 gmxContracts.bnbToken.address, stakedGlpBal, sellQuote.quoteData.expectedToTokenAmount, bob.getAddress(),
-                {gasLimit:5000000}
             )).emit(gmxContracts.glpRewardRouter, "UnstakeGlp").withArgs(await bob.getAddress(), stakedGlpBal);
 
             // Alan receives the correct BNB back, matching the quote

@@ -9,8 +9,9 @@ import {
     MintableToken, MintableToken__factory, 
 } from "../../../typechain";
 import { addDefaultGlpLiquidity, decodeGlpUnderlyingInvestQuoteData, deployGmx, encodeGlpUnderlyingInvestQuoteData, GmxContracts } from "./gmx-helpers";
-import { deployUupsProxy, EmptyBytes, expectBalancesChangeBy, mineForwardSeconds, recoverToken, shouldRevertNotOwner, shouldRevertPaused, ZERO_ADDRESS } from "../../helpers";
+import { deployUupsProxy, EmptyBytes, expectBalancesChangeBy, mineForwardSeconds, recoverToken, shouldRevertNotOwner, ZERO_ADDRESS } from "../../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { getSigners } from "../../signers";
 
 describe("Origami GLP Investment", async () => {
     let owner: Signer;
@@ -33,7 +34,7 @@ describe("Origami GLP Investment", async () => {
     let secondaryEarnAccount: OrigamiGmxEarnAccount;
 
     before( async () => {
-        [owner, alan, bob, fred, feeCollector, dailyTransferKeeper] = await ethers.getSigners();
+        [owner, alan, bob, fred, feeCollector, dailyTransferKeeper] = await getSigners();
     });
     
     async function setup() {

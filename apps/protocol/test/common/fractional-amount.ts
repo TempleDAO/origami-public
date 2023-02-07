@@ -5,12 +5,13 @@ import {
     DummyFractionalAmount__factory,
 } from "../../typechain";
 import { PANIC_CODES } from "@nomicfoundation/hardhat-chai-matchers/panic";
+import { getSigners } from "../signers";
 
 describe("Fractional Amount", async () => {
     let owner: Signer;
 
     it("sets correctly", async () => {
-        [owner] = await ethers.getSigners();
+        [owner] = await getSigners();
         const dummyContract = await new DummyFractionalAmount__factory(owner).deploy();
 
         let rate = await dummyContract.fractionalRate();
@@ -29,7 +30,7 @@ describe("Fractional Amount", async () => {
     });
 
     it("splits correctly", async () => {
-        [owner] = await ethers.getSigners();
+        [owner] = await getSigners();
         const dummyContract = await new DummyFractionalAmount__factory(owner).deploy();
 
         const check = async (value: number, expectedAmount1: number, expectedAmount2: number) => {
