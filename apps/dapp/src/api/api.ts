@@ -1,6 +1,5 @@
-import { DecimalBigNumber } from '@/utils/decimal-big-number';
-import { VMap } from '@/utils/vmap';
-import {
+import type { Provider } from '@wagmi/core';
+import type {
   ChainId,
   HistoricPeriod,
   HistoryPoint,
@@ -13,11 +12,14 @@ import {
   InvestmentConfig,
 } from './types';
 
+import { DecimalBigNumber } from '@/utils/decimal-big-number';
+import { VMap } from '@/utils/vmap';
+
 /**
  * Endpoints that can be called without a connected wallet
  */
 export interface ProviderApi {
-  chains: VMap<ChainId, ChainConfig>;
+  chainConfigs: VMap<ChainId, ChainConfig>;
   investments: InvestmentConfig[];
 
   getToken(config: TokenConfig): Promise<Token>;
@@ -32,6 +34,7 @@ export interface ProviderApi {
   getHistoricTokenUsdPrice(
     req: HistoricTokenUsdPriceReq
   ): Promise<HistoryPoint[]>;
+  getProvider(chainId?: ChainId): Provider;
 
   investQuote(req: InvestQuoteReq): Promise<InvestQuoteResp>;
   exitQuote(req: ExitQuoteReq): Promise<ExitQuoteResp>;

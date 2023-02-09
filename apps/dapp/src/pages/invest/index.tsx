@@ -1,9 +1,11 @@
+import type { Chain } from '@wagmi/core';
+
 import { useState } from 'react';
 import styled from 'styled-components';
 import { InvestGrid, InvestGridItem } from './InvestGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
-import { ChainId, InvestmentConfig } from '@/api/types';
+import { InvestmentConfig } from '@/api/types';
 import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
@@ -15,7 +17,7 @@ export function Page() {
       papi={am.papi}
       sapi={am.sapi}
       cache={am.cache}
-      connectSigner={am.connectSigner}
+      switchNetwork={am.switchNetwork}
     />
   );
 }
@@ -24,11 +26,11 @@ interface PageContentProps {
   papi: ProviderApi;
   sapi?: SignerApi;
   cache: ApiCache;
-  connectSigner(chainId: ChainId): Promise<void>;
+  switchNetwork: ({ chainId }: { chainId: number }) => Promise<Chain>;
 }
 
 export const PageContent = (props: PageContentProps) => {
-  const { papi, sapi, connectSigner } = props;
+  const { papi, sapi, switchNetwork } = props;
   const [activeFlow, setActiveFlow] = useState<JSX.Element | undefined>();
   const investments = getValue(props.cache.investments) || [];
 
@@ -38,7 +40,7 @@ export const PageContent = (props: PageContentProps) => {
 
   async function onInvest(ic: InvestmentConfig, sapi: SignerApi) {
     const investment = await papi.getInvestment(ic);
-    await connectSigner(investment.chain.id);
+    await switchNetwork({ chainId: investment.chain.id });
     const acceptedTokens = await investment.acceptedInvestTokens();
     const flow = (
       <FlowOverlay
@@ -85,7 +87,8 @@ function makeInvestGridItem(
   metrics: Loading<MetricsResp>,
   onInvest?: () => Promise<void>
 ): InvestGridItem {
-  const chain = papi.chains.get(ic.contractAddress.chainId)?.name || '??';
+  const chain =
+    papi.chainConfigs.get(ic.contractAddress.chainId)?.chain.name || '??';
   return {
     icon: ic.icon,
     name: ic.name,

@@ -36,7 +36,7 @@ export function Page() {
     investment: Investment | undefined
   ): Promise<void> {
     if (investment) {
-      await am.connectSigner(investment.chain.id);
+      await am.switchNetwork({ chainId: investment.chain.id });
     }
     _setSelectedInvestment(investment);
   }
@@ -79,7 +79,7 @@ export function PageContent(props: PageContentProps) {
     return (
       <EmptyStateWrapper>
         <p>Connect your wallet to view and manage your holdings</p>
-        <ConnectWalletButton usePrimaryStyling />
+        <ConnectWalletButton />
       </EmptyStateWrapper>
     );
   }

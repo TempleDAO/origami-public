@@ -1,40 +1,27 @@
-import { ApiConfig } from '@/api/ethers';
-import { ChainConfig } from '@/api/types';
+import type { ApiConfig } from '@/api/ethers';
+import type { ChainConfig } from '@/api/types';
+
+import { arbitrum, avalanche } from '@wagmi/core/chains';
 
 export function getApiConfig(): ApiConfig {
   throw new Error('Mainnet config not yet implemented');
 }
 
 const _ARBITRUM: ChainConfig = {
-  name: 'Arbitrum One',
-  id: 42161,
-  rpcUrl: 'https://arb1.arbitrum.io/rpc',
-  walletRpcUrl: 'https://arb1.arbitrum.io/rpc',
-  nativeCurrency: {
-    name: 'ETH',
-    symbol: 'ETH',
-    decimals: 18,
-  },
+  chain: arbitrum,
   subgraphUrl: 'https://TODO',
-  explorer: {
-    transactionUrl: (hash) => `https://arbiscan.io/tx/${hash}`,
-    tokenUrl: (hash) => `https://arbiscan.io/token/${hash}`,
+  urlBuilders: {
+    transactionUrl: (hash) => `${arbitrum.blockExplorers.etherscan}/tx/${hash}`,
+    tokenUrl: (hash) => `${arbitrum.blockExplorers.etherscan}/token/${hash}`,
   },
 };
 
 const _AVALANCHE: ChainConfig = {
-  name: 'Avalanche C-Chain',
-  id: 43114,
-  rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
-  walletRpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
-  nativeCurrency: {
-    name: 'ETH',
-    symbol: 'ETH',
-    decimals: 18,
-  },
+  chain: avalanche,
   subgraphUrl: 'https://TODO',
-  explorer: {
-    transactionUrl: (hash) => `https://snowtrace.io/tx/${hash}`,
-    tokenUrl: (hash) => `https://snowtrace.io/token${hash}`,
+  urlBuilders: {
+    transactionUrl: (hash) =>
+      `${avalanche.blockExplorers.etherscan}/tx/${hash}`,
+    tokenUrl: (hash) => `${avalanche.blockExplorers.etherscan}/token/${hash}`,
   },
 };

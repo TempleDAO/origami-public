@@ -50,9 +50,14 @@ export const AsyncButton: FC<AsyncButtonProps> = ({ onClick, ...props }) => {
   const [showSpinner, setShowSpinner] = useState(false);
   async function onAsyncClick() {
     if (onClick) {
-      setShowSpinner(true);
-      await onClick();
-      setShowSpinner(false);
+      try {
+        setShowSpinner(true);
+        await onClick();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setShowSpinner(false);
+      }
     }
   }
   return (

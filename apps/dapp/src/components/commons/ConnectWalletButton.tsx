@@ -1,64 +1,63 @@
 import { useState } from 'react';
+import { getAccount } from '@wagmi/core';
 import styled from 'styled-components';
-import { truncateAddress } from '@/utils/truncate-address';
-import clickableStyles from '@/styles/mixins/clickable-styles';
+
+import { Icon } from './Icon';
 import { useApiManager } from '@/hooks/use-api-manager';
-import { Button } from './Button';
+import { truncateAddress } from '@/utils/truncate-address';
+import { noop } from '@/utils/noop';
+import clickableStyles from '@/styles/mixins/clickable-styles';
 
-interface ConnectWalletButtonProps {
-  usePrimaryStyling?: boolean;
-}
-
-export const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({
-  usePrimaryStyling,
-}) => {
-  const apim = useApiManager();
-  const address = apim.sapi?.signerAddress;
-  const isConnected = address != undefined;
+export const ConnectWalletButton = () => {
+  const { connectSigner, disconnectSigner } = useApiManager();
+  const { address, isConnected } = getAccount();
   const [mouseOver, setMouseOver] = useState(false);
 
-  const label = isConnected ? truncateAddress(address) : 'CONNECT WALLET';
-
-  function onClick() {
-    console.log('on click', isConnected);
-    if (isConnected) {
-      apim.disconnectSigner();
-    } else {
-      apim.connectSigner();
-    }
-    setMouseOver(false);
-  }
-
-  if (usePrimaryStyling)
-    return <Button wide onClick={onClick} label="CONNECT WALLET" />;
+  const label =
+    isConnected && address ? truncateAddress(address) : 'CONNECT WALLET';
 
   return (
     <>
       <ButtonBox
-        onClick={onClick}
+        onClick={isConnected ? disconnectSigner : noop}
         onMouseEnter={() => setMouseOver(true)}
         onMouseLeave={() => setMouseOver(false)}
       >
-        <span>{isConnected && mouseOver ? 'DISCONNECT' : label}</span>
+        {isConnected ? (
+          <span>{mouseOver ? 'DISCONNECT' : label}</span>
+        ) : (
+          <>
+            <Icon
+              iconName="metamask"
+              size={30}
+              onClick={() => connectSigner('metaMask')}
+            />
+            <Icon
+              iconName="wallet-connect"
+              size={30}
+              onClick={() => connectSigner('walletConnect')}
+            />
+          </>
+        )}
       </ButtonBox>
     </>
   );
 };
 
-const ButtonBox = styled.button`
+const ButtonBox = styled.div`
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: transparent;
   color: ${({ theme }) => theme.colors.greyLight};
   font-size: 1rem;
   padding: 0.5rem;
-  border: ${({ theme }) => `2px solid ${theme.colors.greyMid}`};
   border-radius: 0.25rem;
-  align-items: center;
-  justify-content: center;
   height: fit-content;
-  cursor: pointer;
   outline: none;
-  width: 10rem;
+  width: 6rem;
 
-  ${clickableStyles}
+  * {
+    ${clickableStyles}
+  }
 `;

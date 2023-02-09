@@ -1,11 +1,13 @@
+import { polygonMumbai } from '@wagmi/chains';
 import { useTestApis } from '@/api/test';
-import { asyncNoop } from '@/utils/noop';
 import { PageContent } from './index';
 
 export default {
   title: 'Pages/Invest',
   component: PageContent,
 };
+
+const switchNetworkStub = () => Promise.resolve(polygonMumbai);
 
 export const Default = () => {
   const { papi, sapi, cache } = useTestApis();
@@ -14,7 +16,7 @@ export const Default = () => {
     <PageContent
       papi={papi}
       sapi={sapi}
-      connectSigner={asyncNoop}
+      switchNetwork={switchNetworkStub}
       cache={cache}
     />
   );
@@ -27,7 +29,7 @@ export const Loading = () => {
     <PageContent
       papi={papi}
       sapi={sapi}
-      connectSigner={asyncNoop}
+      switchNetwork={switchNetworkStub}
       cache={cache}
     />
   );
