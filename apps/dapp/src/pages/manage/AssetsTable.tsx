@@ -41,7 +41,7 @@ export const AssetsTable: FC<AssetsTableProps> = ({
       {isDesktop && (
         <Row css="">
           <Item col={2}>
-            <Subtext>APR</Subtext>
+            <Subtext>APY</Subtext>
           </Item>
           <Item col={3}>
             <Subtext>CHAIN</Subtext>
@@ -93,9 +93,9 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
           <Primary>
             <LoadingText
               value={lmap(holding.metrics, (metrics) =>
-                formatPercent(metrics.apr)
+                formatPercent(metrics.apy)
               )}
-              suffix={<ValueSuffix>{isDesktop ? '%' : '% APR'}</ValueSuffix>}
+              suffix={<ValueSuffix>{isDesktop ? '%' : '% APY'}</ValueSuffix>}
             />
           </Primary>
         </ValueContainer>

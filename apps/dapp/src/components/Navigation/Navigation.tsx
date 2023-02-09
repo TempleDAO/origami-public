@@ -28,15 +28,14 @@ export const Navigation = () => {
       <StyledNav>
         <Title>NAVIGATION</Title>
         {navLinkProps.map((linkProps) => (
-          <>
+          <div key={linkProps.label}>
             <NavLink
-              key={linkProps.label}
               currentRoute={location.pathname}
               {...linkProps}
               onClick={() => setPanelOpen(false)}
             />
-            <HR key={`hr_${linkProps.label}`} />
-          </>
+            <HR />
+          </div>
         ))}
         <ConnectWalletButton />
       </StyledNav>

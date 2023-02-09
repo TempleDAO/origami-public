@@ -31,7 +31,7 @@ export type HistoricSeries =
   | { kind: 'token-price'; token: Token };
 
 type InfoCardProps = {
-  apr: Loading<string>;
+  apy: Loading<string>;
   tvl: Loading<string>;
   investment: Investment;
   getHistory: (
@@ -44,7 +44,7 @@ type InfoCardProps = {
 };
 
 export const InfoCard: FC<InfoCardProps> = ({
-  apr,
+  apy,
   tvl,
   getHistory,
   investment,
@@ -54,7 +54,7 @@ export const InfoCard: FC<InfoCardProps> = ({
   const [histSeries, setHistSeries] = useState<HistoricSeries>({
     kind: 'investment-metric',
     investment,
-    metric: 'apr',
+    metric: 'apy',
   });
   const [values] = useAsyncLoad(
     async () =>
@@ -67,7 +67,7 @@ export const InfoCard: FC<InfoCardProps> = ({
       <Header investment={investment} />
       <ChartTogglers
         investment={investment}
-        apr={apr}
+        apy={apy}
         tvl={tvl}
         prices={prices}
         histSeries={histSeries}
@@ -80,7 +80,7 @@ export const InfoCard: FC<InfoCardProps> = ({
           setHistPeriod={setHistPeriod}
           yTickFormat={
             histSeries.kind == 'investment-metric' &&
-            histSeries.metric === 'apr'
+            histSeries.metric === 'apy'
               ? tickPercent
               : tickValue
           }
@@ -109,7 +109,7 @@ const Header: FC<{ investment: Investment }> = ({ investment }) => (
 
 type ChartTogglersProps = {
   investment: Investment;
-  apr: Loading<string>;
+  apy: Loading<string>;
   tvl: Loading<string>;
   prices: {
     receiptToken: Loading<string>;
@@ -120,7 +120,7 @@ type ChartTogglersProps = {
 
 const ChartTogglers: FC<ChartTogglersProps> = ({
   investment,
-  apr,
+  apy,
   tvl,
   prices,
   histSeries,
@@ -128,14 +128,14 @@ const ChartTogglers: FC<ChartTogglersProps> = ({
 }) => (
   <ChartTogglesRow>
     <SeriesToggler
-      active={isApr(histSeries)}
+      active={isApy(histSeries)}
       onClick={() =>
-        setHistSeries({ kind: 'investment-metric', investment, metric: 'apr' })
+        setHistSeries({ kind: 'investment-metric', investment, metric: 'apy' })
       }
     >
-      <TogglerText>APR</TogglerText>
+      <TogglerText>APY</TogglerText>
       <TogglerValue>
-        <LoadingText value={apr} /> <TogglerValueSuffix>%</TogglerValueSuffix>
+        <LoadingText value={apy} /> <TogglerValueSuffix>%</TogglerValueSuffix>
       </TogglerValue>
     </SeriesToggler>
     <SeriesToggler
@@ -170,8 +170,8 @@ const ChartTogglers: FC<ChartTogglersProps> = ({
   </ChartTogglesRow>
 );
 
-function isApr(hs: HistoricSeries): boolean {
-  return hs.kind === 'investment-metric' && hs.metric === 'apr';
+function isApy(hs: HistoricSeries): boolean {
+  return hs.kind === 'investment-metric' && hs.metric === 'apy';
 }
 
 function isTvl(hs: HistoricSeries): boolean {

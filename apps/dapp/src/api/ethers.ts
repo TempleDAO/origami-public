@@ -240,7 +240,7 @@ class ProviderApiImpl implements ProviderApi {
       }
       return {
         tvl: parseFloat(result.investmentVault.tvl),
-        apr: parseFloat(result.investmentVault.apr) / 100,
+        apy: parseFloat(result.investmentVault.apy) / 100,
       };
     };
 
@@ -443,8 +443,8 @@ class ProviderApiImpl implements ProviderApi {
         return {
           t: dateFromTimestamp(p.timeframe),
           v:
-            req.metric == 'apr'
-              ? percentFromSubgraph(p.apr)
+            req.metric == 'apy'
+              ? percentFromSubgraph(p.apy)
               : parseFloat(p.tvl),
         };
       });
@@ -458,8 +458,8 @@ class ProviderApiImpl implements ProviderApi {
         return {
           t: dateFromTimestamp(p.timeframe),
           v:
-            req.metric == 'apr'
-              ? percentFromSubgraph(p.apr)
+            req.metric == 'apy'
+              ? percentFromSubgraph(p.apy)
               : parseFloat(p.tvl),
         };
       });

@@ -39,7 +39,7 @@ const mockHoldings: AssetHolding[] = [
     token: GMX.receiptToken,
     balance: DBN_ONE_HUNDRED,
     metrics: newLoading({
-      apr: 0.25,
+      apy: 0.25,
       tvl: 1000000,
     }),
   },
@@ -48,7 +48,7 @@ const mockHoldings: AssetHolding[] = [
     token: GMXLP.receiptToken,
     balance: DBN_ONE_HUNDRED,
     metrics: newLoading({
-      apr: 0.27,
+      apy: 0.27,
       tvl: 2000000,
     }),
   },

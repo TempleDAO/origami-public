@@ -40,7 +40,7 @@ export const AssetDetails: FC<AssetDetailsProps> = (props) => {
   const values = lmap3(
     [tokenBalance, tokenPrice, metrics],
     (tokenBalance, tokenPrice, metrics) => ({
-      apr: formatPercent(metrics.apr),
+      apy: formatPercent(metrics.apy),
       tvl: formatNumber(metrics.tvl),
       tokenBalance: formatDecimalBigNumber(tokenBalance),
       tokenPrice: formatDecimalBigNumber(tokenPrice),
@@ -75,7 +75,7 @@ export const AssetDetails: FC<AssetDetailsProps> = (props) => {
 
       <InfoCard
         investment={props.investment}
-        apr={lmap(values, (v) => v.apr)}
+        apy={lmap(values, (v) => v.apy)}
         tvl={lmap(values, (v) => v.tvl)}
         getHistory={getHistory}
         prices={{ receiptToken: lmap(values, (v) => v.tokenPrice) }}
@@ -87,7 +87,7 @@ export const AssetDetails: FC<AssetDetailsProps> = (props) => {
         investment={props.investment}
         papi={props.papi}
         sapi={props.sapi}
-        apr={lmap(values, (v) => v.apr)}
+        apy={lmap(values, (v) => v.apy)}
         setActiveFlow={setActiveFlow}
         cache={props.cache}
         receiptTokenBalance={lmap(values, (v) => v.tokenBalance)}

@@ -19,7 +19,7 @@ type ActionCardProps = {
   sapi: SignerApi;
   cache: ApiCache;
   investment: Investment;
-  apr: Loading<string>;
+  apy: Loading<string>;
   receiptTokenBalance: Loading<string>;
   receiptTokenBalanceUsd: Loading<string>;
   setActiveFlow: (Flow: JSX.Element | undefined) => void;
@@ -30,7 +30,7 @@ export const ActionCard: FC<ActionCardProps> = ({
   sapi,
   cache,
   investment,
-  apr,
+  apy,
   receiptTokenBalance,
   receiptTokenBalanceUsd,
   setActiveFlow,
@@ -77,7 +77,7 @@ export const ActionCard: FC<ActionCardProps> = ({
           <VerticalFlex>
             <Text>{receiptToken}</Text>
             <InfoText>
-              <LoadingText value={apr} />% APR
+              <LoadingText value={apy} />% APY
             </InfoText>
           </VerticalFlex>
           <VerticalFlex>

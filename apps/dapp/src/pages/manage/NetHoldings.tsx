@@ -40,7 +40,7 @@ const Heading: FC<{
       <Title>YOUR NET HOLDINGS</Title>
       <TogglerRow>
         <SeriesToggler
-          text={'NET APR'}
+          text={'NET APY'}
           value={lmap(currentNetApr, formatPercent)}
           suffix={' %'}
         />

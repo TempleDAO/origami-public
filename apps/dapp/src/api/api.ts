@@ -57,7 +57,7 @@ export interface SignerApi {
 
 export interface MetricsResp {
   tvl: number;
-  apr: number;
+  apy: number;
 }
 
 export interface HistoricTokenUsdPriceReq {

@@ -93,7 +93,7 @@ function makeInvestGridItem(
     icon: ic.icon,
     name: ic.name,
     description: ic.description,
-    apr: lmap(metrics, (m) => m.apr),
+    apy: lmap(metrics, (m) => m.apy),
     tvl: lmap(metrics, (m) => m.tvl),
     chain,
     info: ic.info,

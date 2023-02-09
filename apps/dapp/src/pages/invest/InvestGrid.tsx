@@ -29,7 +29,7 @@ export interface InvestGridItem {
   icon: string;
   name: string;
   description: string;
-  apr: Loading<number>;
+  apy: Loading<number>;
   tvl: Loading<number>;
   peg?: Loading<number>;
   chain: string;
@@ -48,12 +48,12 @@ export function InvestGrid(props: InvestGridProps): JSX.Element {
   const [iexpanded, setIExpanded] = useState<number | undefined>(
     props.expanded
   );
-  const [histSeries, setHistSeries] = useState<Metric>('apr');
+  const [histSeries, setHistSeries] = useState<Metric>('apy');
   const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('day');
 
   const headings = (
     <HeadingGrid>
-      <Heading col={2}>APR</Heading>
+      <Heading col={2}>APY</Heading>
       <Heading col={3}>TVL</Heading>
       <Heading col={4}>CHAIN</Heading>
     </HeadingGrid>
@@ -115,15 +115,15 @@ function ItemFragment({
         </IconNameHolder>
 
         <GridValue
-          active={isExpanded && histSeries === 'apr'}
+          active={isExpanded && histSeries === 'apy'}
           onClick={() => {
             isExpanded || onExpand();
-            setHistSeries('apr');
+            setHistSeries('apy');
           }}
         >
           <LoadingText
-            value={lmap(item.apr, formatPercent)}
-            suffix={<SuffixSpan> % {!isDesktop && ' APR'}</SuffixSpan>}
+            value={lmap(item.apy, formatPercent)}
+            suffix={<SuffixSpan> % {!isDesktop && ' APY'}</SuffixSpan>}
           />
         </GridValue>
         <GridValue
@@ -189,7 +189,7 @@ function ExpandedItemFragment({
           values={values}
           histPeriod={histPeriod}
           setHistPeriod={setHistPeriod}
-          yTickFormat={histSeries === 'apr' ? tickPercent : tickValue}
+          yTickFormat={histSeries === 'apy' ? tickPercent : tickValue}
         />
       </Graph>
       <InfoBox>

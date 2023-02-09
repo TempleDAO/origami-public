@@ -114,7 +114,7 @@ export function PageContent(props: PageContentProps) {
         <>
           <GraphRewardsSection>
             <NetHoldings
-              currentNetApr={lmap(metrics, (m) => m.apr)}
+              currentNetApr={lmap(metrics, (m) => m.apy)}
               currentNetValue={lmap(metrics, (m) => m.tvl)}
             />
           </GraphRewardsSection>
@@ -132,7 +132,7 @@ export function PageContent(props: PageContentProps) {
 }
 
 interface PortfolioMetrics {
-  apr: number;
+  apy: number;
   tvl: number;
 }
 
@@ -168,18 +168,18 @@ async function calcPortfolioMetrics(
   }
 
   let tvl = 0;
-  let apr = 0;
+  let apy = 0;
   for (const uh of userHoldings.value) {
     if (isReady(uh.metrics)) {
       const usdPrice = await papi.getTokenUsdPrice(uh.investment.receiptToken);
       const value = Number(uh.balance.mul(usdPrice).formatUnits(2));
       tvl += value;
-      apr += uh.metrics.value.apr * value;
+      apy += uh.metrics.value.apy * value;
     }
   }
-  apr = apr / tvl;
+  apy = apy / tvl;
   return {
-    apr,
+    apy,
     tvl,
   };
 }

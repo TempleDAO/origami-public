@@ -283,7 +283,7 @@ export function gmxInvestment(): Investment {
     await sleep(500);
     return {
       tvl: 1200000,
-      apr: 0.0823,
+      apy: 0.0823,
     };
   }
   async function getHistoricMetric(
@@ -327,7 +327,7 @@ export function glpInvestment(): Investment {
     await sleep(500);
     return {
       tvl: 800000,
-      apr: 0.0492,
+      apy: 0.0492,
     };
   }
   async function getHistoricMetric(
@@ -365,7 +365,7 @@ function investInfo(s: string) {
   `;
 }
 
-const APR_DATA = [
+const APY_DATA = [
   { t: new Date('2022-07-01'), v: 0.1 },
   { t: new Date('2022-07-02'), v: 0.13 },
   { t: new Date('2022-07-03'), v: 0.12 },
@@ -447,7 +447,7 @@ export async function getHistory(
   period: HistoricPeriod,
   series: Metric
 ): Promise<HistoryPoint[]> {
-  return getHistory1(period, series == 'apr' ? APR_DATA : TVL_DATA);
+  return getHistory1(period, series == 'apy' ? APY_DATA : TVL_DATA);
 }
 
 export async function getHistory1(

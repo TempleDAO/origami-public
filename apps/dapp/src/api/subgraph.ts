@@ -21,7 +21,7 @@ export function queryInvestmentVaultMetrics(
   {
     investmentVault(id:"${investmentId}") {
       timestamp
-      apr
+      apy
       tvl
     }
   }
@@ -36,7 +36,7 @@ export function queryInvestmentVaultMetrics(
 const InvestmentVaultMetricsResp = z.object({
   investmentVault: z.optional(
     z.object({
-      apr: z.string(),
+      apy: z.string(),
       tvl: z.string(),
     })
   ),
@@ -61,7 +61,7 @@ export function queryInvestmentVaultHourlySnapshots(
     ) {
       timeframe
       timestamp
-      apr
+      apy
       tvl
     }
   }
@@ -79,7 +79,7 @@ const InvestmentVaultHourlySnapshotsResp = z.object({
     z.object({
       timeframe: z.string(),
       timestamp: z.string(),
-      apr: z.string(),
+      apy: z.string(),
       tvl: z.string(),
     })
   ),
@@ -106,7 +106,7 @@ export function queryInvestmentVaultDailySnapshots(
     ) {
       timeframe
       timestamp
-      apr
+      apy
       tvl
     }
   }
@@ -124,7 +124,7 @@ const InvestmentVaultDailySnapshotsResp = z.object({
     z.object({
       timeframe: z.string(),
       timestamp: z.string(),
-      apr: z.string(),
+      apy: z.string(),
       tvl: z.string(),
     })
   ),

@@ -80,4 +80,4 @@ export interface HistoryPoint {
   v: number;
 }
 
-export type Metric = 'tvl' | 'apr';
+export type Metric = 'tvl' | 'apy';
