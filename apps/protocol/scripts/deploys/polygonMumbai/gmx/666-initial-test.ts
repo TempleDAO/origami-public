@@ -94,7 +94,7 @@ const harvestGlp = async (contracts: ContractInstances, signer: Signer) => {
 
     // Get a quote to swap $oGMX rewards -> $GMX
     // NB: No slippage when exiting the oGMX position as it's redeemed in situ (not via a dex)
-    const oGmxToGmxExitQuote = await contracts.oGMX.exitQuote(harvestableRewards.oGmx, contracts.gmx.address);
+    const oGmxToGmxExitQuote = await contracts.oGMX.exitQuote(harvestableRewards.oGmx, contracts.gmx.address, 0, 0);
     console.log(`\toGMX -> GMX Exit Quote: ${oGmxToGmxExitQuote}`);
 
     const sellAmount = oGmxToGmxExitQuote.quoteData.expectedToTokenAmount;
@@ -118,15 +118,13 @@ const harvestGlp = async (contracts: ContractInstances, signer: Signer) => {
 
     // Get a quote to swap $WETH -> $oGLP
     // There may be slippage on the expected output, as the underlying GLP purchase is executed via GMX.io
-    const wethToOglpInvestQuote = await contracts.oGLP.investQuote(wethToInvestInOGlp, contracts.weth.address);
-    const minOglpFromSwaps = applySlippage(wethToOglpInvestQuote.quoteData.expectedInvestmentAmount);
+    const wethToOglpInvestQuote = await contracts.oGLP.investQuote(wethToInvestInOGlp, contracts.weth.address, SLIPPAGE_BPS, 0);
     console.log(`\tWETH -> oGLP Invest Quote: ${wethToOglpInvestQuote}`);
-    console.log(`\tminOglpFromSwaps=[${minOglpFromSwaps.toString()}]`);
 
     // The total $oGLP expected in the aggregator = 
     //   1/ The min expected amount after the oGMX->GMX->wETH->oGLP swaps
     //   2/ The amount of oGlp already existing in the aggregator - given by the harvestableRewards()
-    const totalOGlpAvailable = minOglpFromSwaps.add(harvestableRewards.oGlp);
+    const totalOGlpAvailable = wethToOglpInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGlp);
     console.log(`\ttotalOGlpAvailable=[${totalOGlpAvailable.toString()}]`);
 
     // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
@@ -138,8 +136,6 @@ const harvestGlp = async (contracts: ContractInstances, signer: Signer) => {
         oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
         gmxToNativeSwapData: gmxToWethQuoteData,
         oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
-        oGmxExitSlippageBps: 100,
-        oGlpInvestSlippageBps: 100,
         addToReserveAmount: addToReserveAmount,
     };
     console.log("\tHarvest Params:", harvestParams);
@@ -155,6 +151,8 @@ const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
     const _harvestableRewards = await contracts.gmxRewardsAggregator.harvestableRewards();
     const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
     console.log(`\tGMX Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
+    const existingGmx = await contracts.gmx.balanceOf(contracts.gmxRewardsAggregator.address);
+    console.log(`\tExisting GMX in aggregator: ${existingGmx.toString()}`);
 
     const sellAmount = harvestableRewards.weth;
     console.log(`\tSelling [${sellAmount.toString()}] wETH for GMX`);
@@ -168,17 +166,21 @@ const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
 
     const wethToGmxQuoteData = contracts.dex.interface.encodeFunctionData("swapToGMX", [sellAmount]);
 
+    // The total $GMX we have to invest = 
+    //   1/ The expected amount of $GMX we will receive from selling the $WETH +
+    //   2/ Any existing balance from previous swaps left over amounts
+    const gmxToInvestInOGmx = minGmxExpected.add(existingGmx);
+    console.log(`gmxToInvestInOGmx=[${gmxToInvestInOGmx.toString()}]`);
+
     // Get a quote to swap $GMX -> $oGMX
-    // NB: No slippage when investing in the oGMX position as it's minted in situ (not via a dex)
-    const gmxToOgmxInvestQuote = await contracts.oGMX.investQuote(minGmxExpected, contracts.gmx.address);
-    const minOgmxFromSwaps = gmxToOgmxInvestQuote.quoteData.expectedInvestmentAmount;
+    // NB: No slippage when investing in the oGMX position as it's minted in situ (not bought via a dex)
+    const gmxToOgmxInvestQuote = await contracts.oGMX.investQuote(gmxToInvestInOGmx, contracts.gmx.address, 0, 0);
     console.log(`\tGMX -> oGMX Invest Quote: ${gmxToOgmxInvestQuote}`);
-    console.log(`\tminOgmxFromSwaps=[${minOgmxFromSwaps.toString()}]`);
 
     // The total $oGMX expected in the aggregator = 
     //   1/ The min expected amount after the wETH->GMX->oGMX swaps
     //   2/ The amount of oGMX already existing + harvested in the aggregator - given by the harvestableRewards()
-    const totalOGmxAvailable = minOgmxFromSwaps.add(harvestableRewards.oGmx);
+    const totalOGmxAvailable = gmxToOgmxInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGmx);
     console.log(`\ttotalOGmxAvailable=[${totalOGmxAvailable.toString()}]`);
 
     // To smooth the bump up out, we only add a percentage of the total available oGMX as reserves
@@ -189,7 +191,6 @@ const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
         nativeToGmxSwapData: wethToGmxQuoteData,
         oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
-        oGmxInvestSlippageBps: SLIPPAGE_BPS,
         addToReserveAmount: addToReserveAmount,
     };
     console.log("\tHarvest Params:", harvestParams);
@@ -229,16 +230,16 @@ async function main() {
         // Invest in $GMX
         {
             const investAmount = ethers.utils.parseEther("100");
-            const quote = await contracts.ovGMX.investQuote(investAmount, contracts.gmx.address);
-            await mine(contracts.ovGMX.investWithToken(quote.quoteData, 100));
+            const quote = await contracts.ovGMX.investQuote(investAmount, contracts.gmx.address, 0, 0);
+            await mine(contracts.ovGMX.investWithToken(quote.quoteData));
             console.log("Invested into ovGMX", ethers.utils.formatEther(quote.quoteData.expectedInvestmentAmount));
         }
 
         // Exit GMX
         {
             const exitAmount = ethers.utils.parseEther("75");
-            const quote = await contracts.ovGMX.exitQuote(exitAmount, contracts.gmx.address);
-            await mine(contracts.ovGMX.exitToToken(quote.quoteData, 100, owner.getAddress()));
+            const quote = await contracts.ovGMX.exitQuote(exitAmount, contracts.gmx.address, 100, 0);
+            await mine(contracts.ovGMX.exitToToken(quote.quoteData, owner.getAddress()));
             console.log("Exited from ovGMX", ethers.utils.formatEther(quote.quoteData.expectedToTokenAmount));
         }
     }
@@ -251,8 +252,8 @@ async function main() {
         {
             const investAmount = ethers.utils.parseEther("1000");
             await mine(contracts.dai.mint(owner.getAddress(), investAmount));
-            const quote = await contracts.ovGLP.investQuote(investAmount, toToken);
-            await mine(contracts.ovGLP.investWithToken(quote.quoteData, 100));
+            const quote = await contracts.ovGLP.investQuote(investAmount, toToken, 100, 0);
+            await mine(contracts.ovGLP.investWithToken(quote.quoteData));
             console.log("Invested into ovGLP", ethers.utils.formatEther(quote.quoteData.expectedInvestmentAmount));
         }
 
@@ -278,8 +279,8 @@ async function main() {
         // Exit GLP
         {
             const exitAmount = ethers.utils.parseEther("75");
-            const quote = await contracts.ovGLP.exitQuote(exitAmount, toToken);
-            await mine(contracts.ovGLP.exitToToken(quote.quoteData, 100, owner.getAddress()));
+            const quote = await contracts.ovGLP.exitQuote(exitAmount, toToken, 100, 0);
+            await mine(contracts.ovGLP.exitToToken(quote.quoteData, owner.getAddress()));
             console.log("Exited from ovGLP", ethers.utils.formatEther(quote.quoteData.expectedToTokenAmount));
         }
 
@@ -310,15 +311,6 @@ async function main() {
             await mine(contracts.oGMX.approve(contracts.ovGMX.address, addAmount));
             console.log("ovGMX reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
             await mine(contracts.ovGMX.addReserves(addAmount));
-            console.log("ovGMX reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
-
-            const removeAmount = ethers.utils.parseEther("5");
-            console.log("ovGLP reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
-            await mine(contracts.ovGLP.removeReserves(removeAmount));
-            console.log("ovGLP reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
-
-            console.log("ovGMX reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
-            await mine(contracts.ovGMX.removeReserves(removeAmount));            console.log("ovGMX reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
             console.log("ovGMX reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
         }
     }

@@ -63,7 +63,7 @@
     "hardhat:local": "hardhat --network localhost",
     "hardhat:arbitrum": "hardhat --network arbitrum",
     "hardhat:avalanche": "hardhat --network avalanche",
-    "local-fork:arbitrum": "hardhat node --fork https://arb-mainnet.g.alchemy.com/v2/Wpi5oKPY2NTrKdxCVlcqK3JrijSLHI7B --fork-block-number 53856600",
+    "local-fork:arbitrum": "hardhat node --fork https://arb-mainnet.g.alchemy.com/v2/Wpi5oKPY2NTrKdxCVlcqK3JrijSLHI7B --fork-block-number 60385740",
     "local-fork:deploy:gmx": "$PWD/scripts/deploys/localhost/gmx/deploy-localhost-fork.sh",
     "local-fork:test:gmx": "hardhat run --network localhost scripts/deploys/localhost/gmx/999-localhost-fork-test.ts",
     "forge-test": "forge test",

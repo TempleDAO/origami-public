@@ -8,7 +8,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 /// @dev Derived classes to implement addOperator() and removeOperator()
 abstract contract Operators is Initializable {
     /// @notice A set of addresses which are approved to run operations.
-    mapping(address => bool) public operators;
+    mapping(address => bool) internal _operators;
 
     event AddedOperator(address indexed account);
     event RemovedOperator(address indexed account);
@@ -25,9 +25,13 @@ abstract contract Operators is Initializable {
     function __Operators_init_unchained() internal onlyInitializing {
     }
 
+    function operators(address _account) external view returns (bool) {
+        return _operators[_account];
+    }
+
     function _addOperator(address _account) internal {
         emit AddedOperator(_account);
-        operators[_account] = true;
+        _operators[_account] = true;
     }
 
     /// @notice Grant `_account` the operator role
@@ -36,7 +40,7 @@ abstract contract Operators is Initializable {
 
     function _removeOperator(address _account) internal {
         emit RemovedOperator(_account);
-        delete operators[_account];
+        delete _operators[_account];
     }
 
     /// @notice Revoke the operator role from `_account`
@@ -44,7 +48,7 @@ abstract contract Operators is Initializable {
     function removeOperator(address _account) external virtual;
 
     modifier onlyOperators() {
-        if (!operators[msg.sender]) revert OnlyOperators(msg.sender);
+        if (!_operators[msg.sender]) revert OnlyOperators(msg.sender);
         _;
     }
 

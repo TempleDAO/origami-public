@@ -30,9 +30,6 @@ const CONFIG: HarvestGmxConfig = {
     // max slippage (not including price impact) when swapping $WETH -> $GMX via 0x
     WETH_TO_GMX_SLIPPAGE_BPS: 100, // 1%
 
-    // max slippage when investing in $oGMX with $GMX
-    GMX_TO_OGMX_INVESTMENT_SLIPPAGE_BPS: 100, // 1%
-
     // What percentage of the total oGMX on hand does the aggregator actually add as reserves into ovGMX
     DAILY_ADD_TO_RESERVE_BPS: 1_000, // 10%
 };

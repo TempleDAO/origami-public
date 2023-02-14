@@ -37,9 +37,6 @@ const CONFIG: HarvestGlpConfig = {
     // max slippage when investing in $oGLP with $WETH
     WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS: 100, // 1%
 
-    // max slippage when exiting from $oGMX to $GMX
-    OGMX_TO_GMX_EXIT_SLIPPAGE_BPS: 100, // 1%
-
     // What percentage of the total oGLP on hand does the aggregator actually add as reserves into ovGLP
     DAILY_ADD_TO_RESERVE_BPS: 1_000, // 10%
 };

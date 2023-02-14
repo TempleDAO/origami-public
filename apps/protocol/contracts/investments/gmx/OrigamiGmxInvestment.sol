@@ -1,6 +1,6 @@
 pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Origami (investments/gmx/OrigamiGmxLocker.sol)
+// Origami (investments/gmx/OrigamiGmxInvestment.sol)
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -12,14 +12,13 @@ import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 /// @title Origami GMX Investment
 /// @notice Users purchase oGMX with pre-purchased GMX
 /// Upon investment, users receive the same as amount of oGMX as deposited GMX
-/// Staked oGMX will earn boosted ETH/AVAX & oGMX rewards.
 contract OrigamiGmxInvestment is OrigamiInvestment {
     using SafeERC20 for IERC20;
 
     /// @notice The Origami contract managing the holdings of GMX and derived esGMX/mult point rewards
     IOrigamiGmxManager public origamiGmxManager;
 
-    event OrigamiGmxManagerSet(address origamiGmxManager);
+    event OrigamiGmxManagerSet(address indexed origamiGmxManager);
     
     constructor() OrigamiInvestment("Origami GMX Investment", "oGMX") {}
 
@@ -33,7 +32,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     /**
      * @notice The set of accepted tokens which can be used to invest.
      */
-    function acceptedInvestTokens() public override view returns (address[] memory tokens) {
+    function acceptedInvestTokens() external override view returns (address[] memory tokens) {
         return origamiGmxManager.acceptedOGmxTokens();
     }
 
@@ -62,17 +61,21 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
      * @notice Get a quote to buy the oGMX using GMX.
      * @param fromTokenAmount How much of GMX to invest with
      * @param fromToken This must be the address of the GMX token
+     * @param maxSlippageBps The maximum acceptable slippage of the received investment amount
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
      * @return investFeeBps [GMX.io's fee when depositing with `fromToken`]
      */
     function investQuote(
         uint256 fromTokenAmount,
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
     ) {
-        return origamiGmxManager.investOGmxQuote(fromTokenAmount, fromToken);
+        return origamiGmxManager.investOGmxQuote(fromTokenAmount, fromToken, maxSlippageBps, deadline);
     }
 
     /** 
@@ -81,14 +84,13 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
       * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
       */
     function investWithToken(
-        InvestQuoteData calldata quoteData, 
-        uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external override nonReentrant returns (uint256 investmentAmount) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
         // Send the investment token to the gmx manager
         IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(origamiGmxManager), quoteData.fromTokenAmount);
-        investmentAmount = origamiGmxManager.investOGmx(quoteData, slippageBps);
+        investmentAmount = origamiGmxManager.investOGmx(quoteData);
 
         emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
 
@@ -100,7 +102,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
       * @notice Unsupported - cannot invest in oGMX using native chain ETH/AVAX
       */
     function investWithNative(
-        InvestQuoteData calldata /*quoteData*/, uint256 /*slippageBps*/
+        InvestQuoteData calldata /*quoteData*/
     ) external payable override returns (uint256) {
         revert Unsupported();
     }
@@ -109,29 +111,31 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
      * @notice Get a quote to sell oGMX to GMX.
      * @param investmentTokenAmount The amount of oGMX to sell
      * @param toToken This must be the address of the GMX token
+     * @param maxSlippageBps The maximum acceptable slippage of the received `toToken`
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
      * @return exitFeeBps [Origami's exit fee]
      */
     function exitQuote(
         uint256 investmentTokenAmount, 
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
     ) {
-        return origamiGmxManager.exitOGmxQuote(investmentTokenAmount, toToken);
+        return origamiGmxManager.exitOGmxQuote(investmentTokenAmount, toToken, maxSlippageBps, deadline);
     }
 
     /** 
       * @notice Sell oGMX to receive GMX. 
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the quoteData
       * @param recipient The receiving address of the `t\oToken`
       * @return toTokenAmount The number of `toToken` tokens received upon selling the Origami receipt token.
       */
     function exitToToken(
-        ExitQuoteData calldata quoteData, 
-        uint256 slippageBps, 
+        ExitQuoteData calldata quoteData,
         address recipient
     ) external override nonReentrant returns (
         uint256 toTokenAmount
@@ -141,7 +145,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
         // Send the oGMX to the gmx manager
         _transfer(msg.sender, address(origamiGmxManager), quoteData.investmentTokenAmount);
         uint256 oGmxToBurn;
-        (toTokenAmount, oGmxToBurn) = origamiGmxManager.exitOGmx(quoteData, slippageBps, recipient);
+        (toTokenAmount, oGmxToBurn) = origamiGmxManager.exitOGmx(quoteData, recipient);
         
         emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
         
@@ -153,7 +157,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
       * @notice Unsupported - cannot exit oGMX to native chain ETH/AVAX
       */
     function exitToNative(
-        ExitQuoteData calldata /*quoteData*/, uint256 /*slippageBps*/, address payable /*recipient*/
+        ExitQuoteData calldata /*quoteData*/, address payable /*recipient*/
     ) external pure override returns (uint256 /*nativeAmount*/) {
         revert Unsupported();
     }

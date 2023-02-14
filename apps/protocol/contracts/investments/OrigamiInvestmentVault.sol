@@ -26,9 +26,10 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
 
     /// @notice The quote data required to exit from the underlying Origami Investment reserve token
     struct UnderlyingExitQuoteData {
-        uint256 expectedReserveAmount;
         ExitQuoteData underlyingExitQuoteData;
     }
+
+    string public constant API_VERSION = "0.1.0";
 
     /// @notice The helper contract to retrieve Origami USD prices
     ITokenPrices public tokenPrices;
@@ -54,6 +55,13 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         FractionalAmount.set(performanceFee, uint128(_performanceFeePercent), 100);
     }
     
+    /**
+     * @notice Track the depoyed version of this contract. 
+     */
+    function apiVersion() external override pure returns (string memory) {
+        return API_VERSION;
+    }
+
     /**
      * @notice Whether new investments are paused.
      */
@@ -116,17 +124,25 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         return appendReserveToken(IOrigamiInvestment(reserveToken).acceptedExitTokens());
     }
 
+    function applySlippage(uint256 quote, uint256 maxSlippageBps) internal pure returns (uint256) {
+        return quote * (10_000 - maxSlippageBps) / 10_000;
+    }
+
     /**
      * @notice Get a quote to invest into the Origami investment vault using one of the accepted tokens. 
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param fromTokenAmount How much of `fromToken` to invest with
      * @param fromToken What ERC20 token to purchase with. This must be one of `acceptedInvestTokens`
+     * @param maxSlippageBps The maximum acceptable slippage of the received investment amount
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any params required for the underlying investment type.
      * @return investFeeBps Any fees expected when investing with the given token, either from Origami or from the underlying investment.
      */
     function investQuote(
         uint256 fromTokenAmount, 
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
@@ -139,31 +155,31 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         if (fromToken == reserveToken) {
             quoteData.fromToken = fromToken;
             quoteData.fromTokenAmount = fromTokenAmount;
+            quoteData.maxSlippageBps = maxSlippageBps;
+            quoteData.deadline = deadline;
             quoteData.expectedInvestmentAmount = reservesToShares(fromTokenAmount);
+            quoteData.minInvestmentAmount = applySlippage(quoteData.expectedInvestmentAmount, maxSlippageBps);
             // quoteData.underlyingInvestmentQuoteData remains as bytes(0)
         } else {
             // Get the underlying quote and encode into underlyingInvestmentQuoteData
-            (quoteData, investFeeBps) = IOrigamiInvestment(reserveToken).investQuote(fromTokenAmount, fromToken);
+            // Safe to assume no slippage for the imtermediate/underlying investment as the final amount of shares are checked at the end.
+            (quoteData, investFeeBps) = IOrigamiInvestment(reserveToken).investQuote(fromTokenAmount, fromToken, 1, deadline);
             quoteData.underlyingInvestmentQuoteData = abi.encode(quoteData);
+            quoteData.maxSlippageBps = maxSlippageBps;
 
             // Now calculate how many shares that translates to.
             quoteData.expectedInvestmentAmount = reservesToShares(quoteData.expectedInvestmentAmount);
+            quoteData.minInvestmentAmount = applySlippage(quoteData.expectedInvestmentAmount, maxSlippageBps);
         }
-    }
-
-    function applySlippage(uint256 quote, uint256 slippageBps) internal pure returns (uint256) {
-        return quote * (10_000 - slippageBps) / 10_000;
     }
 
     /** 
       * @notice User invests into this Origami investment vault with an amount of one of the approved ERC20 tokens. 
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @return investmentAmount The actual number of this Origami investment tokens received.
       */
     function investWithToken(
-        InvestQuoteData calldata quoteData,
-        uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external override nonReentrant returns (
         uint256 investmentAmount
     ) {
@@ -185,30 +201,26 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             InvestQuoteData memory underlyingQuoteData = abi.decode(
                 quoteData.underlyingInvestmentQuoteData, (InvestQuoteData)
             );
-            reservesAmount = IOrigamiInvestment(reserveToken).investWithToken(
-                underlyingQuoteData,
-                slippageBps
-            );
+            reservesAmount = IOrigamiInvestment(reserveToken).investWithToken(underlyingQuoteData);
         }
 
         // Now issue shares to the user based off the `reserveAmount`
         investmentAmount = _issueSharesFromReserves(
             reservesAmount,
             msg.sender,
-            applySlippage(quoteData.expectedInvestmentAmount, slippageBps)
+            quoteData.minInvestmentAmount
         );
+
         emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
     }
 
     /** 
       * @notice User invests into this Origami investment vault with an amount of native chain token (ETH/AVAX)
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @return investmentAmount The actual number of this Origami investment tokens received.
       */
     function investWithNative(
-        InvestQuoteData calldata quoteData,
-        uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external override nonReentrant payable returns (
         uint256 investmentAmount
     ) {
@@ -221,15 +233,14 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             quoteData.underlyingInvestmentQuoteData, (InvestQuoteData)
         );
         uint256 reservesAmount = IOrigamiInvestment(reserveToken).investWithNative{value: msg.value}(
-            underlyingQuoteData,
-            slippageBps
+            underlyingQuoteData
         );
 
         // Now issue shares to the user based off the `reserveAmount`
         investmentAmount = _issueSharesFromReserves(
             reservesAmount,
             msg.sender,
-            applySlippage(quoteData.expectedInvestmentAmount, slippageBps)
+            quoteData.minInvestmentAmount
         );
         emit Invested(msg.sender, quoteData.fromTokenAmount, address(0), investmentAmount);
     }
@@ -239,12 +250,16 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param investmentAmount The number of Origami investment tokens to sell
      * @param toToken The token to receive when selling. This must be one of `acceptedExitTokens`
+     * @param maxSlippageBps The maximum acceptable slippage of the received `toToken`
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any params required for the underlying investment type.
      * @return exitFeeBps Any fees expected when exiting the investment to the nominated token, either from Origami or from the underlying investment.
      */
     function exitQuote(
         uint256 investmentAmount, 
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
@@ -258,25 +273,27 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             // If it's the reserves, can redeem reserves directly from the shares.
             quoteData.investmentTokenAmount = investmentAmount;
             quoteData.toToken = toToken;
+            quoteData.maxSlippageBps = maxSlippageBps;
+            quoteData.deadline = deadline;
             quoteData.expectedToTokenAmount = sharesToReserves(investmentAmount);
+            quoteData.minToTokenAmount = applySlippage(quoteData.expectedToTokenAmount, maxSlippageBps);
             // quoteData.underlyingInvestmentQuoteData remains as bytes(0)
         } else {
             uint256 expectedReserveAmount = sharesToReserves(investmentAmount);
+            // Safe to assume no slippage for the imtermediate/underlying exit as the final amount of toToken's are checked at the end.
             (quoteData, exitFeeBps) = IOrigamiInvestment(reserveToken).exitQuote(
-                expectedReserveAmount, toToken
+                expectedReserveAmount, toToken, 1, deadline
             );
 
-            // The underlyingInvestmentQuoteData also contains the expected amount of reserves such that
-            // the intermediate slippage can be checked
             quoteData = ExitQuoteData({
                 investmentTokenAmount: investmentAmount,
                 toToken: toToken,
+                maxSlippageBps: maxSlippageBps,
+                deadline: deadline,
                 expectedToTokenAmount: quoteData.expectedToTokenAmount,
+                minToTokenAmount: applySlippage(quoteData.expectedToTokenAmount, maxSlippageBps),
                 underlyingInvestmentQuoteData: abi.encode(
-                    UnderlyingExitQuoteData({
-                        expectedReserveAmount: expectedReserveAmount, 
-                        underlyingExitQuoteData: quoteData
-                    })
+                    UnderlyingExitQuoteData(quoteData)
                 )
             });
         }
@@ -285,13 +302,11 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
     /** 
       * @notice Exit out of this Origami investment vault to receive one of the accepted tokens.
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @param recipient The receiving address of the `toToken`
       * @return toTokenAmount The number of `toToken` tokens received upon selling the Origami investment tokens.
       */
     function exitToToken(
-        ExitQuoteData calldata quoteData, 
-        uint256 slippageBps, 
+        ExitQuoteData calldata quoteData,
         address recipient
     ) external override returns (
         uint256 toTokenAmount
@@ -304,17 +319,19 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             toTokenAmount = _redeemReservesFromShares(
                 quoteData.investmentTokenAmount,
                 msg.sender,
-                applySlippage(quoteData.expectedToTokenAmount, slippageBps)
+                quoteData.minToTokenAmount
             );
             IERC20(reserveToken).safeTransfer(msg.sender, toTokenAmount);
         } else {
             UnderlyingExitQuoteData memory underlyingQuoteData = abi.decode(
                 quoteData.underlyingInvestmentQuoteData, (UnderlyingExitQuoteData)
             );
+
+            // Safe to assume no slippage for the imtermediate/underlying exit as the final amount of toToken's are checked at the end.
             uint256 reserveAmount = _redeemReservesFromShares(
                 quoteData.investmentTokenAmount,
                 msg.sender,
-                applySlippage(underlyingQuoteData.expectedReserveAmount, slippageBps)
+                1
             );
 
             // Update the underlying quote data with the actual amount of reserves we received.
@@ -323,23 +340,23 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             // Now exchange the reserve token to the actual token the user requested.
             toTokenAmount = IOrigamiInvestment(reserveToken).exitToToken(
                 underlyingQuoteData.underlyingExitQuoteData,
-                slippageBps,
                 recipient
             );
+
+            if (toTokenAmount < quoteData.minToTokenAmount) revert CommonEventsAndErrors.Slippage(quoteData.minToTokenAmount, toTokenAmount);
         }
+
         emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
     }
 
     /** 
       * @notice Sell this Origami investment to native ETH/AVAX.
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @param recipient The receiving address of the native chain token.
       * @return nativeAmount The number of native chain ETH/AVAX/etc tokens received upon selling the Origami investment tokens.
       */
     function exitToNative(
-        ExitQuoteData calldata quoteData, 
-        uint256 slippageBps, 
+        ExitQuoteData calldata quoteData,
         address payable recipient
     ) external override nonReentrant returns (uint256 nativeAmount) {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -349,10 +366,12 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         UnderlyingExitQuoteData memory underlyingQuoteData = abi.decode(
             quoteData.underlyingInvestmentQuoteData, (UnderlyingExitQuoteData)
         );
+
+        // Safe to assume no slippage for the imtermediate/underlying exit as the final amount of toToken's are checked at the end.
         uint256 reserveAmount = _redeemReservesFromShares(
             quoteData.investmentTokenAmount,
             msg.sender,
-            applySlippage(underlyingQuoteData.expectedReserveAmount, slippageBps)
+            1
         );
 
         // Update the underlying quote data with the actual amount of reserves we received.
@@ -361,9 +380,11 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         // Now exchange the reserve token to the actual token the user requested.
         nativeAmount = IOrigamiInvestment(reserveToken).exitToNative(
             underlyingQuoteData.underlyingExitQuoteData,
-            slippageBps, 
             recipient
         );
+
+        if (nativeAmount < quoteData.minToTokenAmount) revert CommonEventsAndErrors.Slippage(quoteData.minToTokenAmount, nativeAmount);
+
         emit Exited(msg.sender, quoteData.investmentTokenAmount, address(0), nativeAmount, recipient);
     }
 
@@ -372,7 +393,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
      * based on the projected reward rates as of now.
      * @dev APR == [the total USD value of rewards (less fees) for one per year at current rates] / [USD value of the total shares supply]
      */
-    function apr() public override view returns (uint256 aprBps) {
+    function apr() external override view returns (uint256 aprBps) {
         uint256[] memory projectedRewardRates = investmentManager.projectedRewardRates(true);  // 1e18 precision, remove performance fees
         uint256[] memory rewardTokenPricesUsd = tokenPrices.tokenPrices(investmentManager.rewardTokensList()); // 1e30 precision
 

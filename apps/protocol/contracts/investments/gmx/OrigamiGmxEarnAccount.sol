@@ -67,7 +67,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     /// This is a separate instance when the esGMX is obtained via staked GLP, vs staked GMX
     IGmxVester public esGmxVester;
  
-    /// @notice Whether GLP purchases are paused
+    /// @notice Whether GLP purchases are currently paused
     bool public override glpInvestmentsPaused;
 
     /// @notice The last timestamp that staked GLP was transferred out of this account.
@@ -113,7 +113,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         _disableInitializers();
     }
 
-    function initialize(address _gmxRewardRouter, address _glpRewardRouter, address _esGmxVester, address _stakedGlp) initializer public {
+    function initialize(address _gmxRewardRouter, address _glpRewardRouter, address _esGmxVester, address _stakedGlp) initializer external {
         __Ownable_init();
         __Operators_init();
         __UUPSUpgradeable_init();
@@ -186,31 +186,27 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         gmxRewardRouter.unstakeEsGmx(_amount);
     }
 
-    function applySlippage(uint256 quote, uint256 slippageBps) internal pure returns (uint256) {
-        return quote * (10_000 - slippageBps) / 10_000;
-    }
-
     /// @notice Buy and stake $GLP using GMX.io's contracts using a whitelisted token.
     /// @dev GMX.io takes fees dependent on the pool constituents.
-    function mintAndStakeGlp(uint256 fromAmount, address fromToken, uint256 minUsdg, uint256 minGlp, uint256 slippageBps) external override onlyOperators returns (uint256) {
+    function mintAndStakeGlp(uint256 fromAmount, address fromToken, uint256 minUsdg, uint256 minGlp) external override onlyOperators returns (uint256) {
         if (glpInvestmentsPaused) revert GlpInvestmentsPaused();
 
         IERC20Upgradeable(fromToken).safeIncreaseAllowance(glpRewardRouter.glpManager(), fromAmount);
         return glpRewardRouter.mintAndStakeGlp(
             fromToken, 
             fromAmount, 
-            applySlippage(minUsdg, slippageBps), 
-            applySlippage(minGlp, slippageBps)
+            minUsdg, 
+            minGlp
         );
     }
 
     /// @notice Unstake and sell $GLP using GMX.io's contracts, to a whitelisted token.
     /// @dev GMX.io takes fees dependent on the pool constituents.
-    function unstakeAndRedeemGlp(uint256 glpAmount, address toToken, uint256 minOut, uint256 slippageBps, address receiver) external override onlyOperators returns (uint256) {
+    function unstakeAndRedeemGlp(uint256 glpAmount, address toToken, uint256 minOut, address receiver) external override onlyOperators returns (uint256) {
         return glpRewardRouter.unstakeAndRedeemGlp(
             toToken, 
             glpAmount, 
-            applySlippage(minOut, slippageBps), 
+            minOut, 
             receiver
         );
     }
@@ -221,6 +217,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         emit StakedGlpTransferred(receiver, glpAmount);
     }
 
+    /// @notice When this contract is free to exit a GLP position, a cooldown period after the latest GLP purchase
     function glpInvestmentCooldownExpiry() public override view returns (uint256) {
         IGlpManager glpManager = IGlpManager(glpRewardRouter.glpManager());
         return glpManager.lastAddedAt(address(this)) + glpManager.cooldownDuration();
@@ -456,9 +453,4 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         );
     }
 
-    /// @notice Owner can recover tokens
-    function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
-        emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
-        IERC20Upgradeable(_token).safeTransfer(_to, _amount);
-    }
 }

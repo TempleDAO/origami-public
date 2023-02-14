@@ -1,6 +1,6 @@
 pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Origami (investments/gmx/OrigamiGlpLocker.sol)
+// Origami (investments/gmx/OrigamiGlpInvestment.sol)
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -14,7 +14,6 @@ import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 /// @title Origami GLP Investment
 /// @notice Users purchase oGLP with an accepted GMX.io ERC20 token, ETH, or staked GLP
 /// Upon investment, users receive the same as amount of oGLP 1:1 as if they were purchasing GLP directly via GMX.io.
-/// Staked oGLP will earn boosted ETH/AVAX & oGMX rewards.
 contract OrigamiGlpInvestment is OrigamiInvestment {
     using SafeERC20 for IERC20;
     using Address for address payable;
@@ -83,28 +82,30 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param fromTokenAmount How much of `fromToken` to invest with
      * @param fromToken What ERC20 token to purchase with. This must be one of `acceptedInvestTokens`
+     * @param maxSlippageBps The maximum acceptable slippage of the received investment amount
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any other quote params required for the underlying investment type. To be passed through when executing the quote.
      * @return investFeeBps [GMX.io's fee when depositing with `fromToken`]
      */
     function investQuote(
         uint256 fromTokenAmount, 
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
     ) {
-        return origamiGlpManager.investOGlpQuote(fromTokenAmount, fromToken);
+        return origamiGlpManager.investOGlpQuote(fromTokenAmount, fromToken, maxSlippageBps, deadline);
     }
 
     /** 
       * @notice User buys oGLP with an amount of one of the approved ERC20 tokens. 
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the quoteData params
       * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
       */
     function investWithToken(
-        InvestQuoteData calldata quoteData, 
-        uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external override nonReentrant returns (
         uint256 investmentAmount
     ) {
@@ -112,7 +113,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
 
         // Send the investment token to the glp manager then invest
         IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(origamiGlpManager), quoteData.fromTokenAmount);
-        investmentAmount = origamiGlpManager.investOGlp(quoteData.fromToken, quoteData, slippageBps);
+        investmentAmount = origamiGlpManager.investOGlp(quoteData.fromToken, quoteData);
 
         emit Invested(msg.sender, quoteData.fromTokenAmount, quoteData.fromToken, investmentAmount);
 
@@ -123,11 +124,10 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     /** 
       * @notice User buys oGLP tokens with an amount of native chain token (ETH/AVAX)
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the quoteData params
       * @return investmentAmount The number of receipt tokens to expect, inclusive of any fees.
       */
     function investWithNative(
-        InvestQuoteData calldata quoteData, uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external payable override nonReentrant returns (uint256 investmentAmount) {
         if (quoteData.fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.fromTokenAmount != msg.value) revert CommonEventsAndErrors.InvalidAmount(address(0), msg.value);
@@ -138,7 +138,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
 
         // Send the wrapped native token to the glp manager then invest
         IERC20(wrappedNativeToken).safeTransfer(address(origamiGlpManager), quoteData.fromTokenAmount);
-        investmentAmount = origamiGlpManager.investOGlp(wrappedNativeToken, quoteData, slippageBps);
+        investmentAmount = origamiGlpManager.investOGlp(wrappedNativeToken, quoteData);
 
         emit Invested(msg.sender, msg.value, address(0), investmentAmount);
 
@@ -151,29 +151,31 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param investmentTokenAmount The amount of oGLP to sell
      * @param toToken The token to receive when selling. This must be one of `acceptedExitTokens`
+     * @param maxSlippageBps The maximum acceptable slippage of the received `toToken`
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
      * @return exitFeeBps [Origami's exit fee, GMX.io's fee when selling to `toToken`]
      */
     function exitQuote(
         uint256 investmentTokenAmount, 
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
     ) {
-        return origamiGlpManager.exitOGlpQuote(investmentTokenAmount, toToken);
+        return origamiGlpManager.exitOGlpQuote(investmentTokenAmount, toToken, maxSlippageBps, deadline);
     }
 
     /** 
       * @notice Sell oGLP to receive one of the accepted tokens. 
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the quoteData params
       * @param recipient The receiving address of the `toToken`
       * @return toTokenAmount The number of `toToken` tokens received upon selling the Origami receipt token.
       */
     function exitToToken(
         ExitQuoteData calldata quoteData, 
-        uint256 slippageBps, 
         address recipient
     ) external override nonReentrant returns (
         uint256 toTokenAmount
@@ -183,7 +185,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
         // Send the oGLP to the glp manager then exit. 
         _transfer(msg.sender, address(origamiGlpManager), quoteData.investmentTokenAmount);
         uint256 oGlpToBurn;
-        (toTokenAmount, oGlpToBurn) = origamiGlpManager.exitOGlp(quoteData.toToken, quoteData, slippageBps, recipient);
+        (toTokenAmount, oGlpToBurn) = origamiGlpManager.exitOGlp(quoteData.toToken, quoteData, recipient);
 
         emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
 
@@ -194,13 +196,11 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     /** 
       * @notice Sell oGLP to native ETH/AVAX.
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the quoteData params
       * @param recipient The receiving address of the native chain token.
       * @return nativeAmount The number of native chain ETH/AVAX/etc tokens received upon selling the Origami receipt token.
       */
     function exitToNative(
         ExitQuoteData calldata quoteData, 
-        uint256 slippageBps, 
         address payable recipient
     ) external override nonReentrant returns (
         uint256 nativeAmount
@@ -211,7 +211,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
         // Send the oGLP to the glp manager then exit
         _transfer(msg.sender, address(origamiGlpManager), quoteData.investmentTokenAmount);
         uint256 oGlpToBurn;
-        (nativeAmount, oGlpToBurn) = origamiGlpManager.exitOGlp(wrappedNativeToken, quoteData, slippageBps, address(this));
+        (nativeAmount, oGlpToBurn) = origamiGlpManager.exitOGlp(wrappedNativeToken, quoteData, address(this));
 
         emit Exited(msg.sender, quoteData.investmentTokenAmount, address(0), nativeAmount, recipient);
         

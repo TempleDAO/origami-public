@@ -5,7 +5,7 @@ import { AutotaskConnection } from "@/connect";
 import { 
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,   
     IOrigamiInvestment, IOrigamiInvestment__factory,
-    DummyDex, DummyDex__factory,
+    DummyDex, DummyDex__factory, IERC20, IERC20__factory,
 } from "@/typechain";
 import { zeroExQuote, ZeroExQuoteParams } from '@/common/zero-ex'
 import { sendTransaction } from '@/ethers';
@@ -29,9 +29,6 @@ export interface HarvestGmxConfig  {
 
     // max slippage (not including price impact) when swapping $WETH -> $GMX via 0x
     WETH_TO_GMX_SLIPPAGE_BPS: number,
-
-    // max slippage when investing in $oGMX with $GMX
-    GMX_TO_OGMX_INVESTMENT_SLIPPAGE_BPS: number,
 
     // What percentage of the total oGMX on hand does the aggregator actually add as reserves into ovGMX
     DAILY_ADD_TO_RESERVE_BPS: number,
@@ -88,7 +85,7 @@ async function arbitrumWethToGmxQuote(
     const guaranteedPrice = ethers.utils.parseEther(quoteResp.guaranteedPrice);
 
     // minAmountExpected = sellAmount * guaranteedPrice
-    const minAmountExpected = sellAmount.mul(guaranteedPrice).div(ethers.utils.formatEther("1"));
+    const minAmountExpected = sellAmount.mul(guaranteedPrice).div(ethers.utils.parseEther("1"));
     console.log(`Min GMX Amount Bought: [${minAmountExpected.toString()}]`);
 
     return {quoteData: quoteResp.data, minAmountExpected};
@@ -114,6 +111,10 @@ export async function harvestGmxRewards(
         config.OGMX_ADDRESS,
         connection.signer
     );
+    const gmx: IERC20 = IERC20__factory.connect(
+        config.GMX_ADDRESS,
+        connection.signer
+    );
 
     if (await wasHarvestedRecently(connection, config.MIN_HARVEST_INTERVAL_SECS, rewardAggregator)) {
         return noop();
@@ -123,6 +124,8 @@ export async function harvestGmxRewards(
     const _harvestableRewards = await rewardAggregator.harvestableRewards();
     const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
     console.log(`\tGMX Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
+    const existingGmx = await gmx.balanceOf(rewardAggregator.address);
+    console.log(`\tExisting GMX in aggregator: ${existingGmx.toString()}`);
 
     // Get a quote to swap $WETH -> $GMX
     const {quoteData: wethToGmxQuoteData, minAmountExpected: minGmxExpected} = commonConfig.NETWORK === 'arbitrum'
@@ -137,18 +140,22 @@ export async function harvestGmxRewards(
             config, 
             harvestableRewards.weth,
         );
+        
+    // The total $GMX we have to invest = 
+    //   1/ The expected amount of $GMX we will receive from selling the $WETH +
+    //   2/ Any existing balance from previous swaps left over amounts
+    const gmxToInvestInOGmx = minGmxExpected.add(existingGmx);
+    console.log(`gmxToInvestInOGmx=[${gmxToInvestInOGmx.toString()}]`);
 
     // Get a quote to swap $GMX -> $oGMX
-    // NB: No slippage when investing in the oGMX position as it's minted in situ (not via a dex)
-    const gmxToOgmxInvestQuote = await oGmx.investQuote(minGmxExpected, config.GMX_ADDRESS);
-    const minOgmxFromSwaps = gmxToOgmxInvestQuote.quoteData.expectedInvestmentAmount;
+    // NB: No slippage when investing in the oGMX position as it's minted in situ (not bought via a dex)
+    const gmxToOgmxInvestQuote = await oGmx.investQuote(gmxToInvestInOGmx, config.GMX_ADDRESS, 0, 0);
     console.log(`GMX -> oGMX Invest Quote: ${gmxToOgmxInvestQuote}`);
-    console.log(`minOgmxFromSwaps=[${minOgmxFromSwaps.toString()}]`);
 
     // The total $oGMX expected in the aggregator = 
     //   1/ The min expected amount after the wETH->GMX->oGMX swaps
     //   2/ The amount of oGMX already existing + harvested in the aggregator - given by the harvestableRewards()
-    const totalOGmxAvailable = minOgmxFromSwaps.add(harvestableRewards.oGmx);
+    const totalOGmxAvailable = gmxToOgmxInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGmx);
     console.log(`totalOGmxAvailable=[${totalOGmxAvailable.toString()}]`);
 
     // To smooth the bump up out, we only add a percentage of the total available oGMX as reserves
@@ -159,7 +166,6 @@ export async function harvestGmxRewards(
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
         nativeToGmxSwapData: wethToGmxQuoteData,
         oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
-        oGmxInvestSlippageBps: config.GMX_TO_OGMX_INVESTMENT_SLIPPAGE_BPS,
         addToReserveAmount: addToReserveAmount,
     };
     console.log("Harvest Params:", harvestParams);

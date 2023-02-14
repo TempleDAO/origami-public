@@ -138,6 +138,19 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
         "internalType": "uint128",
         "name": "numerator",
         "type": "uint128"
@@ -236,13 +249,13 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "gmxRewardsAggregator",
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "glpRewardsAggregator",
         "type": "address"
@@ -374,7 +387,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -388,11 +416,6 @@
         "type": "tuple"
       },
       {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
-      },
-      {
         "internalType": "address",
         "name": "recipient",
         "type": "address"
@@ -402,7 +425,12 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "amountOut",
+        "name": "toTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "toBurnAmount",
         "type": "uint256"
       }
     ],
@@ -420,6 +448,16 @@
         "internalType": "address",
         "name": "toToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "exitOGlpQuote",
@@ -438,7 +476,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -476,7 +529,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -490,11 +558,6 @@
         "type": "tuple"
       },
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      },
-      {
         "internalType": "address",
         "name": "recipient",
         "type": "address"
@@ -504,7 +567,12 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "toTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "toBurnAmount",
         "type": "uint256"
       }
     ],
@@ -522,6 +590,16 @@
         "internalType": "address",
         "name": "toToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "exitOGmxQuote",
@@ -540,7 +618,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -744,7 +837,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -756,11 +864,6 @@
         "internalType": "struct IOrigamiInvestment.InvestQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       }
     ],
     "name": "investOGlp",
@@ -785,6 +888,16 @@
         "internalType": "address",
         "name": "fromToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "investOGlpQuote",
@@ -803,7 +916,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -841,7 +969,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -853,11 +996,6 @@
         "internalType": "struct IOrigamiInvestment.InvestQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "name": "investOGmx",
@@ -882,6 +1020,16 @@
         "internalType": "address",
         "name": "fromToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "investOGmxQuote",
@@ -900,7 +1048,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -970,7 +1133,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_account",
         "type": "address"
       }
     ],

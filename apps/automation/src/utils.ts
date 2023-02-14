@@ -114,12 +114,6 @@ export const waitForLastTransactionToFinish = (
     });
 }
 
-export const applySlippage = (bn: BigNumber, slippageBps: number) => {
-    return bn
-        .mul(10_000 - slippageBps)
-        .div(10_000);
-};
-
 export function bpsToFraction(bps: number): number {
     // eg 100 -> 0.01 (1%)
     return bps / 10_000;

@@ -614,11 +614,6 @@
         "internalType": "uint256",
         "name": "minGlp",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       }
     ],
     "name": "mintAndStakeGlp",
@@ -636,7 +631,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_account",
         "type": "address"
       }
     ],
@@ -772,29 +767,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_to",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "recoverToken",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -970,11 +942,6 @@
       {
         "internalType": "uint256",
         "name": "minOut",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
         "type": "uint256"
       },
       {

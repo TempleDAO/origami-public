@@ -62,7 +62,7 @@ contract TokenPrices is ITokenPrices, Ownable {
     /** EXTERNAL PRICE LOOKUPS */
 
     /// @notice Lookup the price of an oracle, scaled to `pricePrecision`
-    function oraclePrice(address _oracle) public view returns (uint256 price) {
+    function oraclePrice(address _oracle) external view returns (uint256 price) {
         IAggregatorV3Interface oracle = IAggregatorV3Interface(_oracle);
         (, int256 feedValue, , , ) = oracle.latestRoundData();
         if (feedValue < 0) revert InvalidPrice(feedValue);
@@ -71,7 +71,7 @@ contract TokenPrices is ITokenPrices, Ownable {
 
     /// @notice Fetch the Trader Joe pair price.
     /// Assumes the reserves are in 1e18 precision
-    function traderJoePrice(IJoePair joePair, bool inQuotedOrder) public view returns (uint256) {
+    function traderJoePrice(IJoePair joePair, bool inQuotedOrder) external view returns (uint256) {
         (uint112 token0Reserve, uint112 token1Reserve,) = joePair.getReserves();
         if (inQuotedOrder) {
             return scaleToPrecision(uint256(token0Reserve) * 1e18 / token1Reserve, 18);
@@ -82,7 +82,7 @@ contract TokenPrices is ITokenPrices, Ownable {
 
     /// @notice Fetch the price from a univ3 pool, in quoted order (token0Price), to `pricePrecision`
     /// @dev https://docs.uniswap.org/sdk/guides/fetching-prices
-    function univ3Price(IUniswapV3Pool pool, bool inQuotedOrder) public view returns (uint256) {
+    function univ3Price(IUniswapV3Pool pool, bool inQuotedOrder) external view returns (uint256) {
         // Pull the current price from the pool
         (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
             
@@ -100,7 +100,7 @@ contract TokenPrices is ITokenPrices, Ownable {
     /// @notice Lookup the price of $GLP, scaled to `pricePrecision`
     /// @dev price = assets under management / glp supply
     /// GMX FE: https://github.com/gmx-io/gmx-interface/blob/98d20457aa313b9bac08b2b5cbb18486f598d8a0/src/pages/Dashboard/DashboardV2.js#L290-L291
-    function glpPrice(IGlpManager glpManager) public view returns (uint256) {
+    function glpPrice(IGlpManager glpManager) external view returns (uint256) {
         // Assets Under Management
         uint256[] memory aums = glpManager.getAums();
         uint256 avgAum = (aums[0] + aums[1]) / 2;
@@ -115,13 +115,13 @@ contract TokenPrices is ITokenPrices, Ownable {
     }
 
     /// @notice Fetch the token price from the GMX Vault
-    function gmxVaultPrice(address vault, address token) public view returns (uint256) {
+    function gmxVaultPrice(address vault, address token) external view returns (uint256) {
         return scaleToPrecision(IGmxVault(vault).getMinPrice(token), 30);
     }
 
     /// @notice Calculate the Repricing Token price based
     /// on the [reserveToken price] * [reservesPerShare()]
-    function repricingTokenPrice(address _repricingToken) public view returns (uint256) {
+    function repricingTokenPrice(address _repricingToken) external view returns (uint256) {
         IRepricingToken repricingToken = IRepricingToken(_repricingToken);
         return tokenPrice(repricingToken.reserveToken()) * repricingToken.reservesPerShare() / (10 ** ERC20(_repricingToken).decimals());
     }
@@ -129,22 +129,22 @@ contract TokenPrices is ITokenPrices, Ownable {
     /** INTERNAL PRIMATIVES AND COMPOSITION FUNCTIONS */
 
     /// @notice A fixed scalar amount, which can be used in mul/div operations
-    function scalar(uint256 _amount) public pure returns (uint256) {
+    function scalar(uint256 _amount) external pure returns (uint256) {
         return _amount;
     }
 
     /// @notice Use the price function from another source token.
-    function aliasFor(address sourceToken) public view returns (uint256) {
+    function aliasFor(address sourceToken) external view returns (uint256) {
         return tokenPrice(sourceToken);
     }
 
     /// @notice Multiply the result of two separate price lookup functions
-    function mul(bytes calldata v1, bytes calldata v2) public view returns (uint256) {
+    function mul(bytes calldata v1, bytes calldata v2) external view returns (uint256) {
         return runPriceFunction(v1) * runPriceFunction(v2) / 10 ** decimals;
     }
 
     /// @notice Divide the result of two separate price lookup functions
-    function div(bytes calldata numerator, bytes calldata denominator) public view returns (uint256) {
+    function div(bytes calldata numerator, bytes calldata denominator) external view returns (uint256) {
         return runPriceFunction(numerator) * 10 ** decimals / runPriceFunction(denominator);
     }
 

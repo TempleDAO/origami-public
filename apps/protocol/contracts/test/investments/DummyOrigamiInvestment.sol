@@ -62,21 +62,25 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
 
     function investQuote(
         uint256 fromTokenAmount, 
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
     ) {
         quoteData.fromToken = fromToken;
         quoteData.fromTokenAmount = fromTokenAmount;
+        quoteData.maxSlippageBps = maxSlippageBps;
+        quoteData.deadline = deadline;
         quoteData.expectedInvestmentAmount = fromTokenAmount * (10_000 - investFee) / 10_000;
+        quoteData.minInvestmentAmount = quoteData.expectedInvestmentAmount;
         investFeeBps = new uint256[](1);
         investFeeBps[0] = investFee;
     }
 
     function investWithToken(
-         InvestQuoteData calldata quoteData, 
-         uint256 /*slippageBps*/
+         InvestQuoteData calldata quoteData
     ) external override returns (
         uint256 investmentAmount
     ) {
@@ -92,8 +96,7 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
     }
 
     function investWithNative(
-        InvestQuoteData calldata quoteData,
-        uint256 /*slippageBps*/
+        InvestQuoteData calldata quoteData
     ) external payable override returns (
         uint256 investmentAmount
     ) {
@@ -109,21 +112,25 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
 
     function exitQuote(
         uint256 investmentAmount, 
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
     ) {
         quoteData.investmentTokenAmount = investmentAmount;
         quoteData.toToken = toToken;
+        quoteData.maxSlippageBps = maxSlippageBps;
+        quoteData.deadline = deadline;
         quoteData.expectedToTokenAmount = investmentAmount * (10_000 - exitFee) / 10_000;
+        quoteData.minToTokenAmount;
         exitFeeBps = new uint256[](1);
         exitFeeBps[0] = exitFee;
     }
 
     function exitToToken(
         ExitQuoteData calldata quoteData, 
-        uint256 /*slippageBps*/, 
         address recipient
     ) external override returns (
         uint256 toTokenAmount
@@ -141,7 +148,6 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
 
     function exitToNative(
         ExitQuoteData calldata quoteData,
-        uint256 /*slippageBps*/, 
         address payable recipient
     ) external override returns (
         uint256 nativeAmount

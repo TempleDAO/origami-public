@@ -90,15 +90,11 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /// @notice The current paused/unpaused state of investments/exits.
     IOrigamiGmxManager.Paused private _paused;
 
-    struct GlpUnderlyingInvestQuoteData {
-        uint256 expectedUsdg;
-    }
-
     event OGmxRewardsFeeRateSet(uint128 numerator, uint128 denominator);
     event SellFeeRateSet(uint128 numerator, uint128 denominator);
     event EsGmxVestingRateSet(uint128 numerator, uint128 denominator);
     event FeeCollectorSet(address indexed feeCollector);
-    event RewardsAggregatorsSet(address gmxRewardsAggregator, address glpRewardsAggregator);
+    event RewardsAggregatorsSet(address indexed gmxRewardsAggregator, address indexed glpRewardsAggregator);
     event PrimaryEarnAccountSet(address indexed account);
     event SecondaryEarnAccountSet(address indexed account);
     event PausedSet(Paused paused);
@@ -144,6 +140,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         gmxVault = IGmxVault(glpManager.vault());
     }
 
+    /// @notice Current status of whether investments/exits are paused
     function paused() external view override returns (IOrigamiGmxManager.Paused memory) {
         // GLP investments can also be temporarily paused if it's paused in order to 
         // transfer staked glp from secondary -> primary
@@ -219,7 +216,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         _removeOperator(_address);
     }
 
-    /// @notice The set of reward tokens we give to the staking contract.
+    /// @notice The set of reward tokens we give to the rewards aggregator
     function rewardTokensList() external view override returns (address[] memory tokens) {
         return rewardTokens;
     }
@@ -376,12 +373,16 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
      * @notice Get a quote to buy the oGMX using GMX.
      * @param fromTokenAmount How much of GMX to invest with
      * @param fromToken This must be the address of the GMX token
+     * @param maxSlippageBps The maximum acceptable slippage of the received investment amount
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
      * @return investFeeBps [GMX.io's fee when depositing with `fromToken`]
      */
     function investOGmxQuote(
         uint256 fromTokenAmount,
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         IOrigamiInvestment.InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
@@ -389,12 +390,17 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         if (fromToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(fromToken);
         if (fromTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
-        // oGMX is minted 1:1, no fees
-        quoteData.fromToken = fromToken;
-        quoteData.fromTokenAmount = fromTokenAmount;
-        quoteData.expectedInvestmentAmount = fromTokenAmount;
-        // No extra underlyingInvestmentQuoteData
-
+        // oGMX is minted 1:1, no fees or slippage
+        quoteData = IOrigamiInvestment.InvestQuoteData({
+            fromToken: fromToken,
+            fromTokenAmount: fromTokenAmount,
+            maxSlippageBps: maxSlippageBps,
+            deadline: deadline,
+            expectedInvestmentAmount: fromTokenAmount,
+            minInvestmentAmount: fromTokenAmount,
+            underlyingInvestmentQuoteData: "" // No extra underlyingInvestmentQuoteData
+        });
+        
         investFeeBps = new uint256[](0);
     }
 
@@ -404,8 +410,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
       * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
       */
     function investOGmx(
-        IOrigamiInvestment.InvestQuoteData calldata quoteData, 
-        uint256 /*slippageBps currently unused*/
+        IOrigamiInvestment.InvestQuoteData calldata quoteData
     ) external override onlyOperators returns (
         uint256 investmentAmount
     ) {
@@ -425,12 +430,16 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
      * @notice Get a quote to sell oGMX to GMX.
      * @param investmentTokenAmount The amount of oGMX to sell
      * @param toToken This must be the address of the GMX token
+     * @param maxSlippageBps The maximum acceptable slippage of the received `toToken`
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any other quote params required for this investment type. To be passed through when executing the quote.
      * @return exitFeeBps [Origami's exit fee]
      */
     function exitOGmxQuote(
         uint256 investmentTokenAmount, 
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         IOrigamiInvestment.ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
@@ -438,13 +447,17 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         if (investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (toToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(toToken);
 
+        // oGMX is sold 1:1 to GMX, no slippage, with exit fee
         quoteData.investmentTokenAmount = investmentTokenAmount;
         quoteData.toToken = toToken;
+        quoteData.maxSlippageBps = maxSlippageBps;
+        quoteData.deadline = deadline;
+        (, quoteData.expectedToTokenAmount) = sellFeeRate.split(investmentTokenAmount);
+        quoteData.minToTokenAmount = quoteData.expectedToTokenAmount;
         // No extra underlyingInvestmentQuoteData
 
         exitFeeBps = new uint256[](1);
         exitFeeBps[0] = sellFeeRate.asBasisPoints();
-        (, quoteData.expectedToTokenAmount) = sellFeeRate.split(investmentTokenAmount);
     }
     
     /** 
@@ -452,11 +465,10 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
       * @param quoteData The quote data received from exitQuote()
       * @param recipient The receiving address of the GMX
       * @return toTokenAmount The number of GMX tokens received upon selling the oGMX.
-      * @return toBurnAmount The number of oGLP to be burnt after exiting this position
+      * @return toBurnAmount The number of oGMX to be burnt after exiting this position
       */
     function exitOGmx(
-        IOrigamiInvestment.ExitQuoteData memory quoteData, 
-        uint256 /*slippageBps currently unused*/,
+        IOrigamiInvestment.ExitQuoteData memory quoteData,
         address recipient
     ) external override onlyOperators returns (uint256 toTokenAmount, uint256 toBurnAmount) {
         if (_paused.gmxExitsPaused) revert CommonEventsAndErrors.IsPaused();
@@ -500,6 +512,10 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         tokens[i+1] = address(primaryEarnAccount.stakedGlp());
     }
 
+    function applySlippage(uint256 quote, uint256 slippageBps) internal pure returns (uint256) {
+        return quote * (10_000 - slippageBps) / 10_000;
+    }
+
     /**
      * @notice Get a quote to buy the oGLP using one of the approved tokens, inclusive of GMX.io fees.
      * @dev The 0x0 address can be used for native chain ETH/AVAX
@@ -510,7 +526,9 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
      */
     function investOGlpQuote(
         uint256 fromTokenAmount, 
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external view override returns (
         IOrigamiInvestment.InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
@@ -519,11 +537,14 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
 
         quoteData.fromToken = fromToken;
         quoteData.fromTokenAmount = fromTokenAmount;
+        quoteData.maxSlippageBps = maxSlippageBps;
+        quoteData.deadline = deadline;
+        // No extra underlyingInvestmentQuoteData
 
-        uint256 expectedUsdg;
         if (fromToken == address(primaryEarnAccount.stakedGlp())) {
             quoteData.expectedInvestmentAmount = fromTokenAmount; // 1:1 for staked GLP
-            investFeeBps = new uint256[](1); // investFeeBps[0]=0, expectedUsdg=0
+            quoteData.minInvestmentAmount = fromTokenAmount; // No slippage
+            investFeeBps = new uint256[](1); // investFeeBps[0]=0
         } else {
             address tokenIn = (fromToken == address(0)) ? wrappedNativeToken : fromToken;
 
@@ -533,25 +554,24 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             uint256 aumInUsdg = glpManager.getAumInUsdg(true); // Assets Under Management
             uint256 glpSupply = IERC20(glpToken).totalSupply();
 
+            uint256 expectedUsdg;
             (investFeeBps[0], expectedUsdg) = buyUsdgQuote(fromTokenAmount, tokenIn);
-
+            
+            // oGLP is minted 1:1 to the amount of GLP received.
             quoteData.expectedInvestmentAmount = (aumInUsdg == 0) ? expectedUsdg : expectedUsdg * glpSupply / aumInUsdg;
+            quoteData.minInvestmentAmount = applySlippage(quoteData.expectedInvestmentAmount, maxSlippageBps);
         }
-        
-        quoteData.underlyingInvestmentQuoteData = abi.encode(GlpUnderlyingInvestQuoteData(expectedUsdg));
     }
 
     /** 
       * @notice User buys oGLP with an amount of one of the approved ERC20 tokens. 
       * @param fromToken The token override to invest with. May be different from the `quoteData.fromToken`
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
       * @return investmentAmount The actual number of receipt tokens received, inclusive of any fees.
       */
     function investOGlp(
         address fromToken,
-        IOrigamiInvestment.InvestQuoteData calldata quoteData, 
-        uint256 slippageBps
+        IOrigamiInvestment.InvestQuoteData calldata quoteData
     ) external override onlyOperators returns (
         uint256 investmentAmount
     ) {
@@ -570,9 +590,9 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             // to avoid withdrawals blocking from cooldown in the primary account.
             IERC20(fromToken).safeTransfer(address(secondaryEarnAccount), quoteData.fromTokenAmount);
 
-            GlpUnderlyingInvestQuoteData memory underlyingQuoteData = abi.decode(quoteData.underlyingInvestmentQuoteData, (GlpUnderlyingInvestQuoteData));
+            // Safe to assume the minUsdg=1, as we only care that we get the min GLP amount out.
             investmentAmount = secondaryEarnAccount.mintAndStakeGlp(
-                quoteData.fromTokenAmount, fromToken, underlyingQuoteData.expectedUsdg, quoteData.expectedInvestmentAmount, slippageBps
+                quoteData.fromTokenAmount, fromToken, 1, quoteData.minInvestmentAmount
             );
         }
     }
@@ -587,7 +607,9 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
      */
     function exitOGlpQuote(
         uint256 investmentTokenAmount, 
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external override view returns (
         IOrigamiInvestment.ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
@@ -596,7 +618,9 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
 
         quoteData.investmentTokenAmount = investmentTokenAmount;
         quoteData.toToken = toToken;
-        // No extra underlyingInvestmentQuoteData on exit
+        quoteData.maxSlippageBps = maxSlippageBps;
+        quoteData.deadline = deadline;
+        // No extra underlyingInvestmentQuoteData
 
         exitFeeBps = new uint256[](2);  // [Origami's exit fee, GMX's exit fee]
         exitFeeBps[0] = sellFeeRate.asBasisPoints();
@@ -606,6 +630,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         if (toToken == address(primaryEarnAccount.stakedGlp())) {
             // No GMX related fees for staked GLP transfers
             quoteData.expectedToTokenAmount = glpAmount;
+            quoteData.minToTokenAmount = glpAmount; // No slippage
         } else {
             address tokenOut = (toToken == address(0)) ? wrappedNativeToken : toToken;
 
@@ -616,6 +641,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             uint256 usdgAmount = (glpSupply == 0) ? 0 : glpAmount * aumInUsdg / glpSupply;
             
             (exitFeeBps[1], quoteData.expectedToTokenAmount) = sellUsdgQuote(usdgAmount, tokenOut);
+            quoteData.minToTokenAmount = applySlippage(quoteData.expectedToTokenAmount, maxSlippageBps);
         }
     }
 
@@ -623,15 +649,13 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
       * @notice Sell oGLP to receive one of the accepted tokens. 
       * @param toToken The token override to invest with. May be different from the `quoteData.toToken`
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the encodedQuote params
       * @param recipient The receiving address of the `toToken`
       * @return toTokenAmount The number of `toToken` tokens received upon selling the oGLP
       * @return toBurnAmount The number of oGLP to be burnt after exiting this position
       */
     function exitOGlp(
         address toToken,
-        IOrigamiInvestment.ExitQuoteData calldata quoteData, 
-        uint256 slippageBps, 
+        IOrigamiInvestment.ExitQuoteData calldata quoteData,
         address recipient
     ) external override onlyOperators returns (uint256 toTokenAmount, uint256 toBurnAmount) {
         if (_paused.glpExitsPaused) revert CommonEventsAndErrors.IsPaused();
@@ -661,8 +685,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
                 toTokenAmount = primaryEarnAccount.unstakeAndRedeemGlp(
                     nonFees,
                     toToken,
-                    quoteData.expectedToTokenAmount,
-                    slippageBps,
+                    quoteData.minToTokenAmount,
                     recipient
                 );
             }
@@ -767,6 +790,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         address _to,
         uint256 _amount
     ) external onlyOwner {
+        // This contract doesn't hold any tokens under normal operations.
+        // So no checks on valid tokens to recover are required.
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
         IERC20(_token).safeTransfer(_to, _amount);
     }

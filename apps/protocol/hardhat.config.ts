@@ -71,26 +71,29 @@ module.exports = {
         outDir: './typechain',
     },
     networks: {
+        localhost: {
+            timeout: 100_000
+          },
         polygonMumbai: {
-        url: process.env.MUMBAI_RPC_URL || '',
-        accounts: process.env.MUMBAI_ADDRESS_PRIVATE_KEY
-            ? [process.env.MUMBAI_ADDRESS_PRIVATE_KEY]
-            : [],
-        gasPrice: 2000000000,
+            url: process.env.MUMBAI_RPC_URL || '',
+            accounts: process.env.MUMBAI_ADDRESS_PRIVATE_KEY
+                ? [process.env.MUMBAI_ADDRESS_PRIVATE_KEY]
+                : [],
+            gasPrice: 2000000000,
         },
         arbitrum: {
-        url: process.env.ARBITRUM_RPC_URL || '',
-        accounts: process.env.ARBITRUM_ADDRESS_PRIVATE_KEY
-            ? [process.env.ARBITRUM_ADDRESS_PRIVATE_KEY]
-            : [],
-        gasPrice: parseInt(process.env.ARBITRUM_GAS_IN_GWEI || '0') * 1000000000,
+            url: process.env.ARBITRUM_RPC_URL || '',
+            accounts: process.env.ARBITRUM_ADDRESS_PRIVATE_KEY
+                ? [process.env.ARBITRUM_ADDRESS_PRIVATE_KEY]
+                : [],
+            gasPrice: parseInt(process.env.ARBITRUM_GAS_IN_GWEI || '0') * 1000000000,
         },
         avalanche: {
-        url: process.env.AVALANCHE_RPC_URL || '',
-        accounts: process.env.AVALANCHE_ADDRESS_PRIVATE_KEY
-            ? [process.env.AVALANCHE_ADDRESS_PRIVATE_KEY]
-            : [],
-        gasPrice: parseInt(process.env.AVALANCHE_GAS_IN_GWEI || '0') * 1000000000,
+            url: process.env.AVALANCHE_RPC_URL || '',
+            accounts: process.env.AVALANCHE_ADDRESS_PRIVATE_KEY
+                ? [process.env.AVALANCHE_ADDRESS_PRIVATE_KEY]
+                : [],
+            gasPrice: parseInt(process.env.AVALANCHE_GAS_IN_GWEI || '0') * 1000000000,
         },
     },
     etherscan: {

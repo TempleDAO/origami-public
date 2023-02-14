@@ -61,16 +61,12 @@ describe("Repricing Token", async () => {
         await expect(repricingToken.connect(alan).addReserves(0))
             .to.revertedWithCustomError(repricingToken, "OnlyOperators")
             .withArgs(await alan.getAddress());
-        await expect(repricingToken.connect(alan).removeReserves(0))
-            .to.revertedWithCustomError(repricingToken, "OnlyOperators")
-            .withArgs(await alan.getAddress());
 
         // Happy paths
         await expect(repricingToken.recoverToken(repricingToken.address, alan.getAddress(), 10))
             .to.revertedWith("ERC20: transfer amount exceeds balance");
         await repricingToken.addOperator(alan.getAddress());
         await repricingToken.connect(alan).addReserves(0);
-        await repricingToken.connect(alan).removeReserves(0);
         await repricingToken.removeOperator(alan.getAddress());
     });
 
@@ -257,25 +253,6 @@ describe("Repricing Token", async () => {
         expect(await reserveToken.balanceOf(bob.getAddress())).eq(150);
         expect(await reserveToken.balanceOf(alan.getAddress())).eq(0);
         expect(await reserveToken.balanceOf(repricingToken.address)).eq(1500-150);
-    });
-
-    it("should addReserves and removeReserves correctly", async () => {
-        await reserveToken.mint(operator.getAddress(), 1_000);
-        await reserveToken.connect(operator).approve(repricingToken.address, 1_000);
-
-        await expect(repricingToken.connect(operator).addReserves(100))
-            .to.emit(repricingToken, "ReservesAdded")
-            .withArgs(100);
-        expect(await repricingToken.totalReserves()).eq(100);
-        expect(await reserveToken.balanceOf(repricingToken.address)).eq(100);
-        expect(await reserveToken.balanceOf(operator.getAddress())).eq(1_000-100);
-
-        await expect(repricingToken.connect(operator).removeReserves(100))
-            .to.emit(repricingToken, "ReservesRemoved")
-            .withArgs(100);
-        expect(await repricingToken.totalReserves()).eq(0);
-        expect(await reserveToken.balanceOf(repricingToken.address)).eq(0);
-        expect(await reserveToken.balanceOf(operator.getAddress())).eq(1_000);
     });
 
     it("permit works as expected", async () => {

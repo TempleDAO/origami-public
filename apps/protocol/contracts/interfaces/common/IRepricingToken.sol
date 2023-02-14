@@ -22,7 +22,4 @@ interface IRepricingToken is IERC20, IERC20Permit {
 
     /// @notice Add reserve tokens, increasing the pricePerShare()
     function addReserves(uint256 amount) external;
-
-    /// @notice Remove reserve tokens, reducing the pricePerShare()
-    function removeReserves(uint256 amount) external;
 }

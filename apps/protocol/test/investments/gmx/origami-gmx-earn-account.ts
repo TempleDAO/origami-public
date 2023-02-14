@@ -3,15 +3,17 @@ import { Signer, BigNumber, BigNumberish, ContractTransaction } from "ethers";
 import { expect } from "chai";
 import { 
     blockTimestamp,
+    BN_ZERO,
     deployUupsProxy,
     expectApproxEqRel,
     mineForwardSeconds, 
-    recoverToken, 
     shouldRevertNotOwner, 
     tolerance, 
     upgradeUupsProxy, 
     upgradeUupsProxyAndCall, 
-    ZERO_ADDRESS, 
+    ZERO_ADDRESS,
+    ZERO_DEADLINE,
+    ZERO_SLIPPAGE, 
 } from "../../helpers";
 import { 
     IGmxVester, IGmxVester__factory, GMX_Vester__factory,
@@ -19,7 +21,7 @@ import {
     OrigamiGmxManager, OrigamiGmxManager__factory,
     DummyOrigamiGmxEarnAccount__factory,
 } from "../../../typechain";
-import { GmxContracts, decodeGlpUnderlyingInvestQuoteData, deployGmx, updateDistributionTime } from "./gmx-helpers";
+import { GmxContracts, deployGmx, updateDistributionTime } from "./gmx-helpers";
 import { Result } from "ethers/lib/utils";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { GmxVaultType } from "../../../scripts/deploys/helpers";
@@ -27,7 +29,7 @@ import { getSigners } from "../../signers";
 
 // 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
 const MAX_REL_DELTA = tolerance(0.001);
-const BN_ZERO = BigNumber.from(0);
+const MIN_USDG = 1; // The final GLP output is checked - don't need to check for USDG too.
 
 describe("Origami GMX Earn Account", async () => {
     let owner: Signer;
@@ -102,7 +104,6 @@ describe("Origami GMX Earn Account", async () => {
         it("admin tests", async () => {
             await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).addOperator(await operator.getAddress()));
             await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).removeOperator(await operator.getAddress()));
-            await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
             await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).initGmxContracts(
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
@@ -122,10 +123,10 @@ describe("Origami GMX Earn Account", async () => {
             await expect(origamiGmxEarnAccount.connect(alan).unstakeEsGmx(0))
                 .to.be.revertedWithCustomError(origamiGmxEarnAccount, "OnlyOperators")
                 .withArgs(await alan.getAddress());
-            await expect(origamiGmxEarnAccount.connect(alan).mintAndStakeGlp(0, ZERO_ADDRESS, 0, 0, 0))
+            await expect(origamiGmxEarnAccount.connect(alan).mintAndStakeGlp(0, ZERO_ADDRESS, 0, 0))
                 .to.be.revertedWithCustomError(origamiGmxEarnAccount, "OnlyOperators")
                 .withArgs(await alan.getAddress());
-            await expect(origamiGmxEarnAccount.connect(alan).unstakeAndRedeemGlp(0, ZERO_ADDRESS, 0, 0, ZERO_ADDRESS))
+            await expect(origamiGmxEarnAccount.connect(alan).unstakeAndRedeemGlp(0, ZERO_ADDRESS, 0, ZERO_ADDRESS))
                 .to.be.revertedWithCustomError(origamiGmxEarnAccount, "OnlyOperators")
                 .withArgs(await alan.getAddress());
             await expect(origamiGmxEarnAccount.connect(alan).harvestRewards({numerator: 100, denominator: 100}))
@@ -157,9 +158,6 @@ describe("Origami GMX Earn Account", async () => {
                 .withArgs(await alan.getAddress());   
             
             // Happy Paths
-            await expect(origamiGmxEarnAccount.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
-                .to.revertedWith("ERC20: transfer amount exceeds balance");
-
             await origamiGmxEarnAccount.addOperator(alan.getAddress());
 
             await expect(origamiGmxEarnAccount.connect(alan).stakeGmx(0))
@@ -170,9 +168,9 @@ describe("Origami GMX Earn Account", async () => {
                 .to.be.revertedWith("RewardRouter: invalid _amount");
             await expect(origamiGmxEarnAccount.connect(alan).unstakeEsGmx(0))
                 .to.be.revertedWith("RewardRouter: invalid _amount");
-            await expect(origamiGmxEarnAccount.connect(alan).mintAndStakeGlp(0, gmxContracts.bnbToken.address, 0, 0, 0))
+            await expect(origamiGmxEarnAccount.connect(alan).mintAndStakeGlp(0, gmxContracts.bnbToken.address, 0, 0))
                 .to.be.revertedWith("RewardRouter: invalid _amount");
-            await expect(origamiGmxEarnAccount.connect(alan).unstakeAndRedeemGlp(0, gmxContracts.bnbToken.address, 0, 0, ZERO_ADDRESS))
+            await expect(origamiGmxEarnAccount.connect(alan).unstakeAndRedeemGlp(0, gmxContracts.bnbToken.address, 0, ZERO_ADDRESS))
                 .to.be.revertedWith("RewardRouter: invalid _glpAmount");
             await origamiGmxEarnAccount.connect(alan).harvestRewards({numerator: 100, denominator: 100});
             await expect(origamiGmxEarnAccount.connect(alan).transferStakedGlp(0, ZERO_ADDRESS))
@@ -216,12 +214,6 @@ describe("Origami GMX Earn Account", async () => {
 
         it("should remove operator", async() => {
             // removeOperator() test covered by operators.ts
-        });
-        
-        it("owner can recover tokens", async () => {           
-            const amount = 50;
-            await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
-            await recoverToken(gmxContracts.bnbToken, amount, origamiGmxEarnAccount, owner);   
         });
     });
 
@@ -315,50 +307,17 @@ describe("Origami GMX Earn Account", async () => {
             const amount = ethers.utils.parseEther("100");
             await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
 
-            const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr)).quoteData;
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
-            const usdgAmountOut = BigNumber.from(decodedQuote.expectedUsdg);
-
-            // 1 more than the USDG quote amount fails
-            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, usdgAmountOut.add(1), quote.expectedInvestmentAmount, 0))
-                .to.be.revertedWith("GlpManager: insufficient USDG output");
+            const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
 
             // 1 more than the GLP quote amount fails
-            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, usdgAmountOut, quote.expectedInvestmentAmount.add(1), 0))
+            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, quote.expectedInvestmentAmount.add(1)))
                 .to.be.revertedWith("GlpManager: insufficient GLP output");
 
             // Successfully bought with zero slippage and exact amounts
-            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, usdgAmountOut, quote.expectedInvestmentAmount, 0))
+            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, quote.expectedInvestmentAmount))
                 .to.emit(gmxContracts.glpRewardRouter, "StakeGlp")
                 .withArgs(origamiGmxEarnAccount.address, quote.expectedInvestmentAmount);
 
-            // No BNB, but it has staked GLP
-            expect(await gmxContracts.bnbToken.balanceOf(origamiGmxEarnAccount.address)).eq(0);
-            expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(quote.expectedInvestmentAmount);
-        });
-
-        it("should buy & stake GLP with slippage", async () => {
-            const tokenAddr = gmxContracts.bnbToken.address;
-
-            const amount = ethers.utils.parseEther("100");
-            await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
-
-            const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr)).quoteData;
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
-            const usdgAmountOut = BigNumber.from(decodedQuote.expectedUsdg);
-
-            // 1% more than the USDG quote amount fails
-            const slippageBps = 100; // 1%
-            const usdgAmountOutAbove = usdgAmountOut.mul(10_000+slippageBps).div(10_000);
-            const oGlpAmountOutAbove = quote.expectedInvestmentAmount.mul(10_000+slippageBps).div(10_000);
-            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, usdgAmountOutAbove, oGlpAmountOutAbove, 0))
-                .to.be.revertedWith("GlpManager: insufficient USDG output");
-
-            // Slippage is now applied.
-            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, usdgAmountOutAbove, oGlpAmountOutAbove, slippageBps))
-                .to.emit(gmxContracts.glpRewardRouter, "StakeGlp")
-                .withArgs(origamiGmxEarnAccount.address, quote.expectedInvestmentAmount);
-                
             // No BNB, but it has staked GLP
             expect(await gmxContracts.bnbToken.balanceOf(origamiGmxEarnAccount.address)).eq(0);
             expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(quote.expectedInvestmentAmount);
@@ -371,9 +330,8 @@ describe("Origami GMX Earn Account", async () => {
             let glpAmount;
             {
                 await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
-                const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr)).quoteData;
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
-                await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedQuote.expectedUsdg, quote.expectedInvestmentAmount, 0);
+                const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+                await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, quote.expectedInvestmentAmount);
 
                 // No BNB, but it has staked GLP
                 expect(await gmxContracts.bnbToken.balanceOf(origamiGmxEarnAccount.address)).eq(0);
@@ -400,9 +358,8 @@ describe("Origami GMX Earn Account", async () => {
             let now;
             {
                 await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
-                const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr)).quoteData;
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
-                await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedQuote.expectedUsdg, quote.expectedInvestmentAmount, 0);
+                const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+                await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, quote.expectedInvestmentAmount);
                 now = await blockTimestamp();
 
                 // No BNB, but it has staked GLP
@@ -433,7 +390,7 @@ describe("Origami GMX Earn Account", async () => {
             expect(await gmxContracts.stakedGlpTracker.balanceOf(alan.getAddress())).eq(0);
 
             // Can't mintAndStake GLP now - it's paused.
-            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, 0, 0, 0))
+            await expect(origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, 0, 0))
                 .to.revertedWithCustomError(origamiGmxEarnAccount, "GlpInvestmentsPaused");
 
             // Sleep off the cooldown.
@@ -464,24 +421,23 @@ describe("Origami GMX Earn Account", async () => {
             const stakeAmount = ethers.utils.parseEther("100");
 
             // No staked balance
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(stakeAmount, tokenAddr, 0, 0, alan.getAddress()))
+            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(stakeAmount, tokenAddr, 0, alan.getAddress()))
                 .to.be.revertedWith("RewardTracker: _amount exceeds stakedAmount");
 
             await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, stakeAmount);
-            const buyQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, tokenAddr)).quoteData;
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(buyQuote.underlyingInvestmentQuoteData);
-            await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(stakeAmount, tokenAddr, decodedQuote.expectedUsdg, buyQuote.expectedInvestmentAmount, 0);
+            const buyQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(stakeAmount, tokenAddr, MIN_USDG, buyQuote.expectedInvestmentAmount);
 
             // Can't immediately sell because of the GMX cooldown (15mins)
             const unstakeAmount = ethers.utils.parseEther("200");
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, 0, 0, alan.getAddress()))
+            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, 0, alan.getAddress()))
                     .to.be.revertedWith("GlpManager: cooldown duration not yet passed");
 
             await mineForwardSeconds(15*60);
 
             // Unstake some
-            const sellQuote = (await origamiGmxManager.exitOGlpQuote(unstakeAmount, tokenAddr)).quoteData;
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, sellQuote.expectedToTokenAmount, 0, alan.getAddress()))
+            const sellQuote = (await origamiGmxManager.exitOGlpQuote(unstakeAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, sellQuote.expectedToTokenAmount, alan.getAddress()))
                 .to.emit(gmxContracts.glpRewardRouter, "UnstakeGlp")
                 .withArgs(origamiGmxEarnAccount.address, unstakeAmount);
 
@@ -492,8 +448,8 @@ describe("Origami GMX Earn Account", async () => {
             expect(await gmxContracts.stakedGlpTracker.balanceOf(origamiGmxEarnAccount.address)).eq(expectedRemainingStaked);
 
             // And the rest...
-            const sellQuote2 = (await origamiGmxManager.exitOGlpQuote(expectedRemainingStaked, tokenAddr)).quoteData;
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(expectedRemainingStaked, tokenAddr, sellQuote2.expectedToTokenAmount, 0, alan.getAddress()))
+            const sellQuote2 = (await origamiGmxManager.exitOGlpQuote(expectedRemainingStaked, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(expectedRemainingStaked, tokenAddr, sellQuote2.expectedToTokenAmount, alan.getAddress()))
                 .to.emit(gmxContracts.glpRewardRouter, "UnstakeGlp")
                 .withArgs(origamiGmxEarnAccount.address, expectedRemainingStaked);
 
@@ -507,27 +463,20 @@ describe("Origami GMX Earn Account", async () => {
             const stakeAmount = ethers.utils.parseEther("100");
             
             await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, stakeAmount);
-            const buyQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, tokenAddr)).quoteData;
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(buyQuote.underlyingInvestmentQuoteData);
-            await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(stakeAmount, tokenAddr, decodedQuote.expectedUsdg, buyQuote.expectedInvestmentAmount, 0);
+            const buyQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(stakeAmount, tokenAddr, MIN_USDG, buyQuote.expectedInvestmentAmount);
 
             await mineForwardSeconds(15*60);
 
             const unstakeAmount = ethers.utils.parseEther("200");
-            const sellQuote = (await origamiGmxManager.exitOGlpQuote(unstakeAmount, tokenAddr)).quoteData;
+            const sellQuote = (await origamiGmxManager.exitOGlpQuote(unstakeAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
 
-            // Min amount expected is too high - zero slippage
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, sellQuote.expectedToTokenAmount.add(1), 0, alan.getAddress(), {gasLimit:5000000}))
-                .to.revertedWith("GlpManager: insufficient output");
-
-            // 1% more than the USDG quote amount fails - zero slippage
-            const slippageBps = 100; // 1%
-            const minAmountAbove = sellQuote.expectedToTokenAmount.mul(10_000+slippageBps).div(10_000);
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, minAmountAbove, 0, alan.getAddress()))
+            // Min amount expected is too high
+            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, sellQuote.expectedToTokenAmount.add(1), alan.getAddress()))
                 .to.revertedWith("GlpManager: insufficient output");
 
             // Slippage is now applied.
-            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, minAmountAbove, slippageBps, alan.getAddress()))
+            await expect(origamiGmxEarnAccount.connect(operator).unstakeAndRedeemGlp(unstakeAmount, tokenAddr, sellQuote.expectedToTokenAmount, alan.getAddress()))
                 .to.emit(gmxContracts.glpRewardRouter, "UnstakeGlp")
                 .withArgs(origamiGmxEarnAccount.address, unstakeAmount);
         });
@@ -630,7 +579,7 @@ describe("Origami GMX Earn Account", async () => {
             estimatedEsGmxVestingRate2: {numerator: number, denominator: number}
         ) {
             // Nothing claimed as nothing is staked
-            await origamiGmxEarnAccount.connect(operator).harvestRewards(requestedEsGmxVestingRate, {gasLimit:5000000});
+            await origamiGmxEarnAccount.connect(operator).harvestRewards(requestedEsGmxVestingRate);
             await checkTrackerBalances(origamiGmxEarnAccount.address, 0, 0, 0, 0, 0, 0);
             await checkTrackerBalances(await operator.getAddress(), 0, 0, 0, 0, 0, 0);
 
@@ -652,10 +601,9 @@ describe("Origami GMX Earn Account", async () => {
                     origamiGmxEarnAccount.address,
                     ZERO_ADDRESS,
                 );
-                const quote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address)).quoteData;
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
+                const quote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
                 await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(
-                    stakeAmount, gmxContracts.bnbToken.address, decodedQuote.expectedUsdg, quote.expectedInvestmentAmount, 0
+                    stakeAmount, gmxContracts.bnbToken.address, MIN_USDG, quote.expectedInvestmentAmount
                 );
                 expectedStakedGlpAmount = quote.expectedInvestmentAmount;
             } else {
@@ -679,7 +627,7 @@ describe("Origami GMX Earn Account", async () => {
 
             // Harvest rewards
             // Ethers messes up the gas estimation on this one for some reason - so need to specify manually.
-            const tx = await origamiGmxEarnAccount.connect(operator).harvestRewards(requestedEsGmxVestingRate, {gasLimit:5000000});
+            const tx = await origamiGmxEarnAccount.connect(operator).harvestRewards(requestedEsGmxVestingRate);
             const eventArgs = await getMatchingEventArgs(tx, "RewardsHarvested");
 
             // Actual elapsed time since we staked is 1 day ++
@@ -713,7 +661,7 @@ describe("Origami GMX Earn Account", async () => {
             const harvestableRewardsGlp2 = await origamiGmxEarnAccount.harvestableRewards(GmxVaultType.GLP);
             const harvestableRewardsGmx2 = await origamiGmxEarnAccount.harvestableRewards(GmxVaultType.GMX);
 
-            const tx2 = await origamiGmxEarnAccount.connect(operator).harvestRewards(requestedEsGmxVestingRate, {gasLimit:5000000});
+            const tx2 = await origamiGmxEarnAccount.connect(operator).harvestRewards(requestedEsGmxVestingRate);
             const eventArgs2 = await getMatchingEventArgs(tx2, "RewardsHarvested");
 
             // The multiplier points are also now earnt on the esGMX that we've staked
@@ -827,10 +775,9 @@ describe("Origami GMX Earn Account", async () => {
 
             // Origami buys GLP
             await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, stakeAmount);
-            const origamiQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address)).quoteData;
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.underlyingInvestmentQuoteData);
+            const origamiQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
             await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(
-                stakeAmount, gmxContracts.bnbToken.address, decodedQuote.expectedUsdg, origamiQuote.expectedInvestmentAmount, 0
+                stakeAmount, gmxContracts.bnbToken.address, MIN_USDG, origamiQuote.expectedInvestmentAmount
             );
             let rewardRatesGlp = await origamiGmxEarnAccount.rewardRates(GmxVaultType.GLP);
             let rewardRatesGmx = await origamiGmxEarnAccount.rewardRates(GmxVaultType.GMX);
@@ -846,10 +793,9 @@ describe("Origami GMX Earn Account", async () => {
             // Bob buys the same amount GLP directly (not via Origami)
             await gmxContracts.bnbToken.mint(bob.getAddress(), stakeAmount);
             await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), stakeAmount);
-            const bobQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address)).quoteData;
-            const decodedBobQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.underlyingInvestmentQuoteData);
+            const bobQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
             await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                gmxContracts.bnbToken.address, stakeAmount, decodedBobQuote.expectedUsdg, bobQuote.expectedInvestmentAmount
+                gmxContracts.bnbToken.address, stakeAmount, MIN_USDG, bobQuote.expectedInvestmentAmount
             );
 
             // Now Origami gets roughly 50% (slightly different GLP quotes)
@@ -877,10 +823,9 @@ describe("Origami GMX Earn Account", async () => {
 
                 // Origami buys GLP
                 await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, stakeAmount);
-                origamiGlpQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address)).quoteData;
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(origamiGlpQuote.underlyingInvestmentQuoteData);
+                origamiGlpQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
                 await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(
-                    stakeAmount, gmxContracts.bnbToken.address, decodedQuote.expectedUsdg, origamiGlpQuote.expectedInvestmentAmount, 0
+                    stakeAmount, gmxContracts.bnbToken.address, MIN_USDG, origamiGlpQuote.expectedInvestmentAmount
                 );
             }
 
@@ -904,10 +849,9 @@ describe("Origami GMX Earn Account", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), stakeAmount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), stakeAmount);
-                bobGlpQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address)).quoteData;
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobGlpQuote.underlyingInvestmentQuoteData);
+                bobGlpQuote = (await origamiGmxManager.investOGlpQuote(stakeAmount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, stakeAmount, decodedQuote.expectedUsdg, bobGlpQuote.expectedInvestmentAmount
+                    gmxContracts.bnbToken.address, stakeAmount, MIN_USDG, bobGlpQuote.expectedInvestmentAmount
                 );
             }
 
@@ -1124,9 +1068,8 @@ describe("Origami GMX Earn Account", async () => {
             // Origami buys and stakes GLP
             const amount = ethers.utils.parseEther("250");
             await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, amount);
-            const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr)).quoteData;
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.underlyingInvestmentQuoteData);
-            await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedQuote.expectedUsdg, quote.expectedInvestmentAmount, 0);
+            const quote = (await origamiGmxManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            await origamiGmxEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, quote.expectedInvestmentAmount);
             await verifyPositions(
                 BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO,
                 BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, BN_ZERO, 

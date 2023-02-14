@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { Signer, BigNumber, BigNumberish } from "ethers";
+import { Signer, BigNumber } from "ethers";
 import { expect } from "chai";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
@@ -8,8 +8,21 @@ import {
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory, IOrigamiGmxManager, 
     MintableToken, MintableToken__factory, 
 } from "../../../typechain";
-import { addDefaultGlpLiquidity, decodeGlpUnderlyingInvestQuoteData, deployGmx, encodeGlpUnderlyingInvestQuoteData, GmxContracts } from "./gmx-helpers";
-import { deployUupsProxy, EmptyBytes, expectBalancesChangeBy, mineForwardSeconds, recoverToken, shouldRevertNotOwner, ZERO_ADDRESS } from "../../helpers";
+import { addDefaultGlpLiquidity, deployGmx, GmxContracts } from "./gmx-helpers";
+import { 
+    applySlippage, 
+    BN_ZERO, 
+    deployUupsProxy, 
+    EmptyBytes, 
+    expectBalancesChangeBy, 
+    mineForwardSeconds, 
+    ONE_ETH, 
+    recoverToken, 
+    shouldRevertNotOwner, 
+    ZERO_ADDRESS,
+    ZERO_DEADLINE,
+    ZERO_SLIPPAGE
+} from "../../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getSigners } from "../../signers";
 
@@ -94,7 +107,7 @@ describe("Origami GLP Investment", async () => {
 
         randoErc20 = await new MintableToken__factory(owner).deploy("rando", "rando");
         await randoErc20.addMinter(owner.getAddress());
-        await randoErc20.mint(owner.getAddress(), ethers.utils.parseEther("1"));
+        await randoErc20.mint(owner.getAddress(), ONE_ETH);
 
         return {
             gmxContracts,
@@ -120,6 +133,7 @@ describe("Origami GLP Investment", async () => {
     it("constructor", async () => {
         expect(await oGLP.origamiGlpManager()).eq(origamiGlpManager.address);
         expect(await oGLP.wrappedNativeToken()).eq(gmxContracts.wrappedNativeToken.address);
+        expect(await oGLP.apiVersion()).eq("0.1.0");
     });
 
     it("admin", async () => {
@@ -142,10 +156,10 @@ describe("Origami GLP Investment", async () => {
         {
             const tokenAddr = gmxContracts.bnbToken.address;
             const investAmount = ethers.utils.parseEther("100");
-            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             await gmxContracts.bnbToken.mint(fred.getAddress(), investAmount);
             await gmxContracts.bnbToken.connect(fred).approve(oGLP.address, investAmount);
-            await oGLP.connect(fred).investWithToken(investQuote.quoteData, 0);
+            await oGLP.connect(fred).investWithToken(investQuote.quoteData);
             await secondaryEarnAccount.connect(dailyTransferKeeper).transferStakedGlpOrPause(glpAmount, primaryEarnAccount.address);
             expect(await secondaryEarnAccount.glpInvestmentsPaused()).eq(true);
         }
@@ -234,21 +248,38 @@ describe("Origami GLP Investment", async () => {
     describe("Invest oGLP", async () => {
         it("Invest oGLP Quote", async () => {
             const amount = ethers.utils.parseEther("500");          
-            const quote = await oGLP.investQuote(amount, gmxContracts.bnbToken.address);
+            const quote = await oGLP.investQuote(amount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
 
-            await expect(oGLP.investQuote(0, gmxContracts.bnbToken.address))
+            await expect(oGLP.investQuote(0, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE))
                 .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
-            await expect(oGLP.investQuote(10, gmxContracts.gmxToken.address))
+            await expect(oGLP.investQuote(10, gmxContracts.gmxToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE))
                 .to.be.revertedWithCustomError(origamiGlpManager, "InvalidToken")
                 .withArgs(gmxContracts.gmxToken.address);
 
-            const decodedQuote = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
             // 500x300 - 35bps fee
             const expectedGlp = ethers.utils.parseEther("149475")
             expect(quote.quoteData.fromToken).eq(gmxContracts.bnbToken.address);
             expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedInvestmentAmount).eq(expectedGlp);
-            expect(decodedQuote.expectedUsdg).eq(expectedGlp); // usdg == glp on creation
+            expect(quote.quoteData.minInvestmentAmount).eq(expectedGlp);
+            expect(quote.investFeeBps).deep.eq([35]);
+        });
+
+        it("Invest oGLP Quote - with slippage", async () => {
+            const amount = ethers.utils.parseEther("500");          
+            const slippage = 100; // 1%
+            const quote = await oGLP.investQuote(amount, gmxContracts.bnbToken.address, slippage, ZERO_DEADLINE);
+
+            // 500x300 - 35bps fee
+            const expectedGlp = ethers.utils.parseEther("149475")
+            expect(quote.quoteData.fromToken).eq(gmxContracts.bnbToken.address);
+            expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(slippage);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
+            expect(quote.quoteData.expectedInvestmentAmount).eq(expectedGlp);
+            expect(quote.quoteData.minInvestmentAmount).eq(applySlippage(expectedGlp, slippage));
             expect(quote.investFeeBps).deep.eq([35]);
         });
 
@@ -258,60 +289,47 @@ describe("Origami GLP Investment", async () => {
             // 0 amount errors
             {
                 const manualQuote = {
-                    ...(await oGLP.investQuote(100, tokenAddr)).quoteData,
-                    fromTokenAmount: BigNumber.from(0),
+                    ...(await oGLP.investQuote(100, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData,
+                    fromTokenAmount: BN_ZERO,
                 };
-                await expect(oGLP.investWithToken(manualQuote, 0))
+                await expect(oGLP.investWithToken(manualQuote))
                     .to.be.revertedWithCustomError(origamiGlpManager, "ExpectedNonZero");
             }
 
             // Non-glp token errors
             {
                 const manualQuote = {
-                    ...(await oGLP.investQuote(100, tokenAddr)).quoteData,
+                    ...(await oGLP.investQuote(100, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData,
                     fromToken: randoErc20.address,
                 };
 
                 await randoErc20.approve(oGLP.address, 100);
-                await expect(oGLP.investWithToken(manualQuote, 0))
+                await expect(oGLP.investWithToken(manualQuote))
                     .to.be.revertedWithCustomError(origamiGlpManager, "InvalidToken")
                     .withArgs(randoErc20.address)
             }
 
             const amount = ethers.utils.parseEther("100");
-            const quote = await oGLP.investQuote(amount, tokenAddr);
-            await expect(oGLP.investWithToken(quote.quoteData, 0))
+            const quote = await oGLP.investQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.investWithToken(quote.quoteData))
                 .to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
             await gmxContracts.bnbToken.mint(alan.getAddress(), amount);
             await gmxContracts.bnbToken.connect(alan).approve(oGLP.address, amount);
-
-            // 1 more than the USDG quote amount fails
-            {
-                const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
-                const manualQuote = {
-                    ...quote.quoteData,
-                    underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
-                        BigNumber.from(usdgAmount).add(1)
-                    ),
-                };
-
-                await expect(oGLP.connect(alan).investWithToken(manualQuote, 0))
-                    .to.be.revertedWith("GlpManager: insufficient USDG output");
-            }
 
             // 1 more than the GLP quote amount fails
             {
                 const manualQuote = {
                     ...quote.quoteData,
                     expectedInvestmentAmount: quote.quoteData.expectedInvestmentAmount.add(1),
+                    minInvestmentAmount: quote.quoteData.expectedInvestmentAmount.add(1),
                 };
-                await expect(oGLP.connect(alan).investWithToken(manualQuote, 0))
+                await expect(oGLP.connect(alan).investWithToken(manualQuote))
                     .to.be.revertedWith("GlpManager: insufficient GLP output");
             }
 
             // Successfully bought
-            await expect(oGLP.connect(alan).investWithToken(quote.quoteData, 0))
+            await expect(oGLP.connect(alan).investWithToken(quote.quoteData))
                 .to.emit(oGLP, "Invested")
                 .withArgs(await alan.getAddress(), amount, tokenAddr, quote.quoteData.expectedInvestmentAmount);
 
@@ -328,42 +346,12 @@ describe("Origami GLP Investment", async () => {
             expect(await gmxContracts.stakedGlpTracker.balanceOf(secondaryEarnAccount.address)).eq(quote.quoteData.expectedInvestmentAmount);
         });
 
-        it("Invest oGLP with token - with slippage", async () => {
-            const tokenAddr = gmxContracts.bnbToken.address;
-            const amount = ethers.utils.parseEther("100");
-            await gmxContracts.bnbToken.mint(alan.getAddress(), amount);
-            await gmxContracts.bnbToken.connect(alan).approve(oGLP.address, amount);
-
-            const quote = await oGLP.investQuote(amount, tokenAddr);
-
-            const slippageBps = 100; // 1%
-
-            // Tweak the usdg amount and expected output amount
-            const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
-            const manualQuote = {
-                ...quote.quoteData,
-                expectedInvestmentAmount: quote.quoteData.expectedInvestmentAmount.mul(10_000+slippageBps).div(10_000),
-                underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
-                    BigNumber.from(usdgAmount).mul(10_000+slippageBps).div(10_000)
-                ),
-            };
-
-            // Fails with min amounts over and 0 slippage
-            await expect(oGLP.connect(alan).investWithToken(manualQuote, 0))
-                .to.be.revertedWith("GlpManager: insufficient USDG output");
-
-            // Succeeds with 1% slippage
-            await expect(oGLP.connect(alan).investWithToken(manualQuote, slippageBps))
-                .to.emit(oGLP, "Invested")
-                .withArgs(await alan.getAddress(), amount, tokenAddr, quote.quoteData.expectedInvestmentAmount);
-        });
-
         it("Invest oGLP with staked GLP", async () => {
             const tokenAddr = gmxContracts.stakedGlp.address;
 
             const amount = ethers.utils.parseEther("100");
-            const quote = await oGLP.investQuote(amount, tokenAddr);
-            await expect(oGLP.investWithToken(quote.quoteData, 0))
+            const quote = await oGLP.investQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.investWithToken(quote.quoteData))
                 .to.be.revertedWith("StakedGlp: transfer amount exceeds allowance");
 
             // Alan first invests GLP directly, rather than via Origami
@@ -377,14 +365,14 @@ describe("Origami GLP Investment", async () => {
 
             // Need to wait for the 15min cooldown first
             await gmxContracts.stakedGlp.connect(alan).approve(oGLP.address, glpAmount);
-            const quote2 = await oGLP.investQuote(glpAmount, tokenAddr);
-            await expect(oGLP.connect(alan).investWithToken(quote2.quoteData, 0))
+            const quote2 = await oGLP.investQuote(glpAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.connect(alan).investWithToken(quote2.quoteData))
                 .to.revertedWith("StakedGlp: cooldown duration not yet passed");
 
             await mineForwardSeconds(15*60);
 
             // Successfully bought
-            await expect(oGLP.connect(alan).investWithToken(quote2.quoteData, 0))
+            await expect(oGLP.connect(alan).investWithToken(quote2.quoteData))
                 .to.emit(oGLP, "Invested")
                 .withArgs(await alan.getAddress(), glpAmount, gmxContracts.stakedGlp.address, glpAmount);
 
@@ -401,15 +389,15 @@ describe("Origami GLP Investment", async () => {
 
         it("Invest oGLP with ETH", async () => {
             const tokenAddr = ZERO_ADDRESS;
-            const quoteData = (await oGLP.investQuote(100, tokenAddr)).quoteData;
+            const quoteData = (await oGLP.investQuote(100, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
             const manualQuote = {
                 ...quoteData,
-                fromTokenAmount: BigNumber.from(0),
+                fromTokenAmount: BN_ZERO,
             };
-            await expect(oGLP.investWithNative(manualQuote, 0, {value:0}))
+            await expect(oGLP.investWithNative(manualQuote, {value:0}))
                 .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
 
-            await expect(oGLP.investWithNative(quoteData, 0, {value:0}))
+            await expect(oGLP.investWithNative(quoteData, {value:0}))
                 .to.be.revertedWithCustomError(oGLP, "InvalidAmount")
                 .withArgs(ZERO_ADDRESS, 0);
 
@@ -417,35 +405,21 @@ describe("Origami GLP Investment", async () => {
                 ...quoteData,
                 fromToken: gmxContracts.bnbToken.address,
             };
-            await expect(oGLP.investWithNative(manualQuote2, 0, {value:100}))
+            await expect(oGLP.investWithNative(manualQuote2, {value:100}))
                 .to.be.revertedWithCustomError(oGLP, "InvalidToken")
                 .withArgs(gmxContracts.bnbToken.address);
 
             const amount = ethers.utils.parseEther("123");
-            const quote = await oGLP.investQuote(amount, ZERO_ADDRESS);
-
-            // 1 more than the USDG quote amount fails
-            {
-                const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
-                const manualQuote = {
-                    ...quote.quoteData,
-                    underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
-                        BigNumber.from(usdgAmount).add(1)
-                    ),
-                };
-                await expect(oGLP.connect(alan).investWithNative(
-                    manualQuote, 0, {value: amount})
-                ).to.be.revertedWith("GlpManager: insufficient USDG output");
-            }
+            const quote = await oGLP.investQuote(amount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
 
             // 1 more than the GLP quote amount fails
             {
                 const manualQuote = {
                     ...quote.quoteData,
-                    expectedInvestmentAmount: quote.quoteData.expectedInvestmentAmount.add(1),
+                    minInvestmentAmount: quote.quoteData.expectedInvestmentAmount.add(1),
                 };
                 await expect(oGLP.connect(alan).investWithNative(
-                    manualQuote, 0, {value: amount})
+                    manualQuote, {value: amount})
                 ).to.be.revertedWith("GlpManager: insufficient GLP output");
             }
 
@@ -453,7 +427,7 @@ describe("Origami GLP Investment", async () => {
 
             // Successfully bought
             await expect(
-                oGLP.connect(alan).investWithNative(quote.quoteData, 0, {value: amount})
+                oGLP.connect(alan).investWithNative(quote.quoteData, {value: amount})
             )
                 .to.emit(oGLP, "Invested")
                 .withArgs(await alan.getAddress(), amount, ZERO_ADDRESS, quote.quoteData.expectedInvestmentAmount)
@@ -475,64 +449,55 @@ describe("Origami GLP Investment", async () => {
             // The secondary earn account DOES have the staked GLP
             expect(await gmxContracts.stakedGlpTracker.balanceOf(secondaryEarnAccount.address)).eq(quote.quoteData.expectedInvestmentAmount);
         });
-
-        it("Invest oGLP with ETH - with slippage", async () => {
-            const amount = ethers.utils.parseEther("123");
-            const quote = await oGLP.investQuote(amount, ZERO_ADDRESS);
-            const slippageBps = 100; // 1%
-            
-            const usdgAmount = decodeGlpUnderlyingInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData).expectedUsdg;
-            const manualQuote = {
-                ...quote.quoteData,
-                expectedInvestmentAmount: quote.quoteData.expectedInvestmentAmount.mul(10_000+slippageBps).div(10_000),
-                underlyingInvestmentQuoteData: encodeGlpUnderlyingInvestQuoteData(
-                    BigNumber.from(usdgAmount).mul(10_000+slippageBps).div(10_000)
-                ),
-            };
-
-            // Fails with min amounts over and 0 slippage
-            await expect(oGLP.connect(alan).investWithNative(
-                manualQuote, 0, {value: amount})
-                ).to.be.revertedWith("GlpManager: insufficient USDG output");
-
-            // Succeeds with 1% slippage
-            await expect(
-                oGLP.connect(alan).investWithNative(manualQuote, slippageBps, {value: amount})
-            )
-                .to.emit(oGLP, "Invested")
-                .withArgs(await alan.getAddress(), amount, ZERO_ADDRESS, quote.quoteData.expectedInvestmentAmount)
-                .to.emit(gmxContracts.glpRewardRouter, "StakeGlp")
-                .withArgs(secondaryEarnAccount.address, quote.quoteData.expectedInvestmentAmount);
-        });
     });
 
     describe("Exit oGLP", async () => {
         it("Exit Glp Quote", async () => {
-            await expect(oGLP.exitQuote(0, gmxContracts.bnbToken.address))
+            await expect(oGLP.exitQuote(0, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE))
                 .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
-            await expect(oGLP.exitQuote(10, gmxContracts.gmxToken.address))
+            await expect(oGLP.exitQuote(10, gmxContracts.gmxToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE))
                 .to.be.revertedWithCustomError(origamiGlpManager, "InvalidToken")
                 .withArgs(gmxContracts.gmxToken.address);
 
             const amount = ethers.utils.parseEther("500");          
-            const quote = await oGLP.exitQuote(amount, gmxContracts.bnbToken.address);
+            const quote = await oGLP.exitQuote(amount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             expect(quote.exitFeeBps).deep.eq([
                 0,   // No origami fees
                 15   // GMX.io fees
             ]);
-            expect(quote.quoteData.expectedToTokenAmount).eq(BigNumber.from("1664166666666666666"));  // 500/300 - 15bps fee
             expect(quote.quoteData.investmentTokenAmount).eq(amount);
             expect(quote.quoteData.toToken).eq(gmxContracts.bnbToken.address);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
+            expect(quote.quoteData.expectedToTokenAmount).eq(BigNumber.from("1664166666666666666"));  // 500/300 - 15bps fee
+            expect(quote.quoteData.minToTokenAmount).eq(quote.quoteData.expectedToTokenAmount);
+            expect(quote.quoteData.underlyingInvestmentQuoteData).eq(EmptyBytes);
+        });
+
+        it("Exit Glp Quote - with slippage", async () => {
+            const slippage = 100;
+            const amount = ethers.utils.parseEther("500");          
+            const quote = await oGLP.exitQuote(amount, gmxContracts.bnbToken.address, slippage, ZERO_DEADLINE);
+            expect(quote.exitFeeBps).deep.eq([
+                0,   // No origami fees
+                15   // GMX.io fees
+            ]);
+            expect(quote.quoteData.investmentTokenAmount).eq(amount);
+            expect(quote.quoteData.toToken).eq(gmxContracts.bnbToken.address);
+            expect(quote.quoteData.maxSlippageBps).eq(slippage);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
+            expect(quote.quoteData.expectedToTokenAmount).eq(BigNumber.from("1664166666666666666"));  // 500/300 - 15bps fee
+            expect(quote.quoteData.minToTokenAmount).eq(applySlippage(quote.quoteData.expectedToTokenAmount, slippage));
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(EmptyBytes);
         });
 
         async function investAndTransferStakedGlp(tokenAddr: string, investAmount: BigNumber, invester: Signer) {
             // Invest oGLP
-            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             await expectBalancesChangeBy(async () => { 
                 await gmxContracts.bnbToken.mint(invester.getAddress(), investAmount);
                 await gmxContracts.bnbToken.connect(invester).approve(oGLP.address, investAmount);
-                await oGLP.connect(invester).investWithToken(investQuote.quoteData, 0);
+                await oGLP.connect(invester).investWithToken(investQuote.quoteData);
             },
                 [oGLP, invester, investQuote.quoteData.expectedInvestmentAmount],
                 [gmxContracts.bnbToken, invester, 0],
@@ -568,11 +533,11 @@ describe("Origami GLP Investment", async () => {
             // Don't invest->transfer glp into the primary earn account upfront, so an immediate sale will fail.
 
             // Alan invests some oGlp
-            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             await expectBalancesChangeBy(async () => { 
                 await gmxContracts.bnbToken.mint(alan.getAddress(), investAmount);
                 await gmxContracts.bnbToken.connect(alan).approve(oGLP.address, investAmount);
-                await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
+                await oGLP.connect(alan).investWithToken(investQuote.quoteData);
             },
                 [oGLP, alan, investQuote.quoteData.expectedInvestmentAmount],
                 [gmxContracts.bnbToken, alan, 0],
@@ -582,8 +547,8 @@ describe("Origami GLP Investment", async () => {
 
             // Now immediately exit out of the position
             const exitAmount = investQuote.quoteData.expectedInvestmentAmount;
-            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr);
-            await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                 .to.be.revertedWith("RewardTracker: _amount exceeds stakedAmount");
 
             // Transfer the staked GLP from secondary -> primary
@@ -591,7 +556,7 @@ describe("Origami GLP Investment", async () => {
 
             // Now it succeeds
             await expectBalancesChangeBy(async () => { 
-                await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+                await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                     .to.emit(oGLP, "Exited")
                     .withArgs(await alan.getAddress(), exitAmount, tokenAddr, exitQuote.quoteData.expectedToTokenAmount, await alan.getAddress());
             },
@@ -609,16 +574,16 @@ describe("Origami GLP Investment", async () => {
             // Ensure there's some volume in the primary account invest investing (going to the secondary) and transferring the primary
             await investAndTransferStakedGlp(tokenAddr, investAmount, fred);
 
-            const quote = await oGLP.exitQuote(investAmount, tokenAddr);
-            await expect(oGLP.connect(alan).exitToToken(quote.quoteData, 0, alan.getAddress()))
+            const quote = await oGLP.exitQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.connect(alan).exitToToken(quote.quoteData, alan.getAddress()))
                 .to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
             // Alan invests some oGlp
-            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             {
                 await gmxContracts.bnbToken.mint(alan.getAddress(), investAmount);
                 await gmxContracts.bnbToken.connect(alan).approve(oGLP.address, investAmount);
-                await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
+                await oGLP.connect(alan).investWithToken(investQuote.quoteData);
             }
             
             // 0 amount errors
@@ -627,7 +592,7 @@ describe("Origami GLP Investment", async () => {
                     ...quote.quoteData,
                     investmentTokenAmount: 0,
                 };
-                await expect(oGLP.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
+                await expect(oGLP.connect(alan).exitToToken(manualQuote, alan.getAddress()))
                     .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
             }
             
@@ -637,16 +602,16 @@ describe("Origami GLP Investment", async () => {
                     ...quote.quoteData,
                     toToken: gmxContracts.gmxToken.address
                 };
-                await expect(oGLP.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
+                await expect(oGLP.connect(alan).exitToToken(manualQuote, alan.getAddress()))
                     .to.be.revertedWithCustomError(oGLP, "InvalidToken")
                     .withArgs(gmxContracts.gmxToken.address);
             }
 
             // Can now immediately exit out of the position
             const exitAmount = investQuote.quoteData.expectedInvestmentAmount;
-            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr);
+            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             await expectBalancesChangeBy(async () => {
-                await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+                await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                     .to.emit(oGLP, "Exited")
                     .withArgs(await alan.getAddress(), exitAmount, tokenAddr, exitQuote.quoteData.expectedToTokenAmount, await alan.getAddress());
             },
@@ -658,7 +623,7 @@ describe("Origami GLP Investment", async () => {
 
             // If just directly minting, Origami doesn't have any GMX to unstake.
             await oGLP.mint(alan.getAddress(), exitAmount);
-            await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+            await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                 .to.be.revertedWith("RewardTracker: _amount exceeds stakedAmount");
         });
 
@@ -670,16 +635,16 @@ describe("Origami GLP Investment", async () => {
             // Ensure there's some volume in the primary account invest investing (going to the secondary) and transferring the primary
             const initialOGlpMint = await investAndTransferStakedGlp(tokenAddr, investAmount, fred);
 
-            const quote = await oGLP.exitQuote(investAmount, tokenAddr);
-            await expect(oGLP.connect(alan).exitToToken(quote.quoteData, 0, alan.getAddress()))
+            const quote = await oGLP.exitQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.connect(alan).exitToToken(quote.quoteData, alan.getAddress()))
                 .to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
             // Alan invests some oGlp
-            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             {
                 await gmxContracts.bnbToken.mint(alan.getAddress(), investAmount);
                 await gmxContracts.bnbToken.connect(alan).approve(oGLP.address, investAmount);
-                await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
+                await oGLP.connect(alan).investWithToken(investQuote.quoteData);
             }
 
             // Total supply of oGlp == initial mint amount + what alan just bought.
@@ -687,25 +652,25 @@ describe("Origami GLP Investment", async () => {
 
             // Can now immediately exit out of the position
             const exitAmount = investQuote.quoteData.expectedInvestmentAmount;
-            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr);
+            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             {
                 expect(exitQuote.exitFeeBps).deep.eq([3000, 15]);
                 const feeAmount = exitAmount.mul(30).div(100);
                 const nonFeeAmount = exitAmount.sub(feeAmount);
 
-                const slippageBps = 100; // 1%
-                const manualQuote = {
-                    ...exitQuote.quoteData,
-                    expectedToTokenAmount: exitQuote.quoteData.expectedToTokenAmount.mul(10_000+slippageBps).div(10_000),
-                };
-
                 // Fails with a bad min amount
-                await expect(oGLP.connect(alan).exitToToken(manualQuote, 0, alan.getAddress()))
-                    .to.revertedWith("GlpManager: insufficient output");
-                
-                // Works with slippage
+                {
+                    const manualQuote = {
+                        ...exitQuote.quoteData,
+                        minToTokenAmount: exitQuote.quoteData.expectedToTokenAmount.add(1),
+                    };
+
+                    await expect(oGLP.connect(alan).exitToToken(manualQuote, alan.getAddress()))
+                        .to.revertedWith("GlpManager: insufficient output");
+                }
+
                 await expectBalancesChangeBy(async () => {
-                    await expect(oGLP.connect(alan).exitToToken(manualQuote, slippageBps, alan.getAddress()))
+                    await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                         .to.emit(oGLP, "Exited")
                         .withArgs(await alan.getAddress(), exitAmount, tokenAddr, exitQuote.quoteData.expectedToTokenAmount, await alan.getAddress());
                 },
@@ -730,11 +695,11 @@ describe("Origami GLP Investment", async () => {
             const initialOGlpMint = await investAndTransferStakedGlp(tokenAddr, investAmount, fred);
 
             // Alan invests some oGlp
-            const investQuote = await oGLP.investQuote(investAmount, tokenAddr);
+            const investQuote = await oGLP.investQuote(investAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             { 
                 await gmxContracts.bnbToken.mint(alan.getAddress(), investAmount);
                 await gmxContracts.bnbToken.connect(alan).approve(oGLP.address, investAmount);
-                await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
+                await oGLP.connect(alan).investWithToken(investQuote.quoteData);
             }
 
             // Total supply of oGlp == initial mint amount + what alan just bought.
@@ -742,14 +707,14 @@ describe("Origami GLP Investment", async () => {
 
             // Can now immediately exit out of the position
             const exitAmount = investQuote.quoteData.expectedInvestmentAmount;
-            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr);
+            const exitQuote = await oGLP.exitQuote(exitAmount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
             {
                 expect(exitQuote.exitFeeBps).deep.eq([10000, 0]);
                 const feeAmount = exitAmount;
-                const nonFeeAmount = BigNumber.from(0);
+                const nonFeeAmount = BN_ZERO;
 
                 await expectBalancesChangeBy(async () => {
-                    await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+                    await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                         .to.emit(oGLP, "Exited")
                         .withArgs(await alan.getAddress(), exitAmount, tokenAddr, exitQuote.quoteData.expectedToTokenAmount, await alan.getAddress());
                 },
@@ -767,8 +732,8 @@ describe("Origami GLP Investment", async () => {
 
         it("Exit oGLP to staked GLP", async () => {
             const investAmount = ethers.utils.parseEther("100");
-            const exitQuote = await oGLP.exitQuote(investAmount, gmxContracts.stakedGlp.address);
-            await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+            const exitQuote = await oGLP.exitQuote(investAmount, gmxContracts.stakedGlp.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                 .to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
             // Invest
@@ -788,8 +753,8 @@ describe("Origami GLP Investment", async () => {
                 // Successfully bought
                 await expectBalancesChangeBy(async () => {
                     await gmxContracts.stakedGlp.connect(alan).approve(oGLP.address, glpAmount);
-                    const investQuote = await oGLP.investQuote(glpAmount, gmxContracts.stakedGlp.address);
-                    await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
+                    const investQuote = await oGLP.investQuote(glpAmount, gmxContracts.stakedGlp.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                    await oGLP.connect(alan).investWithToken(investQuote.quoteData);
                 },
                     [oGLP, alan, glpAmount], 
                     [gmxContracts.stakedGlpTracker, alan, glpAmount.mul(-1)],
@@ -800,8 +765,8 @@ describe("Origami GLP Investment", async () => {
 
             // Can now exit
             await expectBalancesChangeBy(async () => {
-                const exitQuote2 = await oGLP.exitQuote(glpAmount, gmxContracts.stakedGlp.address);
-                await expect(oGLP.connect(alan).exitToToken(exitQuote2.quoteData, 0, alan.getAddress()))
+                const exitQuote2 = await oGLP.exitQuote(glpAmount, gmxContracts.stakedGlp.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await expect(oGLP.connect(alan).exitToToken(exitQuote2.quoteData, alan.getAddress()))
                     .to.emit(oGLP, "Exited")
                     .withArgs(await alan.getAddress(), glpAmount, gmxContracts.stakedGlp.address, glpAmount, await alan.getAddress());
             },
@@ -832,15 +797,15 @@ describe("Origami GLP Investment", async () => {
 
                 // Successfully bought
                 await gmxContracts.stakedGlp.connect(alan).approve(oGLP.address, glpAmount);
-                const investQuote = await oGLP.investQuote(glpAmount, gmxContracts.stakedGlp.address);
-                await oGLP.connect(alan).investWithToken(investQuote.quoteData, 0);
+                const investQuote = await oGLP.investQuote(glpAmount, gmxContracts.stakedGlp.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await oGLP.connect(alan).investWithToken(investQuote.quoteData);
             }
 
             // Can now exit to token
             const glpAmount1 = glpAmount.div(2);
             await expectBalancesChangeBy(async () => {
-                const exitQuote = await oGLP.exitQuote(glpAmount1, gmxContracts.stakedGlp.address);
-                await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, 0, alan.getAddress()))
+                const exitQuote = await oGLP.exitQuote(glpAmount1, gmxContracts.stakedGlp.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await expect(oGLP.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress()))
                     .to.emit(oGLP, "Exited")
                     .withArgs(await alan.getAddress(), glpAmount1, gmxContracts.stakedGlp.address, 0, await alan.getAddress());
             },
@@ -854,8 +819,8 @@ describe("Origami GLP Investment", async () => {
             // And to native
             const glpAmount2 = glpAmount.sub(glpAmount1);
             await expectBalancesChangeBy(async () => {
-                const exitQuote = await oGLP.exitQuote(glpAmount2, ZERO_ADDRESS);
-                await expect(oGLP.connect(alan).exitToNative(exitQuote.quoteData, 0, alan.getAddress()))
+                const exitQuote = await oGLP.exitQuote(glpAmount2, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await expect(oGLP.connect(alan).exitToNative(exitQuote.quoteData, alan.getAddress()))
                     .to.emit(oGLP, "Exited")
                     .withArgs(await alan.getAddress(), glpAmount2, ZERO_ADDRESS, 0, await alan.getAddress());
             },
@@ -874,8 +839,8 @@ describe("Origami GLP Investment", async () => {
             const tokenAddr = gmxContracts.bnbToken.address;
             const initialOGlpMint = await investAndTransferStakedGlp(tokenAddr, ethers.utils.parseEther("1000"), fred);
 
-            const exitQuote1 = await oGLP.exitQuote(investAmount, ZERO_ADDRESS);
-            await expect(oGLP.connect(alan).exitToNative(exitQuote1.quoteData, 0, alan.getAddress()))
+            const exitQuote1 = await oGLP.exitQuote(investAmount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await expect(oGLP.connect(alan).exitToNative(exitQuote1.quoteData, alan.getAddress()))
                 .to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
             {
@@ -883,7 +848,7 @@ describe("Origami GLP Investment", async () => {
                     ...exitQuote1.quoteData,
                     toToken: tokenAddr,
                 };
-                await expect(oGLP.connect(alan).exitToNative(manualQuote, 0, alan.getAddress()))
+                await expect(oGLP.connect(alan).exitToNative(manualQuote, alan.getAddress()))
                     .to.be.revertedWithCustomError(oGLP, "InvalidToken")
                     .withArgs(tokenAddr);
             }
@@ -893,14 +858,14 @@ describe("Origami GLP Investment", async () => {
                     ...exitQuote1.quoteData,
                     investmentTokenAmount: 0,
                 };
-                await expect(oGLP.connect(alan).exitToNative(manualQuote, 0, alan.getAddress()))
+                await expect(oGLP.connect(alan).exitToNative(manualQuote, alan.getAddress()))
                     .to.be.revertedWithCustomError(oGLP, "ExpectedNonZero");
             }
 
             // Alan invests some oGlp
-            const investQuote = await oGLP.investQuote(investAmount, ZERO_ADDRESS);
+            const investQuote = await oGLP.investQuote(investAmount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
             await expectBalancesChangeBy(async () => { 
-                await oGLP.connect(alan).investWithNative(investQuote.quoteData, 0, {value:investAmount});
+                await oGLP.connect(alan).investWithNative(investQuote.quoteData, {value:investAmount});
             },
                 [oGLP, alan, investQuote.quoteData.expectedInvestmentAmount],
                 [gmxContracts.stakedGlpTracker, primaryEarnAccount, 0],
@@ -910,23 +875,24 @@ describe("Origami GLP Investment", async () => {
 
             // Can now immediately exit out of the position
             const exitAmount = investQuote.quoteData.expectedInvestmentAmount;
-            const exitQuote = await oGLP.exitQuote(exitAmount, ZERO_ADDRESS);
+            const exitQuote = await oGLP.exitQuote(exitAmount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
             {
                 const ethBalBefore = await alan.getBalance();
 
-                const slippageBps = 100; // 1%
-                const manualQuote = {
-                    ...exitQuote.quoteData,
-                    expectedToTokenAmount: exitQuote.quoteData.expectedToTokenAmount.mul(10_000+slippageBps).div(10_000),
-                };
-                
                 // Fails with a bad min amount
-                await expect(oGLP.connect(alan).exitToNative(manualQuote, 0, alan.getAddress()))
-                    .to.revertedWith("GlpManager: insufficient output");
-                
+                {
+                    const manualQuote = {
+                        ...exitQuote.quoteData,
+                        minToTokenAmount: exitQuote.quoteData.expectedToTokenAmount.add(1),
+                    };
+                    
+                    await expect(oGLP.connect(alan).exitToNative(manualQuote, alan.getAddress()))
+                        .to.revertedWith("GlpManager: insufficient output");
+                }
+                    
                 // Works with slippage
                 await expectBalancesChangeBy(async () => { 
-                    await expect(oGLP.connect(alan).exitToNative(manualQuote, slippageBps, alan.getAddress()))
+                    await expect(oGLP.connect(alan).exitToNative(exitQuote.quoteData, alan.getAddress()))
                         .to.emit(oGLP, "Exited")
                         .withArgs(await alan.getAddress(), exitAmount, ZERO_ADDRESS, exitQuote.quoteData.expectedToTokenAmount, await alan.getAddress());
                 },
@@ -943,7 +909,7 @@ describe("Origami GLP Investment", async () => {
             
             // If just directly minting, Origami doesn't have any GLP to unstake.
             await oGLP.mint(alan.getAddress(), exitAmount);
-            await expect(oGLP.connect(alan).exitToNative(exitQuote.quoteData, 0, alan.getAddress()))
+            await expect(oGLP.connect(alan).exitToNative(exitQuote.quoteData, alan.getAddress()))
                 .to.be.revertedWith("RewardTracker: _amount exceeds stakedAmount");
         });
     });

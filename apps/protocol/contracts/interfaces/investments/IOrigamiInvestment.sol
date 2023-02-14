@@ -11,6 +11,12 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft
  * Origami will apply the accepted investment token into the underlying protocol in the most optimal way.
  */
 interface IOrigamiInvestment is IERC20, IERC20Permit {
+
+    /**
+     * @notice Track the depoyed version of this contract. 
+     */
+    function apiVersion() external pure returns (string memory);
+
     /** 
      * @notice Emitted when a user makes a new investment
      * @param user The user who made the investment
@@ -65,9 +71,18 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
         /// @notice The quantity of `fromToken` to invest with
         uint256 fromTokenAmount;
 
+        /// @notice The maximum acceptable slippage of the `expectedInvestmentAmount`
+        uint256 maxSlippageBps;
+
+        /// @notice The maximum deadline to execute the transaction.
+        uint256 deadline;
+
         /// @notice The expected amount of this Origami Investment token to receive in return
-        /// @dev Note slippage is applied to this when calling `invest()`
         uint256 expectedInvestmentAmount;
+
+        /// @notice The minimum amount of this Origami Investment Token to receive after
+        /// slippage has been applied.
+        uint256 minInvestmentAmount;
 
         /// @notice Any extra quote parameters required by the underlying investment
         bytes underlyingInvestmentQuoteData;
@@ -83,9 +98,19 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
         /// @notice The token to sell into, which must be one of `acceptedExitTokens()`
         address toToken;
 
+        /// @notice The maximum acceptable slippage of the `expectedToTokenAmount`
+        uint256 maxSlippageBps;
+
+        /// @notice The maximum deadline to execute the transaction.
+        uint256 deadline;
+
         /// @notice The expected amount of `toToken` to receive in return
         /// @dev Note slippage is applied to this when calling `invest()`
         uint256 expectedToTokenAmount;
+
+        /// @notice The minimum amount of `toToken` to receive after
+        /// slippage has been applied.
+        uint256 minToTokenAmount;
 
         /// @notice Any extra quote parameters required by the underlying investment
         bytes underlyingInvestmentQuoteData;
@@ -96,12 +121,16 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param fromTokenAmount How much of `fromToken` to invest with
      * @param fromToken What ERC20 token to purchase with. This must be one of `acceptedInvestTokens`
+     * @param maxSlippageBps The maximum acceptable slippage of the received investment amount
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any params required for the underlying investment type.
      * @return investFeeBps Any fees expected when investing with the given token, either from Origami or from the underlying investment.
      */
     function investQuote(
         uint256 fromTokenAmount, 
-        address fromToken
+        address fromToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external view returns (
         InvestQuoteData memory quoteData, 
         uint256[] memory investFeeBps
@@ -110,12 +139,10 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
     /** 
       * @notice User buys this Origami investment with an amount of one of the approved ERC20 tokens. 
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @return investmentAmount The actual number of this Origami investment tokens received.
       */
     function investWithToken(
-        InvestQuoteData calldata quoteData, 
-        uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external returns (
         uint256 investmentAmount
     );
@@ -123,12 +150,10 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
     /** 
       * @notice User buys this Origami investment with an amount of native chain token (ETH/AVAX)
       * @param quoteData The quote data received from investQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @return investmentAmount The actual number of this Origami investment tokens received.
       */
     function investWithNative(
-        InvestQuoteData calldata quoteData, 
-        uint256 slippageBps
+        InvestQuoteData calldata quoteData
     ) external payable returns (
         uint256 investmentAmount
     );
@@ -138,12 +163,16 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
      * @dev The 0x0 address can be used for native chain ETH/AVAX
      * @param investmentAmount The number of Origami investment tokens to sell
      * @param toToken The token to receive when selling. This must be one of `acceptedExitTokens`
+     * @param maxSlippageBps The maximum acceptable slippage of the received `toToken`
+     * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any params required for the underlying investment type.
      * @return exitFeeBps Any fees expected when exiting the investment to the nominated token, either from Origami or from the underlying investment.
      */
     function exitQuote(
         uint256 investmentAmount,
-        address toToken
+        address toToken,
+        uint256 maxSlippageBps,
+        uint256 deadline
     ) external view returns (
         ExitQuoteData memory quoteData, 
         uint256[] memory exitFeeBps
@@ -152,13 +181,11 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
     /** 
       * @notice Sell this Origami investment to receive one of the accepted tokens.
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @param recipient The receiving address of the `toToken`
       * @return toTokenAmount The number of `toToken` tokens received upon selling the Origami investment tokens.
       */
     function exitToToken(
         ExitQuoteData calldata quoteData,
-        uint256 slippageBps, 
         address recipient
     ) external returns (
         uint256 toTokenAmount
@@ -167,13 +194,11 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
     /** 
       * @notice Sell this Origami investment to native ETH/AVAX.
       * @param quoteData The quote data received from exitQuote()
-      * @param slippageBps Acceptable slippage, applied to the `quoteData` params
       * @param recipient The receiving address of the native chain token.
       * @return nativeAmount The number of native chain ETH/AVAX/etc tokens received upon selling the Origami investment tokens.
       */
     function exitToNative(
         ExitQuoteData calldata quoteData, 
-        uint256 slippageBps,
         address payable recipient
     ) external returns (
         uint256 nativeAmount

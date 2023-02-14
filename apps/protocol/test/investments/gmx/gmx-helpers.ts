@@ -141,25 +141,6 @@ async function initVaultErrors(vault: GMX_Vault, owner: Signer) {
     return vaultErrorController;
 }
 
-const glpInvestQuoteTypes = 'tuple(uint256 expectedUsdg)'; 
-type UnderlyingGlpInvestQuoteData = {
-    expectedUsdg: BigNumberish,
-}
-export const encodeGlpUnderlyingInvestQuoteData = (expectedUsdg: BigNumberish): string => {
-    return ethers.utils.defaultAbiCoder.encode(
-        [glpInvestQuoteTypes], 
-        [{
-            expectedUsdg,
-        }]
-    );
-}
-export const decodeGlpUnderlyingInvestQuoteData = (encodedQuoteData: string): UnderlyingGlpInvestQuoteData => {
-    return ethers.utils.defaultAbiCoder.decode(
-        [glpInvestQuoteTypes], 
-        encodedQuoteData
-    )[0];
-}
-
 export interface GmxContracts {
     gmxRewardRouter: GMX_RewardRouterV2,
     glpRewardRouter: GMX_RewardRouterV2,
@@ -465,6 +446,8 @@ export async function deployGmx(
     await bonusGmxTracker.setGov(timelock.address);
     await feeGmxTracker.setGov(timelock.address);
     await feeGlpTracker.setGov(timelock.address);
+    await feeGmxDistributor.setGov(timelock.address);
+    await feeGlpDistributor.setGov(timelock.address);
     await stakedGlpTracker.setGov(timelock.address);
     await stakedGmxDistributor.setGov(timelock.address);
     await stakedGlpDistributor.setGov(timelock.address);

@@ -9,6 +9,9 @@ import { OrigamiSignerWithAddress } from "./signers";
 
 export const EmptyBytes = "0x";
 export const ONE_ETH = ethers.utils.parseEther("1");
+export const ZERO_SLIPPAGE = 0;
+export const ZERO_DEADLINE = 0;
+export const BN_ZERO = BigNumber.from(0);
 
 export async function shouldRevertNotOwner(p: Promise<any>) {
   await expect(p).to.be.revertedWith("Ownable: caller is not the owner");
@@ -288,7 +291,7 @@ export const expectApproxEqRelPred = (expected: BigNumber, maxPercentDelta: BigN
     };
 }
 
-const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint256 expectedInvestmentAmount, bytes underlyingInvestmentQuoteData)';
+const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint256 maxSlippageBps, uint256 deadline, uint256 expectedInvestmentAmount, uint256 minInvestmentAmount, bytes underlyingInvestmentQuoteData)';
 export const encodeInvestQuoteData = (quoteData: IOrigamiInvestment.InvestQuoteDataStruct): string => {
     return ethers.utils.defaultAbiCoder.encode(
         [investQuoteTypes], 
@@ -397,3 +400,8 @@ export const testErc20Permit = async (
         )).to.revertedWith("ERC20Permit: invalid signature");
     }
 }
+
+export const applySlippage = (
+    expectedAmount: BigNumberish, 
+    slippageBps: number
+) => BigNumber.from(expectedAmount).mul(10_000 - slippageBps).div(10_000);

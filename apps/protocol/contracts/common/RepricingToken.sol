@@ -1,6 +1,6 @@
 pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Origami (common/MintableToken.sol)
+// Origami (common/RepricingToken.sol)
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -124,22 +124,21 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
     }
 
     function addReserves(uint256 amount) external override onlyOperators {
-        _addReserves(amount);
         IERC20(reserveToken).safeTransferFrom(msg.sender, address(this), amount);
+        _addReserves(amount);
     }
 
+    /// @dev Reserve tokens should be transferred into this contract PRIOR to calling this function
     function _addReserves(uint256 amount) private {
         emit ReservesAdded(amount);
         totalReserves += amount;
+        assert(IERC20(reserveToken).balanceOf(address(this)) >= totalReserves);
     }
 
-    function removeReserves(uint256 amount) external override onlyOperators {
-        _removeReserves(amount);
-        IERC20(reserveToken).safeTransfer(msg.sender, amount);
-    }
-
+    /// @dev Reserve tokens need be transferred out of the contract AFTER calling this function
     function _removeReserves(uint256 amount) private {
         emit ReservesRemoved(amount);
         totalReserves -= amount;
+        assert((IERC20(reserveToken).balanceOf(address(this)) - amount) >= totalReserves);
     }
 }

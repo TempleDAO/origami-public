@@ -21,6 +21,9 @@ import {
     expectApproxEqRel, 
     tolerance, 
     ONE_ETH,
+    ZERO_SLIPPAGE,
+    ZERO_DEADLINE,
+    applySlippage,
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getSigners } from "../signers";
@@ -144,8 +147,8 @@ describe("Origami Investment Vault", async () => {
         await oToken.connect(alan).approve(ovToken.address, investAmount);
 
         // Alan invests 10k
-        const quote = await ovToken.investQuote(investAmount, oToken.address);
-        await ovToken.connect(alan).investWithToken(quote.quoteData, 0);
+        const quote = await ovToken.investQuote(investAmount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+        await ovToken.connect(alan).investWithToken(quote.quoteData);
 
         // Mint to operator
         const extraReservesAmount = ethers.utils.parseEther("1000");
@@ -165,6 +168,7 @@ describe("Origami Investment Vault", async () => {
         const [numerator, denominator] = await ovToken.performanceFee();
         expect(numerator.toNumber()).to.eq(5);
         expect(denominator.toNumber()).to.eq(100);
+        expect(await ovToken.apiVersion()).eq("0.1.0");
     });
 
     it("admin", async () => {
@@ -173,9 +177,6 @@ describe("Origami Investment Vault", async () => {
         await shouldRevertNotOwner(ovToken.connect(alan).setPerformanceFee(80, 100));
 
         await expect(ovToken.connect(alan).addReserves(0))
-            .to.revertedWithCustomError(ovToken, "OnlyOperators")
-            .withArgs(await alan.getAddress());
-        await expect(ovToken.connect(alan).removeReserves(0))
             .to.revertedWithCustomError(ovToken, "OnlyOperators")
             .withArgs(await alan.getAddress());
 
@@ -235,19 +236,17 @@ describe("Origami Investment Vault", async () => {
         expect(tokens).deep.eq([underlyingExitToken.address, oToken.address]);
     });
 
-    const exitQuoteTypes = 'tuple(uint256 expectedReserveAmount, tuple(uint256 investmentTokenAmount, address toToken, uint256 expectedToTokenAmount, bytes underlyingInvestmentQuoteData) underlyingExitQuoteData)';
-    const encodeUnderlyingExitQuoteData = (expectedReserveAmount: BigNumberish, quoteData: IOrigamiInvestment.ExitQuoteDataStruct): string => {
+    const exitQuoteTypes = 'tuple(tuple(uint256 investmentTokenAmount, address toToken, uint256 maxSlippageBps, uint256 deadline, uint256 expectedToTokenAmount, uint256 minToTokenAmount, bytes underlyingInvestmentQuoteData) underlyingExitQuoteData)';
+    const encodeUnderlyingExitQuoteData = (quoteData: IOrigamiInvestment.ExitQuoteDataStruct): string => {
         return ethers.utils.defaultAbiCoder.encode(
             [exitQuoteTypes], 
             [{
-                expectedReserveAmount: expectedReserveAmount,
                 underlyingExitQuoteData: quoteData,
             }]
         );
     }
 
     type UnderlyingExitQuoteData = {
-        expectedReserveAmount: BigNumberish,
         underlyingExitQuoteData: IOrigamiInvestment.ExitQuoteDataStruct,
     }
     const decodeUnderlyingExitQuoteData = (encodedQuoteData: string): UnderlyingExitQuoteData => {
@@ -259,19 +258,22 @@ describe("Origami Investment Vault", async () => {
 
     it("correctly wrapped invest quote", async () => {
         // Can't give quote for 0 amount        
-        await expect(ovToken.investQuote(0, oToken.address))
+        await expect(ovToken.investQuote(0, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE))
             .to.revertedWithCustomError(ovToken, "ExpectedNonZero");
         
         // The reserve token, expected 1:1 since no reserves yet added
         {
             const amount = ethers.utils.parseEther("100");
-            const quote = await ovToken.investQuote(amount, oToken.address);
+            const quote = await ovToken.investQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(amount);
             expect(expectedSharesAmount).eq(amount);
 
             expect(quote.quoteData.fromToken).eq(oToken.address).eq(await ovToken.reserveToken());
             expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedInvestmentAmount).eq(expectedSharesAmount);
+            expect(quote.quoteData.minInvestmentAmount).eq(expectedSharesAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(EmptyBytes);
             expect(quote.investFeeBps).deep.eq([]);
         }
@@ -279,14 +281,17 @@ describe("Origami Investment Vault", async () => {
         // Another allowed token, with fees
         {
             const amount = ethers.utils.parseEther("100");
-            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address);
-            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address);
+            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 1, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(underlyingQuote.quoteData.expectedInvestmentAmount);
             expect(expectedSharesAmount).eq(amount.mul(9_900).div(10_000));
 
             expect(quote.quoteData.fromToken).eq(underlyingInvestToken.address);
             expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedInvestmentAmount).eq(expectedSharesAmount);
+            expect(quote.quoteData.minInvestmentAmount).eq(expectedSharesAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(
                 encodeInvestQuoteData(underlyingQuote.quoteData)
             );
@@ -299,7 +304,7 @@ describe("Origami Investment Vault", async () => {
         // The reserve token, now expect less shares as the price has increased
         {
             const amount = ethers.utils.parseEther("1000");
-            const quote = await ovToken.investQuote(amount, oToken.address);
+            const quote = await ovToken.investQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(amount);
 
             // Now expect less shares for the same amount of reserves, 
@@ -308,7 +313,10 @@ describe("Origami Investment Vault", async () => {
 
             expect(quote.quoteData.fromToken).eq(oToken.address).eq(await ovToken.reserveToken());
             expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedInvestmentAmount).eq(expectedSharesAmount);
+            expect(quote.quoteData.minInvestmentAmount).eq(expectedSharesAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(EmptyBytes);
             expect(quote.investFeeBps).deep.eq([]);
         }
@@ -316,8 +324,8 @@ describe("Origami Investment Vault", async () => {
         // Another allowed token, with fees. Now expect less shares as the price has increased
         {
             const amount = ethers.utils.parseEther("1000");
-            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address);
-            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address);
+            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 1, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(underlyingQuote.quoteData.expectedInvestmentAmount);
 
             // Now expect less shares for the same amount of reserves, 
@@ -326,7 +334,34 @@ describe("Origami Investment Vault", async () => {
 
             expect(quote.quoteData.fromToken).eq(underlyingInvestToken.address);
             expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedInvestmentAmount).eq(expectedSharesAmount);
+            expect(quote.quoteData.minInvestmentAmount).eq(expectedSharesAmount);
+            expect(quote.quoteData.underlyingInvestmentQuoteData).eq(
+                encodeInvestQuoteData(underlyingQuote.quoteData)
+            );
+            expect(quote.investFeeBps).deep.eq([100]);
+        }
+
+        // Check slippage
+        {
+            const amount = ethers.utils.parseEther("1000");
+            const slippage = 100; // 1%
+            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, slippage, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 1, ZERO_DEADLINE);
+            const expectedSharesAmount = await ovToken.reservesToShares(underlyingQuote.quoteData.expectedInvestmentAmount);
+
+            // Now expect less shares for the same amount of reserves, 
+            // since there is a fee, and also the reservesPerShare has now gone up
+            expect(expectedSharesAmount).eq(amount.mul(9_900).div(10_000).mul(ONE_ETH).div(reservesPerShare));
+
+            expect(quote.quoteData.fromToken).eq(underlyingInvestToken.address);
+            expect(quote.quoteData.fromTokenAmount).eq(amount);
+            expect(quote.quoteData.maxSlippageBps).eq(slippage);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
+            expect(quote.quoteData.expectedInvestmentAmount).eq(expectedSharesAmount);
+            expect(quote.quoteData.minInvestmentAmount).eq(applySlippage(expectedSharesAmount, slippage));
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(
                 encodeInvestQuoteData(underlyingQuote.quoteData)
             );
@@ -336,19 +371,22 @@ describe("Origami Investment Vault", async () => {
 
     it("correctly wrapped exit quote", async () => {
         // Can't give quote for 0 amount        
-        await expect(ovToken.exitQuote(0, oToken.address))
+        await expect(ovToken.exitQuote(0, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE))
             .to.revertedWithCustomError(ovToken, "ExpectedNonZero");
     
         // The reserve token, expected 0 since no shares
         {
             const amount = ethers.utils.parseEther("100");
-            const quote = await ovToken.exitQuote(amount, oToken.address);
+            const quote = await ovToken.exitQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             expect(quote.quoteData.expectedToTokenAmount).eq(0);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
 
             expect(quote.quoteData.investmentTokenAmount).eq(amount);
             expect(quote.quoteData.toToken).eq(oToken.address).eq(await ovToken.reserveToken());
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedToTokenAmount).eq(expectedReserveAmount);
+            expect(quote.quoteData.minToTokenAmount).eq(expectedReserveAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(EmptyBytes);
             expect(quote.exitFeeBps).deep.eq([]);
         }
@@ -356,16 +394,19 @@ describe("Origami Investment Vault", async () => {
         // Another allowed token, with fees
         {
             const amount = ethers.utils.parseEther("100");
-            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address);
+            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
             expect(quote.quoteData.expectedToTokenAmount).eq(0);
-            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address);
+            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 1, ZERO_DEADLINE);
 
             expect(quote.quoteData.investmentTokenAmount).eq(amount);
             expect(quote.quoteData.toToken).eq(underlyingExitToken.address);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedToTokenAmount).eq(underlyingQuote.quoteData.expectedToTokenAmount);
+            expect(quote.quoteData.minToTokenAmount).eq(expectedReserveAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(
-                encodeUnderlyingExitQuoteData(expectedReserveAmount, underlyingQuote.quoteData)
+                encodeUnderlyingExitQuoteData(underlyingQuote.quoteData)
             );
             expect(quote.exitFeeBps).deep.eq([500]);
         }
@@ -376,7 +417,7 @@ describe("Origami Investment Vault", async () => {
         // The reserve token, expected 1:1 since no reserves yet added
         {
             const amount = ethers.utils.parseEther("100");
-            const quote = await ovToken.exitQuote(amount, oToken.address);
+            const quote = await ovToken.exitQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
 
             // Now expect less shares for the same amount of reserves, 
@@ -385,7 +426,10 @@ describe("Origami Investment Vault", async () => {
 
             expect(quote.quoteData.investmentTokenAmount).eq(amount);
             expect(quote.quoteData.toToken).eq(oToken.address).eq(await ovToken.reserveToken());
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedToTokenAmount).eq(expectedReserveAmount);
+            expect(quote.quoteData.minToTokenAmount).eq(expectedReserveAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(EmptyBytes);
             expect(quote.exitFeeBps).deep.eq([]);
         }
@@ -393,9 +437,9 @@ describe("Origami Investment Vault", async () => {
         // Another allowed token, with fees
         {
             const amount = ethers.utils.parseEther("100");
-            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address);
+            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
-            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address);
+            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 1, ZERO_DEADLINE);
 
             // Now expect less shares for the same amount of reserves, 
             // since the reservesPerShare has now gone up
@@ -403,9 +447,36 @@ describe("Origami Investment Vault", async () => {
 
             expect(quote.quoteData.investmentTokenAmount).eq(amount);
             expect(quote.quoteData.toToken).eq(underlyingExitToken.address);
+            expect(quote.quoteData.maxSlippageBps).eq(ZERO_SLIPPAGE);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
             expect(quote.quoteData.expectedToTokenAmount).eq(underlyingQuote.quoteData.expectedToTokenAmount);
+            expect(quote.quoteData.minToTokenAmount).eq(quote.quoteData.expectedToTokenAmount);
             expect(quote.quoteData.underlyingInvestmentQuoteData).eq(
-                encodeUnderlyingExitQuoteData(expectedReserveAmount, underlyingQuote.quoteData)
+                encodeUnderlyingExitQuoteData(underlyingQuote.quoteData)
+            );
+            expect(quote.exitFeeBps).deep.eq([500]);
+        }
+
+        // Slippage
+        {
+            const amount = ethers.utils.parseEther("100");
+            const slippage = 100; // 1%
+            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, slippage, ZERO_DEADLINE);
+            const expectedReserveAmount = await ovToken.sharesToReserves(amount);
+            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 1, ZERO_DEADLINE);
+
+            // Now expect less shares for the same amount of reserves, 
+            // since the reservesPerShare has now gone up
+            expect(expectedReserveAmount).eq(amount.mul(reservesPerShare).div(ONE_ETH));
+
+            expect(quote.quoteData.investmentTokenAmount).eq(amount);
+            expect(quote.quoteData.toToken).eq(underlyingExitToken.address);
+            expect(quote.quoteData.maxSlippageBps).eq(slippage);
+            expect(quote.quoteData.deadline).eq(ZERO_DEADLINE);
+            expect(quote.quoteData.expectedToTokenAmount).eq(underlyingQuote.quoteData.expectedToTokenAmount);
+            expect(quote.quoteData.minToTokenAmount).eq(applySlippage(quote.quoteData.expectedToTokenAmount, slippage));
+            expect(quote.quoteData.underlyingInvestmentQuoteData).eq(
+                encodeUnderlyingExitQuoteData(underlyingQuote.quoteData)
             );
             expect(quote.exitFeeBps).deep.eq([500]);
         }
@@ -419,14 +490,14 @@ describe("Origami Investment Vault", async () => {
             const osReservesSupply = await ovToken.totalReserves();
             {
                 const amount = ethers.utils.parseEther("1000");
-                const quote = await ovToken.investQuote(amount, oToken.address);
+                const quote = await ovToken.investQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
                 const expectedNewReserves = amount;
 
                 await oToken.connect(operator).mint(bob.getAddress(), amount);
                 await oToken.connect(bob).approve(ovToken.address, amount);
 
                 await expectBalancesChangeBy(async () => { 
-                    await expect(ovToken.connect(bob).investWithToken(quote.quoteData, 0))
+                    await expect(ovToken.connect(bob).investWithToken(quote.quoteData))
                         .to.emit(ovToken, "Transfer")
                         .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
                         .to.emit(ovToken, "ReservesAdded")
@@ -452,7 +523,7 @@ describe("Origami Investment Vault", async () => {
             const osReservesSupply = await ovToken.totalReserves();
 
             const amount = ethers.utils.parseEther("1000");
-            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address);
+            const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const underlyingQuoteData = decodeInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
             const expectedNewReserves = underlyingQuoteData.expectedInvestmentAmount as BigNumber;
 
@@ -460,7 +531,7 @@ describe("Origami Investment Vault", async () => {
             await underlyingInvestToken.connect(bob).approve(ovToken.address, amount);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).investWithToken(quote.quoteData, 0))
+                await expect(ovToken.connect(bob).investWithToken(quote.quoteData))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
                     .to.emit(ovToken, "ReservesAdded")
@@ -485,10 +556,10 @@ describe("Origami Investment Vault", async () => {
         // Can't get a quote for 0
         {
             const quoteData = {
-                ...(await ovToken.investQuote(100, underlyingInvestToken.address)).quoteData,
+                ...(await ovToken.investQuote(100, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData,
                 fromTokenAmount: BigNumber.from(0),
             };
-            await expect(ovToken.connect(bob).investWithToken(quoteData, 0))
+            await expect(ovToken.connect(bob).investWithToken(quoteData))
                 .to.revertedWithCustomError(ovToken, "ExpectedNonZero");
         }
 
@@ -509,25 +580,24 @@ describe("Origami Investment Vault", async () => {
         // Check slippage is applied
         {
             const amount = ethers.utils.parseEther("1000");
-
-            // Add 1% to the expected amount
-            let quoteData = (await ovToken.investQuote(amount, oToken.address)).quoteData;
-            const expectedInvestmentAmount = quoteData.expectedInvestmentAmount;
-            quoteData = {
-                ...quoteData,
-                expectedInvestmentAmount: expectedInvestmentAmount.mul(10_100).div(10_000),
-            };
-
             await oToken.connect(operator).mint(bob.getAddress(), amount);
             await oToken.connect(bob).approve(ovToken.address, amount);
 
-            // Fails with slippage
-            await expect(ovToken.connect(bob).investWithToken(quoteData, 0))
-                .to.revertedWithCustomError(ovToken, "Slippage")
-                .withArgs(quoteData.expectedInvestmentAmount, expectedInvestmentAmount);
+            // A quote for 0 slippage
+            const quoteData = (await ovToken.investQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            const minAmountOut = quoteData.minInvestmentAmount.add(1);
+            const manualQuoteData = {
+                ...quoteData,
+                minInvestmentAmount: minAmountOut
+            };
 
-            // Now with 1% slippage works
-            await expect(ovToken.connect(bob).investWithToken(quoteData, 100))
+            // Fails when asking for too much
+            await expect(ovToken.connect(bob).investWithToken(manualQuoteData))
+                .to.revertedWithCustomError(ovToken, "Slippage")
+                .withArgs(minAmountOut, quoteData.expectedInvestmentAmount);
+
+            // Works with the right min amount
+            await expect(ovToken.connect(bob).investWithToken(quoteData))
                 .to.emit(ovToken, "Invested");
         }
     });
@@ -539,7 +609,7 @@ describe("Origami Investment Vault", async () => {
             const osReservesSupply = await ovToken.totalReserves();
 
             const amount = ethers.utils.parseEther("1");
-            const quote = await ovToken.investQuote(amount, ZERO_ADDRESS);
+            const quote = await ovToken.investQuote(amount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const underlyingQuoteData = decodeInvestQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
             const expectedNewReserves = underlyingQuoteData.expectedInvestmentAmount as BigNumber;
 
@@ -547,7 +617,7 @@ describe("Origami Investment Vault", async () => {
             const oTokenEthBefore = await getEthBalance(oToken);
 
             await expectBalancesChangeBy(async () => {
-                await expect(ovToken.connect(bob).investWithNative(quote.quoteData, 0, {value: amount}))
+                await expect(ovToken.connect(bob).investWithNative(quote.quoteData, {value: amount}))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
                     .to.emit(ovToken, "ReservesAdded")
@@ -572,10 +642,10 @@ describe("Origami Investment Vault", async () => {
 
         // Error checking
         {
-            let quoteData = (await ovToken.investQuote(100, ZERO_ADDRESS)).quoteData;
+            let quoteData = (await ovToken.investQuote(100, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
 
             // Different amount of eth passed in
-            await expect(ovToken.connect(bob).investWithNative(quoteData, 100, {value: 111}))
+            await expect(ovToken.connect(bob).investWithNative(quoteData, {value: 111}))
                 .to.revertedWithCustomError(ovToken, "InvalidAmount")
                 .withArgs(ZERO_ADDRESS, 111);
 
@@ -584,7 +654,7 @@ describe("Origami Investment Vault", async () => {
                 ...quoteData,
                 fromTokenAmount: BigNumber.from(0),
             };
-            await expect(ovToken.connect(bob).investWithNative(quoteData, 0, {value: 0}))
+            await expect(ovToken.connect(bob).investWithNative(quoteData, {value: 0}))
                 .to.revertedWithCustomError(ovToken, "ExpectedNonZero");
 
             // non-eth token
@@ -593,7 +663,7 @@ describe("Origami Investment Vault", async () => {
                 fromTokenAmount: BigNumber.from(100),
                 fromToken: underlyingInvestToken.address,
             };
-            await expect(ovToken.connect(bob).investWithNative(quoteData, 0, {value: 100}))
+            await expect(ovToken.connect(bob).investWithNative(quoteData, {value: 100}))
                 .to.revertedWithCustomError(ovToken, "InvalidToken")
                 .withArgs(underlyingInvestToken.address);
         }
@@ -614,21 +684,21 @@ describe("Origami Investment Vault", async () => {
         {
             const amount = ethers.utils.parseEther("1000");
 
-            // Add 1% to the expected amount
-            let quoteData = (await ovToken.investQuote(amount, ZERO_ADDRESS)).quoteData;
-            const expectedInvestmentAmount = quoteData.expectedInvestmentAmount;
-            quoteData = {
+            // A quote for 0 slippage
+            const quoteData = (await ovToken.investQuote(amount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            const minAmountOut = quoteData.minInvestmentAmount.add(1);
+            const manualQuoteData = {
                 ...quoteData,
-                expectedInvestmentAmount: expectedInvestmentAmount.mul(10_100).div(10_000),
+                minInvestmentAmount: minAmountOut
             };
 
-            // Fails with slippage
-            await expect(ovToken.connect(bob).investWithNative(quoteData, 0, {value:amount}))
+            // Fails when asking for too much
+            await expect(ovToken.connect(bob).investWithNative(manualQuoteData, {value:amount}))
                 .to.revertedWithCustomError(ovToken, "Slippage")
-                .withArgs(quoteData.expectedInvestmentAmount, expectedInvestmentAmount);
+                .withArgs(minAmountOut, quoteData.expectedInvestmentAmount);
 
-            // Now with 1% slippage works
-            await expect(ovToken.connect(bob).investWithNative(quoteData, 100, {value:amount}))
+            // Works with the right min amount
+            await expect(ovToken.connect(bob).investWithNative(quoteData, {value:amount}))
                 .to.emit(ovToken, "Invested");
         }
     });
@@ -640,19 +710,19 @@ describe("Origami Investment Vault", async () => {
         // Can't get a quote for 0
         {
             const quoteData = {
-                ...(await ovToken.exitQuote(100, underlyingInvestToken.address)).quoteData,
+                ...(await ovToken.exitQuote(100, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData,
                 investmentTokenAmount: BigNumber.from(0),
             };
-            await expect(ovToken.connect(bob).exitToToken(quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToToken(quoteData, bob.getAddress()))
                 .to.revertedWithCustomError(ovToken, "ExpectedNonZero");
         }
 
         // Bob has no investment token - so it fails
         {
-            const quote = await ovToken.exitQuote(amount, oToken.address);
+            const quote = await ovToken.exitQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
 
             // Bob doesn't have any ovToken's yet
-            await expect(ovToken.connect(bob).exitToToken(quote.quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
                 .to.be.revertedWithCustomError(ovToken, "InsufficientBalance")
                 .withArgs(ovToken.address, amount, 0);
         }
@@ -662,8 +732,8 @@ describe("Origami Investment Vault", async () => {
             const reservesAmount = amount.mul(10);
             await oToken.connect(operator).mint(bob.getAddress(), reservesAmount);
             await oToken.connect(bob).approve(ovToken.address, reservesAmount);
-            const quote = await ovToken.investQuote(reservesAmount, oToken.address);
-            await ovToken.connect(bob).investWithToken(quote.quoteData, 0);
+            const quote = await ovToken.investQuote(reservesAmount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await ovToken.connect(bob).investWithToken(quote.quoteData);
 
             // Also mint the ovToken some underlyingInvestToken so positions can exit
             await underlyingExitToken.connect(operator).mint(oToken.address, ethers.utils.parseEther("100000"));
@@ -675,10 +745,10 @@ describe("Origami Investment Vault", async () => {
             const ovTokenSupply = await ovToken.totalSupply();
             const osReservesSupply = await ovToken.totalReserves();
             
-            const quote = await ovToken.exitQuote(amount, oToken.address);
+            const quote = await ovToken.exitQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, 0, bob.getAddress()))
+                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
                     .to.emit(ovToken, "ReservesRemoved")
@@ -702,13 +772,11 @@ describe("Origami Investment Vault", async () => {
             const ovTokenSupply = await ovToken.totalSupply();
             const osReservesSupply = await ovToken.totalReserves();
             
-            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address);
+            const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
-            const underlyingQuoteData = decodeUnderlyingExitQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
-            expect(underlyingQuoteData.expectedReserveAmount).eq(expectedReserveAmount);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, 0, bob.getAddress()))
+                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
                     .to.emit(ovToken, "ReservesRemoved")
@@ -733,50 +801,41 @@ describe("Origami Investment Vault", async () => {
 
         // Check slippage is applied for reserve token
         {
-            const amount = ethers.utils.parseEther("1000");
-
-            // Add 1% to the expected amount
-            let quoteData = (await ovToken.exitQuote(amount, oToken.address)).quoteData;
-            const expectedToTokenAmount = quoteData.expectedToTokenAmount;
-            quoteData = {
+            // A quote for 0 slippage
+            const quoteData = (await ovToken.exitQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            const minAmountOut = quoteData.minToTokenAmount.add(1);
+            const manualQuoteData = {
                 ...quoteData,
-                expectedToTokenAmount: expectedToTokenAmount.mul(10_100).div(10_000),
+                minToTokenAmount: minAmountOut
             };
 
-            // Fails with slippage
-            await expect(ovToken.connect(bob).exitToToken(quoteData, 0, bob.getAddress()))
+            // Fails when asking for too much
+            await expect(ovToken.connect(bob).exitToToken(manualQuoteData, bob.getAddress()))
                 .to.revertedWithCustomError(ovToken, "Slippage")
-                .withArgs(quoteData.expectedToTokenAmount, expectedToTokenAmount);
+                .withArgs(minAmountOut, quoteData.expectedToTokenAmount);
 
-            // Now with 1% slippage works
-            await expect(ovToken.connect(bob).exitToToken(quoteData, 100, bob.getAddress()))
+            // Works with the right min amount
+            await expect(ovToken.connect(bob).exitToToken(quoteData, bob.getAddress()))
                 .to.emit(ovToken, "Exited");
         }
 
         // Check slippage is applied for other token
         {
-            const amount = ethers.utils.parseEther("1000");
-
-            // Add 1% to the expected amount
-            let quoteData = (await ovToken.exitQuote(amount, underlyingExitToken.address)).quoteData;
-            const underlyingQuoteData = decodeUnderlyingExitQuoteData(quoteData.underlyingInvestmentQuoteData);
-            const expectedReserveAmount = underlyingQuoteData.expectedReserveAmount;
-            const expectedReserveAmountTooHigh = BigNumber.from(expectedReserveAmount).mul(10_100).div(10_000);
-            quoteData = {
+            // A quote for 0 slippage
+            const quoteData = (await ovToken.exitQuote(amount, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            const minAmountOut = quoteData.minToTokenAmount.add(1);
+            const manualQuoteData = {
                 ...quoteData,
-                underlyingInvestmentQuoteData: encodeUnderlyingExitQuoteData(
-                    expectedReserveAmountTooHigh,
-                    underlyingQuoteData.underlyingExitQuoteData
-                ),
+                minToTokenAmount: minAmountOut
             };
 
             // Fails with slippage
-            await expect(ovToken.connect(bob).exitToToken(quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToToken(manualQuoteData, bob.getAddress()))
                 .to.revertedWithCustomError(ovToken, "Slippage")
-                .withArgs(expectedReserveAmountTooHigh, expectedReserveAmount);
+                .withArgs(minAmountOut, quoteData.expectedToTokenAmount);
 
-            // Now with 1% slippage works
-            await expect(ovToken.connect(bob).exitToToken(quoteData, 100, bob.getAddress()))
+            // Works with the right min amount
+            await expect(ovToken.connect(bob).exitToToken(quoteData, bob.getAddress()))
                 .to.emit(ovToken, "Exited");
         }
     });
@@ -789,10 +848,10 @@ describe("Origami Investment Vault", async () => {
         {
             // Can't get a quote for 0
             let quoteData = {
-                ...(await ovToken.exitQuote(100, ZERO_ADDRESS)).quoteData,
+                ...(await ovToken.exitQuote(100, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData,
                 investmentTokenAmount: BigNumber.from(0),
             };
-            await expect(ovToken.connect(bob).exitToNative(quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToNative(quoteData, bob.getAddress()))
                 .to.revertedWithCustomError(ovToken, "ExpectedNonZero");
 
             // non 0x address
@@ -801,17 +860,17 @@ describe("Origami Investment Vault", async () => {
                 investmentTokenAmount: BigNumber.from(100),
                 toToken: underlyingExitToken.address
             };
-            await expect(ovToken.connect(bob).exitToNative(quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToNative(quoteData, bob.getAddress()))
                 .to.revertedWithCustomError(ovToken, "InvalidToken")
                 .withArgs(underlyingExitToken.address);
         }
 
         // Bob has no investment token - so it fails
         {
-            const quote = await ovToken.exitQuote(amount, ZERO_ADDRESS);
+            const quote = await ovToken.exitQuote(amount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
 
             // Bob doesn't have any ovToken's yet
-            await expect(ovToken.connect(bob).exitToNative(quote.quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToNative(quote.quoteData, bob.getAddress()))
                 .to.be.revertedWithCustomError(ovToken, "InsufficientBalance")
                 .withArgs(ovToken.address, amount, 0);
         }
@@ -819,8 +878,8 @@ describe("Origami Investment Vault", async () => {
         // First invest with ETH
         {
             const reservesAmount = ethers.utils.parseEther("500");
-            const quote = await ovToken.investQuote(reservesAmount, ZERO_ADDRESS);
-            await ovToken.connect(bob).investWithNative(quote.quoteData, 0, {value: reservesAmount});
+            const quote = await ovToken.investQuote(reservesAmount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await ovToken.connect(bob).investWithNative(quote.quoteData, {value: reservesAmount});
             expect(await getEthBalance(oToken)).eq(reservesAmount);
             expect(await ovToken.balanceOf(bob.getAddress())).eq(quote.quoteData.expectedInvestmentAmount);
         }
@@ -831,16 +890,14 @@ describe("Origami Investment Vault", async () => {
             const ovTokenSupply = await ovToken.totalSupply();
             const osReservesSupply = await ovToken.totalReserves();
             
-            const quote = await ovToken.exitQuote(amount, ZERO_ADDRESS);
+            const quote = await ovToken.exitQuote(amount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
-            const underlyingQuoteData = decodeUnderlyingExitQuoteData(quote.quoteData.underlyingInvestmentQuoteData);
-            expect(underlyingQuoteData.expectedReserveAmount).eq(expectedReserveAmount);
 
             const bobEthBefore = await getEthBalance(bob);
             const oTokenEthBefore = await getEthBalance(oToken);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).exitToNative(quote.quoteData, 0, bob.getAddress()))
+                await expect(ovToken.connect(bob).exitToNative(quote.quoteData, bob.getAddress()))
                 .to.emit(ovToken, "Transfer")
                 .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
                 .to.emit(ovToken, "ReservesRemoved")
@@ -864,30 +921,23 @@ describe("Origami Investment Vault", async () => {
             expect(await ovToken.totalSupply()).eq(ovTokenSupply.sub(amount));
         }
 
-        // Check slippage is applied
+        // Check slippage is applie
         {
-            const amount = ethers.utils.parseEther("100");
-
-            // Add 1% to the expected amount
-            let quoteData = (await ovToken.exitQuote(amount, ZERO_ADDRESS)).quoteData;
-            const underlyingQuoteData = decodeUnderlyingExitQuoteData(quoteData.underlyingInvestmentQuoteData);
-            const expectedReserveAmount = underlyingQuoteData.expectedReserveAmount;
-            const expectedReserveAmountTooHigh = BigNumber.from(expectedReserveAmount).mul(10_100).div(10_000);
-            quoteData = {
+            // A quote for 0 slippage
+            const quoteData = (await ovToken.exitQuote(amount, ZERO_ADDRESS, ZERO_SLIPPAGE, ZERO_DEADLINE)).quoteData;
+            const minAmountOut = quoteData.minToTokenAmount.add(1);
+            const manualQuoteData = {
                 ...quoteData,
-                underlyingInvestmentQuoteData: encodeUnderlyingExitQuoteData(
-                    expectedReserveAmountTooHigh,
-                    underlyingQuoteData.underlyingExitQuoteData
-                ),
+                minToTokenAmount: minAmountOut
             };
 
             // Fails with slippage
-            await expect(ovToken.connect(bob).exitToNative(quoteData, 0, bob.getAddress()))
+            await expect(ovToken.connect(bob).exitToNative(manualQuoteData, bob.getAddress()))
                 .to.revertedWithCustomError(ovToken, "Slippage")
-                .withArgs(expectedReserveAmountTooHigh, expectedReserveAmount);
+                .withArgs(minAmountOut, quoteData.expectedToTokenAmount);
 
-            // Now with 1% slippage works
-            await expect(ovToken.connect(bob).exitToNative(quoteData, 100, bob.getAddress()))
+            // Works with the right min amount
+            await expect(ovToken.connect(bob).exitToNative(quoteData, bob.getAddress()))
                 .to.emit(ovToken, "Exited");
         }
     });
@@ -898,12 +948,12 @@ describe("Origami Investment Vault", async () => {
         let numShares = BigNumber.from(0);
         {
 
-            const quote = await ovToken.investQuote(startingAmount, underlyingInvestToken.address);
+            const quote = await ovToken.investQuote(startingAmount, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             numShares = quote.quoteData.expectedInvestmentAmount;
 
             await underlyingInvestToken.connect(operator).mint(bob.getAddress(), startingAmount);
             await underlyingInvestToken.connect(bob).approve(ovToken.address, startingAmount);
-            await ovToken.connect(bob).investWithToken(quote.quoteData, 0);
+            await ovToken.connect(bob).investWithToken(quote.quoteData);
         }
 
         // Add some more reserves
@@ -920,8 +970,8 @@ describe("Origami Investment Vault", async () => {
 
         // Now Exit
         {
-            const quote = await ovToken.exitQuote(numShares, underlyingExitToken.address);
-            await ovToken.connect(bob).exitToToken(quote.quoteData, 0, bob.getAddress(), {gasLimit:5000000});
+            const quote = await ovToken.exitQuote(numShares, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+            await ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress());
         }
 
         const finalAmount = await underlyingExitToken.balanceOf(bob.getAddress());

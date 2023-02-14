@@ -40,6 +40,10 @@ describe("Origami Investment Base Class", async () => {
         } = await loadFixture(setup));
     });
 
+    it("constructor", async () => {
+        expect(await oToken.apiVersion()).eq("0.1.0");
+    });
+
     it("can mint receipt token", async () => {
         await expectBalancesChangeBy(async () => { 
             await oToken.mint(alan.getAddress(), 100);

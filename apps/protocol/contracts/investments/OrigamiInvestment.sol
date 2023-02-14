@@ -12,6 +12,15 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
  * Origami will apply the accepted investment token into the underlying protocol in the most optimal way.
  */
 abstract contract OrigamiInvestment is IOrigamiInvestment, MintableToken, ReentrancyGuard {
+    string public constant API_VERSION = "0.1.0";
+    
+    /**
+     * @notice Track the depoyed version of this contract. 
+     */
+    function apiVersion() external override pure returns (string memory) {
+        return API_VERSION;
+    }
+
     constructor(
         string memory _name,
         string memory _symbol

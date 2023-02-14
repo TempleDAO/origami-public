@@ -70,9 +70,6 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         /// @dev The quote to invest in oGMX with GMX
         IOrigamiInvestment.InvestQuoteData oGmxInvestQuoteData;
 
-        /// @dev The max slippage from the GMX -> oGMX invest
-        uint256 oGmxInvestSlippageBps;
-
         /// @dev How much of the oGMX to add as reserves to ovGMX
         uint256 addToReserveAmount;
     }
@@ -87,12 +84,6 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
 
         /// @dev The quote to invest in oGLP with wETH/wAVAX
         IOrigamiInvestment.InvestQuoteData oGlpInvestQuoteData;
-
-        /// @dev The max slippage from the oGMX -> GMX exit
-        uint256 oGmxExitSlippageBps;
-
-        /// @dev The max slippage from the wETH/wAVAX -> oGMX invest
-        uint256 oGlpInvestSlippageBps;
 
         /// @dev How much of the oGLP to add as reserves to ovGLP
         uint256 addToReserveAmount;
@@ -176,7 +167,6 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
 
     /// @notice The amount of rewards up to this block that Origami is due to harvest ready for compounding
     /// ie the net amount after Origami has deducted it's fees.
-    /// @dev Part of the IOrigamiInvestmentManager interface.
     /// Performance fees are not deducted from these amounts.
     function harvestableRewards() external override view returns (uint256[] memory amounts) {
         // Pull the GLP manager rewards - for both GMX and GLP vaults
@@ -224,9 +214,11 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
     }
 
     /**
-     * @notice Harvest any Origami claimable rewards distributable to users from the glpManager and gmxManager.
-     * Performance fees are not collected here, they are collected after the rewards have been converted into the
-     * Origami Investment token.
+     * @notice Harvest any Origami claimable rewards from the glpManager and gmxManager, and auto-compound
+     * by converting rewards into the oToken and adding as reserves of the ovToken.
+     * @dev The amount of oToken actually added as new reserves may less than the total balance held by this address,
+     * in order to smooth out lumpy yield.
+     * Performance fees are deducted from the amount to actually add to reserves.
      */
     function harvestRewards(bytes calldata harvestParams) external override onlyOperators {
         lastHarvestedAt = block.timestamp;
@@ -256,7 +248,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
 
         // Swap GMX -> oGMX
         IOrigamiInvestment oGmx = IOrigamiInvestment(address(gmxManager.oGmxToken()));
-        oGmx.investWithToken(params.oGmxInvestQuoteData, params.oGmxInvestSlippageBps);
+        oGmx.investWithToken(params.oGmxInvestQuoteData);
 
         // Add the oGMX reserves, taking a performance fee.
         _addReserves(address(oGmx), params.addToReserveAmount);
@@ -272,7 +264,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         for (uint256 i; i < rewardTokens.length; ++i) {
             if (rewardTokens[i] == oGmxAddr) {
                 // Swap oGMX -> GMX 
-                oGmx.exitToToken(params.oGmxExitQuoteData, params.oGmxExitSlippageBps, address(this));
+                oGmx.exitToToken(params.oGmxExitQuoteData, address(this));
 
                 // Swap GMX -> wrappedNativeToken
                 _swapAssetToAsset0x(params.gmxToNativeSwapData);
@@ -281,7 +273,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
 
         // Swap wrappedNativeToken -> oGLP
         IOrigamiInvestment oGlp = IOrigamiInvestment(address(glpManager.oGlpToken()));
-        oGlp.investWithToken(params.oGlpInvestQuoteData, params.oGlpInvestSlippageBps);
+        oGlp.investWithToken(params.oGlpInvestQuoteData);
 
         // Add the oGLP reserves, taking a performance fee.
         _addReserves(address(oGlp), params.addToReserveAmount);
@@ -297,7 +289,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
             IERC20(reserveToken).safeTransfer(performanceFeeCollector, fees);
         }
 
-        // Add the oGMX as reserves into ovGMX
+        // Add the oGMX as reserves into ovToken
         if (reserves != 0) {
             ovToken.addReserves(reserves);
         }
@@ -326,6 +318,12 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         address _to,
         uint256 _amount
     ) external onlyOwner {
+        // Can't recover any of the reward tokens or transient conversion tokens.
+        if (_token == address(wrappedNativeToken)) revert CommonEventsAndErrors.InvalidToken(_token);
+        if (_token == address(gmxManager.gmxToken())) revert CommonEventsAndErrors.InvalidToken(_token);
+        if (_token == address(gmxManager.oGmxToken())) revert CommonEventsAndErrors.InvalidToken(_token);
+        if (_token == address(gmxManager.oGlpToken())) revert CommonEventsAndErrors.InvalidToken(_token);
+
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
         IERC20(_token).safeTransfer(_to, _amount);
     }

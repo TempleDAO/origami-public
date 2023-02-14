@@ -9,7 +9,7 @@ import {
 } from "@/typechain";
 import { zeroExQuote, ZeroExQuoteParams } from '@/common/zero-ex'
 import { sendTransaction } from '@/ethers';
-import { applySlippage, bpsToFraction, waitForLastTransactionToFinish } from "@/utils";
+import { bpsToFraction, waitForLastTransactionToFinish } from "@/utils";
 import { BigNumber, ethers} from "ethers";
 import { encodeGlpHarvestParams, wasHarvestedRecently } from "../gmx-utils";
 
@@ -33,9 +33,6 @@ export interface HarvestGlpConfig  {
 
     // max slippage when investing in $oGLP with $WETH
     WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS: number,
-
-    // max slippage when exiting from $oGMX to $GMX
-    OGMX_TO_GMX_EXIT_SLIPPAGE_BPS: number,
 
     // What percentage of the total oGLP on hand does the aggregator actually add as reserves into ovGLP
     DAILY_ADD_TO_RESERVE_BPS: number,
@@ -91,7 +88,7 @@ async function arbitrumGmxToWethQuote(
     const guaranteedPrice = ethers.utils.parseEther(quoteResp.guaranteedPrice);
 
     // minAmountExpected = sellAmount * guaranteedPrice
-    const minAmountExpected = sellAmount.mul(guaranteedPrice).div(ethers.utils.formatEther("1"));
+    const minAmountExpected = sellAmount.mul(guaranteedPrice).div(ethers.utils.parseEther("1"));
     console.log(`Min wETH Amount Bought: [${minAmountExpected.toString()}]`);
 
     return {quoteData: quoteResp.data, minAmountExpected};
@@ -132,8 +129,8 @@ export async function harvestGlpRewards(
     console.log(`\tGLP Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
 
     // Get a quote to swap $oGMX rewards -> $GMX
-    // NB: No slippage when exiting the oGMX position as it's redeemed in situ (not via a dex)
-    const oGmxToGmxExitQuote = await oGmx.exitQuote(harvestableRewards.oGmx, config.GMX_ADDRESS);
+    // NB: No slippage when exiting the oGMX position as it's redeemed in situ (not sold via a dex)
+    const oGmxToGmxExitQuote = await oGmx.exitQuote(harvestableRewards.oGmx, config.GMX_ADDRESS, 0, 0);
     console.log(`oGMX -> GMX Exit Quote: ${oGmxToGmxExitQuote}`);
 
     // Get a quote to swap $GMX -> $WETH
@@ -142,12 +139,12 @@ export async function harvestGlpRewards(
             commonConfig, 
             config, 
             wethAddress,
-            oGmxToGmxExitQuote.quoteData.expectedToTokenAmount
+            oGmxToGmxExitQuote.quoteData.minToTokenAmount
         )
         : await mumbaiGmxToWethQuote(
             connection,
             config, 
-            oGmxToGmxExitQuote.quoteData.expectedToTokenAmount
+            oGmxToGmxExitQuote.quoteData.minToTokenAmount
         );
 
     // The total $WETH we have to sell = 
@@ -158,15 +155,13 @@ export async function harvestGlpRewards(
 
     // Get a quote to swap $WETH -> $oGLP
     // There may be slippage on the expected output, as the underlying GLP purchase is executed via GMX.io
-    const wethToOglpInvestQuote = await oGlp.investQuote(wethToInvestInOGlp, wethAddress);
-    const minOglpFromSwaps = applySlippage(wethToOglpInvestQuote.quoteData.expectedInvestmentAmount, config.WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS);
+    const wethToOglpInvestQuote = await oGlp.investQuote(wethToInvestInOGlp, wethAddress, config.WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS, 0);
     console.log(`WETH -> oGLP Invest Quote: ${wethToOglpInvestQuote}`);
-    console.log(`minOglpFromSwaps=[${minOglpFromSwaps.toString()}]`);
 
     // The total $oGLP expected in the aggregator = 
     //   1/ The min expected amount after the oGMX->GMX->wETH->oGLP swaps
     //   2/ The amount of oGlp already existing in the aggregator - given by the harvestableRewards()
-    const totalOGlpAvailable = minOglpFromSwaps.add(harvestableRewards.oGlp);
+    const totalOGlpAvailable = wethToOglpInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGlp);
     console.log(`totalOGlpAvailable=[${totalOGlpAvailable.toString()}]`);
 
     // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
@@ -178,8 +173,6 @@ export async function harvestGlpRewards(
         oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
         gmxToNativeSwapData: gmxToWethQuoteData,
         oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
-        oGmxExitSlippageBps: config.OGMX_TO_GMX_EXIT_SLIPPAGE_BPS,
-        oGlpInvestSlippageBps: config.WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS,
         addToReserveAmount: addToReserveAmount,
     };
     console.log("Harvest Params:", harvestParams);

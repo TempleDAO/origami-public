@@ -186,6 +186,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "apiVersion",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -265,6 +278,16 @@
         "internalType": "address",
         "name": "toToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "exitQuote",
@@ -283,7 +306,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -321,7 +359,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -333,11 +386,6 @@
         "internalType": "struct IOrigamiInvestment.ExitQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       },
       {
         "internalType": "address payable",
@@ -372,7 +420,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -384,11 +447,6 @@
         "internalType": "struct IOrigamiInvestment.ExitQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       },
       {
         "internalType": "address",
@@ -418,6 +476,16 @@
         "internalType": "address",
         "name": "fromToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "investQuote",
@@ -436,7 +504,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -474,7 +557,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -486,11 +584,6 @@
         "internalType": "struct IOrigamiInvestment.InvestQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       }
     ],
     "name": "investWithNative",
@@ -520,7 +613,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -532,11 +640,6 @@
         "internalType": "struct IOrigamiInvestment.InvestQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       }
     ],
     "name": "investWithToken",

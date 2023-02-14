@@ -1,6 +1,6 @@
 import { BigNumber, Signer } from 'ethers';
 import { ethers } from 'hardhat';
-import { impersonateSigner, mineForwardSeconds, ZERO_ADDRESS } from '../../../../test/helpers';
+import { applySlippage, impersonateSigner, mineForwardSeconds, ZERO_ADDRESS } from '../../../../test/helpers';
 import { 
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory,
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory,
@@ -22,6 +22,7 @@ import {
     IERC20__factory,
     IERC20,
     GMX_EsGMX__factory,
+    GMX_Timelock__factory,
 } from '../../../../typechain';
 import {
     ZeroExQuoteParams,
@@ -121,21 +122,40 @@ async function claimTokenOwnership(contracts: ContractInstances, owner: Signer) 
     {
       const timelockWaitPeriod = await gmxTokenTimelock.longBuffer();
       await mineForwardSeconds(timelockWaitPeriod.add(1).toNumber());
-      await gmxTokenTimelock.setGov(contracts.gmxToken.address, await owner.getAddress());
+      await mine(gmxTokenTimelock.setGov(contracts.gmxToken.address, await owner.getAddress()));
     }
 }
 
 // GMX.io has set 0 esGMX rewards on staked GLP -- for testing purposes we update to something meaningful.
 async function setUpstreamRewardRates(contracts: ContractInstances, owner: Signer) {
     const rewardRouterMsig = await impersonateSigner(await contracts.glpRewardRouter.gov());
-
     const stakedGlpTracker = GMX_RewardTracker__factory.connect(await contracts.glpRewardRouter.stakedGlpTracker(), rewardRouterMsig);
     const glpEsGmxDistributor = GMX_RewardDistributor__factory.connect(await stakedGlpTracker.distributor(), rewardRouterMsig);
     await mine(glpEsGmxDistributor.setTokensPerInterval(ethers.utils.parseEther("0.1")));
 
+    const esGmx = GMX_EsGMX__factory.connect(await glpEsGmxDistributor.rewardToken(), owner);
+
+    // Get control of esGMX and add our owner as a valid minter
+    {
+        let timelock = GMX_Timelock__factory.connect(await esGmx.gov(), owner);
+        const timelockMsig = await impersonateSigner(await timelock.admin());
+        await mine(owner.sendTransaction({
+            to: await timelockMsig.getAddress(),
+            value: ethers.utils.parseEther("0.1")
+        }));
+
+        timelock = timelock.connect(timelockMsig);
+
+        await mine(timelock.signalSetGov(esGmx.address, await owner.getAddress()));
+
+        const timelockWaitPeriod = await timelock.buffer();
+        await mineForwardSeconds(timelockWaitPeriod.add(1).toNumber());
+        await mine(timelock.setGov(esGmx.address, await owner.getAddress()));
+        await mine(esGmx.setMinter(await owner.getAddress(), true));
+    }
+
     // Mint some esGMX to the distributor
-    const esGmx = GMX_EsGMX__factory.connect(await contracts.glpRewardRouter.esGmx(), rewardRouterMsig);
-    await mine(esGmx.mint(glpEsGmxDistributor.address, ethers.utils.parseEther("1000000")));
+    await mine(esGmx.connect(owner).mint(glpEsGmxDistributor.address, ethers.utils.parseEther("100000")));
 }
 
 async function dumpPrices(contracts: ContractInstances) {
@@ -173,123 +193,188 @@ async function getAggregatorRewardBalances(contracts: ContractInstances, aggrega
 // Get the latest block number from https://arbiscan.io/blocks
 const REFRESH_QUOTES = false;
 
-const SLIPPAGE_BPS = 50; // 0.5%
-const applySlippage = (bn: BigNumber) => bn.mul(10_000-SLIPPAGE_BPS).div(10_000);
+const SLIPPAGE_BPS = 100; // 1%
 
 const harvestGlp = async (contracts: ContractInstances, signer: Signer) => {
-    const [wethRewards, oGmxRewards, oGlpRewards] = await contracts.glpRewardsAggregator.harvestableRewards();
-    console.log("\tGMX harvestableRewards:", {wethRewards, oGmxRewards, oGlpRewards});
+    const _harvestableRewards = await contracts.glpRewardsAggregator.harvestableRewards();
+    const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
+    console.log(`\tGLP Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
 
-    const oGmxExitQuote = await contracts.oGMX.exitQuote(oGmxRewards, contracts.gmxToken.address);
-    const expectedGmxFromExit = applySlippage(oGmxExitQuote.quoteData.expectedToTokenAmount);
+    // Get a quote to swap $oGMX rewards -> $GMX
+    // NB: No slippage when exiting the oGMX position as it's redeemed in situ (not sold via a dex)
+    const oGmxToGmxExitQuote = await contracts.oGMX.exitQuote(harvestableRewards.oGmx, contracts.gmxToken.address, 0, 0);
+    console.log(`oGMX -> GMX Exit Quote: ${oGmxToGmxExitQuote}`);
 
-    let buyWethAmount: BigNumber;
+    let gmxSellAmount = oGmxToGmxExitQuote.quoteData.minToTokenAmount;
+    console.log(`\tGMX Sell Amount: ${gmxSellAmount.toString()}`);
+
+    let guaranteedPrice: BigNumber;
     let zeroExQuoteData: string;
     if (REFRESH_QUOTES) {
+        // Take a touch off the sell amount, as when it's run the next we may not have as many rewards to harvest (it's based on elapsed time).
+        gmxSellAmount = applySlippage(gmxSellAmount, 100);
+
         const quoteParams: ZeroExQuoteParams = {
             sellToken: contracts.gmxToken.address,
             buyToken: contracts.weth.address,
-            sellAmount: expectedGmxFromExit.toString(),
+            sellAmount: gmxSellAmount.toString(),
+            priceImpactProtectionPercentage: 0.01, // 1%
+            slippagePercentage: 0.02, // 2%
+            enableSlippageProtection: true,
         }
         console.log(quoteParams);
-        // eg:
         /**
-            curl "https://arbitrum.api.0x.org/swap/v1/quote?\
-            sellToken=0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a&\
-            buyToken=0x82aF49447D8a07e3bd95BD0d56f35241523fBab1&\
-            sellAmount=224100705856290018
-        */
+zeroExQuote: 
+curl "https://arbitrum.api.0x.org/swap/v1/quote?\
+sellToken=0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a&\
+buyToken=0x82aF49447D8a07e3bd95BD0d56f35241523fBab1&\
+sellAmount=96818181206770331&\
+priceImpactProtectionPercentage=0.01&\
+slippagePercentage=0.01&\
+enableSlippageProtection=true" | jq
+*/
         const resp = await zeroExQuote("arbitrum", quoteParams);
         console.log(resp);
         console.log(resp.data);
         
-        buyWethAmount = BigNumber.from(resp.buyAmount);
+        guaranteedPrice = ethers.utils.parseEther(resp.guaranteedPrice);
         zeroExQuoteData = resp.data;
     } else {
-        // Copy the `buyAmount` and `data` fields from the quote when refreshed.
-        buyWethAmount = BigNumber.from("3430548258063916");
-        zeroExQuoteData = "0x415565b0000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000000000000000000000000000018e1533cb3d3e71000000000000000000000000000000000000000000000000000c10dd6434238c00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000046000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab100000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000420000000000000000000000000000000000000000000000000000000000000042000000000000000000000000000000000000000000000000000000000000003e0000000000000000000000000000000000000000000000000018e1533cb3d3e7100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000001942616c616e6365725632000000000000000000000000000000000000000000000000000000000000018e1533cb3d3e71000000000000000000000000000000000000000000000000000c10dd6434238c000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001c0000000000000000000000000ba12222222228d8ba445958a75a0704d566bf2c800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200adeb25cb5920d4f7447af4a0428072edc2cee2200020000000000000000004a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab10000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000002000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000000000000000000000000000000000000000000000869584cd0000000000000000000000001000000000000000000000000000000000000011000000000000000000000000000000000000000000000056bcadf3a163c7c763";
+        // Copy the `guaranteedPrice` and `data` fields from the quote when refreshed.
+        guaranteedPrice = ethers.utils.parseEther("0.04198649677896497");
+        zeroExQuoteData = "0x415565b0000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab10000000000000000000000000000000000000000000000000150f0551cd5681a000000000000000000000000000000000000000000000000000e2599e9e98ac900000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000000130000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000046000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab100000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000420000000000000000000000000000000000000000000000000000000000000042000000000000000000000000000000000000000000000000000000000000003e00000000000000000000000000000000000000000000000000150f0551cd5681a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000420000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000001942616c616e63657256320000000000000000000000000000000000000000000000000000000000000150f0551cd5681a000000000000000000000000000000000000000000000000000e2599e9e98ac9000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000001c0000000000000000000000000ba12222222228d8ba445958a75a0704d566bf2c800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000200adeb25cb5920d4f7447af4a0428072edc2cee2200020000000000000000004a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab10000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000002000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000000000000000000000000000000000000000000000869584cd0000000000000000000000001000000000000000000000000000000000000011000000000000000000000000000000000000000000000065dcd75cd663e970ea";
     }
 
-    const totalWethAmount = applySlippage(buyWethAmount).add(wethRewards);
-    console.log("\tExpected Total Weth (after slippage):", totalWethAmount);
+    console.log(`\tguaranteedPrice=[${guaranteedPrice}]`);
 
-    const oGlpInvestQuote = await contracts.oGLP.investQuote(totalWethAmount, contracts.weth.address);
-    const totalOGlpAmount = oGlpRewards.add(applySlippage(oGlpInvestQuote.quoteData.expectedInvestmentAmount));
-    console.log("\tExpected Total oGLP (after slippage):", totalOGlpAmount);
+    const minWethExpected = gmxSellAmount.mul(guaranteedPrice).div(ethers.utils.parseEther("1"));
+    console.log(`\tminWethExpected=${minWethExpected.toString()}`);
 
-    const addToReserveAmount = totalOGlpAmount.mul(10).div(100); // Compound 10% of total oGLP
-    console.log("\tAdding to reserves:", addToReserveAmount);
+    // The total $WETH we have to sell = 
+    //   1/ The expected amount of $WETH we will receive from selling the $GMX +
+    //   2/ The harvested $WETH
+    const wethToInvestInOGlp = minWethExpected.add(harvestableRewards.weth);
+    console.log(`\twethToInvestInOGlp=[${wethToInvestInOGlp.toString()}]`);
 
-    const glpHarvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
-        oGmxExitQuoteData: oGmxExitQuote.quoteData,
-        gmxToNativeSwapData: zeroExQuoteData, // GMX -> wETH
-        oGlpInvestQuoteData: oGlpInvestQuote.quoteData,
-        oGmxExitSlippageBps: SLIPPAGE_BPS,
-        oGlpInvestSlippageBps: SLIPPAGE_BPS,
+    // Get a quote to swap $WETH -> $oGLP
+    // There may be slippage on the expected output, as the underlying GLP purchase is executed via GMX.io
+    const wethToOglpInvestQuote = await contracts.oGLP.investQuote(wethToInvestInOGlp, contracts.weth.address, SLIPPAGE_BPS, 0);
+    console.log(`\tWETH -> oGLP Invest Quote: ${wethToOglpInvestQuote}`);
+
+    // The total $oGLP expected in the aggregator = 
+    //   1/ The min expected amount after the oGMX->GMX->wETH->oGLP swaps
+    //   2/ The amount of oGlp already existing in the aggregator - given by the harvestableRewards()
+    const totalOGlpAvailable = wethToOglpInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGlp);
+    console.log(`\ttotalOGlpAvailable=[${totalOGlpAvailable.toString()}]`);
+
+    // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
+    // each day.
+    const addToReserveAmount = totalOGlpAvailable.mul(1_000).div(10_000);
+    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+
+    const harvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
+        oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
+        gmxToNativeSwapData: zeroExQuoteData,
+        oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
         addToReserveAmount: addToReserveAmount,
     };
+    console.log("\tHarvest Params:", harvestParams);
 
     console.log("\tovGLP Reserves Before:", await contracts.ovGLP.totalReserves());
-    await contracts.glpRewardsAggregator.connect(signer).harvestRewards(encodeGlpHarvestParams(glpHarvestParams));
+    await mine(contracts.glpRewardsAggregator.connect(signer).harvestRewards(encodeGlpHarvestParams(harvestParams), {gasLimit:5000000}));
     console.log("\tovGLP Reserves After:", await contracts.ovGLP.totalReserves());
 }
 
 const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
-    const [wethRewards, oGmxRewards] = await contracts.gmxRewardsAggregator.harvestableRewards();
-    console.log("\tGMX harvestableRewards:", {wethRewards, oGmxRewards});
+    const _harvestableRewards = await contracts.gmxRewardsAggregator.harvestableRewards();
+    const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
+    console.log(`\tGMX Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
+    const existingGmx = await contracts.gmxToken.balanceOf(contracts.gmxRewardsAggregator.address);
+    console.log(`\tExisting GMX in aggregator: ${existingGmx.toString()}`);
 
-    let buyGmxAmount: BigNumber;
+    let wethSellAmount = harvestableRewards.weth;
+    console.log(`\tWETH Sell Amount: ${wethSellAmount.toString()}`);
+
+    let guaranteedPrice: BigNumber;
     let zeroExQuoteData: string;
     if (REFRESH_QUOTES) {
+        // Take a touch off the sell amount, as when it's run the next we may not have as many rewards to harvest (it's based on elapsed time).
+        wethSellAmount = applySlippage(wethSellAmount, 100);
+
         const quoteParams: ZeroExQuoteParams = {
             sellToken: contracts.weth.address,
             buyToken: contracts.gmxToken.address,
-            sellAmount: wethRewards.toString(),
+            sellAmount: wethSellAmount.toString(),
+            priceImpactProtectionPercentage: 0.01, // 1%
+            slippagePercentage: 0.02, // 2%
+            enableSlippageProtection: true,
         }
         console.log(quoteParams);
-        // eg:
         /**
-            curl "https://arbitrum.api.0x.org/swap/v1/quote?\
-            sellToken=0x82aF49447D8a07e3bd95BD0d56f35241523fBab1&\
-            buyToken=0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a&\
-            sellAmount=72597348843995480" | jq
-        */
+eg:
+zeroExQuote: 
+curl "https://arbitrum.api.0x.org/swap/v1/quote?\
+sellToken=0x82aF49447D8a07e3bd95BD0d56f35241523fBab1&\
+buyToken=0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a&\
+sellAmount=51636878185938045&\
+priceImpactProtectionPercentage=0.01&\
+slippagePercentage=0.01&\
+enableSlippageProtection=true" | jq
+*/
         const resp = await zeroExQuote("arbitrum", quoteParams);
         console.log(resp);
         console.log(resp.data);
         
-        buyGmxAmount = BigNumber.from(resp.buyAmount);
+        console.log(resp.guaranteedPrice);
+        guaranteedPrice = ethers.utils.parseEther(resp.guaranteedPrice);
         zeroExQuoteData = resp.data;
     } else {
-        // Copy the `buyAmount` and `data` fields from the quote when refreshed.
-        buyGmxAmount = BigNumber.from("2369726633784966700");
-        zeroExQuoteData = "0x415565b000000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a0000000000000000000000000000000000000000000000000101e8a2a67663b4000000000000000000000000000000000000000000000000208ec547a751dce900000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003e00000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000002c00000000000000000000000000000000000000000000000000101e8a2a67663b4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000012556e69737761705633000000000000000000000000000000000000000000000000000000000000000101e8a2a67663b4000000000000000000000000000000000000000000000000208ec547a751dce9000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000e592427a0aece92de3edee1f18e0157c058615640000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002b82af49447d8a07e3bd95bd0d56f35241523fbab1000bb8fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000000000000000000000000000000000000000000000869584cd0000000000000000000000001000000000000000000000000000000000000011000000000000000000000000000000000000000000000053794f372563c7c761";
+        // Copy the `guaranteedPrice` and `data` fields from the quote when refreshed.
+        guaranteedPrice = ethers.utils.parseEther("22.863340548979358199");
+        zeroExQuoteData = "0x415565b000000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000000000000000000000000000000b5a0d6ac3b3b810000000000000000000000000000000000000000000000001038a10df89f0a8400000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003e00000000000000000000000000000000000000000000000000000000000000013000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000003400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a00000000000000000000000000000000000000000000000000000000000001400000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000002c000000000000000000000000000000000000000000000000000b5a0d6ac3b3b81000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000012556e697377617056330000000000000000000000000000000000000000000000000000000000000000b5a0d6ac3b3b810000000000000000000000000000000000000000000000001038a10df89f0a84000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000e592427a0aece92de3edee1f18e0157c058615640000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002b82af49447d8a07e3bd95bd0d56f35241523fbab10001f4fc5a1a6eb076a2c7ad06ed22c90d7e710e35ad0a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000082af49447d8a07e3bd95bd0d56f35241523fbab1000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000000000000000000000000000000000000000000000869584cd00000000000000000000000010000000000000000000000000000000000000110000000000000000000000000000000000000000000000eae4cb5bd963e970e8";
     }
 
-    const expectedNewGmx = applySlippage(buyGmxAmount);
-    console.log("\tExpected Purchased GMX (after slippage):", expectedNewGmx);
-    const oGmxInvestQuote = await contracts.oGMX.investQuote(expectedNewGmx, contracts.gmxToken.address);
-    const totalOGmxAvailable = oGmxRewards.add(applySlippage(oGmxInvestQuote.quoteData.expectedInvestmentAmount));
+    console.log(`\tguaranteedPrice=[${guaranteedPrice}]`);
+    const minGmxExpected = wethSellAmount.mul(guaranteedPrice).div(ethers.utils.parseEther("1"));
+    console.log(`\tminGmxExpected=[${minGmxExpected.toString()}]`);
 
-    const addToReserveAmount = totalOGmxAvailable.mul(10).div(100); // Compound 10% of total
-    console.log("\tAdding to reserves:", addToReserveAmount);
+    // The total $GMX we have to invest = 
+    //   1/ The expected amount of $GMX we will receive from selling the $WETH +
+    //   2/ Any existing balance from previous swaps left over amounts
+    const gmxToInvestInOGmx = minGmxExpected.add(existingGmx);
+    console.log(`\tgmxToInvestInOGmx=[${gmxToInvestInOGmx.toString()}]`);
 
-    const gmxHarvestParams = encodeGmxHarvestParams({
+    // Get a quote to swap $GMX -> $oGMX
+    // NB: No slippage when investing in the oGMX position as it's minted in situ (not bought via a dex)
+    const gmxToOgmxInvestQuote = await contracts.oGMX.investQuote(gmxToInvestInOGmx, contracts.gmxToken.address, 0, 0);
+    console.log(`\tGMX -> oGMX Invest Quote: ${gmxToOgmxInvestQuote}`);
+
+    // The total $oGMX expected in the aggregator = 
+    //   1/ The min expected amount after the wETH->GMX->oGMX swaps
+    //   2/ The amount of oGMX already existing + harvested in the aggregator - given by the harvestableRewards()
+    const totalOGmxAvailable = gmxToOgmxInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGmx);
+    console.log(`\ttotalOGmxAvailable=[${totalOGmxAvailable.toString()}]`);
+
+    // To smooth the bump up out, we only add a percentage of the total available oGMX as reserves
+    // each day.
+    const addToReserveAmount = totalOGmxAvailable.mul(1_000).div(10_000);
+    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+
+    const harvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
         nativeToGmxSwapData: zeroExQuoteData,
-        oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-        oGmxInvestSlippageBps: SLIPPAGE_BPS,
+        oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
         addToReserveAmount: addToReserveAmount,
-    });
+    };
+    console.log("\tHarvest Params:", harvestParams);
 
     console.log("\tovGMX Reserves Before:", await contracts.ovGMX.totalReserves());
-    await contracts.gmxRewardsAggregator.connect(signer).harvestRewards(gmxHarvestParams, {gasLimit:5000000});
+    await mine(contracts.gmxRewardsAggregator.connect(signer).harvestRewards(encodeGmxHarvestParams(harvestParams), {gasLimit:5000000}));
     console.log("\tovGMX Reserves After:", await contracts.ovGMX.totalReserves());
 }
 
 async function main() {
     ensureExpectedEnvvars();
-    const [owner, fred, joe, bob] = await ethers.getSigners();
+    const [owner, fred, joe, bob, feeCollector] = await ethers.getSigners();
 
     const DEPLOYED: GmxDeployedContracts = getDeployedContracts();
     console.log("owner addr:", await owner.getAddress());
@@ -326,9 +411,9 @@ async function main() {
       const buyAmount = ethers.utils.parseEther("10000");
       await mine(contracts.gmxToken.mint(fred.getAddress(), buyAmount));
 
-      const quote = await contracts.ovGMX.investQuote(buyAmount, contracts.gmxToken.address);
+      const quote = await contracts.ovGMX.investQuote(buyAmount, contracts.gmxToken.address, 0, 0);
       await mine(contracts.gmxToken.connect(fred).approve(contracts.ovGMX.address, buyAmount));
-      await mine(contracts.ovGMX.connect(fred).investWithToken(quote.quoteData, 0));
+      await mine(contracts.ovGMX.connect(fred).investWithToken(quote.quoteData));
 
       console.log("Fred ovGMX Bal:", fromAtto(await contracts.ovGMX.balanceOf(fred.getAddress())));
       console.log("Fred oGMX Bal:", fromAtto(await contracts.oGMX.balanceOf(fred.getAddress())));
@@ -340,9 +425,9 @@ async function main() {
     console.log("\n**Bob buys some ovGLP with ETH**");
     {
       const buyAmount = ethers.utils.parseEther("5");
-      const quote = await contracts.ovGLP.investQuote(buyAmount, ZERO_ADDRESS);
+      const quote = await contracts.ovGLP.investQuote(buyAmount, ZERO_ADDRESS, 0, 0);
       console.log("quote:", quote);
-      await mine(contracts.ovGLP.connect(bob).investWithNative(quote.quoteData, 0, {value: buyAmount}));
+      await mine(contracts.ovGLP.connect(bob).investWithNative(quote.quoteData, {value: buyAmount}));
 
       console.log("Bob ovGLP Bal:", fromAtto(await contracts.ovGLP.balanceOf(bob.getAddress())));
       console.log("Bob oGLP Bal:", fromAtto(await contracts.oGLP.balanceOf(bob.getAddress())));
@@ -374,6 +459,7 @@ async function main() {
     {
         await mineForwardSeconds(86400);
 
+        await mine(contracts.gmxRewardsAggregator.setPerformanceFeeCollector(feeCollector.getAddress()));
         console.log("GMX:");
         console.log("\tProjected Reward Rates (before perf fees)", await contracts.gmxRewardsAggregator.projectedRewardRates(false));
         console.log("\tProjected Reward Rates (after perf fees)", await contracts.gmxRewardsAggregator.projectedRewardRates(true));
@@ -383,7 +469,9 @@ async function main() {
         console.log("\tMSIG oGMX after:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
         console.log("\tMSIG wETH after:", fromAtto(await contracts.weth.balanceOf(origamiMultisig.getAddress())));
         console.log("\tAPR:", await contracts.ovGMX.apr());
+        console.log("\tFees Collected:", await contracts.oGMX.balanceOf(feeCollector.getAddress()));
 
+        await mine(contracts.glpRewardsAggregator.setPerformanceFeeCollector(feeCollector.getAddress()));
         console.log("GLP:");
         console.log("\tProjected Reward Rates (before perf fees)", await contracts.glpRewardsAggregator.projectedRewardRates(false));
         console.log("\tProjected Reward Rates (after perf fees)", await contracts.gmxRewardsAggregator.projectedRewardRates(true));
@@ -393,19 +481,20 @@ async function main() {
         console.log("\tMSIG oGMX after:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
         console.log("\tMSIG wETH after:", fromAtto(await contracts.weth.balanceOf(origamiMultisig.getAddress())));
         console.log("\tAPR:", await contracts.ovGLP.apr());
+        console.log("\tFees Collected:", await contracts.oGLP.balanceOf(feeCollector.getAddress()));
     }
 
     console.log("\n**Bump Up Reserves**");
     {
-        await contracts.oGMX.connect(origamiMultisig).addMinter(origamiMultisig.getAddress());
-        await contracts.oGMX.connect(origamiMultisig).mint(origamiMultisig.getAddress(), ethers.utils.parseEther("1000"));
-        await contracts.oGMX.connect(origamiMultisig).approve(contracts.ovGMX.address, ethers.utils.parseEther("1000"));
-        await contracts.ovGMX.connect(origamiMultisig).addReserves(ethers.utils.parseEther("1000"));
+        await mine(contracts.oGMX.connect(origamiMultisig).addMinter(origamiMultisig.getAddress()));
+        await mine(contracts.oGMX.connect(origamiMultisig).mint(origamiMultisig.getAddress(), ethers.utils.parseEther("1000")));
+        await mine(contracts.oGMX.connect(origamiMultisig).approve(contracts.ovGMX.address, ethers.utils.parseEther("1000")));
+        await mine(contracts.ovGMX.connect(origamiMultisig).addReserves(ethers.utils.parseEther("1000")));
 
-        await contracts.oGLP.connect(origamiMultisig).addMinter(origamiMultisig.getAddress());
-        await contracts.oGLP.connect(origamiMultisig).mint(origamiMultisig.getAddress(), ethers.utils.parseEther("2000"));
-        await contracts.oGLP.connect(origamiMultisig).approve(contracts.ovGLP.address, ethers.utils.parseEther("2000"));
-        await contracts.ovGLP.connect(origamiMultisig).addReserves(ethers.utils.parseEther("2000"));
+        await mine(contracts.oGLP.connect(origamiMultisig).addMinter(origamiMultisig.getAddress()));
+        await mine(contracts.oGLP.connect(origamiMultisig).mint(origamiMultisig.getAddress(), ethers.utils.parseEther("2000")));
+        await mine(contracts.oGLP.connect(origamiMultisig).approve(contracts.ovGLP.address, ethers.utils.parseEther("2000")));
+        await mine(contracts.ovGLP.connect(origamiMultisig).addReserves(ethers.utils.parseEther("2000")));
 
         await dumpPrices(contracts);
     }
@@ -422,8 +511,8 @@ async function main() {
       console.log("oGMX Total Supply:", fromAtto(await contracts.oGMX.totalSupply()));
       console.log("MSIG(fees) oGMX Bal:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
 
-      const quote = await contracts.ovGMX.exitQuote(sellAmount, contracts.gmxToken.address);
-      await mine(contracts.ovGMX.connect(fred).exitToToken(quote.quoteData, 0, fred.getAddress()));
+      const quote = await contracts.ovGMX.exitQuote(sellAmount, contracts.gmxToken.address, 0, 0);
+      await mine(contracts.ovGMX.connect(fred).exitToToken(quote.quoteData, fred.getAddress()));
 
       console.log("Fred ovGMX Bal:", fromAtto(await contracts.ovGMX.balanceOf(fred.getAddress())));
       console.log("Fred oGMX Bal:", fromAtto(await contracts.oGMX.balanceOf(fred.getAddress())));
@@ -437,12 +526,12 @@ async function main() {
     console.log("\n**Check quotes when buying and selling GLP directly to DAI**");
     {
       const buyAmount = ethers.utils.parseEther("20");
-      const buyQuote = await contracts.ovGLP.investQuote(buyAmount, ZERO_ADDRESS);
+      const buyQuote = await contracts.ovGLP.investQuote(buyAmount, ZERO_ADDRESS, 0, 0);
       console.log("Buy quote:", buyQuote);
 
       const feeGlpTracker = GMX_RewardTracker__factory.connect(await contracts.glpRewardRouter.feeGlpTracker(), origamiMultisig);
       const bobGlpBefore = await feeGlpTracker.depositBalances(bob.getAddress(), await contracts.gmxRewardRouter.glp());
-      await contracts.glpRewardRouter.connect(bob).mintAndStakeGlpETH(0, 0, {value:buyAmount});
+      await mine(contracts.glpRewardRouter.connect(bob).mintAndStakeGlpETH(0, 0, {value:buyAmount}));
       const bobGlpAfter = await feeGlpTracker.depositBalances(bob.getAddress(), await contracts.gmxRewardRouter.glp());
       console.log("Bob Bought GLP:", fromAtto(bobGlpBefore), fromAtto(bobGlpAfter), fromAtto(bobGlpAfter.sub(bobGlpBefore)));
 
@@ -451,10 +540,10 @@ async function main() {
       const dai = "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1";
       const daiToken = IERC20__factory.connect(dai, origamiMultisig);
       const sellAmount = ethers.utils.parseEther("1000");
-      const sellQuote = await contracts.ovGLP.exitQuote(sellAmount, daiToken.address);
+      const sellQuote = await contracts.ovGLP.exitQuote(sellAmount, daiToken.address, 0, 0);
       console.log("Sell quote:", sellQuote);
       const bobDaiBefore = await daiToken.balanceOf(bob.getAddress());
-      await contracts.glpRewardRouter.connect(bob).unstakeAndRedeemGlp(dai, sellAmount, 0, bob.getAddress());
+      await mine(contracts.glpRewardRouter.connect(bob).unstakeAndRedeemGlp(dai, sellAmount, 0, bob.getAddress()));
       const bobDaiAfter = await daiToken.balanceOf(bob.getAddress());
       console.log("Bob received DAI:", fromAtto(bobDaiBefore), fromAtto(bobDaiAfter), fromAtto(bobDaiAfter.sub(bobDaiBefore)));
     }
@@ -474,9 +563,9 @@ async function main() {
       console.log("oGLP Total Supply:", fromAtto(await contracts.oGLP.totalSupply()));
       console.log("MSIG(fees) oGLP Bal:", fromAtto(await contracts.oGLP.balanceOf(origamiMultisig.getAddress())));
 
-      const quote = await contracts.ovGLP.exitQuote(sellAmount, dai);
+      const quote = await contracts.ovGLP.exitQuote(sellAmount, dai, 0, 0);
       console.log(quote);
-      await mine(contracts.ovGLP.connect(bob).exitToToken(quote.quoteData, 0, bob.getAddress()));
+      await mine(contracts.ovGLP.connect(bob).exitToToken(quote.quoteData, bob.getAddress()));
 
       console.log("Bob ovGLP Bal:", fromAtto(await contracts.ovGLP.balanceOf(bob.getAddress())));
       console.log("Bob oGLP Bal:", fromAtto(await contracts.oGLP.balanceOf(bob.getAddress())));

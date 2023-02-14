@@ -10,7 +10,9 @@ import {
     shouldRevertNotOperator, 
     expectApproxEqAbs,
     expectApproxEqRel, 
-    tolerance
+    tolerance,
+    ZERO_SLIPPAGE,
+    ZERO_DEADLINE
 } from "../../helpers";
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
@@ -23,7 +25,6 @@ import {
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory, 
 } from "../../../typechain";
 import {
-    decodeGlpUnderlyingInvestQuoteData,
     deployGmx, GmxContracts, updateDistributionTime } from "./gmx-helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { GmxVaultType, encodeGlpHarvestParams, encodeGmxHarvestParams } from "../../../scripts/deploys/helpers";
@@ -32,6 +33,7 @@ import { getSigners } from "../../signers";
 
 // 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
 const MAX_REL_DELTA = tolerance(0.001);
+const MIN_USDG = 1;
 
 describe("Origami GMX Rewards Aggregator", async () => {
     let owner: Signer;
@@ -252,11 +254,10 @@ describe("Origami GMX Rewards Aggregator", async () => {
 
         const dummyHarvestParams = async (): Promise<string> => {
             const amount = 1000000;
-            const quote = await oGmxToken.investQuote(amount, gmxContracts.gmxToken.address);
+            const quote = await oGmxToken.investQuote(amount, gmxContracts.gmxToken.address, 100, ZERO_DEADLINE);
             const params: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
                 nativeToGmxSwapData: dex.interface.encodeFunctionData("swapToGMX", [amount]),
                 oGmxInvestQuoteData: quote.quoteData,
-                oGmxInvestSlippageBps: 100, // 1%
                 addToReserveAmount: amount,
             };
             return encodeGmxHarvestParams(params);
@@ -328,6 +329,20 @@ describe("Origami GMX Rewards Aggregator", async () => {
             const amount = 50;
             await gmxContracts.bnbToken.mint(origamiGmxRewardsAggr.address, amount);
             await recoverToken(gmxContracts.bnbToken, amount, origamiGmxRewardsAggr, owner);   
+
+            // Can't recover any of the reward/transient reward tokens
+            await expect(origamiGmxRewardsAggr.recoverToken(gmxContracts.wrappedNativeToken.address, owner.getAddress(), 1))
+                .to.be.revertedWithCustomError(origamiGmxRewardsAggr, "InvalidToken")
+                .withArgs(gmxContracts.wrappedNativeToken.address);
+            await expect(origamiGmxRewardsAggr.recoverToken(gmxContracts.gmxToken.address, owner.getAddress(), 1))
+                .to.be.revertedWithCustomError(origamiGmxRewardsAggr, "InvalidToken")
+                .withArgs(gmxContracts.gmxToken.address);
+            await expect(origamiGmxRewardsAggr.recoverToken(oGmxToken.address, owner.getAddress(), 1))
+                .to.be.revertedWithCustomError(origamiGmxRewardsAggr, "InvalidToken")
+                .withArgs(oGmxToken.address);
+            await expect(origamiGmxRewardsAggr.recoverToken(oGlpToken.address, owner.getAddress(), 1))
+                .to.be.revertedWithCustomError(origamiGmxRewardsAggr, "InvalidToken")
+                .withArgs(oGlpToken.address);
         });
 
     });
@@ -379,26 +394,24 @@ describe("Origami GMX Rewards Aggregator", async () => {
         const harvestableRewards = await origamiGlpRewardsAggr.harvestableRewards();
         const balancesBefore = await getAggregatorRewardBalances(origamiGlpRewardsAggr);
         const ethAmountToInvest = harvestableRewards[0].add(harvestableRewards[1].div(100));
-        const oGlpInvestQuote = await oGlpToken.investQuote(ethAmountToInvest, gmxContracts.wrappedNativeToken.address);
-        const oGmxExitQuote = await oGmxToken.exitQuote(harvestableRewards[1], gmxContracts.gmxToken.address);
+        const oGlpInvestQuote = await oGlpToken.investQuote(ethAmountToInvest, gmxContracts.wrappedNativeToken.address, 100, ZERO_DEADLINE);
+        const oGmxExitQuote = await oGmxToken.exitQuote(harvestableRewards[1], gmxContracts.gmxToken.address, 100, ZERO_DEADLINE);
         const totalOGlpAvailable = oGlpInvestQuote.quoteData.expectedInvestmentAmount.add(balancesBefore.oGlp);
         const addToReserveAmount = totalOGlpAvailable.mul(90).div(100);
         const glpHarvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
             oGmxExitQuoteData: oGmxExitQuote.quoteData,
             gmxToNativeSwapData: dex.interface.encodeFunctionData("swapToWrappedNative", [harvestableRewards[1]]), // GMX -> wETH
             oGlpInvestQuoteData: oGlpInvestQuote.quoteData,
-            oGmxExitSlippageBps: 100, // 1%
-            oGlpInvestSlippageBps: 100, // 1%
             addToReserveAmount: addToReserveAmount,
         };
 
         const fee = await ovGmxToken.performanceFee();
         if (fee.numerator.isZero()) {
-            await expect(origamiGlpRewardsAggr.connect(operator).harvestRewards(encodeGlpHarvestParams(glpHarvestParams), {gasLimit:5000000}))
+            await expect(origamiGlpRewardsAggr.connect(operator).harvestRewards(encodeGlpHarvestParams(glpHarvestParams)))
                 .to.emit(origamiGlpRewardsAggr, "CompoundOvGlp")
                 .to.not.emit(origamiGlpRewardsAggr, "PerformanceFeesCollected");
         } else {
-            await expect(origamiGlpRewardsAggr.connect(operator).harvestRewards(encodeGlpHarvestParams(glpHarvestParams), {gasLimit:5000000}))
+            await expect(origamiGlpRewardsAggr.connect(operator).harvestRewards(encodeGlpHarvestParams(glpHarvestParams)))
                 .to.emit(origamiGlpRewardsAggr, "CompoundOvGlp")
                 .to.emit(origamiGlpRewardsAggr, "PerformanceFeesCollected")
                 .withArgs(oGlpToken.address, anyValue, await compoundingFeeCollector.getAddress());
@@ -413,21 +426,20 @@ describe("Origami GMX Rewards Aggregator", async () => {
         const newGmx = harvestableRewards[0].mul(100); // GMX = ETH * 100
         const totalOGmxAvailable = newGmx.add(harvestableRewards[1]);
         const addToReserveAmount = totalOGmxAvailable.mul(90).div(100);
-        const oGmxInvestQuote = await oGmxToken.investQuote(newGmx, gmxContracts.gmxToken.address);
+        const oGmxInvestQuote = await oGmxToken.investQuote(newGmx, gmxContracts.gmxToken.address, 100, ZERO_DEADLINE);
         const gmxHarvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
             nativeToGmxSwapData: dex.interface.encodeFunctionData("swapToGMX", [harvestableRewards[0]]), // wETH -> GMX,
             oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-            oGmxInvestSlippageBps: 100, // 1%
             addToReserveAmount: addToReserveAmount,
         };
 
         const fee = await ovGmxToken.performanceFee();
         if (fee.numerator.isZero()) {
-            await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(encodeGmxHarvestParams(gmxHarvestParams), {gasLimit:5000000}))
+            await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(encodeGmxHarvestParams(gmxHarvestParams)))
                 .to.emit(origamiGmxRewardsAggr, "CompoundOvGmx")
                 .to.not.emit(origamiGmxRewardsAggr, "PerformanceFeesCollected");
         } else {
-            await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(encodeGmxHarvestParams(gmxHarvestParams), {gasLimit:5000000}))
+            await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(encodeGmxHarvestParams(gmxHarvestParams)))
                 .to.emit(origamiGmxRewardsAggr, "CompoundOvGmx")
                 .to.emit(origamiGmxRewardsAggr, "PerformanceFeesCollected")
                 .withArgs(oGmxToken.address, anyValue, await compoundingFeeCollector.getAddress());
@@ -453,18 +465,16 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address, ZERO_ADDRESS, ZERO_DEADLINE);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
+                    gmxContracts.bnbToken.address, amount, MIN_USDG, bobQuote.quoteData.minInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
-                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr, ZERO_ADDRESS, ZERO_DEADLINE);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, origamiQuote.quoteData.minInvestmentAmount);
 
                 // Botstrap Origami with some GMX so it can harvest (need to convert oGMX -> GMX)
                 const seedAmount = ethers.utils.parseEther("5000");
@@ -559,18 +569,16 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
+                    gmxContracts.bnbToken.address, amount, MIN_USDG, bobQuote.quoteData.minInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
-                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, origamiQuote.quoteData.minInvestmentAmount);
 
                 // Bob buys GMX directly (outside of origami)
                 await gmxContracts.gmxToken.mint(bob.getAddress(), amount);
@@ -655,18 +663,16 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
+                    gmxContracts.bnbToken.address, amount, MIN_USDG, bobQuote.quoteData.minInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
-                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, origamiQuote.quoteData.minInvestmentAmount);
 
                 // Bob buys GMX directly (outside of origami)
                 await gmxContracts.gmxToken.mint(bob.getAddress(), amount);
@@ -787,18 +793,16 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
+                    gmxContracts.bnbToken.address, amount, MIN_USDG, bobQuote.quoteData.minInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
-                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, origamiQuote.quoteData.minInvestmentAmount);
             }
 
             await mineForwardSeconds(86400);
@@ -868,18 +872,16 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 // Bob buys the same amount GLP directly (not via Origami)
                 await gmxContracts.bnbToken.mint(bob.getAddress(), amount);
                 await gmxContracts.bnbToken.connect(bob).approve(await gmxContracts.glpRewardRouter.glpManager(), amount);
-                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address);
-                const decodedQuote = decodeGlpUnderlyingInvestQuoteData(bobQuote.quoteData.underlyingInvestmentQuoteData);
+                const bobQuote = await origamiGmxManager.investOGlpQuote(amount, gmxContracts.bnbToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
                 await gmxContracts.glpRewardRouter.connect(bob).mintAndStakeGlp(
-                    gmxContracts.bnbToken.address, amount, decodedQuote.expectedUsdg, bobQuote.quoteData.expectedInvestmentAmount
+                    gmxContracts.bnbToken.address, amount, MIN_USDG, bobQuote.quoteData.minInvestmentAmount
                 );
 
                 // GLP ==> GLP Manager
                 const tokenAddr = gmxContracts.bnbToken.address;
                 await gmxContracts.bnbToken.mint(primaryGlpEarnAccount.address, amount);
-                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr);
-                const decodedOrigamiQuote = decodeGlpUnderlyingInvestQuoteData(origamiQuote.quoteData.underlyingInvestmentQuoteData);
-                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, decodedOrigamiQuote.expectedUsdg, origamiQuote.quoteData.expectedInvestmentAmount, 0);
+                const origamiQuote = await origamiGlpManager.investOGlpQuote(amount, tokenAddr, ZERO_SLIPPAGE, ZERO_DEADLINE);
+                await primaryGlpEarnAccount.connect(operator).mintAndStakeGlp(amount, tokenAddr, MIN_USDG, origamiQuote.quoteData.minInvestmentAmount);
 
                 // Bob buys GMX directly (outside of origami)
                 await gmxContracts.gmxToken.mint(bob.getAddress(), amount);
@@ -914,11 +916,10 @@ describe("Origami GMX Rewards Aggregator", async () => {
 
             await mineForwardSeconds(86400);
 
-            const oGmxInvestQuote = await oGmxToken.investQuote(100, gmxContracts.gmxToken.address);
+            const oGmxInvestQuote = await oGmxToken.investQuote(100, gmxContracts.gmxToken.address, 100, ZERO_DEADLINE);
             const gmxHarvestParams = encodeGmxHarvestParams({
                 nativeToGmxSwapData: dex.interface.encodeFunctionData("revertCustom"), // throws a custom error
                 oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-                oGmxInvestSlippageBps: 100, // 1%
                 addToReserveAmount: 100,
             });
             await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(gmxHarvestParams))
@@ -927,7 +928,6 @@ describe("Origami GMX Rewards Aggregator", async () => {
             const gmxHarvestParams2 = encodeGmxHarvestParams({
                 nativeToGmxSwapData: dex.interface.encodeFunctionData("revertNoMessage"), // UnknownSwapError
                 oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-                oGmxInvestSlippageBps: 100, // 1%
                 addToReserveAmount: 100,
             });
             await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(gmxHarvestParams2))
