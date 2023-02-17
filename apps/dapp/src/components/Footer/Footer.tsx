@@ -3,7 +3,6 @@ import type { FC } from 'react';
 import styled from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import breakpoints from '@/styles/responsive-breakpoints';
-import { Image } from '../commons/Image';
 
 const SUBTEXT_FONT_SIZE = '0.9rem';
 
@@ -17,7 +16,7 @@ const socials = [
 const Footer = () => (
   <FooterContainer>
     <CopyrightContainer>
-      <Image src="/header-logo.svg" alt="ORIGAMI" width={100} height={30} />
+      <img src="/header-logo.svg" alt="Origami" height={40} />
       <TextContainer>
         <CopyrightText>© 2023 ORIGAMI. All rights reserved.</CopyrightText>
         <Disclaimer href="/disclaimer">Disclaimer</Disclaimer>
@@ -66,6 +65,7 @@ const FooterContainer = styled.footer`
 const CopyrightContainer = styled.div`
   display: flex;
   flex-direction: column;
+  align-items: start;
   align-self: start;
   flex-shrink: 2;
   margin-right: 1.5rem;
