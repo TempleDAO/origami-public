@@ -1,10 +1,13 @@
 import type { HistoricPeriod, HistoryPoint } from '@/api/types';
 import type { Loading } from '@/utils/loading-value';
 
+import { useState, useCallback } from 'react';
 import styled, { css } from 'styled-components';
 import { format } from 'd3-format';
+import { format as formatDate } from 'date-fns';
 import {
   FlexibleXYPlot,
+  Crosshair,
   HorizontalGridLines,
   LineSeries,
   AreaSeries,
@@ -32,6 +35,7 @@ export type HistoricLineChartProps = {
 
 export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
   const ldata = props.values;
+  const { onMouseLeave, onNearestX, crosshairValues } = useCrosshairs();
 
   if (!isReady(ldata)) {
     return <StyledLoader />;
@@ -43,7 +47,11 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
   return (
     <>
       <ChartWrapper>
-        <FlexibleXYPlot xType="time" margin={{ left: 50 }}>
+        <FlexibleXYPlot
+          xType="time"
+          margin={{ left: 50 }}
+          onMouseLeave={onMouseLeave}
+        >
           <HorizontalGridLines style={{ stroke: '#3A3E44' }} />
           <XAxis hideLine tickSize={0} tickTotal={8} />
           <YAxis hideLine tickSize={0} tickFormat={props.yTickFormat} />
@@ -51,12 +59,30 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
             color={theme.colors.chartLine}
             data={chartData}
             opacity={1}
+            onNearestX={onNearestX}
           />
           <AreaSeries
             color={theme.colors.bgLight}
             fill={theme.colors.bgLight}
             opacity={0.6}
             data={chartData}
+          />
+          <Crosshair
+            values={crosshairValues}
+            titleFormat={([{ x }]: ChartDataPoint[]) => {
+              return {
+                title: 'Date',
+                value: formatDate(x, 'd LLL'),
+              };
+            }}
+            itemsFormat={([{ y }]: ChartDataPoint[]) => {
+              return [
+                {
+                  title: 'Value',
+                  value: props.yTickFormat(y),
+                },
+              ];
+            }}
           />
         </FlexibleXYPlot>
       </ChartWrapper>
@@ -93,6 +119,23 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
       )}
     </>
   );
+}
+
+function useCrosshairs() {
+  const [crosshairValues, setCrosshairValues] = useState<ChartDataPoint[]>([]);
+
+  const onMouseLeave = useCallback(() => {
+    setCrosshairValues([]);
+  }, [setCrosshairValues]);
+
+  const onNearestX = useCallback(
+    (datapoint: ChartDataPoint, _event: unknown) => {
+      setCrosshairValues([datapoint]);
+    },
+    []
+  );
+
+  return { crosshairValues, onMouseLeave, onNearestX };
 }
 
 function padSingleDataPoint(chartData: ChartDataPoint[]): ChartDataPoint[] {
