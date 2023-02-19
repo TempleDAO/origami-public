@@ -143,8 +143,8 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         bnGmxAddr = gmxRewardRouter.bnGmx();
         stakedGmxTracker = IGmxRewardTracker(gmxRewardRouter.stakedGmxTracker());
         feeGmxTracker = IGmxRewardTracker(gmxRewardRouter.feeGmxTracker());
-        stakedGlpTracker = IGmxRewardTracker(gmxRewardRouter.stakedGlpTracker());
-        feeGlpTracker = IGmxRewardTracker(gmxRewardRouter.feeGlpTracker());
+        stakedGlpTracker = IGmxRewardTracker(glpRewardRouter.stakedGlpTracker());
+        feeGlpTracker = IGmxRewardTracker(glpRewardRouter.feeGlpTracker());
         stakedGlp = IERC20Upgradeable(_stakedGlp);
         esGmxVester = IGmxVester(_esGmxVester);
     }
