@@ -49,8 +49,9 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         string memory _symbol,
         address _origamiInvestment,
         address _tokenPrices,
-        uint256 _performanceFeePercent
-    ) RepricingToken(_name, _symbol, _origamiInvestment) {
+        uint256 _performanceFeePercent,
+        uint256 _reservesActualisationDuration
+    ) RepricingToken(_name, _symbol, _origamiInvestment, _reservesActualisationDuration) {
         tokenPrices = ITokenPrices(_tokenPrices);
         FractionalAmount.set(performanceFee, uint128(_performanceFeePercent), 100);
     }
@@ -319,9 +320,9 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             toTokenAmount = _redeemReservesFromShares(
                 quoteData.investmentTokenAmount,
                 msg.sender,
-                quoteData.minToTokenAmount
+                quoteData.minToTokenAmount,
+                msg.sender
             );
-            IERC20(reserveToken).safeTransfer(msg.sender, toTokenAmount);
         } else {
             UnderlyingExitQuoteData memory underlyingQuoteData = abi.decode(
                 quoteData.underlyingInvestmentQuoteData, (UnderlyingExitQuoteData)
@@ -332,7 +333,8 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             underlyingQuoteData.underlyingExitQuoteData.investmentTokenAmount = _redeemReservesFromShares(
                 quoteData.investmentTokenAmount,
                 msg.sender,
-                0
+                0,
+                address(this)
             );
 
             // Now exchange the reserve token to the actual token the user requested.
@@ -370,7 +372,8 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         underlyingQuoteData.underlyingExitQuoteData.investmentTokenAmount = _redeemReservesFromShares(
             quoteData.investmentTokenAmount,
             msg.sender,
-            0
+            0,
+            address(this)
         );
 
         // Now exchange the reserve token to the actual token the user requested.

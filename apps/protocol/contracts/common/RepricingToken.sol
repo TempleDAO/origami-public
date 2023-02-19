@@ -16,26 +16,56 @@ import {Operators} from "./access/Operators.sol";
 /// Each minted RepricingToken represents 1 share.
 /// 
 ///  pricePerShare = numShares * totalReserves / totalSupply
-/// So operators can increase the totalReserves in order to increase the pricePerShare
+/// Operators can add new reserves in order to increase the pricePerShare.
+/// These new reserves are vested per second, over a set period of time.
 abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Operators {
     using SafeERC20 for IERC20;
 
     /// @notice The token used to track reserves for this investment
     address public override immutable reserveToken;
 
-    /// @notice The total number of `reserveToken()` this investment holds.
-    uint256 public override totalReserves;
+    /// @notice The fully vested reserve tokens
+    /// @dev Comprised of both user deposited reserves (when new shares are issued)
+    /// And also when new reserves are deposited by the protocol to increase the reservesPerShare
+    /// (which vest in over time)
+    uint256 public override vestedReserves;
+
+    /// @notice Extra reserve tokens deposited by the protocol to increase the reservesPerShare
+    /// @dev These vest in per second over `vestingDuration`
+    uint256 public override pendingReserves;
+
+    /// @notice When new reserves are added to increase the reservesPerShare, 
+    /// they will vest over this duration (in seconds)
+    uint256 public override reservesVestingDuration;
+
+    /// @notice The time at which any accrued pendingReserves were last moved from `pendingReserves` -> `vestedReserves`
+    uint256 public override lastVestingCheckpoint;
 
     event IssueSharesFromReserves(address indexed user, address indexed recipient, uint256 reserveTokenAmount, uint256 sharesAmount);
     event RedeemReservesFromShares(address indexed user, address indexed recipient, uint256 sharesAmount, uint256 reserveTokenAmount);
-    event ReservesAdded(uint256 amount);
-    event ReservesRemoved(uint256 amount);
+    event ReservesVestingDurationSet(uint256 duration);
+    event PendingReservesAdded(uint256 amount);
+    event VestedReservesAdded(uint256 amount);
+    event VestedReservesRemoved(uint256 amount);
+    event ReservesCheckpoint(uint256 fullyVestedReserves, uint256 newVestedReserves, uint256 carriedOverPendingReserves, uint256 newPendingReserves);
 
-    constructor(string memory _name, string memory _symbol, address _reserveToken)
+    error CannotCheckpointReserves(uint256 secsSinceLastCheckpoint, uint256 vestingDuration);
+
+    constructor(string memory _name, string memory _symbol, address _reserveToken, uint256 _reservesVestingDuration)
         ERC20(_name, _symbol)
         ERC20Permit(_name)
     {
         reserveToken = _reserveToken;
+        reservesVestingDuration = _reservesVestingDuration;
+    }
+
+    /// @notice Update the vesting duration for any new reserves being added.
+    /// @dev This will first checkpoint any pending reserves, any carried over amount will be
+    /// spread out over the new duration.
+    function setReservesVestingDuration(uint256 _reservesVestingDuration) external onlyOwner {
+        _checkpointAndAddReserves(0);
+        reservesVestingDuration = _reservesVestingDuration;
+        emit ReservesVestingDurationSet(_reservesVestingDuration);
     }
 
     /// @notice Grant `_account` the operator role
@@ -51,10 +81,11 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
     /// @notice Owner can recover tokens
     function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
         // If the _token is the reserve token, the owner can only remove any surplus reserves (ie donation reserves).
-        // It can't dip into the actual reserves
+        // It can't dip into the actual user or protocol added reserves. 
+        // This includes any vested rewards plus any unvested (but pending) reserves
         if (_token == reserveToken) {
             uint256 bal = IERC20(reserveToken).balanceOf(address(this));
-            if (_amount > (bal - totalReserves)) revert CommonEventsAndErrors.InvalidAmount(_token, _amount);
+            if (_amount > (bal - (vestedReserves + pendingReserves))) revert CommonEventsAndErrors.InvalidAmount(_token, _amount);
         }
         
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
@@ -67,30 +98,74 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
         return ERC20(reserveToken).decimals();
     }
 
-    /// @notice The price for a single share in terms of the `reserveToken`
+    /// @notice The current amount of fully vested reserves plus any accrued pending reserves
+    function totalReserves() public view override returns (uint256) {
+        (uint256 accrued, ) = unvestedReserves();
+        return vestedReserves + accrued;
+    }
+
+    /// @notice How many reserve tokens would one get given a single share, as of now
     function reservesPerShare() external view override returns (uint256) {
         return sharesToReserves(10 ** decimals());
     }
     
-    /// @notice How many reserve tokens given a number of shares
+    /// @notice How many reserve tokens would one get given a number of shares, as of now
     function sharesToReserves(uint256 shares) public view override returns (uint256) {
         uint256 _totalSupply = totalSupply();
 
         // Returns 0 if no shares yet allocated
         return (_totalSupply == 0)
             ? 0
-            : shares * totalReserves / _totalSupply;
+            : shares * totalReserves() / _totalSupply;
     }
 
-    /// @notice How many shares given a number of reserve tokens
+    /// @notice How many shares would one get given a number of reserve tokens, as of now
     function reservesToShares(uint256 reserves) public view override returns (uint256) {
         uint256 _totalSupply = totalSupply();
 
         // Returns shares = 1:1 if no shares yet allocated
-        // Not worth having a special check for totalReserves=0, it can revert
+        // Not worth having a special check for totalReserves=0, it can revert with a panic
         return (_totalSupply == 0)
             ? reserves
-            : reserves * _totalSupply / totalReserves;
+            : reserves * _totalSupply / totalReserves();
+    }
+
+    /// @notice The accrued vs outstanding amount of pending reserve tokens which have
+    /// not yet been fully vested.
+    function unvestedReserves() public view override returns (uint256 accrued, uint256 outstanding) {
+        uint256 _pendingReserves = pendingReserves;
+        uint256 _vestingDuration = reservesVestingDuration;
+        uint256 secsSinceLastCheckpoint = block.timestamp - lastVestingCheckpoint;
+
+        // The whole amount has been accrued (vested but not yet added to `vestedReserves`) 
+        // if the time since the last checkpoint has passed the vesting duration
+        accrued = (secsSinceLastCheckpoint >= _vestingDuration)
+            ? _pendingReserves
+            : _pendingReserves * secsSinceLastCheckpoint / _vestingDuration;
+
+        // Any amount not yet vested, to be carried over
+        outstanding = _pendingReserves - accrued;
+    }
+
+    /// @notice Add pull in and add reserve tokens, which slowly increases the pricePerShare()
+    /// @dev The new amount is vested in continuously per second over an `reservesVestingDuration`
+    /// starting from now.
+    /// If any amount was still pending and unvested since the previous `addReserves()`, it will be carried over.
+    function addPendingReserves(uint256 amount) external override onlyOperators {
+        if (amount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        emit PendingReservesAdded(amount);
+        IERC20(reserveToken).safeTransferFrom(msg.sender, address(this), amount);
+
+        _checkpointAndAddReserves(amount);
+        _validateReservesBalance();
+    }
+
+    /// @notice Checkpoint any pending reserves as long as the `reservesVestingDuration` period has completely passed.
+    /// @dev No economic benefit, but may be useful for book keeping purposes.
+    function checkpointReserves() external override {
+        if (block.timestamp - lastVestingCheckpoint < reservesVestingDuration) revert CannotCheckpointReserves(block.timestamp - lastVestingCheckpoint, reservesVestingDuration);
+        _checkpointAndAddReserves(0);
     }
 
     function _issueSharesFromReserves(
@@ -104,13 +179,26 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
 
         // Mint shares to the user and add to the total reserves
         _mint(recipient, sharesAmount);
-        _addReserves(reserveTokenAmount);
+
+        vestedReserves += reserveTokenAmount;
+        emit VestedReservesAdded(reserveTokenAmount);
+
+        _validateReservesBalance();
+    }
+
+    /// @dev Check the invariant that the amount of reserve tokens held by this contract
+    /// is at least the vestedReserves + pendingReserves
+    function _validateReservesBalance() internal view {
+        if (IERC20(reserveToken).balanceOf(address(this)) < (vestedReserves + pendingReserves)) {
+            revert CommonEventsAndErrors.InsufficientBalance(reserveToken, vestedReserves + pendingReserves, IERC20(reserveToken).balanceOf(address(this)));
+        }
     }
 
     function _redeemReservesFromShares(
         uint256 sharesAmount, 
         address from, 
-        uint256 minReserveTokenAmount
+        uint256 minReserveTokenAmount,
+        address receiver
     ) internal returns (uint256 reserveTokenAmount) {
         if (balanceOf(from) < sharesAmount) revert CommonEventsAndErrors.InsufficientBalance(address(this), sharesAmount, balanceOf(from));
 
@@ -120,26 +208,28 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
 
         // Burn the users shares and remove the reserves
         _burn(from, sharesAmount);
-        _removeReserves(reserveTokenAmount);
+
+        vestedReserves -= reserveTokenAmount;
+        emit VestedReservesRemoved(reserveTokenAmount);
+
+        if (receiver != address(this) && reserveTokenAmount != 0) {
+            IERC20(reserveToken).safeTransfer(receiver, reserveTokenAmount);
+        }
+
+        _validateReservesBalance();
     }
 
-    /// @notice Add reserve tokens, increasing the pricePerShare()
-    function addReserves(uint256 amount) external override onlyOperators {
-        IERC20(reserveToken).safeTransferFrom(msg.sender, address(this), amount);
-        _addReserves(amount);
-    }
+    /// @dev Checkpoint by moving any `pendingReserves` which have vested to the `vestedReserves`.
+    /// Any unvested balance is added to `newReserves` to become the new `pendingReserves` which will start
+    /// vesting from now.
+    function _checkpointAndAddReserves(uint256 newReserves) internal {
+        (uint256 accrued, uint256 outstanding) = unvestedReserves();
+        uint256 _vestedReserves = vestedReserves + accrued;
 
-    /// @dev Reserve tokens should be transferred into this contract PRIOR to calling this function
-    function _addReserves(uint256 amount) private {
-        emit ReservesAdded(amount);
-        totalReserves += amount;
-        assert(IERC20(reserveToken).balanceOf(address(this)) >= totalReserves);
-    }
+        vestedReserves = _vestedReserves;
+        pendingReserves = outstanding + newReserves;
+        lastVestingCheckpoint = block.timestamp;
 
-    /// @dev Reserve tokens need be transferred out of the contract AFTER calling this function
-    function _removeReserves(uint256 amount) private {
-        emit ReservesRemoved(amount);
-        totalReserves -= amount;
-        assert((IERC20(reserveToken).balanceOf(address(this)) - amount) >= totalReserves);
+        emit ReservesCheckpoint(_vestedReserves, accrued, outstanding, newReserves);
     }
 }

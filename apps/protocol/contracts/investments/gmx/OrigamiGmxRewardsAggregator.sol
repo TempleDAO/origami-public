@@ -70,8 +70,9 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         /// @dev The quote to invest in oGMX with GMX
         IOrigamiInvestment.InvestQuoteData oGmxInvestQuoteData;
 
-        /// @dev How much of the oGMX to add as reserves to ovGMX
-        uint256 addToReserveAmount;
+        /// @dev How much percentage of the oGMX to add as reserves to ovGMX
+        /// 10_000 == 100%
+        uint256 addToReserveAmountPct;
     }
 
     /// @notice Parameters required when compounding ovGLP rewards
@@ -86,7 +87,8 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiInvestment.InvestQuoteData oGlpInvestQuoteData;
 
         /// @dev How much of the oGLP to add as reserves to ovGLP
-        uint256 addToReserveAmount;
+        /// 10_000 == 100%
+        uint256 addToReserveAmountPct;
     }
     
     event OrigamiGmxManagersSet(IOrigamiGmxEarnAccount.VaultType _vaultType, address indexed gmxManager, address indexed glpManager);
@@ -250,8 +252,9 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiInvestment oGmx = IOrigamiInvestment(address(gmxManager.oGmxToken()));
         oGmx.investWithToken(params.oGmxInvestQuoteData);
 
-        // Add the oGMX reserves, taking a performance fee.
-        _addReserves(address(oGmx), params.addToReserveAmount);
+        // Add a percentage of all available oGMX reserves, taking a performance fee.
+        uint256 reserveTokenBalance = oGmx.balanceOf(address(this));
+        _addReserves(address(oGmx), reserveTokenBalance * params.addToReserveAmountPct / 10_000);
     }
 
     function _compoundOvGlpRewards(bytes calldata harvestParams) internal {
@@ -275,8 +278,9 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiInvestment oGlp = IOrigamiInvestment(address(glpManager.oGlpToken()));
         oGlp.investWithToken(params.oGlpInvestQuoteData);
 
-        // Add the oGLP reserves, taking a performance fee.
-        _addReserves(address(oGlp), params.addToReserveAmount);
+        // Add a percentage of all available oGLP reserves, taking a performance fee.
+        uint256 reserveTokenBalance = oGlp.balanceOf(address(this));
+        _addReserves(address(oGlp), reserveTokenBalance * params.addToReserveAmountPct / 10_000);
     }
 
     function _addReserves(address reserveToken, uint256 totalReservesAmount) internal {
@@ -291,7 +295,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
 
         // Add the oGMX as reserves into ovToken
         if (reserves != 0) {
-            ovToken.addReserves(reserves);
+            ovToken.addPendingReserves(reserves);
         }
     }
 

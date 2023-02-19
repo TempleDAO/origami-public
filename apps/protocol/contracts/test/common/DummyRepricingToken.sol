@@ -11,8 +11,9 @@ contract DummyRepricingToken is RepricingToken {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _reserveToken
-    ) RepricingToken(_name, _symbol, _reserveToken) {}
+        address _reserveToken,
+        uint256 _reservesActualisationDuration
+    ) RepricingToken(_name, _symbol, _reserveToken, _reservesActualisationDuration) {}
 
     function mint(address _to, uint256 _amount) external {
         _mint(_to, _amount);
@@ -36,7 +37,6 @@ contract DummyRepricingToken is RepricingToken {
         address recipient, 
         uint256 minReserveTokenAmount
     ) external returns (uint256 reserveTokenAmount) {
-        reserveTokenAmount = _redeemReservesFromShares(sharesAmount, msg.sender, minReserveTokenAmount);
-        IERC20(reserveToken).safeTransfer(recipient, reserveTokenAmount);
+        reserveTokenAmount = _redeemReservesFromShares(sharesAmount, msg.sender, minReserveTokenAmount, recipient);
     }
 }
