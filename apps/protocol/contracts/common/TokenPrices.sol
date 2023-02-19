@@ -19,8 +19,11 @@ import {ITokenPrices} from "../interfaces/common/ITokenPrices.sol";
 import {IRepricingToken} from "../interfaces/common/IRepricingToken.sol";
 
 /// @title Token Prices
-/// @notice A utility contract to pull token prices from on-chain.
-/// @dev composable functions (uisng encoded function calldata) to build up price formulas
+/// @notice A utility contract to pull token prices on-chain.
+/// @dev Composable functions (using encoded function calldata) to build up price formulas
+/// Do NOT use these prices for direct on-chain purposes, as they can generally be abused.
+/// eg single block sandwich attacks, multi-block attacks by block producers, etc.
+/// They are only to be used for utilities such as showing estimated $USD equiv. prices in a dapp, etc
 contract TokenPrices is ITokenPrices, Ownable {
     uint8 public immutable override decimals;
     
@@ -72,7 +75,8 @@ contract TokenPrices is ITokenPrices, Ownable {
     }
 
     /// @notice Fetch the Trader Joe pair price.
-    /// Assumes the reserves are in 1e18 precision
+    /// @dev Do not use this for on-chain calculations, as it can be exploited 
+    /// with a single block sandwhich attack. Only use for off-chain utilities (eg informational purposes only)
     function traderJoePrice(IJoePair joePair, bool inQuotedOrder) external view returns (uint256) {
         (uint112 token0Reserve, uint112 token1Reserve,) = joePair.getReserves();
         if (inQuotedOrder) {
@@ -83,7 +87,9 @@ contract TokenPrices is ITokenPrices, Ownable {
     }
 
     /// @notice Fetch the price from a univ3 pool, in quoted order (token0Price), to `pricePrecision`
-    /// @dev https://docs.uniswap.org/sdk/guides/fetching-prices
+    /// @dev https://web.archive.org/web/20210918154903/https://docs.uniswap.org/sdk/guides/fetching-prices
+    /// @dev Do not use this for on-chain calculations, as it can be exploited 
+    /// with a multi block attacks by block producers. Only use for off-chain utilities (eg informational purposes only)
     function univ3Price(IUniswapV3Pool pool, bool inQuotedOrder) external view returns (uint256) {
         // Pull the current price from the pool
         (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
