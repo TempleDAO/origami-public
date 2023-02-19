@@ -3,7 +3,7 @@ import { BigNumber, BigNumberish, Signer } from "ethers";
 import { expect } from "chai";
 import { 
     DummyRepricingToken, DummyRepricingToken__factory, 
-    MintableToken, MintableToken__factory
+    MintableToken, DummyMintableToken__factory
 } from "../../typechain";
 import { 
     ZERO_ADDRESS, 
@@ -28,7 +28,7 @@ describe("Repricing Token", async () => {
     });
 
     async function setup() {
-        reserveToken = await new MintableToken__factory(owner).deploy("reserveToken", "rToken");
+        reserveToken = await new DummyMintableToken__factory(owner).deploy("reserveToken", "rToken");
         await reserveToken.addMinter(owner.getAddress());
         repricingToken = await new DummyRepricingToken__factory(owner).deploy("ovTokenName", "ovToken", reserveToken.address);
         await repricingToken.addOperator(operator.getAddress());
@@ -113,7 +113,7 @@ describe("Repricing Token", async () => {
         // Any other token can be recovered too
         {
             const amount = 50;
-            const rando = await new MintableToken__factory(owner).deploy("rando", "rando");
+            const rando = await new DummyMintableToken__factory(owner).deploy("rando", "rando");
             await rando.addMinter(owner.getAddress());
             await rando.mint(repricingToken.address, amount);
             await recoverToken(rando, amount, repricingToken, owner);

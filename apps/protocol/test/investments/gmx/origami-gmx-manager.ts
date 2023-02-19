@@ -20,7 +20,7 @@ import {
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxManager, OrigamiGmxManager__factory, 
-    MintableToken, MintableToken__factory, 
+    MintableToken, DummyMintableToken__factory,
     IOrigamiGmxManager,
 } from "../../../typechain";
 import { 
@@ -68,13 +68,14 @@ describe("Origami GMX Manager", async () => {
         async function setupOrigamiGmxManager() {
             gmxContracts = await deployGmx(owner, esGmxPerSecond, esGmxPerSecond, ethPerSecond, ethPerSecond);
 
-            oGmxToken = await new MintableToken__factory(owner).deploy("oGMX", "oGMX");
-            oGlpToken = await new MintableToken__factory(owner).deploy("oGLP", "oGLP");
+            oGmxToken = await new DummyMintableToken__factory(owner).deploy("oGMX", "oGMX");
+            oGlpToken = await new DummyMintableToken__factory(owner).deploy("oGLP", "oGLP");
 
             // Setup the GMX Manager/Earn Account
             {
                 gmxEarnAccount = await deployUupsProxy(
                     new OrigamiGmxEarnAccount__factory(owner), 
+                    [gmxContracts.gmxRewardRouter.address],
                     gmxContracts.gmxRewardRouter.address,
                     gmxContracts.glpRewardRouter.address,
                     await gmxContracts.gmxRewardRouter.gmxVester(),
@@ -98,6 +99,7 @@ describe("Origami GMX Manager", async () => {
             {
                 glpPrimaryEarnAccount = await deployUupsProxy(
                     new OrigamiGmxEarnAccount__factory(owner), 
+                    [gmxContracts.gmxRewardRouter.address],
                     gmxContracts.gmxRewardRouter.address,
                     gmxContracts.glpRewardRouter.address,
                     await gmxContracts.glpRewardRouter.glpVester(),
@@ -105,6 +107,7 @@ describe("Origami GMX Manager", async () => {
                 );
                 glpSecondaryEarnAccount = await deployUupsProxy(
                     new OrigamiGmxEarnAccount__factory(owner), 
+                    [gmxContracts.gmxRewardRouter.address],
                     gmxContracts.gmxRewardRouter.address,
                     gmxContracts.glpRewardRouter.address,
                     await gmxContracts.glpRewardRouter.glpVester(),
@@ -369,6 +372,9 @@ describe("Origami GMX Manager", async () => {
             });
 
             it("Should setFeeCollector()", async () => {
+                await expect(origamiGmxManager.setFeeCollector(ZERO_ADDRESS))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidAddress")
+                    .withArgs(ZERO_ADDRESS);
                 const feeCollectorAddr = await bob.getAddress();
                 await expect(origamiGmxManager.setFeeCollector(feeCollectorAddr))
                     .to.emit(origamiGmxManager, "FeeCollectorSet")
@@ -396,6 +402,12 @@ describe("Origami GMX Manager", async () => {
             });
 
             it("Should setRewardsAggregators()", async () => {
+                await expect(origamiGmxManager.setRewardsAggregators(ZERO_ADDRESS, origamiGlpRewardsAggr.getAddress()))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidAddress")
+                    .withArgs(ZERO_ADDRESS);
+                await expect(origamiGmxManager.setRewardsAggregators(origamiGmxRewardsAggr.getAddress(), ZERO_ADDRESS))
+                    .to.be.revertedWithCustomError(origamiGmxManager, "InvalidAddress")
+                    .withArgs(ZERO_ADDRESS);
                 await expect(origamiGmxManager.setRewardsAggregators(origamiGmxRewardsAggr.getAddress(), origamiGlpRewardsAggr.getAddress()))
                     .to.emit(origamiGmxManager, "RewardsAggregatorsSet")
                     .withArgs(await origamiGmxRewardsAggr.getAddress(), await origamiGlpRewardsAggr.getAddress());
@@ -1048,11 +1060,12 @@ describe("Origami GMX Manager", async () => {
             forkMainnet(47930000, process.env.ARBITRUM_RPC_URL);
             gmxContracts = await connectToGmx(owner);
 
-            oGmxToken = await new MintableToken__factory(owner).deploy("oGMX", "oGMX");
-            oGlpToken = await new MintableToken__factory(owner).deploy("oGLP", "oGLP");
+            oGmxToken = await new DummyMintableToken__factory(owner).deploy("oGMX", "oGMX");
+            oGlpToken = await new DummyMintableToken__factory(owner).deploy("oGLP", "oGLP");
 
             const gmxEarnAccount = await deployUupsProxy(
                 new OrigamiGmxEarnAccount__factory(owner), 
+                [gmxContracts.gmxRewardRouter.address],
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.glpRewardRouter.gmxVester(),

@@ -48,11 +48,4 @@ describe("Operators", async () => {
             .withArgs(await alan.getAddress());
         expect(await operators.foo()).eq(111);
     });
-
-    it("test operators upgradeable", async () => {
-        const operators = await new DummyOperatorsUpgradeable__factory(owner).deploy();
-        await expect(operators.initialize()).to.revertedWith('Initializable: contract is already initialized');
-        await expect(operators.operators_init()).to.revertedWith('Initializable: contract is not initializing');
-        await expect(operators.operators_init_unchained()).to.revertedWith('Initializable: contract is not initializing');;
-    });
 });

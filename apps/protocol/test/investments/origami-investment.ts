@@ -3,7 +3,7 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { 
     DummyOrigamiInvestment, DummyOrigamiInvestment__factory, 
-    MintableToken__factory, 
+    DummyMintableToken__factory, 
 } from "../../typechain";
 import { 
     expectBalancesChangeBy, 
@@ -21,7 +21,7 @@ describe("Origami Investment Base Class", async () => {
     });
 
     async function setup() {
-        const underlyingInvestToken = await new MintableToken__factory(owner).deploy("investToken", "investToken");
+        const underlyingInvestToken = await new DummyMintableToken__factory(owner).deploy("investToken", "investToken");
 
         oToken = await new DummyOrigamiInvestment__factory(owner).deploy(
             "oX", "oX", 

@@ -6,6 +6,7 @@ import { impersonateAccount, time as timeHelpers } from "@nomicfoundation/hardha
 import { isAddress, splitSignature } from "ethers/lib/utils";
 import { AssertionError } from "assert";
 import { OrigamiSignerWithAddress } from "./signers";
+import { StandaloneOptions } from "@openzeppelin/hardhat-upgrades/src/utils/options";
 
 export const EmptyBytes = "0x";
 export const ONE_ETH = ethers.utils.parseEther("1");
@@ -166,24 +167,32 @@ interface Initializable extends Contract {
   initialize(...args: any[]): Promise<ContractTransaction>;
 }
 
+function uupsOpts(constructorArgs?: unknown[]): StandaloneOptions {
+  return {kind: 'uups', constructorArgs};
+}
+
 export async function deployUupsProxy<T extends Initializable>(
   factory: ContractFactory,
+  constructorArgs?: unknown[],
   ...args: Parameters<T['initialize']>): Promise<T> {
 
-  const contract = await upgrades.deployProxy(factory, args, {kind: 'uups'}) as T;
+  const opts = uupsOpts(constructorArgs);
+  const contract = await upgrades.deployProxy(factory, args, opts) as T;
   await contract.deployed();
   return contract;
 };
 
 export async function upgradeUupsProxy<T extends Initializable>(
   existingProxyAddress: string,
+  constructorArgs: unknown[],
   factory: ContractFactory): Promise<T> {
 
   if (!existingProxyAddress || !isAddress(existingProxyAddress)) {
     throw new Error("Invalid existingProxyAddress");
   }
 
-  const contract = await upgrades.upgradeProxy(existingProxyAddress, factory, {kind: 'uups'}) as T;
+  const opts = uupsOpts(constructorArgs);
+  const contract = await upgrades.upgradeProxy(existingProxyAddress, factory, opts) as T;
   await contract.deployed();
   return contract;
 };
@@ -191,13 +200,18 @@ export async function upgradeUupsProxy<T extends Initializable>(
 export async function upgradeUupsProxyAndCall<T extends Initializable>(
   existingProxyAddress: string,
   factory: ContractFactory,
+  constructorArgs: unknown[],
   call: string | { fn: string; args?: unknown[] }): Promise<T> {
 
   if (!existingProxyAddress || !isAddress(existingProxyAddress)) {
     throw new Error("Invalid existingProxyAddress");
   }
 
-  const contract = await upgrades.upgradeProxy(existingProxyAddress, factory, {call, kind: 'uups'}) as T;
+  const opts = {
+    call,
+    ...uupsOpts(constructorArgs)
+  };
+  const contract = await upgrades.upgradeProxy(existingProxyAddress, factory, opts) as T;
   await contract.deployed();
   return contract;
 };

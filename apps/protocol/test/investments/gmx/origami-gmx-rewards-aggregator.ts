@@ -101,6 +101,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
         {
             gmxEarnAccount = await deployUupsProxy(
                 new OrigamiGmxEarnAccount__factory(owner), 
+                [gmxContracts.gmxRewardRouter.address],
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.gmxRewardRouter.gmxVester(),
@@ -128,6 +129,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
         {
             primaryGlpEarnAccount = await deployUupsProxy(
                 new OrigamiGmxEarnAccount__factory(owner), 
+                [gmxContracts.gmxRewardRouter.address],
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.glpRewardRouter.glpVester(),
@@ -135,6 +137,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
             );
             secondaryGlpEarnAccount = await deployUupsProxy(
                 new OrigamiGmxEarnAccount__factory(owner), 
+                [gmxContracts.gmxRewardRouter.address],
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.glpRewardRouter.glpVester(),
@@ -184,7 +187,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
             await origamiGlpManager.addOperator(origamiGlpRewardsAggr.address);
 
             // GLP aggregator not required for GMX Manager
-            await origamiGmxManager.setRewardsAggregators(origamiGmxRewardsAggr.address, ZERO_ADDRESS);
+            await origamiGmxManager.setRewardsAggregators(origamiGmxRewardsAggr.address, origamiGlpRewardsAggr.address);
             await origamiGlpManager.setRewardsAggregators(origamiGmxRewardsAggr.address, origamiGlpRewardsAggr.address);
 
             // Required so the aggregator can compound

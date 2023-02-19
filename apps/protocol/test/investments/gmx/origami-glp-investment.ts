@@ -6,7 +6,7 @@ import {
     OrigamiGmxManager, OrigamiGmxManager__factory,
     OrigamiGlpInvestment, OrigamiGlpInvestment__factory, 
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory, IOrigamiGmxManager, 
-    MintableToken, MintableToken__factory, 
+    MintableToken, DummyMintableToken__factory, 
 } from "../../../typechain";
 import { addDefaultGlpLiquidity, deployGmx, GmxContracts } from "./gmx-helpers";
 import { 
@@ -61,6 +61,7 @@ describe("Origami GLP Investment", async () => {
 
         primaryEarnAccount = await deployUupsProxy(
             new OrigamiGmxEarnAccount__factory(owner), 
+            [gmxContracts.gmxRewardRouter.address],
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             await gmxContracts.gmxRewardRouter.glpVester(),
@@ -69,6 +70,7 @@ describe("Origami GLP Investment", async () => {
 
         secondaryEarnAccount = await deployUupsProxy(
             new OrigamiGmxEarnAccount__factory(owner), 
+            [gmxContracts.gmxRewardRouter.address],
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             await gmxContracts.gmxRewardRouter.glpVester(),
@@ -105,7 +107,7 @@ describe("Origami GLP Investment", async () => {
 
         await addDefaultGlpLiquidity(bob, gmxContracts);
 
-        randoErc20 = await new MintableToken__factory(owner).deploy("rando", "rando");
+        randoErc20 = await new DummyMintableToken__factory(owner).deploy("rando", "rando");
         await randoErc20.addMinter(owner.getAddress());
         await randoErc20.mint(owner.getAddress(), ONE_ETH);
 

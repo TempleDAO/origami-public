@@ -1,15 +1,14 @@
 import { ethers } from "hardhat";
-import { BigNumber, BigNumberish, Signer } from "ethers";
+import { BigNumber, Signer } from "ethers";
 import { expect } from "chai";
 import { 
     DummyOrigamiInvestment, DummyOrigamiInvestment__factory, 
     DummyOrigamiInvestmentManager, DummyOrigamiInvestmentManager__factory,
     OrigamiInvestmentVault, OrigamiInvestmentVault__factory, 
     TokenPrices, TokenPrices__factory,
-    MintableToken__factory,
-    MintableToken,
+    MintableToken, DummyMintableToken__factory,
     IOrigamiInvestment,
-    DummyOracle__factory,
+    DummyOracle, DummyOracle__factory,
 } from "../../typechain";
 import { 
     expectBalancesChangeBy, 
@@ -24,6 +23,7 @@ import {
     ZERO_SLIPPAGE,
     ZERO_DEADLINE,
     applySlippage,
+    blockTimestamp,
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getSigners } from "../signers";
@@ -52,9 +52,9 @@ describe("Origami Investment Vault", async () => {
     async function setup() {
         // Setup oToken
         {
-            underlyingInvestToken = await new MintableToken__factory(owner).deploy("investToken", "investToken");
+            underlyingInvestToken = await new DummyMintableToken__factory(owner).deploy("investToken", "investToken");
             underlyingInvestToken.addMinter(operator.getAddress());
-            underlyingExitToken = await new MintableToken__factory(owner).deploy("exitToken", "exitToken");
+            underlyingExitToken = await new DummyMintableToken__factory(owner).deploy("exitToken", "exitToken");
             underlyingExitToken.addMinter(operator.getAddress());
             oToken = await new DummyOrigamiInvestment__factory(owner).deploy(
                 "oToken", "oToken", 
@@ -73,8 +73,8 @@ describe("Origami Investment Vault", async () => {
         
         // Setup investment manager
         {
-            rewardToken1 = await new MintableToken__factory(owner).deploy("rwd1", "rwd1");
-            rewardToken2 = await new MintableToken__factory(owner).deploy("rwd2", "rwd2");
+            rewardToken1 = await new DummyMintableToken__factory(owner).deploy("rwd1", "rwd1");
+            rewardToken2 = await new DummyMintableToken__factory(owner).deploy("rwd2", "rwd2");
             investmentManager = await new DummyOrigamiInvestmentManager__factory(owner).deploy(
                 [rewardToken1.address, rewardToken2.address],
                 [
@@ -93,20 +93,35 @@ describe("Origami Investment Vault", async () => {
         // Setup tokenPrices
         {
             const tokenPricesInterface = new ethers.utils.Interface(JSON.stringify(TokenPrices__factory.abi));
+            let oracleAnswer: DummyOracle.AnswerStruct = {
+                roundId: 10,
+                answer: BigNumber.from("3000000000"),
+                startedAt: await blockTimestamp(),
+                updatedAtLag: 10,
+                answeredInRound: 5
+            };
 
             // Set $rewardToken1 == 30
-            const rewardToken1UsdOracle = await new DummyOracle__factory(owner).deploy(BigNumber.from("3000000000"), 8);
-            const encodedRewardToken1UsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [rewardToken1UsdOracle.address]);
+            const rewardToken1UsdOracle = await new DummyOracle__factory(owner).deploy(oracleAnswer, 8);
+            const encodedRewardToken1UsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [rewardToken1UsdOracle.address, 600]);
             await tokenPrices.setTokenPriceFunction(rewardToken1.address, encodedRewardToken1UsdOracle);
 
             // Set $rewardToken1 == 50
-            const rewardToken2UsdOracle = await new DummyOracle__factory(owner).deploy(BigNumber.from("5000000000"), 8);
-            const encodedRewardToken2UsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [rewardToken2UsdOracle.address]);
+            oracleAnswer = {
+                ...oracleAnswer,
+                answer: BigNumber.from("5000000000")
+            };
+            const rewardToken2UsdOracle = await new DummyOracle__factory(owner).deploy(oracleAnswer, 8);
+            const encodedRewardToken2UsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [rewardToken2UsdOracle.address, 600]);
             await tokenPrices.setTokenPriceFunction(rewardToken2.address, encodedRewardToken2UsdOracle);
 
             // Set $oToken == 15
-            const oTokenUsdOracle = await new DummyOracle__factory(owner).deploy(BigNumber.from("1500000000"), 8);
-            const encodedoTokenUsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [oTokenUsdOracle.address]);
+            oracleAnswer = {
+                ...oracleAnswer,
+                answer: BigNumber.from("1500000000")
+            };
+            const oTokenUsdOracle = await new DummyOracle__factory(owner).deploy(oracleAnswer, 8);
+            const encodedoTokenUsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [oTokenUsdOracle.address, 600]);
             await tokenPrices.setTokenPriceFunction(oToken.address, encodedoTokenUsdOracle);
 
             // ovToken price == oToken price * reservesPerShare()
@@ -282,7 +297,7 @@ describe("Origami Investment Vault", async () => {
         {
             const amount = ethers.utils.parseEther("100");
             const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
-            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 1, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 0, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(underlyingQuote.quoteData.expectedInvestmentAmount);
             expect(expectedSharesAmount).eq(amount.mul(9_900).div(10_000));
 
@@ -325,7 +340,7 @@ describe("Origami Investment Vault", async () => {
         {
             const amount = ethers.utils.parseEther("1000");
             const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
-            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 1, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 0, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(underlyingQuote.quoteData.expectedInvestmentAmount);
 
             // Now expect less shares for the same amount of reserves, 
@@ -349,7 +364,7 @@ describe("Origami Investment Vault", async () => {
             const amount = ethers.utils.parseEther("1000");
             const slippage = 100; // 1%
             const quote = await ovToken.investQuote(amount, underlyingInvestToken.address, slippage, ZERO_DEADLINE);
-            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 1, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.investQuote(amount, underlyingInvestToken.address, 0, ZERO_DEADLINE);
             const expectedSharesAmount = await ovToken.reservesToShares(underlyingQuote.quoteData.expectedInvestmentAmount);
 
             // Now expect less shares for the same amount of reserves, 
@@ -397,7 +412,7 @@ describe("Origami Investment Vault", async () => {
             const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
             expect(quote.quoteData.expectedToTokenAmount).eq(0);
-            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 1, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 0, ZERO_DEADLINE);
 
             expect(quote.quoteData.investmentTokenAmount).eq(amount);
             expect(quote.quoteData.toToken).eq(underlyingExitToken.address);
@@ -439,7 +454,7 @@ describe("Origami Investment Vault", async () => {
             const amount = ethers.utils.parseEther("100");
             const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
-            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 1, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 0, ZERO_DEADLINE);
 
             // Now expect less shares for the same amount of reserves, 
             // since the reservesPerShare has now gone up
@@ -463,7 +478,7 @@ describe("Origami Investment Vault", async () => {
             const slippage = 100; // 1%
             const quote = await ovToken.exitQuote(amount, underlyingExitToken.address, slippage, ZERO_DEADLINE);
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
-            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 1, ZERO_DEADLINE);
+            const underlyingQuote = await oToken.exitQuote(expectedReserveAmount, underlyingExitToken.address, 0, ZERO_DEADLINE);
 
             // Now expect less shares for the same amount of reserves, 
             // since the reservesPerShare has now gone up

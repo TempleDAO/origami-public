@@ -61,6 +61,7 @@ describe("Origami GMX Earn Account", async () => {
         esGmxVester = IGmxVester__factory.connect(await gmxContracts.gmxRewardRouter.gmxVester(), owner);
         origamiGmxEarnAccount = await deployUupsProxy(
             new OrigamiGmxEarnAccount__factory(owner), 
+            [gmxContracts.gmxRewardRouter.address],
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             esGmxVester.address,
@@ -138,8 +139,7 @@ describe("Origami GMX Earn Account", async () => {
                 shouldClaimEsGmx: true, 
                 shouldStakeEsGmx: true, 
                 shouldStakeMultiplierPoints: true, 
-                shouldClaimWeth: true, 
-                shouldConvertWethToEth: false
+                shouldClaimWeth: true
             };
             await expect(origamiGmxEarnAccount.connect(alan).handleRewards(handleRewardsParams))
                 .to.be.revertedWithCustomError(origamiGmxEarnAccount, "OnlyOperators")
@@ -206,6 +206,16 @@ describe("Origami GMX Earn Account", async () => {
             expect(await origamiGmxEarnAccount.stakedGlp()).eq(gmxContracts.stakedGlp.address);
             expect(await origamiGmxEarnAccount.glpInvestmentsPaused()).eq(false);
             expect(await origamiGmxEarnAccount.glpLastTransferredAt()).eq(0);
+
+            // These are immutable vars - so check they're set on the underlying too
+            const underlyingImplAddress = await upgrades.erc1967.getImplementationAddress(origamiGmxEarnAccount.address);
+            const underlyingImpl = OrigamiGmxEarnAccount__factory.connect(underlyingImplAddress, owner);
+            expect(await underlyingImpl.gmxToken()).eq(gmxContracts.gmxToken.address); 
+            expect(await underlyingImpl.esGmxToken()).eq(gmxContracts.esGmxToken.address); 
+            expect(await underlyingImpl.wrappedNativeToken()).eq(gmxContracts.wrappedNativeToken.address); 
+
+            // Whereas a non-immutable is zero on the underlying.
+            expect(await underlyingImpl.bnGmxAddr()).eq(ZERO_ADDRESS);
         });
         
         it("should add operator", async() => {
@@ -903,21 +913,49 @@ describe("Origami GMX Earn Account", async () => {
             );
             expect(stakedEsGmxBefore).eq(0);
 
+            const positionsBefore = await origamiGmxEarnAccount.positions();
             const handleRewardsParams = {
                 shouldClaimGmx: true,
                 shouldStakeGmx: true, 
                 shouldClaimEsGmx: true, 
                 shouldStakeEsGmx: true, 
                 shouldStakeMultiplierPoints: true, 
-                shouldClaimWeth: true, 
-                shouldConvertWethToEth: false
+                shouldClaimWeth: true
             };
             await origamiGmxEarnAccount.connect(operator).handleRewards(handleRewardsParams);
+            const positionsAfter = await origamiGmxEarnAccount.positions();
 
-            const stakedEsGmxAfter = await gmxContracts.stakedGmxTracker.depositBalances(
-                origamiGmxEarnAccount.address, gmxContracts.esGmxToken.address
-            );
-            expect(stakedEsGmxAfter).gt(0);
+            expect(positionsAfter.gmxPositions.stakedEsGmx).gt(positionsBefore.gmxPositions.stakedEsGmx);
+            expect(positionsAfter.gmxPositions.stakedMultiplierPoints).gt(positionsBefore.gmxPositions.stakedMultiplierPoints);
+            expect(positionsAfter.gmxPositions.claimableNative).eq(0);
+            expect(positionsAfter.gmxPositions.claimableEsGmx).eq(0);
+            expect(positionsAfter.gmxPositions.claimableMultPoints).eq(0);
+        });
+
+        it("Should handleRewards()", async () => {
+            // Origami stakes GMX
+            const stakeAmount = ethers.utils.parseEther("250");
+            await gmxContracts.gmxToken.transfer(origamiGmxEarnAccount.address, stakeAmount);
+            await origamiGmxEarnAccount.connect(operator).stakeGmx(stakeAmount);
+
+            await mineForwardSeconds(86400);
+
+            const handleRewardsParams = {
+                shouldClaimGmx: false,
+                shouldStakeGmx: false, 
+                shouldClaimEsGmx: false, 
+                shouldStakeEsGmx: false, 
+                shouldStakeMultiplierPoints: false, 
+                shouldClaimWeth: false
+            };
+            await origamiGmxEarnAccount.connect(operator).handleRewards(handleRewardsParams);
+            const positionsAfter = await origamiGmxEarnAccount.positions();
+
+            expect(positionsAfter.gmxPositions.stakedEsGmx).eq(0);
+            expect(positionsAfter.gmxPositions.stakedMultiplierPoints).eq(0);
+            expect(positionsAfter.gmxPositions.claimableNative).gt(0);
+            expect(positionsAfter.gmxPositions.claimableEsGmx).gt(0);
+            expect(positionsAfter.gmxPositions.claimableMultPoints).gt(0);
         });
 
         it("Should deposit and withdrawl in vesting", async () => {
@@ -935,8 +973,7 @@ describe("Origami GMX Earn Account", async () => {
                 shouldClaimEsGmx: true, 
                 shouldStakeEsGmx: false, 
                 shouldStakeMultiplierPoints: true, 
-                shouldClaimWeth: true, 
-                shouldConvertWethToEth: false
+                shouldClaimWeth: true
             };
             await origamiGmxEarnAccount.connect(operator).handleRewards(handleRewardsParams);
             const esGmxBal = await gmxContracts.esGmxToken.balanceOf(origamiGmxEarnAccount.address);
@@ -1017,7 +1054,6 @@ describe("Origami GMX Earn Account", async () => {
                 shouldStakeEsGmx: true,
                 shouldStakeMultiplierPoints: true,
                 shouldClaimWeth: true,
-                shouldConvertWethToEth: false,
             });
 
             // staked esGMX and mult points have now increased after claiming+staking
@@ -1084,7 +1120,6 @@ describe("Origami GMX Earn Account", async () => {
                 shouldStakeEsGmx: true,
                 shouldStakeMultiplierPoints: true,
                 shouldClaimWeth: true,
-                shouldConvertWethToEth: false,
             });
 
             // staked esGMX and mult points have now increased after claiming+staking
@@ -1145,7 +1180,7 @@ describe("Origami GMX Earn Account", async () => {
             expect(await origamiGmxEarnAccount.gmxToken()).eq(gmxContracts.gmxToken.address);
 
             // Upgrade the contract
-            await upgradeUupsProxy(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner));
+            await upgradeUupsProxy(origamiGmxEarnAccount.address, [gmxContracts.gmxRewardRouter.address], new DummyOrigamiGmxEarnAccount__factory(owner));
 
             // Check the new contract storage after upgrading it.
             expect(await origamiGmxEarnAccount.gmxToken()).eq(gmxContracts.gmxToken.address);
@@ -1156,7 +1191,7 @@ describe("Origami GMX Earn Account", async () => {
             expect(await origamiGmxEarnAccount.gmxToken()).eq(gmxContracts.gmxToken.address);
 
             // Upgrade the contract and call the function
-            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), {
+            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), [gmxContracts.gmxRewardRouter.address], {
                 fn: "setNewAddr",
                 args: [await alan.getAddress()]
             });
@@ -1180,7 +1215,7 @@ describe("Origami GMX Earn Account", async () => {
 
         it("after upgrading, calling a method on the proxy definitely then calls the new contract", async () => {
             // Upgrade the contract and call the function
-            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), {
+            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), [gmxContracts.gmxRewardRouter.address], {
                 fn: "setNewAddr",
                 args: [await alan.getAddress()]
             });
@@ -1209,7 +1244,7 @@ describe("Origami GMX Earn Account", async () => {
             const oldUnderlyingImpl = OrigamiGmxEarnAccount__factory.connect(oldUnderlyingImplAddress, owner);
             
             // Upgrade the staking contract and call the function
-            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), {
+            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), [gmxContracts.gmxRewardRouter.address], {
                 fn: "setNewAddr",
                 args: [await alan.getAddress()]
             });
@@ -1219,6 +1254,14 @@ describe("Origami GMX Earn Account", async () => {
 
             const newUnderlyingImplAddress = await upgrades.erc1967.getImplementationAddress(origamiGmxEarnAccount.address);
             const newUnderlyingImpl = DummyOrigamiGmxEarnAccount__factory.connect(newUnderlyingImplAddress, owner);
+
+            {
+                expect(await newUnderlyingImpl.gmxToken()).eq(gmxContracts.gmxToken.address); 
+                expect(await newUnderlyingImpl.esGmxToken()).eq(gmxContracts.esGmxToken.address); 
+                expect(await newUnderlyingImpl.wrappedNativeToken()).eq(gmxContracts.wrappedNativeToken.address); 
+                // Whereas a non-immutable is zero on the underlying.
+                expect(await newUnderlyingImpl.bnGmxAddr()).eq(ZERO_ADDRESS);
+            }
 
             // Calling a method on the old implementation contract directly affects nothing in the new contract
             // All tx to old implementation contract are reverted as all the storage vars are completely empty.

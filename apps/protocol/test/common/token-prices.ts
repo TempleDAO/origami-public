@@ -6,12 +6,11 @@ import {
     DummyRepricingToken,
     DummyRepricingToken__factory,
     GMX_GlpManager__factory,
-    IUniswapV3Pool__factory,
     MintableToken,
-    MintableToken__factory,
-    TokenPrices, TokenPrices__factory,
+    DummyMintableToken__factory,
+    TokenPrices, TokenPrices__factory, DummyOracle,
 } from "../../typechain";
-import { forkMainnet, shouldRevertNotOwner, ZERO_ADDRESS } from "../helpers";
+import { blockTimestamp, forkMainnet, shouldRevertNotOwner, ZERO_ADDRESS } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { deployGmx } from "../investments/gmx/gmx-helpers";
 import { getSigners } from "../signers";
@@ -41,11 +40,11 @@ describe("Token Prices", async () => {
         return tokenPricesInterface.encodeFunctionData(fn, args);
     }
 
-    const encodedOraclePrice = (oracle: string): string => encodeFunction("oraclePrice", oracle);
+    const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
     const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
     const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
     const encodedUniV3Price = (pool: string, inQuotedOrder: boolean): string => encodeFunction("univ3Price", pool, inQuotedOrder);
-    const encodedTraderJoePrice = (joePair: string, inQuotedOrder: boolean): string => encodeFunction("traderJoePrice", joePair, inQuotedOrder);
+    const encodedTraderJoeBestPrice = (joeQuoter: string, sellToken: string, buyToken: string): string => encodeFunction("traderJoeBestPrice", joeQuoter, sellToken, buyToken);
     const encodedMulPrice = (v1Bytes: string, v2Bytes: string): string => encodeFunction("mul", v1Bytes, v2Bytes);
     const encodedDivPrice = (numerator: string, denominator: string): string => encodeFunction("div", numerator, denominator);
     const encodedScalar = (amount: BigNumberish): string => encodeFunction("scalar", amount);
@@ -85,7 +84,7 @@ describe("Token Prices", async () => {
         });
 
         it("eth price", async () => {
-            const encodedEthUsd = encodedOraclePrice(addresses.ethUsdOracle);
+            const encodedEthUsd = encodedOraclePrice(addresses.ethUsdOracle, 600);
             await expect(tokenPrices.setTokenPriceFunction(addresses.weth, encodedEthUsd))
                 .to.emit(tokenPrices, "TokenPriceFunctionSet")
                 .withArgs(addresses.weth, encodedEthUsd);
@@ -192,7 +191,7 @@ describe("Token Prices", async () => {
 
         it("multi price", async () => {
             // ETH
-            const encodedEthUsdOracle = encodedOraclePrice(addresses.ethUsdOracle);
+            const encodedEthUsdOracle = encodedOraclePrice(addresses.ethUsdOracle, 600);
             await tokenPrices.setTokenPriceFunction(addresses.weth, encodedEthUsdOracle);
 
             // GLP
@@ -219,7 +218,7 @@ describe("Token Prices", async () => {
             const tokenPricesLower = await new TokenPrices__factory(owner).deploy(6);
 
             // ETH
-            const encodedEthUsdOracle = encodedOraclePrice(addresses.ethUsdOracle);
+            const encodedEthUsdOracle = encodedOraclePrice(addresses.ethUsdOracle, 600);
             await tokenPricesLower.setTokenPriceFunction(addresses.weth, encodedEthUsdOracle);
 
             // GLP
@@ -246,13 +245,14 @@ describe("Token Prices", async () => {
     describe("Avalanche", async () => {
         const addresses = {
             wavax: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
-            avaxGmxTraderJoePool: '0x0c91a070f862666bBcce281346BE45766d874D98',
+            traderJoeQuoter: '0x9dbf1706577636941ab5f443d2aebe251ccd1648',
             glpManager: '0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F',
             gmx: '0x62edc0692BD897D2295872a9FFCac5425011c661',
+            usdc: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
         };
 
         async function setup() {
-            forkMainnet(22474880, AVAX_RPC);
+            forkMainnet(26276626, AVAX_RPC);
             tokenPrices = await new TokenPrices__factory(owner).deploy(pricePrecision);
             gmxVaultAddr = await GMX_GlpManager__factory.connect(addresses.glpManager, owner).vault();
             
@@ -269,27 +269,32 @@ describe("Token Prices", async () => {
             } = await loadFixture(setup));
         });
 
-        it("Trader Joe Price", async () => {           
-            const encodedAvaxGmx = encodedTraderJoePrice(addresses.avaxGmxTraderJoePool, true);
-            await tokenPrices.setTokenPriceFunction(addresses.avaxGmxTraderJoePool, encodedAvaxGmx);
+        it("Trader Joe V2 Price", async () => {           
+            const gmxWavaxPrice = await tokenPrices.traderJoeBestPrice(addresses.traderJoeQuoter, addresses.gmx, addresses.wavax);
+            expect(gmxWavaxPrice).to.eq(toPrecision("4.206218032836104331131753600091"));
 
-            const price = await tokenPrices.tokenPrice(addresses.avaxGmxTraderJoePool);
-            expect(price).to.eq(toPrecision("0.329496599958896575"));
+            const wavaxGmxPrice = await tokenPrices.traderJoeBestPrice(addresses.traderJoeQuoter, addresses.wavax, addresses.gmx);
+            expect(wavaxGmxPrice).to.eq(toPrecision("0.237985638774157491474423269809"));
 
-            // Not in quoted order
-            const encodedAvaxGmxInverse = encodedTraderJoePrice(addresses.avaxGmxTraderJoePool, false);
-            await tokenPrices.setTokenPriceFunction(addresses.avaxGmxTraderJoePool, encodedAvaxGmxInverse);
+            const wavaxUsdcPrice = await tokenPrices.traderJoeBestPrice(addresses.traderJoeQuoter, addresses.wavax, addresses.usdc);
+            expect(wavaxUsdcPrice).to.eq(toPrecision("18.060913827678474919538505458814"));
+            
+            const usdcWavaxPrice = await tokenPrices.traderJoeBestPrice(addresses.traderJoeQuoter, addresses.usdc, addresses.wavax);
+            expect(usdcWavaxPrice).to.eq(toPrecision("0.055368183825892921736394525445"));
 
-            const priceInverse = await tokenPrices.tokenPrice(addresses.avaxGmxTraderJoePool);
-            expect(priceInverse).to.eq(toPrecision("3.034932682536773149"));
+            const aliasAddr = alan.getAddress();
+            const encodedWavaxGmx = encodedTraderJoeBestPrice(addresses.traderJoeQuoter, addresses.wavax, addresses.gmx);
+            await tokenPrices.setTokenPriceFunction(aliasAddr, encodedWavaxGmx);
+
+            const lookupPrice = await tokenPrices.tokenPrice(aliasAddr);
+            expect(lookupPrice).eq(wavaxGmxPrice);
 
             // And get the derived $GMX price from [AVAX_USD / AVAX_GMX]
             const encodedAvaxUsd = encodedGmxVaultPrice(gmxVaultAddr, addresses.wavax);
-            const encodedGmxUsd = encodedDivPrice(encodedAvaxUsd, encodedAvaxGmx);
-            await tokenPrices.setTokenPriceFunction(addresses.gmx, encodedGmxUsd);
-
-            const gmxPrice = await tokenPrices.tokenPrice(addresses.gmx);
-            expect(gmxPrice).to.eq(toPrecision("39.960412343078835446899346402600"));
+            const encodedGmxUsd = encodedDivPrice(encodedAvaxUsd, encodedWavaxGmx);
+            await tokenPrices.setTokenPriceFunction(aliasAddr, encodedGmxUsd);
+            const gmxPrice = await tokenPrices.tokenPrice(aliasAddr);
+            expect(gmxPrice).to.eq(toPrecision("75.886932056175436282845046092983"));
         });
     });
 
@@ -299,7 +304,7 @@ describe("Token Prices", async () => {
 
         async function setup() {
             tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            reserveToken = await new MintableToken__factory(owner).deploy("oToken", "oToken");
+            reserveToken = await new DummyMintableToken__factory(owner).deploy("oToken", "oToken");
             repricingToken = await new DummyRepricingToken__factory(owner).deploy("ovToken", "ovToken", reserveToken.address);
             await repricingToken.addOperator(owner.getAddress());
 
@@ -325,8 +330,15 @@ describe("Token Prices", async () => {
         it("repricing token price", async () => {
             // Set $reserveToken == 30
             const reserveTokenPrice = 30;
-            const reserveTokenOracle = await new DummyOracle__factory(owner).deploy(ethers.utils.parseUnits(reserveTokenPrice.toString(), 8), 8);
-            const encodedReserveTokenOracle = encodedOraclePrice(reserveTokenOracle.address);
+            const nonStaleAnswer: DummyOracle.AnswerStruct = {
+                roundId: 10,
+                answer: ethers.utils.parseUnits(reserveTokenPrice.toString(), 8),
+                startedAt: await blockTimestamp(),
+                updatedAtLag: 10,
+                answeredInRound: 5
+            };
+            const reserveTokenOracle = await new DummyOracle__factory(owner).deploy(nonStaleAnswer, 8);
+            const encodedReserveTokenOracle = encodedOraclePrice(reserveTokenOracle.address, 60);
             await tokenPrices.setTokenPriceFunction(reserveToken.address, encodedReserveTokenOracle);
 
             const encodedUsd = encodedRepricingTokenPrice(repricingToken.address);
@@ -353,16 +365,50 @@ describe("Token Prices", async () => {
 
         it("negative oracle price", async () => {
             const price = ethers.utils.parseUnits("15.1", 8).mul(-1);
+            const nonStaleAnswer: DummyOracle.AnswerStruct = {
+                roundId: 10,
+                answer: price,
+                startedAt: await blockTimestamp(),
+                updatedAtLag: 10,
+                answeredInRound: 5
+            };
             const reserveTokenOracle = await new DummyOracle__factory(owner).deploy(
-                price, 8);
-            const encodedReserveTokenOracle = encodedOraclePrice(reserveTokenOracle.address);
+                nonStaleAnswer, 8);
+            const encodedReserveTokenOracle = encodedOraclePrice(reserveTokenOracle.address, 60);
             await tokenPrices.setTokenPriceFunction(reserveToken.address, encodedReserveTokenOracle);
             await expect(tokenPrices.tokenPrice(reserveToken.address))
                 .to.revertedWithCustomError(tokenPrices, "FailedPriceLookup");
 
-            await expect(tokenPrices.oraclePrice(reserveTokenOracle.address))
+            await expect(tokenPrices.oraclePrice(reserveTokenOracle.address, 60))
                 .to.revertedWithCustomError(tokenPrices, "InvalidPrice")
                 .withArgs(price);
+        });
+
+        it("stale oracle price", async () => {
+            const price = ethers.utils.parseUnits("15.1", 8);
+            const staleAnswer: DummyOracle.AnswerStruct = {
+                roundId: 10,
+                answer: price,
+                startedAt: await blockTimestamp(),
+                updatedAtLag: 100,
+                answeredInRound: 5
+            };
+            const reserveTokenOracle = await new DummyOracle__factory(owner).deploy(
+                staleAnswer, 8);
+
+            // The staleness threshold is 10 seconds, whereas the answer was updated 100 seconds ago.
+            const encodedReserveTokenOracle = encodedOraclePrice(reserveTokenOracle.address, 10);
+            await tokenPrices.setTokenPriceFunction(reserveToken.address, encodedReserveTokenOracle);
+            await expect(tokenPrices.tokenPrice(reserveToken.address))
+                .to.revertedWithCustomError(tokenPrices, "FailedPriceLookup");
+
+            await expect(tokenPrices.oraclePrice(reserveTokenOracle.address, 10))
+                .to.revertedWithCustomError(tokenPrices, "InvalidPrice")
+                .withArgs(price);
+
+            // Works if at the threshold
+            expect(await tokenPrices.oraclePrice(reserveTokenOracle.address, 100))
+                .to.eq(ethers.utils.parseUnits(ethers.utils.formatUnits(price.toString(), 8), 30));
         });
     });
 

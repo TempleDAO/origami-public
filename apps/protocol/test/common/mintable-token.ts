@@ -1,12 +1,11 @@
-import { ethers } from "hardhat";
 import { expect } from "chai";
-import { MintableToken, MintableToken__factory } from "../../typechain";
+import { DummyMintableToken, DummyMintableToken__factory } from "../../typechain";
 import { recoverToken, shouldRevertNotOwner, testErc20Permit } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { OrigamiSignerWithAddress, getSigners } from "../signers";
 
 describe("Mintable Token", async () => {
-    let token: MintableToken;
+    let token: DummyMintableToken;
     let owner: OrigamiSignerWithAddress
     let minter: OrigamiSignerWithAddress
     let alan: OrigamiSignerWithAddress
@@ -17,7 +16,7 @@ describe("Mintable Token", async () => {
     });
 
     async function setup() {
-        token = await new MintableToken__factory(owner).deploy("My Mintable Token", "oLP");
+        token = await new DummyMintableToken__factory(owner).deploy("My Mintable Token", "oLP");
 
         return {
             token,
@@ -61,8 +60,12 @@ describe("Mintable Token", async () => {
             .withArgs(await owner.getAddress());
 
         // Only admin can add a minter
+        expect(await token.isMinter(minterAddress)).eq(false);
         await shouldRevertNotOwner(token.connect(alan).addMinter(alanAddress));
-        await token.addMinter(minterAddress);
+        await expect(token.addMinter(minterAddress))
+            .to.emit(token, "AddedMinter")
+            .withArgs(minterAddress);
+        expect(await token.isMinter(minterAddress)).eq(true);
     
         // Only minter can, well mint
         await token.connect(minter).mint(alanAddress, 10);
@@ -73,7 +76,10 @@ describe("Mintable Token", async () => {
     
         // Only admin can remove a minter
         await shouldRevertNotOwner(token.connect(alan).removeMinter(minterAddress));
-        await token.removeMinter(minterAddress);
+        await expect(token.removeMinter(minterAddress))
+            .to.emit(token, "RemovedMinter")
+            .withArgs(minterAddress);
+        expect(await token.isMinter(minterAddress)).eq(false);
 
         expect(await token.totalSupply()).eq(10);
     });
