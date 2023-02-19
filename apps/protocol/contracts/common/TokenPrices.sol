@@ -12,7 +12,7 @@ import {IGlpManager} from "../interfaces/external/gmx/IGlpManager.sol";
 import {IGmxReader} from "../interfaces/external/gmx/IGmxReader.sol";
 import {IGmxVault} from "../interfaces/external/gmx/IGmxVault.sol";
 import {IUniswapV3Pool} from "../interfaces/external/uniswap/IUniswapV3Pool.sol";
-import {IJoePair} from "../interfaces/external/traderJoe/IJoePair.sol";
+import {IJoeLBQuoter} from "../interfaces/external/traderJoe/IJoeLBQuoter.sol";
 
 import {CommonEventsAndErrors} from "./CommonEventsAndErrors.sol";
 import {ITokenPrices} from "../interfaces/common/ITokenPrices.sol";
@@ -74,16 +74,25 @@ contract TokenPrices is ITokenPrices, Ownable {
         price = scaleToPrecision(uint256(feedValue), oracle.decimals());
     }
 
-    /// @notice Fetch the Trader Joe pair price.
+    /// @notice Fetch the Trader Joe pair price, not inclusive of swap fees or price impact.
     /// @dev Do not use this for on-chain calculations, as it can be exploited 
     /// with a single block sandwhich attack. Only use for off-chain utilities (eg informational purposes only)
-    function traderJoePrice(IJoePair joePair, bool inQuotedOrder) external view returns (uint256) {
-        (uint112 token0Reserve, uint112 token1Reserve,) = joePair.getReserves();
-        if (inQuotedOrder) {
-            return scaleToPrecision(uint256(token0Reserve) * 1e18 / token1Reserve, 18);
-        } else {
-            return scaleToPrecision(uint256(token1Reserve) * 1e18 / token0Reserve, 18);
-        }
+    function traderJoeBestPrice(IJoeLBQuoter joeQuoter, address sellToken, address buyToken) external view returns (uint256) {
+        address[] memory route = new address[](2);
+        route[0] = sellToken;
+        route[1] = buyToken;
+        uint8 buyTokenDecimals = ERC20(buyToken).decimals();
+        uint8 sellTokenDecimals = ERC20(sellToken).decimals();
+
+        // Get the quote details to sell 1 token, across all v1 and v2 pools
+        IJoeLBQuoter.Quote memory quote = joeQuoter.findBestPathFromAmountIn(route, 10 ** sellTokenDecimals);
+
+        // Scale to 1e30.
+        uint256 sellTokenAmount = scaleToPrecision(quote.virtualAmountsWithoutSlippage[0], sellTokenDecimals);
+        uint256 sellTokenFeeAmount = sellTokenAmount * quote.fees[0] / 1e18; // fees are a percentage of the sell token amount
+        uint256 buyTokenAmount = scaleToPrecision(quote.virtualAmountsWithoutSlippage[1], buyTokenDecimals);
+
+        return buyTokenAmount * 10 ** decimals / (sellTokenAmount - sellTokenFeeAmount);
     }
 
     /// @notice Fetch the price from a univ3 pool, in quoted order (token0Price), to `pricePrecision`
