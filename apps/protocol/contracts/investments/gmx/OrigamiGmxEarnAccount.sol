@@ -31,13 +31,16 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     // here: https://gmxio.gitbook.io/gmx/contracts
 
     /// @notice $GMX
-    IERC20Upgradeable public gmxToken;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IERC20Upgradeable public immutable gmxToken;
 
     /// @notice $esGMX - escrowed GMX
-    IERC20Upgradeable public esGmxToken;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IERC20Upgradeable public immutable esGmxToken;
 
     /// @notice $wrappedNative - wrapped ETH/AVAX
-    IERC20Upgradeable public wrappedNativeToken; 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IERC20Upgradeable public immutable wrappedNativeToken; 
 
     /// @notice $bnGMX - otherwise known as multiplier points.
     address public bnGmxAddr;
@@ -109,8 +112,13 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(address gmxRewardRouterAddr) {
         _disableInitializers();
+
+        IGmxRewardRouter _gmxRewardRouter = IGmxRewardRouter(gmxRewardRouterAddr);
+        gmxToken = IERC20Upgradeable(_gmxRewardRouter.gmx());
+        esGmxToken = IERC20Upgradeable(_gmxRewardRouter.esGmx());
+        wrappedNativeToken = IERC20Upgradeable(_gmxRewardRouter.weth());
     }
 
     function initialize(address _gmxRewardRouter, address _glpRewardRouter, address _esGmxVester, address _stakedGlp) initializer external {
@@ -118,7 +126,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         __Operators_init();
         __UUPSUpgradeable_init();
 
-        initGmxContracts(_gmxRewardRouter, _glpRewardRouter, _esGmxVester, _stakedGlp);
+        _initGmxContracts(_gmxRewardRouter, _glpRewardRouter, _esGmxVester, _stakedGlp);
     }
 
     function _authorizeUpgrade(address newImplementation)
@@ -127,19 +135,15 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         override
     {}
 
-    /// @dev In case any of the upstream GMX contracts are upgraded this can be re-initialized.
-    function initGmxContracts(
+    function _initGmxContracts(
         address _gmxRewardRouter, 
         address _glpRewardRouter, 
         address _esGmxVester, 
         address _stakedGlp
-    ) public onlyOwner {
+    ) internal {
         // Copy the required addresses from the GMX Reward Router.
         gmxRewardRouter = IGmxRewardRouter(_gmxRewardRouter);
         glpRewardRouter = IGmxRewardRouter(_glpRewardRouter);
-        gmxToken = IERC20Upgradeable(gmxRewardRouter.gmx());
-        esGmxToken = IERC20Upgradeable(gmxRewardRouter.esGmx());
-        wrappedNativeToken = IERC20Upgradeable(gmxRewardRouter.weth());
         bnGmxAddr = gmxRewardRouter.bnGmx();
         stakedGmxTracker = IGmxRewardTracker(gmxRewardRouter.stakedGmxTracker());
         feeGmxTracker = IGmxRewardTracker(gmxRewardRouter.feeGmxTracker());
@@ -147,6 +151,21 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         feeGlpTracker = IGmxRewardTracker(glpRewardRouter.feeGlpTracker());
         stakedGlp = IERC20Upgradeable(_stakedGlp);
         esGmxVester = IGmxVester(_esGmxVester);
+    }
+
+    /// @dev In case any of the upstream GMX contracts are upgraded this can be re-initialized.
+    function initGmxContracts(
+        address _gmxRewardRouter, 
+        address _glpRewardRouter, 
+        address _esGmxVester, 
+        address _stakedGlp
+    ) external onlyOwner {
+        _initGmxContracts(
+            _gmxRewardRouter, 
+            _glpRewardRouter, 
+            _esGmxVester, 
+            _stakedGlp
+        );
     }
 
     function addOperator(address _address) external override onlyOwner {
