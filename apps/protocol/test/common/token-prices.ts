@@ -10,7 +10,7 @@ import {
     DummyMintableToken__factory,
     TokenPrices, TokenPrices__factory, DummyOracle,
 } from "../../typechain";
-import { blockTimestamp, forkMainnet, shouldRevertNotOwner, ZERO_ADDRESS } from "../helpers";
+import { blockTimestamp, forkMainnet, mineForwardSeconds, shouldRevertNotOwner, ZERO_ADDRESS } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { deployGmx } from "../investments/gmx/gmx-helpers";
 import { getSigners } from "../signers";
@@ -26,6 +26,7 @@ describe("Token Prices", async () => {
     let gmxVaultAddr: string;
 
     const pricePrecision = 30;
+    const repricingTokenVestingDuration = 86400;
 
     before( async () => {
         [owner, alan] = await getSigners();
@@ -305,7 +306,7 @@ describe("Token Prices", async () => {
         async function setup() {
             tokenPrices = await new TokenPrices__factory(owner).deploy(30);
             reserveToken = await new DummyMintableToken__factory(owner).deploy("oToken", "oToken");
-            repricingToken = await new DummyRepricingToken__factory(owner).deploy("ovToken", "ovToken", reserveToken.address);
+            repricingToken = await new DummyRepricingToken__factory(owner).deploy("ovToken", "ovToken", reserveToken.address, repricingTokenVestingDuration);
             await repricingToken.addOperator(owner.getAddress());
 
             await reserveToken.addMinter(owner.getAddress());
@@ -348,16 +349,22 @@ describe("Token Prices", async () => {
             const price = await tokenPrices.tokenPrice(repricingToken.address);
             expect(price).to.eq(0);
 
-            // Exactly 1:1 reservesPerShare
-
-            await repricingToken.addReserves(100);
+            // 1/2 way through the vesting period, it's 1:2 reservesPerShare
             await repricingToken.mint(owner.getAddress(), 100);
+            await repricingToken.addPendingReserves(100);
+            await mineForwardSeconds(repricingTokenVestingDuration/2);
             const price2 = await tokenPrices.tokenPrice(repricingToken.address);
-            expect(price2).to.eq(ethers.utils.parseUnits(reserveTokenPrice.toString(), 30));
+            expect(price2).to.eq(ethers.utils.parseUnits(reserveTokenPrice.toString(), 30).div(2));
+
+            // Fully vested it's 1:1 reservesPerShare
+            await mineForwardSeconds(repricingTokenVestingDuration/2);
+            const price2b = await tokenPrices.tokenPrice(repricingToken.address);
+            expect(price2b).to.eq(ethers.utils.parseUnits(reserveTokenPrice.toString(), 30));
 
             // > 1:1 reservesPerShare
-            await repricingToken.addReserves(125);
             await repricingToken.mint(owner.getAddress(), 100);
+            await repricingToken.addPendingReserves(125);
+            await mineForwardSeconds(repricingTokenVestingDuration);
             const price3 = await tokenPrices.tokenPrice(repricingToken.address);
             const updatedPrice = reserveTokenPrice * (225 / 200);
             expect(price3).to.eq(ethers.utils.parseUnits(updatedPrice.toString(), 30));

@@ -164,16 +164,11 @@ export async function harvestGlpRewards(
     const totalOGlpAvailable = wethToOglpInvestQuote.quoteData.minInvestmentAmount.add(harvestableRewards.oGlp);
     console.log(`totalOGlpAvailable=[${totalOGlpAvailable.toString()}]`);
 
-    // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
-    // each day.
-    const addToReserveAmount = totalOGlpAvailable.mul(config.DAILY_ADD_TO_RESERVE_BPS).div(10_000);
-    console.log(`addToReserveAmount=[${addToReserveAmount}]`);
-
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
         oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
         gmxToNativeSwapData: gmxToWethQuoteData,
         oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
-        addToReserveAmount: addToReserveAmount,
+        addToReserveAmountPct: config.DAILY_ADD_TO_RESERVE_BPS,
     };
     console.log("Harvest Params:", harvestParams);
 

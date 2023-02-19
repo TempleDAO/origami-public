@@ -129,20 +129,22 @@ const harvestGlp = async (contracts: ContractInstances, signer: Signer) => {
 
     // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
     // each day.
-    const addToReserveAmount = totalOGlpAvailable.mul(1_000).div(10_000);
-    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+    const addToReserveAmountPct = 1_000;
+    console.log(`\taddToReserveAmountPct=[${addToReserveAmountPct}]`);
 
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
         oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
         gmxToNativeSwapData: gmxToWethQuoteData,
         oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
-        addToReserveAmount: addToReserveAmount,
+        addToReserveAmountPct: addToReserveAmountPct,
     };
     console.log("\tHarvest Params:", harvestParams);
 
     console.log("\tovGLP Reserves Before:", await contracts.ovGLP.totalReserves());
+    console.log("\tovGLP Vested & Pending Before:", (await contracts.ovGLP.vestedReserves()).add(await contracts.ovGLP.pendingReserves()));
     await mine(contracts.glpRewardsAggregator.connect(signer).harvestRewards(encodeGlpHarvestParams(harvestParams)));
-    console.log("\tovGLP Reserves After:", await contracts.ovGLP.totalReserves(), "\n");
+    console.log("\tovGLP Reserves After:", await contracts.ovGLP.totalReserves());
+    console.log("\tovGLP Vested & Pending After:", (await contracts.ovGLP.vestedReserves()).add(await contracts.ovGLP.pendingReserves()), "\n");
 }
 
 const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
@@ -185,19 +187,21 @@ const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
 
     // To smooth the bump up out, we only add a percentage of the total available oGMX as reserves
     // each day.
-    const addToReserveAmount = totalOGmxAvailable.mul(1_000).div(10_000); // 10%
-    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+    const addToReserveAmountPct = 1_000;
+    console.log(`\taddToReserveAmountPct=[${addToReserveAmountPct}]`);
 
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
         nativeToGmxSwapData: wethToGmxQuoteData,
         oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
-        addToReserveAmount: addToReserveAmount,
+        addToReserveAmountPct: addToReserveAmountPct,
     };
     console.log("\tHarvest Params:", harvestParams);
 
     console.log("\tovGMX Reserves Before:", await contracts.ovGMX.totalReserves());
+    console.log("\tovGMX Vested & Pending Before:", (await contracts.ovGMX.vestedReserves()).add(await contracts.ovGMX.pendingReserves()));
     await mine(contracts.gmxRewardsAggregator.connect(signer).harvestRewards(encodeGmxHarvestParams(harvestParams)));
-    console.log("\tovGMX Reserves After:", await contracts.ovGMX.totalReserves(), "\n");
+    console.log("\tovGMX Reserves After:", await contracts.ovGMX.totalReserves());
+    console.log("\tovGMX Vested & Pending Before:", (await contracts.ovGMX.vestedReserves()).add(await contracts.ovGMX.pendingReserves()), "\n");
 }
 
 function sleep(ms: number) {
@@ -304,13 +308,13 @@ async function main() {
             await mine(contracts.oGLP.mint(owner.getAddress(), addAmount));
             await mine(contracts.oGLP.approve(contracts.ovGLP.address, addAmount));
             console.log("ovGLP reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
-            await mine(contracts.ovGLP.addReserves(addAmount));
+            await mine(contracts.ovGLP.addPendingReserves(addAmount));
             console.log("ovGLP reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
 
             await mine(contracts.oGMX.mint(owner.getAddress(), addAmount));
             await mine(contracts.oGMX.approve(contracts.ovGMX.address, addAmount));
             console.log("ovGMX reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
-            await mine(contracts.ovGMX.addReserves(addAmount));
+            await mine(contracts.ovGMX.addPendingReserves(addAmount));
             console.log("ovGMX reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
         }
     }

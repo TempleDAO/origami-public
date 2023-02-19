@@ -24,12 +24,14 @@ import {
     ZERO_DEADLINE,
     applySlippage,
     blockTimestamp,
+    mineForwardSeconds,
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getSigners } from "../signers";
 
 // 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
 const MAX_REL_DELTA = tolerance(0.001);
+const vestingDuration = 86400;
 
 describe("Origami Investment Vault", async () => {
     let owner: Signer;
@@ -67,7 +69,7 @@ describe("Origami Investment Vault", async () => {
         // Setup ovToken
         {
             tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            ovToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovToken", "ovToken", oToken.address, tokenPrices.address, 5);
+            ovToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovToken", "ovToken", oToken.address, tokenPrices.address, 5, vestingDuration);
             await ovToken.addOperator(operator.getAddress());
         }
         
@@ -170,8 +172,9 @@ describe("Origami Investment Vault", async () => {
         await oToken.connect(operator).mint(operator.getAddress(), extraReservesAmount);
         await oToken.connect(operator).approve(ovToken.address, extraReservesAmount);
 
-        // Add reserves for the other 10k
-        await ovToken.connect(operator).addReserves(extraReservesAmount);
+        // Add reserves for the other 10k, and let it all vest
+        await ovToken.connect(operator).addPendingReserves(extraReservesAmount);
+        await mineForwardSeconds(vestingDuration);
 
         const reservesPerShare = await ovToken.reservesPerShare();
         return reservesPerShare;
@@ -191,7 +194,7 @@ describe("Origami Investment Vault", async () => {
         await shouldRevertNotOwner(ovToken.connect(alan).setTokenPrices(tokenPrices.address));
         await shouldRevertNotOwner(ovToken.connect(alan).setPerformanceFee(80, 100));
 
-        await expect(ovToken.connect(alan).addReserves(0))
+        await expect(ovToken.connect(alan).addPendingReserves(0))
             .to.revertedWithCustomError(ovToken, "OnlyOperators")
             .withArgs(await alan.getAddress());
 
@@ -515,7 +518,7 @@ describe("Origami Investment Vault", async () => {
                     await expect(ovToken.connect(bob).investWithToken(quote.quoteData))
                         .to.emit(ovToken, "Transfer")
                         .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
-                        .to.emit(ovToken, "ReservesAdded")
+                        .to.emit(ovToken, "VestedReservesAdded")
                         .withArgs(expectedNewReserves)
                         .to.emit(ovToken, "Invested")
                         .withArgs(await bob.getAddress(), expectedNewReserves, oToken.address, quote.quoteData.expectedInvestmentAmount);
@@ -549,7 +552,7 @@ describe("Origami Investment Vault", async () => {
                 await expect(ovToken.connect(bob).investWithToken(quote.quoteData))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
-                    .to.emit(ovToken, "ReservesAdded")
+                    .to.emit(ovToken, "VestedReservesAdded")
                     .withArgs(expectedNewReserves)
                     .to.emit(oToken, "Invested")
                     .withArgs(ovToken.address, amount, underlyingInvestToken.address, expectedNewReserves)
@@ -635,7 +638,7 @@ describe("Origami Investment Vault", async () => {
                 await expect(ovToken.connect(bob).investWithNative(quote.quoteData, {value: amount}))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(ZERO_ADDRESS, await bob.getAddress(), quote.quoteData.expectedInvestmentAmount)
-                    .to.emit(ovToken, "ReservesAdded")
+                    .to.emit(ovToken, "VestedReservesAdded")
                     .withArgs(expectedNewReserves);
             },
                 [oToken, ovToken, expectedNewReserves],
@@ -766,7 +769,7 @@ describe("Origami Investment Vault", async () => {
                 await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
-                    .to.emit(ovToken, "ReservesRemoved")
+                    .to.emit(ovToken, "VestedReservesRemoved")
                     .withArgs(quote.quoteData.expectedToTokenAmount)
                     .to.emit(ovToken, "Exited")
                     .withArgs(await bob.getAddress(), amount, oToken.address, quote.quoteData.expectedToTokenAmount, await bob.getAddress());
@@ -794,7 +797,7 @@ describe("Origami Investment Vault", async () => {
                 await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
-                    .to.emit(ovToken, "ReservesRemoved")
+                    .to.emit(ovToken, "VestedReservesRemoved")
                     .withArgs(expectedReserveAmount)
                     .to.emit(ovToken, "Exited")
                     .withArgs(await bob.getAddress(), amount, underlyingExitToken.address, quote.quoteData.expectedToTokenAmount, await bob.getAddress())
@@ -915,7 +918,7 @@ describe("Origami Investment Vault", async () => {
                 await expect(ovToken.connect(bob).exitToNative(quote.quoteData, bob.getAddress()))
                 .to.emit(ovToken, "Transfer")
                 .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
-                .to.emit(ovToken, "ReservesRemoved")
+                .to.emit(ovToken, "VestedReservesRemoved")
                 .withArgs(expectedReserveAmount)
                 .to.emit(ovToken, "Exited")
                 .withArgs(await bob.getAddress(), amount, ZERO_ADDRESS, quote.quoteData.expectedToTokenAmount, await bob.getAddress())
@@ -957,7 +960,7 @@ describe("Origami Investment Vault", async () => {
         }
     });
 
-    it("should invest -> addReserves -> exit correctly", async () => {
+    it("should invest -> addPendingReserves -> exit correctly", async () => {
         // Invest
         const startingAmount = ethers.utils.parseEther("1000");
         let numShares = BigNumber.from(0);

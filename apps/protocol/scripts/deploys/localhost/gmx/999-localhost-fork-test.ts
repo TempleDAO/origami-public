@@ -307,20 +307,22 @@ enableSlippageProtection=true" | jq
 
     // To smooth the bump up out, we only add a percentage of the total available oGLP as reserves
     // each day.
-    const addToReserveAmount = totalOGlpAvailable.mul(1_000).div(10_000);
-    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+    const addToReserveAmountPct = 1_000;
+    console.log(`\taddToReserveAmountPct=[${addToReserveAmountPct}]`);
 
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
         oGmxExitQuoteData: oGmxToGmxExitQuote.quoteData,
         gmxToNativeSwapData: zeroExQuoteData,
         oGlpInvestQuoteData: wethToOglpInvestQuote.quoteData,
-        addToReserveAmount: addToReserveAmount,
+        addToReserveAmountPct: addToReserveAmountPct,
     };
     console.log("\tHarvest Params:", harvestParams);
 
     console.log("\tovGLP Reserves Before:", await contracts.ovGLP.totalReserves());
-    await mine(contracts.glpRewardsAggregator.connect(signer).harvestRewards(encodeGlpHarvestParams(harvestParams), {gasLimit:5000000}));
+    console.log("\tovGLP Vested & Pending Before:", (await contracts.ovGLP.vestedReserves()).add(await contracts.ovGLP.pendingReserves()));
+    await mine(contracts.glpRewardsAggregator.connect(signer).harvestRewards(encodeGlpHarvestParams(harvestParams)));
     console.log("\tovGLP Reserves After:", await contracts.ovGLP.totalReserves());
+    console.log("\tovGLP Vested & Pending After:", (await contracts.ovGLP.vestedReserves()).add(await contracts.ovGLP.pendingReserves()));
 }
 
 const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
@@ -395,19 +397,21 @@ enableSlippageProtection=true" | jq
 
     // To smooth the bump up out, we only add a percentage of the total available oGMX as reserves
     // each day.
-    const addToReserveAmount = totalOGmxAvailable.mul(1_000).div(10_000);
-    console.log(`\taddToReserveAmount=[${addToReserveAmount}]`);
+    const addToReserveAmountPct = 1_000;
+    console.log(`\taddToReserveAmountPct=[${addToReserveAmountPct}]`);
 
     const harvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
         nativeToGmxSwapData: zeroExQuoteData,
         oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
-        addToReserveAmount: addToReserveAmount,
+        addToReserveAmountPct: addToReserveAmountPct,
     };
     console.log("\tHarvest Params:", harvestParams);
 
     console.log("\tovGMX Reserves Before:", await contracts.ovGMX.totalReserves());
-    await mine(contracts.gmxRewardsAggregator.connect(signer).harvestRewards(encodeGmxHarvestParams(harvestParams), {gasLimit:5000000}));
+    console.log("\tovGMX Vested & Pending Before:", (await contracts.ovGMX.vestedReserves()).add(await contracts.ovGMX.pendingReserves()));
+    await mine(contracts.gmxRewardsAggregator.connect(signer).harvestRewards(encodeGmxHarvestParams(harvestParams)));
     console.log("\tovGMX Reserves After:", await contracts.ovGMX.totalReserves());
+    console.log("\tovGMX Vested & Pending After:", (await contracts.ovGMX.vestedReserves()).add(await contracts.ovGMX.pendingReserves()));
 }
 
 async function main() {
@@ -458,6 +462,8 @@ async function main() {
       console.log("Fred oGMX Bal:", fromAtto(await contracts.oGMX.balanceOf(fred.getAddress())));
       console.log("ovGMX Total Supply:", fromAtto(await contracts.ovGMX.totalSupply()));
       console.log("ovGMX Total Reserves:", fromAtto(await contracts.ovGMX.totalReserves()));
+      console.log("ovGMX Vested Reserves:", fromAtto(await contracts.ovGMX.vestedReserves()));
+      console.log("ovGMX Pending Reserves:", fromAtto(await contracts.ovGMX.pendingReserves()));
       console.log("oGMX Total Supply:", fromAtto(await contracts.oGMX.totalSupply()));
     }
 
@@ -472,6 +478,8 @@ async function main() {
       console.log("Bob oGLP Bal:", fromAtto(await contracts.oGLP.balanceOf(bob.getAddress())));
       console.log("ovGLP Total Supply:", fromAtto(await contracts.ovGLP.totalSupply()));
       console.log("ovGLP Total Reserves:", fromAtto(await contracts.ovGLP.totalReserves()));
+      console.log("ovGLP Vested Reserves:", fromAtto(await contracts.ovGLP.vestedReserves()));
+      console.log("ovGLP Pending Reserves:", fromAtto(await contracts.ovGLP.pendingReserves()));
       console.log("oGLP Total Supply:", fromAtto(await contracts.oGLP.totalSupply()));
     }
 
@@ -528,12 +536,12 @@ async function main() {
         await mine(contracts.oGMX.connect(origamiMultisig).addMinter(origamiMultisig.getAddress()));
         await mine(contracts.oGMX.connect(origamiMultisig).mint(origamiMultisig.getAddress(), ethers.utils.parseEther("1000")));
         await mine(contracts.oGMX.connect(origamiMultisig).approve(contracts.ovGMX.address, ethers.utils.parseEther("1000")));
-        await mine(contracts.ovGMX.connect(origamiMultisig).addReserves(ethers.utils.parseEther("1000")));
+        await mine(contracts.ovGMX.connect(origamiMultisig).addPendingReserves(ethers.utils.parseEther("1000")));
 
         await mine(contracts.oGLP.connect(origamiMultisig).addMinter(origamiMultisig.getAddress()));
         await mine(contracts.oGLP.connect(origamiMultisig).mint(origamiMultisig.getAddress(), ethers.utils.parseEther("2000")));
         await mine(contracts.oGLP.connect(origamiMultisig).approve(contracts.ovGLP.address, ethers.utils.parseEther("2000")));
-        await mine(contracts.ovGLP.connect(origamiMultisig).addReserves(ethers.utils.parseEther("2000")));
+        await mine(contracts.ovGLP.connect(origamiMultisig).addPendingReserves(ethers.utils.parseEther("2000")));
 
         await dumpPrices(contracts);
     }
@@ -547,6 +555,8 @@ async function main() {
       console.log("Fred GMX Bal:", fromAtto(await contracts.gmxToken.balanceOf(fred.getAddress())));
       console.log("ovGMX Total Supply:", fromAtto(await contracts.ovGMX.totalSupply()));
       console.log("ovGMX Total Reserves:", fromAtto(await contracts.ovGMX.totalReserves()));
+      console.log("ovGMX Vested Reserves:", fromAtto(await contracts.ovGMX.vestedReserves()));
+      console.log("ovGMX Pending Reserves:", fromAtto(await contracts.ovGMX.pendingReserves()));
       console.log("oGMX Total Supply:", fromAtto(await contracts.oGMX.totalSupply()));
       console.log("MSIG(fees) oGMX Bal:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
 
@@ -558,6 +568,8 @@ async function main() {
       console.log("Fred GMX Bal:", fromAtto(await contracts.gmxToken.balanceOf(fred.getAddress())));
       console.log("ovGMX Total Supply:", fromAtto(await contracts.ovGMX.totalSupply()));
       console.log("ovGMX Total Reserves:", fromAtto(await contracts.ovGMX.totalReserves()));
+      console.log("ovGMX Vested Reserves:", fromAtto(await contracts.ovGMX.vestedReserves()));
+      console.log("ovGMX Pending Reserves:", fromAtto(await contracts.ovGMX.pendingReserves()));
       console.log("oGMX Total Supply:", fromAtto(await contracts.oGMX.totalSupply()));
       console.log("MSIG(fees) oGMX Bal:", fromAtto(await contracts.oGMX.balanceOf(origamiMultisig.getAddress())));
     }
@@ -599,6 +611,8 @@ async function main() {
       console.log("Bob DAI Bal:", fromAtto(await daiToken.balanceOf(bob.getAddress())));
       console.log("ovGLP Total Supply:", fromAtto(await contracts.ovGLP.totalSupply()));
       console.log("ovGLP Total Reserves:", fromAtto(await contracts.ovGLP.totalReserves()));
+      console.log("ovGLP Vested Reserves:", fromAtto(await contracts.ovGLP.vestedReserves()));
+      console.log("ovGLP Pending Reserves:", fromAtto(await contracts.ovGLP.pendingReserves()));
       console.log("oGLP Total Supply:", fromAtto(await contracts.oGLP.totalSupply()));
       console.log("MSIG(fees) oGLP Bal:", fromAtto(await contracts.oGLP.balanceOf(origamiMultisig.getAddress())));
 
@@ -611,6 +625,8 @@ async function main() {
       console.log("Bob DAI Bal:", fromAtto(await daiToken.balanceOf(bob.getAddress())));
       console.log("ovGLP Total Supply:", fromAtto(await contracts.ovGLP.totalSupply()));
       console.log("ovGLP Total Reserves:", fromAtto(await contracts.ovGLP.totalReserves()));
+      console.log("ovGLP Vested Reserves:", fromAtto(await contracts.ovGLP.vestedReserves()));
+      console.log("ovGLP Pending Reserves:", fromAtto(await contracts.ovGLP.pendingReserves()));
       console.log("oGLP Total Supply:", fromAtto(await contracts.oGLP.totalSupply()));
       console.log("MSIG(fees) oGLP Bal:", fromAtto(await contracts.oGLP.balanceOf(origamiMultisig.getAddress())));
     }

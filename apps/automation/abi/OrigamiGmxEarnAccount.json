@@ -1,6 +1,12 @@
 [
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "gmxRewardRouterAddr",
+        "type": "address"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
@@ -404,11 +410,6 @@
           {
             "internalType": "bool",
             "name": "shouldClaimWeth",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldConvertWethToEth",
             "type": "bool"
           }
         ],

@@ -225,7 +225,7 @@ const exitQuoteTypes = 'tuple(uint256 investmentTokenAmount, address toToken, ui
 
 export const encodeGlpHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct): string => {
     const types = `tuple(${exitQuoteTypes} oGmxExitQuoteData, bytes gmxToNativeSwapData, ` +
-        `${investQuoteTypes} oGlpInvestQuoteData, uint256 addToReserveAmount)`;
+        `${investQuoteTypes} oGlpInvestQuoteData, uint256 addToReserveAmountPct)`;
     return ethers.utils.defaultAbiCoder.encode(
         [types], 
         [params],
@@ -233,7 +233,7 @@ export const encodeGlpHarvestParams = (params: OrigamiGmxRewardsAggregator.Harve
 }
 
 export const encodeGmxHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct): string => {
-    const types = `tuple(bytes nativeToGmxSwapData, ${investQuoteTypes} oGmxInvestQuoteData, uint256 addToReserveAmount)`; 
+    const types = `tuple(bytes nativeToGmxSwapData, ${investQuoteTypes} oGmxInvestQuoteData, uint256 addToReserveAmountPct)`; 
     return ethers.utils.defaultAbiCoder.encode(
         [types], 
         [params],

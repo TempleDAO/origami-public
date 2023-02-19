@@ -8,7 +8,6 @@ import {
     shouldRevertNotOwner, 
     deployUupsProxy, 
     shouldRevertNotOperator, 
-    expectApproxEqAbs,
     expectApproxEqRel, 
     tolerance,
     ZERO_SLIPPAGE,
@@ -65,6 +64,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
     // GMX Reward rates
     const ethPerSecond = BigNumber.from("41335970000000"); // 0.00004133597 ETH per second
     const esGmxPerSecond = BigNumber.from("20667989410000000"); // 0.02066798941 esGmx per second
+    const vestingDuration = 86400;
 
     before( async () => {
         [owner, bob, alan, operator, feeCollector, compoundingFeeCollector] = await getSigners();
@@ -93,8 +93,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
         // Setup ovTokens
         {
             tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            ovGmxToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGmxToken", "ovGmxToken", oGmxToken.address, tokenPrices.address, 5);
-            ovGlpToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGlpToken", "ovGlpToken", oGlpToken.address, tokenPrices.address, 5);
+            ovGmxToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGmxToken", "ovGmxToken", oGmxToken.address, tokenPrices.address, 5, vestingDuration);
+            ovGlpToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGlpToken", "ovGlpToken", oGlpToken.address, tokenPrices.address, 5, vestingDuration);
         }
         
         // Setup the GMX Manager/Earn Account
@@ -261,7 +261,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
             const params: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
                 nativeToGmxSwapData: dex.interface.encodeFunctionData("swapToGMX", [amount]),
                 oGmxInvestQuoteData: quote.quoteData,
-                addToReserveAmount: amount,
+                addToReserveAmountPct: 10_000, // 100%
             };
             return encodeGmxHarvestParams(params);
         }
@@ -400,12 +400,12 @@ describe("Origami GMX Rewards Aggregator", async () => {
         const oGlpInvestQuote = await oGlpToken.investQuote(ethAmountToInvest, gmxContracts.wrappedNativeToken.address, 100, ZERO_DEADLINE);
         const oGmxExitQuote = await oGmxToken.exitQuote(harvestableRewards[1], gmxContracts.gmxToken.address, 100, ZERO_DEADLINE);
         const totalOGlpAvailable = oGlpInvestQuote.quoteData.expectedInvestmentAmount.add(balancesBefore.oGlp);
-        const addToReserveAmount = totalOGlpAvailable.mul(90).div(100);
+        const addToReserveAmountPct = 9_000;
         const glpHarvestParams: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct = {
             oGmxExitQuoteData: oGmxExitQuote.quoteData,
             gmxToNativeSwapData: dex.interface.encodeFunctionData("swapToWrappedNative", [harvestableRewards[1]]), // GMX -> wETH
             oGlpInvestQuoteData: oGlpInvestQuote.quoteData,
-            addToReserveAmount: addToReserveAmount,
+            addToReserveAmountPct: addToReserveAmountPct,
         };
 
         const fee = await ovGmxToken.performanceFee();
@@ -420,7 +420,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 .withArgs(oGlpToken.address, anyValue, await compoundingFeeCollector.getAddress());
         }
 
-        const reservesAddedAfterFee = addToReserveAmount.mul(fee.denominator.sub(fee.numerator)).div(fee.denominator);
+        const reservesAddedAfterFee = totalOGlpAvailable.mul(90).div(100).mul(fee.denominator.sub(fee.numerator)).div(fee.denominator);
         return {totalOGlpAvailable, reservesAddedAfterFee};
     }
 
@@ -428,12 +428,12 @@ describe("Origami GMX Rewards Aggregator", async () => {
         const harvestableRewards = await origamiGmxRewardsAggr.harvestableRewards();
         const newGmx = harvestableRewards[0].mul(100); // GMX = ETH * 100
         const totalOGmxAvailable = newGmx.add(harvestableRewards[1]);
-        const addToReserveAmount = totalOGmxAvailable.mul(90).div(100);
+        const addToReserveAmountPct = 9_000;
         const oGmxInvestQuote = await oGmxToken.investQuote(newGmx, gmxContracts.gmxToken.address, 100, ZERO_DEADLINE);
         const gmxHarvestParams: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct = {
             nativeToGmxSwapData: dex.interface.encodeFunctionData("swapToGMX", [harvestableRewards[0]]), // wETH -> GMX,
             oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-            addToReserveAmount: addToReserveAmount,
+            addToReserveAmountPct: addToReserveAmountPct,
         };
 
         const fee = await ovGmxToken.performanceFee();
@@ -448,6 +448,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
                 .withArgs(oGmxToken.address, anyValue, await compoundingFeeCollector.getAddress());
         }
 
+        const addToReserveAmount = totalOGmxAvailable.mul(90).div(100);
         const reservesAddedAfterFee = addToReserveAmount.mul(fee.denominator.sub(fee.numerator)).div(fee.denominator);
         return {totalOGmxAvailable, addToReserveAmount, reservesAddedAfterFee};
     }
@@ -739,10 +740,10 @@ describe("Origami GMX Rewards Aggregator", async () => {
     describe("harvestRewards", async () => {
 
         const harvestAndCheckGlp = async () => {
-            const reservesBefore = await ovGlpToken.totalReserves();
+            const reservesBefore = (await ovGlpToken.vestedReserves()).add(await ovGlpToken.pendingReserves());
             const feeCollectorBalanceBefore = await oGlpToken.balanceOf(compoundingFeeCollector.getAddress());
             const {totalOGlpAvailable, reservesAddedAfterFee} = await harvestGlp();           
-            const reservesAfter = await ovGlpToken.totalReserves();
+            const reservesAfter = (await ovGlpToken.vestedReserves()).add(await ovGlpToken.pendingReserves());
             const reservesAdded = reservesAfter.sub(reservesBefore);
             expect(reservesAdded).eq(reservesAddedAfterFee);
 
@@ -757,12 +758,13 @@ describe("Origami GMX Rewards Aggregator", async () => {
         }
 
         const harvestAndCheckGmx = async () => {
-            const reservesBefore = await ovGmxToken.totalReserves();
+            const reservesBefore = (await ovGmxToken.vestedReserves()).add(await ovGmxToken.pendingReserves());
             const feeCollectorBalanceBefore = await oGmxToken.balanceOf(compoundingFeeCollector.getAddress());
             const {totalOGmxAvailable, reservesAddedAfterFee} = await harvestGmx();
-            const reservesAfter = await ovGmxToken.totalReserves();
+            const reservesAfter = (await ovGmxToken.vestedReserves()).add(await ovGmxToken.pendingReserves());
             const reservesAdded = reservesAfter.sub(reservesBefore);
-            expectApproxEqAbs(reservesAdded, reservesAddedAfterFee, 1); // div rounding
+            // Actual amount added might be slightly higher than estimated because of assumed slippage in WETH->GMX
+            expectApproxEqRel(reservesAdded, reservesAddedAfterFee, MAX_REL_DELTA);
 
             // Dust left for eth/oGMX. 10% left in oGLP that wasn't added as reserves
             const balances = await getAggregatorRewardBalances(origamiGmxRewardsAggr);
@@ -923,7 +925,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
             const gmxHarvestParams = encodeGmxHarvestParams({
                 nativeToGmxSwapData: dex.interface.encodeFunctionData("revertCustom"), // throws a custom error
                 oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-                addToReserveAmount: 100,
+                addToReserveAmountPct: 1_000,
             });
             await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(gmxHarvestParams))
                 .to.revertedWithCustomError(dex, "InvalidParam");
@@ -931,7 +933,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
             const gmxHarvestParams2 = encodeGmxHarvestParams({
                 nativeToGmxSwapData: dex.interface.encodeFunctionData("revertNoMessage"), // UnknownSwapError
                 oGmxInvestQuoteData: oGmxInvestQuote.quoteData,
-                addToReserveAmount: 100,
+                addToReserveAmountPct: 1_000,
             });
             await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(gmxHarvestParams2))
                 .to.revertedWithCustomError(origamiGmxRewardsAggr, "UnknownSwapError")
