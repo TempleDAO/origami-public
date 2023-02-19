@@ -2,11 +2,9 @@ pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/access/Operators.sol)
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-
 /// @notice Inherit to add an Operator role which multiple addreses can be granted.
 /// @dev Derived classes to implement addOperator() and removeOperator()
-abstract contract Operators is Initializable {
+abstract contract Operators {
     /// @notice A set of addresses which are approved to run operations.
     mapping(address => bool) internal _operators;
 
@@ -14,16 +12,6 @@ abstract contract Operators is Initializable {
     event RemovedOperator(address indexed account);
 
     error OnlyOperators(address caller);
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    function __Operators_init() internal onlyInitializing {
-        __Operators_init_unchained();
-    }
-
-    function __Operators_init_unchained() internal onlyInitializing {
-    }
 
     function operators(address _account) external view returns (bool) {
         return _operators[_account];
@@ -51,11 +39,4 @@ abstract contract Operators is Initializable {
         if (!_operators[msg.sender]) revert OnlyOperators(msg.sender);
         _;
     }
-
-    /**
-     * @dev This empty reserved space is put in place to allow future versions to add new
-     * variables without shifting down storage in the inheritance chain.
-     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-     */
-    uint256[49] private __gap;
 }
