@@ -4,17 +4,25 @@ pragma solidity 0.8.17;
 import {IAggregatorV3Interface} from "../../interfaces/external/chainlink/IAggregatorV3Interface.sol";
 
 contract DummyOracle is IAggregatorV3Interface {
-    int256 public _answer;
+    Answer public _answer;
     uint8 public _decimals;
 
-    event AnswerSet(int256 answer);
+    struct Answer {
+        uint80 roundId;
+        int256 answer;
+        uint256 startedAt;
+        uint256 updatedAtLag;
+        uint80 answeredInRound;
+    }
 
-    constructor(int256 __answer, uint8 __decimals) {
+    event AnswerSet(Answer answer);
+
+    constructor(Answer memory __answer, uint8 __decimals) {
         _answer = __answer;
         _decimals = __decimals;
     }
 
-    function setAnswer(int256 __answer) external {
+    function setAnswer(Answer memory __answer) external {
         _answer = __answer;
         emit AnswerSet(__answer);
     }
@@ -26,7 +34,13 @@ contract DummyOracle is IAggregatorV3Interface {
         uint256 /*updatedAt*/,
         uint80 /*answeredInRound*/
     ) {
-        return (0, _answer, 0, 0, 0);
+        return (
+            _answer.roundId, 
+            _answer.answer, 
+            _answer.startedAt, 
+            block.timestamp - _answer.updatedAtLag,
+            _answer.answeredInRound
+        );
     }
 
     function decimals() external override view returns (uint8) {

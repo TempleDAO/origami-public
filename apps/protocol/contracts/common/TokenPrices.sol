@@ -62,9 +62,11 @@ contract TokenPrices is ITokenPrices, Ownable {
     /** EXTERNAL PRICE LOOKUPS */
 
     /// @notice Lookup the price of an oracle, scaled to `pricePrecision`
-    function oraclePrice(address _oracle) external view returns (uint256 price) {
+    function oraclePrice(address _oracle, uint256 _stalenessThreshold) external view returns (uint256 price) {
         IAggregatorV3Interface oracle = IAggregatorV3Interface(_oracle);
-        (, int256 feedValue, , , ) = oracle.latestRoundData();
+        (uint80 roundId, int256 feedValue, , uint256 updatedAt, uint80 answeredInRound) = oracle.latestRoundData();
+		if (answeredInRound <= roundId && block.timestamp - updatedAt > _stalenessThreshold) revert InvalidPrice(feedValue);
+
         if (feedValue < 0) revert InvalidPrice(feedValue);
         price = scaleToPrecision(uint256(feedValue), oracle.decimals());
     }
