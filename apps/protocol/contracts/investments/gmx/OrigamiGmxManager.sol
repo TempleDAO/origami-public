@@ -108,7 +108,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         address _primaryEarnAccount,
         address _secondaryEarnAccount
     ) {
-        initGmxContracts(_gmxRewardRouter, _glpRewardRouter);
+        _initGmxContracts(_gmxRewardRouter, _glpRewardRouter);
 
         oGmxToken = IMintableToken(_oGmxTokenAddr);
         oGlpToken = IMintableToken(_oGlpTokenAddr);
@@ -125,11 +125,10 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         esGmxVestingRate.denominator = 100;
     }
 
-    /// @dev In case any of the upstream GMX contracts are upgraded this can be re-initialized.
-    function initGmxContracts(
+    function _initGmxContracts(
         address _gmxRewardRouter, 
         address _glpRewardRouter
-    ) public onlyOwner {
+    ) internal {
         IGmxRewardRouter gmxRewardRouter = IGmxRewardRouter(_gmxRewardRouter);
         IGmxRewardRouter glpRewardRouter = IGmxRewardRouter(_glpRewardRouter);
         glpManager = IGlpManager(glpRewardRouter.glpManager());
@@ -138,6 +137,14 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         gmxToken = IERC20(gmxRewardRouter.gmx());
         glpToken = IERC20(glpRewardRouter.glp());
         gmxVault = IGmxVault(glpManager.vault());
+    }
+
+    /// @dev In case any of the upstream GMX contracts are upgraded this can be re-initialized.
+    function initGmxContracts(
+        address _gmxRewardRouter, 
+        address _glpRewardRouter
+    ) external onlyOwner {
+        _initGmxContracts(_gmxRewardRouter, _glpRewardRouter);
     }
 
     /// @notice Current status of whether investments/exits are paused
@@ -591,9 +598,9 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             // to avoid withdrawals blocking from cooldown in the primary account.
             IERC20(fromToken).safeTransfer(address(secondaryEarnAccount), quoteData.fromTokenAmount);
 
-            // Safe to assume the minUsdg=1, as we only care that we get the min GLP amount out.
+            // Safe to assume the minUsdg=0, as we only care that we get the min GLP amount out.
             investmentAmount = secondaryEarnAccount.mintAndStakeGlp(
-                quoteData.fromTokenAmount, fromToken, 1, quoteData.minInvestmentAmount
+                quoteData.fromTokenAmount, fromToken, 0, quoteData.minInvestmentAmount
             );
         }
     }
