@@ -75,16 +75,16 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /// @notice The address used to collect the Origami fees.
     address public feeCollector;
 
-    // @notice The Origami contract holding the majority of staked GMX/GLP/multiplier points/esGMX.
-    // @dev When users sell GMX/GLP positions are unstaked from this account.
-    // GMX positions are also deposited directly into this account (no cooldown for GMX, unlike GLP)
+    /// @notice The Origami contract holding the majority of staked GMX/GLP/multiplier points/esGMX.
+    /// @dev When users sell GMX/GLP positions are unstaked from this account.
+    /// GMX positions are also deposited directly into this account (no cooldown for GMX, unlike GLP)
     IOrigamiGmxEarnAccount public primaryEarnAccount;
 
-    // @notice The Origami contract holding a small amount of staked GMX/GLP/multiplier points/esGMX.
-    // @dev This account is used to accept user deposits for GLP, such that the cooldown clock isn't reset
-    // in the primary earn account (which may block any user withdrawals)
-    // Staked GLP positions are transferred to the primaryEarnAccount on a schedule (eg daily), which does
-    // not reset the cooldown clock.
+    /// @notice The Origami contract holding a small amount of staked GMX/GLP/multiplier points/esGMX.
+    /// @dev This account is used to accept user deposits for GLP, such that the cooldown clock isn't reset
+    /// in the primary earn account (which may block any user withdrawals)
+    /// Staked GLP positions are transferred to the primaryEarnAccount on a schedule (eg daily), which does
+    /// not reset the cooldown clock.
     IOrigamiGmxEarnAccount public secondaryEarnAccount;
 
     /// @notice The current paused/unpaused state of investments/exits.

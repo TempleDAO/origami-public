@@ -72,8 +72,8 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
         return sharesToReserves(10 ** decimals());
     }
     
-    // How many reserve tokens given a number of shares
-    function sharesToReserves(uint256 shares) public view returns (uint256) {
+    /// @notice How many reserve tokens given a number of shares
+    function sharesToReserves(uint256 shares) public view override returns (uint256) {
         uint256 _totalSupply = totalSupply();
 
         // Returns 0 if no shares yet allocated
@@ -82,8 +82,8 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
             : shares * totalReserves / _totalSupply;
     }
 
-    // How many reserve tokens given a number of shares
-    function reservesToShares(uint256 reserves) public view returns (uint256) {
+    /// @notice How many shares given a number of reserve tokens
+    function reservesToShares(uint256 reserves) public view override returns (uint256) {
         uint256 _totalSupply = totalSupply();
 
         // Returns shares = 1:1 if no shares yet allocated
@@ -123,6 +123,7 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
         _removeReserves(reserveTokenAmount);
     }
 
+    /// @notice Add reserve tokens, increasing the pricePerShare()
     function addReserves(uint256 amount) external override onlyOperators {
         IERC20(reserveToken).safeTransferFrom(msg.sender, address(this), amount);
         _addReserves(amount);

@@ -20,6 +20,12 @@ interface IRepricingToken is IERC20, IERC20Permit {
     /// @notice The price for a single share in terms of the `reserveToken`
     function reservesPerShare() external view returns (uint256);
 
+    /// @notice How many reserve tokens given a number of shares
+    function sharesToReserves(uint256 shares) external view returns (uint256);
+
+    /// @notice How many shares given a number of reserve tokens
+    function reservesToShares(uint256 reserves) external view returns (uint256);
+
     /// @notice Add reserve tokens, increasing the pricePerShare()
     function addReserves(uint256 amount) external;
 }
