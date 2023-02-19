@@ -334,8 +334,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
                 shouldClaimEsGmx: true,
                 shouldStakeEsGmx: true,
                 shouldStakeMultiplierPoints: true,
-                shouldClaimWeth: true,
-                shouldConvertWethToEth: false
+                shouldClaimWeth: true
             })
         );
 

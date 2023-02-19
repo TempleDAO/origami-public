@@ -14,7 +14,6 @@ interface IOrigamiGmxEarnAccount {
         bool shouldStakeEsGmx;
         bool shouldStakeMultiplierPoints;
         bool shouldClaimWeth;
-        bool shouldConvertWethToEth;
     }
 
     // Rewards that Origami claimed from GMX.io

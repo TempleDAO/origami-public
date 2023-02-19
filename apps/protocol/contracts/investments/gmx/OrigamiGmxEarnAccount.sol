@@ -324,8 +324,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
                 shouldClaimEsGmx: true,  /* Always claim esGMX rewards */
                 shouldStakeEsGmx: false, /* Manually stake/vest these after */
                 shouldStakeMultiplierPoints: true,  /* Always claim and stake mult point rewards */
-                shouldClaimWeth: true,  /* Always claim weth/wavax rewards */
-                shouldConvertWethToEth: false  /* Never convert to ETH in this contract */
+                shouldClaimWeth: true  /* Always claim weth/wavax rewards */
             }),
             msg.sender
         );
@@ -382,16 +381,30 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
     }
 
     function _handleGmxRewards(HandleGmxRewardParams memory params, address _receiver) internal returns (ClaimedRewards memory claimedRewards) {
-        // Check balances before/after in order to check how many wrappedNative, esGMX, mult points
-        // were rewarded.
-        uint256 wrappedNativeBefore = wrappedNativeToken.balanceOf(address(this));
-        uint256 esGmxBefore = esGmxToken.balanceOf(address(this));
-        uint256 gmxBefore = gmxToken.balanceOf(address(this));
+        // Check balances before/after in order to check how many wrappedNative, esGMX, mult points, GMX
+        // were harvested.
+        uint256 gmxBefore; 
+        uint256 esGmxBefore;
+        uint256 wrappedNativeBefore;
+        {
+            if (params.shouldClaimGmx && !params.shouldStakeGmx) {
+                gmxBefore = gmxToken.balanceOf(address(this));
+            }
 
-        // In order to calculate how much is from staked GLP vs staked GMX/esGMX/mult points, the only option is to
-        // call claimable before handleRewards()
-        claimedRewards.esGmxFromGlp = stakedGlpTracker.claimable(address(this));
-        claimedRewards.wrappedNativeFromGlp = feeGlpTracker.claimable(address(this));
+            if (params.shouldClaimEsGmx && !params.shouldStakeEsGmx) {
+                esGmxBefore = esGmxToken.balanceOf(address(this));
+                // Find how much esGMX harvested from the GLP tracker from the 'claimable'
+                // Then any balance of actual claimed is for the GMX tracker.
+                claimedRewards.esGmxFromGlp = stakedGlpTracker.claimable(address(this));
+            }
+            
+            if (params.shouldClaimWeth) {
+                wrappedNativeBefore = wrappedNativeToken.balanceOf(address(this));
+                // Find how much wETH/wAVAX harvested from the GLP tracker from the 'claimable'
+                // Then any balance of actual claimed is for the GMX tracker.
+                claimedRewards.wrappedNativeFromGlp = feeGlpTracker.claimable(address(this));
+            }
+        }
 
         gmxRewardRouter.handleRewards(
             params.shouldClaimGmx,
@@ -400,24 +413,34 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
             params.shouldStakeEsGmx,
             params.shouldStakeMultiplierPoints,
             params.shouldClaimWeth,
-            params.shouldConvertWethToEth
+            false  /* Never convert to raw ETH */
         );
 
-        // Calculate how many ETH rewards were awarded and send to the receiver
-        uint256 claimed = wrappedNativeToken.balanceOf(address(this)) - wrappedNativeBefore;
-        if (claimed != 0) {
-            wrappedNativeToken.safeTransfer(_receiver, claimed);
-        }
-        claimedRewards.wrappedNativeFromGmx = subtractWithFloorAtZero(claimed, claimedRewards.wrappedNativeFromGlp);
-        
-        // Calculate how many esGMX rewards were claimed
-        claimed = esGmxToken.balanceOf(address(this)) - esGmxBefore;
-        claimedRewards.esGmxFromGmx = subtractWithFloorAtZero(claimed, claimedRewards.esGmxFromGlp);
+        // Update accounting and transfer tokens.
+        {
+            // Calculate how many GMX were claimed from vested esGMX, and send to the receiver
+            if (params.shouldClaimGmx && !params.shouldStakeGmx) {
+                claimedRewards.vestedGmx = gmxToken.balanceOf(address(this)) - gmxBefore;
+                if (claimedRewards.vestedGmx != 0) {
+                    gmxToken.safeTransfer(_receiver, claimedRewards.vestedGmx);
+                }
+            }
 
-        // Calculate how many GMX were claimed from vested esGMX, and send to the receiver
-        claimedRewards.vestedGmx = gmxToken.balanceOf(address(this)) - gmxBefore;
-        if (claimedRewards.vestedGmx != 0) {
-            gmxToken.safeTransfer(_receiver, claimedRewards.vestedGmx);
+            // Calculate how many esGMX rewards were claimed
+            // esGMX is effectively non-transferrable
+            if (params.shouldClaimEsGmx && !params.shouldStakeEsGmx) {
+                uint256 claimed = esGmxToken.balanceOf(address(this)) - esGmxBefore;
+                claimedRewards.esGmxFromGmx = subtractWithFloorAtZero(claimed, claimedRewards.esGmxFromGlp);
+            }
+
+            // Calculate how many ETH rewards were awarded and send to the receiver
+            if (params.shouldClaimWeth) {
+                uint256 claimed = wrappedNativeToken.balanceOf(address(this)) - wrappedNativeBefore;
+                claimedRewards.wrappedNativeFromGmx = subtractWithFloorAtZero(claimed, claimedRewards.wrappedNativeFromGlp);
+                if (claimed != 0) {
+                    wrappedNativeToken.safeTransfer(_receiver, claimed);
+                }
+            }
         }
     }
 
