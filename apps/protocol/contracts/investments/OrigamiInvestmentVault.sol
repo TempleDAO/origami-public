@@ -236,7 +236,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             underlyingQuoteData
         );
 
-        // Now issue shares to the user based off the `reserveAmount`
+        // Now issue shares to the user based off the `reservesAmount`
         investmentAmount = _issueSharesFromReserves(
             reservesAmount,
             msg.sender,
@@ -327,15 +327,13 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
                 quoteData.underlyingInvestmentQuoteData, (UnderlyingExitQuoteData)
             );
 
+            // Update the underlying quote data with the actual amount of reserves we received.
             // Safe to assume no slippage for the imtermediate/underlying exit as the final amount of toToken's are checked at the end.
-            uint256 reserveAmount = _redeemReservesFromShares(
+            underlyingQuoteData.underlyingExitQuoteData.investmentTokenAmount = _redeemReservesFromShares(
                 quoteData.investmentTokenAmount,
                 msg.sender,
                 1
             );
-
-            // Update the underlying quote data with the actual amount of reserves we received.
-            underlyingQuoteData.underlyingExitQuoteData.investmentTokenAmount = reserveAmount;
 
             // Now exchange the reserve token to the actual token the user requested.
             toTokenAmount = IOrigamiInvestment(reserveToken).exitToToken(
@@ -367,15 +365,13 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
             quoteData.underlyingInvestmentQuoteData, (UnderlyingExitQuoteData)
         );
 
+        // Update the underlying quote data with the actual amount of reserves we received.
         // Safe to assume no slippage for the imtermediate/underlying exit as the final amount of toToken's are checked at the end.
-        uint256 reserveAmount = _redeemReservesFromShares(
+        underlyingQuoteData.underlyingExitQuoteData.investmentTokenAmount = _redeemReservesFromShares(
             quoteData.investmentTokenAmount,
             msg.sender,
             1
         );
-
-        // Update the underlying quote data with the actual amount of reserves we received.
-        underlyingQuoteData.underlyingExitQuoteData.investmentTokenAmount = reserveAmount;
 
         // Now exchange the reserve token to the actual token the user requested.
         nativeAmount = IOrigamiInvestment(reserveToken).exitToNative(
