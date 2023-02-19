@@ -182,7 +182,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         }
 
         // And also add in any not-yet-distributed harvested amounts (ie if gmxManager.harvestRewards() was called directly),
-        // and sitting in this adggregator, but not yet converted & compounded
+        // and sitting in this aggregator, but not yet converted & compounded
         for (i=0; i < rewardTokens.length; ++i) {
             amounts[i] += IERC20(rewardTokens[i]).balanceOf(address(this));
         }
