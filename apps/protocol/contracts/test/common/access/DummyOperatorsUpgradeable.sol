@@ -11,25 +11,11 @@ contract DummyOperatorsUpgradeable is Initializable, Operators {
         _disableInitializers();
     }
 
-    function initialize() initializer public {
-        __Operators_init();
-    }
-
     function addOperator(address _address) external override {
         _addOperator(_address);
     }
 
     function removeOperator(address _address) external override {
         _removeOperator(_address);
-    }
-
-    // To test onlyInitializing modifier
-    function operators_init() external {
-        __Operators_init();
-    }
-
-    // To test onlyInitializing modifier
-    function operators_init_unchained() external {
-        __Operators_init_unchained();
     }
 }

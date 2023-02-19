@@ -8,6 +8,9 @@ contract DummyOrigamiGmxEarnAccount is Initializable, OrigamiGmxEarnAccount {
     /// @dev The new address variable added for the OrigamiStaking contract upgrade test
     address public newAddr;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address _gmxRewardRouter) OrigamiGmxEarnAccount(_gmxRewardRouter) {}
+
     function setNewAddr(address _newAddr) external {
         newAddr = _newAddr;
     }

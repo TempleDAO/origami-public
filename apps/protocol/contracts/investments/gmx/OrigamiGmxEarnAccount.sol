@@ -123,7 +123,6 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
 
     function initialize(address _gmxRewardRouter, address _glpRewardRouter, address _esGmxVester, address _stakedGlp) initializer external {
         __Ownable_init();
-        __Operators_init();
         __UUPSUpgradeable_init();
 
         _initGmxContracts(_gmxRewardRouter, _glpRewardRouter, _esGmxVester, _stakedGlp);
