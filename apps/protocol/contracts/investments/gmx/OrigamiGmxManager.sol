@@ -545,16 +545,18 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             quoteData.minInvestmentAmount = fromTokenAmount; // No slippage
             investFeeBps = new uint256[](1); // investFeeBps[0]=0
         } else {
-            address tokenIn = (fromToken == address(0)) ? wrappedNativeToken : fromToken;
-
             // GMX.io don't provide on-contract external functions to obtain the quote. Logic extracted from:
             // https://github.com/gmx-io/gmx-contracts/blob/83bd5c7f4a1236000e09f8271d58206d04d1d202/contracts/core/GlpManager.sol#L160
             investFeeBps = new uint256[](1);
             uint256 aumInUsdg = glpManager.getAumInUsdg(true); // Assets Under Management
             uint256 glpSupply = IERC20(glpToken).totalSupply();
 
+            fromToken = (fromToken == address(0)) ? wrappedNativeToken : fromToken;
             uint256 expectedUsdg;
-            (investFeeBps[0], expectedUsdg) = buyUsdgQuote(fromTokenAmount, tokenIn);
+            (investFeeBps[0], expectedUsdg) = buyUsdgQuote(
+                fromTokenAmount,
+                fromToken
+            );
             
             // oGLP is minted 1:1 to the amount of GLP received.
             quoteData.expectedInvestmentAmount = (aumInUsdg == 0) ? expectedUsdg : expectedUsdg * glpSupply / aumInUsdg;
@@ -631,15 +633,17 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
             quoteData.expectedToTokenAmount = glpAmount;
             quoteData.minToTokenAmount = glpAmount; // No slippage
         } else {
-            address tokenOut = (toToken == address(0)) ? wrappedNativeToken : toToken;
-
             // GMX.io don't provide on-contract external functions to obtain the quote. Logic extracted from:
             // https://github.com/gmx-io/gmx-contracts/blob/83bd5c7f4a1236000e09f8271d58206d04d1d202/contracts/core/GlpManager.sol#L183
             uint256 aumInUsdg = glpManager.getAumInUsdg(false); // Assets Under Management
             uint256 glpSupply = IERC20(glpToken).totalSupply();
             uint256 usdgAmount = (glpSupply == 0) ? 0 : glpAmount * aumInUsdg / glpSupply;
             
-            (exitFeeBps[1], quoteData.expectedToTokenAmount) = sellUsdgQuote(usdgAmount, tokenOut);
+            toToken = (toToken == address(0)) ? wrappedNativeToken : toToken;
+            (exitFeeBps[1], quoteData.expectedToTokenAmount) = sellUsdgQuote(
+                usdgAmount,
+                toToken
+            );
             quoteData.minToTokenAmount = applySlippage(quoteData.expectedToTokenAmount, maxSlippageBps);
         }
     }
