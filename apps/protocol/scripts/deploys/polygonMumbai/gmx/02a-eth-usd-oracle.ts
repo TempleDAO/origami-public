@@ -1,7 +1,8 @@
 import '@nomiclabs/hardhat-ethers';
 import { ethers } from 'hardhat';
-import { DummyOracle__factory } from '../../../../typechain';
+import { DummyOracle, DummyOracle__factory } from '../../../../typechain';
 import {
+  blockTimestamp,
   deployAndMine,
   ensureExpectedEnvvars,
 } from '../../helpers';
@@ -11,10 +12,16 @@ async function main() {
   const [owner] = await ethers.getSigners();
 
   const factory = new DummyOracle__factory(owner);
+  const answer: DummyOracle.AnswerStruct = {
+    roundId: 10,
+    answer: ethers.utils.parseUnits("2000.0", 8), // Initial ETH/USD price.
+    startedAt: await blockTimestamp(),
+    updatedAtLag: 1,
+    answeredInRound: 5
+  };
   await deployAndMine(
     'ethUsdOracle', factory, factory.deploy,
-    ethers.utils.parseUnits("2000.0", 8), // Initial ETH/USD price.
-    8
+    answer, 8,
   );
 }
         

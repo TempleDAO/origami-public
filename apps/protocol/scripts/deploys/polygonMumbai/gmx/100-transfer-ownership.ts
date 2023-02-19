@@ -146,21 +146,10 @@ async function main() {
     const tokenPrices = TokenPrices__factory.connect(DEPLOYED.ORIGAMI.TOKEN_PRICES, owner);
 
     // Transfer ownership to the multisig
-    // First grant the msig the admin role (so it can then add/remove minters), and remove admin from the old owner.
-    const gmxAdminRole = await oGMX.getRoleAdmin(await oGMX.CAN_MINT());
-    await mine(oGMX.grantRole(gmxAdminRole, DEPLOYED.ORIGAMI.MULTISIG));
     await mine(oGMX.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(oGMX.revokeRole(gmxAdminRole, await owner.getAddress()));
-
-    const glpAdminRole = await oGLP.getRoleAdmin(await oGLP.CAN_MINT());
-    await mine(oGLP.grantRole(glpAdminRole, DEPLOYED.ORIGAMI.MULTISIG));
     await mine(oGLP.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(oGLP.revokeRole(glpAdminRole, await owner.getAddress()));
-
     await mine(ovGMX.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(ovGLP.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-
-    // And the rest of the ownership.
     await mine(gmxEarnAccount.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(glpPrimaryEarnAccount.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(glpSecondaryEarnAccount.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));

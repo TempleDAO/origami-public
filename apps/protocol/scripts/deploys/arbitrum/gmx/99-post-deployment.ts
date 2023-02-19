@@ -56,7 +56,7 @@ const encodeFunction = (fn: string, ...args: TokenPricesArg[]): string => {
     return tokenPricesInterface.encodeFunctionData(fn, args);
 }
 
-const encodedOraclePrice = (oracle: string): string => encodeFunction("oraclePrice", oracle);
+const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
 const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
 const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
 const encodedUniV3Price = (pool: string, inQuotedOrder: boolean): string => encodeFunction("univ3Price", pool, inQuotedOrder);
@@ -65,9 +65,12 @@ const encodedAliasFor = (sourceToken: string): string => encodeFunction("aliasFo
 const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
 
 async function setupPrices(contracts: ContractInstances, DEPLOYED: GmxDeployedContracts) {
+    // Chainlink data fees may only update once per day if non-volatile prices, eg:
+    // https://data.chain.link/arbitrum/mainnet/stablecoins/usdc-usd
+    const stalenessThreshold = 86400 + 300;
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         ZERO_ADDRESS, 
-        encodedOraclePrice(DEPLOYED.PRICES.ETH_USD_ORACLE),
+        encodedOraclePrice(DEPLOYED.PRICES.ETH_USD_ORACLE, stalenessThreshold),
     ));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.WETH_TOKEN,
@@ -77,25 +80,25 @@ async function setupPrices(contracts: ContractInstances, DEPLOYED: GmxDeployedCo
     // The other GLP input tokens
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.WBTC_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.BTC_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.BTC_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.LINK_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.LINK_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.LINK_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.UNI_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.UNI_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.UNI_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.USDC_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.USDT_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.USDT_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.USDT_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.DAI_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.DAI_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.DAI_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.FRAX_TOKEN, 
-        encodedOraclePrice(DEPLOYED.PRICES.FRAX_USD_ORACLE)));
+        encodedOraclePrice(DEPLOYED.PRICES.FRAX_USD_ORACLE, stalenessThreshold)));
 
     // $GMX
     const encodedEthGmx = encodedUniV3Price(DEPLOYED.PRICES.NATIVE_GMX_POOL, true);
@@ -155,11 +158,9 @@ async function main() {
     await mine(contracts.glpManager.addOperator(contracts.glpRewardsAggregator.address));
 
     // The Investments & managers are added as operators such that they can buy/sell/stake/unstake GLP/GMX
-    await mine(contracts.gmxEarnAccount.addOperator(contracts.oGMX.address));
     await mine(contracts.gmxEarnAccount.addOperator(contracts.gmxManager.address));
 
     // The investment only needs access to the secondary GLP earn account. The manager needs operator on both.
-    await mine(contracts.glpSecondaryEarnAccount.addOperator(contracts.oGLP.address));
     await mine(contracts.glpPrimaryEarnAccount.addOperator(contracts.glpManager.address));
     await mine(contracts.glpSecondaryEarnAccount.addOperator(contracts.glpManager.address));
 
@@ -178,22 +179,26 @@ async function main() {
     await mine(contracts.ovGLP.setInvestmentManager(contracts.glpRewardsAggregator.address));
 
     // The rewards aggregator compounds and adds reserves to the vaults
-    await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.GMX.GMX_REWARDS_AGGREGATOR));
-    await mine(contracts.ovGLP.addOperator(DEPLOYED.ORIGAMI.GMX.GLP_REWARDS_AGGREGATOR));
+    await mine(contracts.ovGMX.addOperator(contracts.gmxRewardsAggregator.address));
+    await mine(contracts.ovGLP.addOperator(contracts.glpRewardsAggregator.address));
 
-    // Set the multisig as an operator on ovGMX/ovGLP.
-    // The OZ defender relayer will also be added when we automate adding new reserves
+    // Set the multisig as an operator on ovGMX/ovGLP, such that we can manually add reserves
+    // to boost rewards if required.
     await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.ovGLP.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
 
-    // Give the reward distributors as the multisig for day 1. Will be updated to OZ defender relayer
-    await mine(contracts.gmxRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
+    // Allow the OpenZeppelin Defender Bot to harvest rewards.
+    await mine(contracts.gmxRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.glpRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+
+    // Allow the OpenZeppelin Defender Bot to harvest secondary rewards.
+    await mine(contracts.gmxManager.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.glpManager.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
 
     // Set the investment managers in both the GMX & GLP Manager
     await mine(contracts.gmxManager.setRewardsAggregators(
         contracts.gmxRewardsAggregator.address,
-        ZERO_ADDRESS, // GLP aggregator doesn't need to pull from GMX Manager.
+        contracts.glpRewardsAggregator.address,
     ));
     await mine(contracts.glpManager.setRewardsAggregators(
         contracts.gmxRewardsAggregator.address,

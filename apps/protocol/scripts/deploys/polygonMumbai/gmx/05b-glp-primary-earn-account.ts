@@ -15,7 +15,9 @@ async function main() {
   const factory = new OrigamiGmxEarnAccount__factory(owner);
   await deployProxyAndMine(
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GLP_PRIMARY_EARN_ACCOUNT,
-    'origamiGlpPrimaryEarnAccount', 'uups', factory, factory.deploy,
+    'origamiGlpPrimaryEarnAccount', 'uups', 
+    [GMX_DEPLOYED_CONTRACTS.GMX.STAKING.GMX_REWARD_ROUTER],
+    factory, factory.deploy,
     GMX_DEPLOYED_CONTRACTS.GMX.STAKING.GMX_REWARD_ROUTER, 
     GMX_DEPLOYED_CONTRACTS.GMX.STAKING.GLP_REWARD_ROUTER, 
     GMX_DEPLOYED_CONTRACTS.GMX.STAKING.GLP_ESGMX_VESTER,

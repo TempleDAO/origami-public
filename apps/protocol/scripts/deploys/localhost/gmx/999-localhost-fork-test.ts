@@ -1,4 +1,4 @@
-import { BigNumber, Signer } from 'ethers';
+import { BigNumber, BigNumberish, Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import { applySlippage, impersonateSigner, mineForwardSeconds, ZERO_ADDRESS } from '../../../../test/helpers';
 import { 
@@ -156,6 +156,44 @@ async function setUpstreamRewardRates(contracts: ContractInstances, owner: Signe
 
     // Mint some esGMX to the distributor
     await mine(esGmx.connect(owner).mint(glpEsGmxDistributor.address, ethers.utils.parseEther("100000")));
+}
+
+type TokenPricesArg = string | boolean | BigNumberish;
+
+const encodeFunction = (fn: string, ...args: TokenPricesArg[]): string => {
+    const tokenPricesInterface = new ethers.utils.Interface(JSON.stringify(TokenPrices__factory.abi));
+    return tokenPricesInterface.encodeFunctionData(fn, args);
+}
+
+const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
+
+async function updateOracleThreshold(DEPLOYED: GmxDeployedContracts, contracts: ContractInstances) {
+    const stalenessThreshold = 86400 * 365;
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        ZERO_ADDRESS, 
+        encodedOraclePrice(DEPLOYED.PRICES.ETH_USD_ORACLE, stalenessThreshold),
+    ));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.WBTC_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.BTC_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.LINK_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.LINK_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.UNI_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.UNI_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.USDC_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.USDT_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.USDT_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.DAI_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.DAI_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.FRAX_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.FRAX_USD_ORACLE, stalenessThreshold)));
 }
 
 async function dumpPrices(contracts: ContractInstances) {
@@ -384,6 +422,7 @@ async function main() {
     const contracts = connectToContracts(DEPLOYED, origamiMultisig);
 
     await setUpstreamRewardRates(contracts, owner);
+    await updateOracleThreshold(DEPLOYED, contracts);
 
     // Check the token prices
     await dumpPrices(contracts);

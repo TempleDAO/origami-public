@@ -73,6 +73,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
   existingProxyAddress: string | undefined,
   name: string,
   kind: ProxyKindOption['kind'],
+  constructorArgs: unknown[],
   factory: ContractFactory,
   deploy: D,
   ...args: Parameters<T['initialize']>): Promise<T> {
@@ -94,10 +95,10 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
     console.log(`*******UPGRADING ${name} on ${network.name}`);
     const oldImplAddress = await getImplementationAddress(ethers.provider, existingProxyAddress);
     console.log(`Old implementation address: ${oldImplAddress}`);
-    contract = await upgrades.upgradeProxy(existingProxyAddress, factory, {kind}) as T;
+    contract = await upgrades.upgradeProxy(existingProxyAddress, factory, {kind, constructorArgs}) as T;
   } else {
     console.log(`*******DEPLOYING upgradeable ${name} on ${network.name} and initializing with args ${renderedArgs}`);
-    contract = await upgrades.deployProxy(factory, args, {kind}) as T; 
+    contract = await upgrades.deployProxy(factory, args, {kind, constructorArgs}) as T; 
   }
 
   console.log(`... waiting for transaction to mine: ${contract.deployTransaction.hash}`);

@@ -3,6 +3,7 @@ import { network } from "hardhat";
 export interface GmxDeployedContracts {
     ORIGAMI: {
         MULTISIG: string,
+        OZ_BOT_EOA: string,
 
         GMX: {
             oGMX: string,
@@ -85,6 +86,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     arbitrum: {
         ORIGAMI: {
             MULTISIG: '',
+            OZ_BOT_EOA: '',
 
             TOKEN_PRICES: '',
 
@@ -173,6 +175,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     avalanche: {
         ORIGAMI: {
             MULTISIG: '',
+            OZ_BOT_EOA: '',
 
             TOKEN_PRICES: '',
 
@@ -262,6 +265,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     localhost: {
         ORIGAMI: {
             MULTISIG: '0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526',
+            OZ_BOT_EOA: '0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526',
 
             TOKEN_PRICES: '0xf5059a5D33d5853360D16C683c16e67980206f36',
 
