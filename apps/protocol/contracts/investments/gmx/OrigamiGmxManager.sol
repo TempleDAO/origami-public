@@ -190,6 +190,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
 
     /// @notice Set the address for where Origami fees are sent
     function setFeeCollector(address _feeCollector) external onlyOwner {
+        if (_feeCollector == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit FeeCollectorSet(_feeCollector);
         feeCollector = _feeCollector;
     }
@@ -210,6 +211,8 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
 
     /// @notice Set the Origami GMX/GLP rewards aggregators
     function setRewardsAggregators(address _gmxRewardsAggregator, address _glpRewardsAggregator) external onlyOwner {
+        if (_gmxRewardsAggregator == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
+        if (_glpRewardsAggregator == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit RewardsAggregatorsSet(_gmxRewardsAggregator, _glpRewardsAggregator);
         gmxRewardsAggregator = _gmxRewardsAggregator;
         glpRewardsAggregator = _glpRewardsAggregator;
