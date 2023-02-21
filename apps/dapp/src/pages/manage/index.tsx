@@ -36,7 +36,7 @@ export function Page() {
     investment: Investment | undefined
   ): Promise<void> {
     if (investment) {
-      await am.switchNetwork({ chainId: investment.chain.id });
+      await am.walletConnect(investment.chain);
     }
     _setSelectedInvestment(investment);
   }
@@ -45,6 +45,7 @@ export function Page() {
     <PageContent
       papi={am.papi}
       sapi={am.sapi}
+      walletAddress={am.wallet?.address}
       cache={am.cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
@@ -54,6 +55,7 @@ export function Page() {
 interface PageContentProps {
   papi: ProviderApi;
   sapi?: SignerApi;
+  walletAddress: string | undefined;
   cache: ApiCache;
   selectedInvestment: Investment | undefined;
   setSelectedInvestment(i: Investment | undefined): void;
@@ -75,7 +77,7 @@ export function PageContent(props: PageContentProps) {
     [props.papi, userHoldings]
   );
 
-  if (!props.sapi) {
+  if (!props.walletAddress) {
     return (
       <EmptyStateWrapper>
         <p>Connect your wallet to view and manage your holdings</p>

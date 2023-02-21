@@ -1,11 +1,9 @@
-import type { Chain } from '@wagmi/core';
-
 import { useState } from 'react';
 import styled from 'styled-components';
 import { InvestGrid, InvestGridItem } from './InvestGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
-import { InvestmentConfig } from '@/api/types';
+import { Chain, InvestmentConfig } from '@/api/types';
 import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
@@ -15,22 +13,22 @@ export function Page() {
   return (
     <PageContent
       papi={am.papi}
-      sapi={am.sapi}
+      walletAddress={am.wallet?.address}
       cache={am.cache}
-      switchNetwork={am.switchNetwork}
+      walletConnect={am.walletConnect}
     />
   );
 }
 
 interface PageContentProps {
   papi: ProviderApi;
-  sapi?: SignerApi;
+  walletAddress: string | undefined;
   cache: ApiCache;
-  switchNetwork: ({ chainId }: { chainId: number }) => Promise<Chain>;
+  walletConnect(chain: Chain): Promise<SignerApi>;
 }
 
 export const PageContent = (props: PageContentProps) => {
-  const { papi, sapi, switchNetwork } = props;
+  const { papi, walletConnect } = props;
   const [activeFlow, setActiveFlow] = useState<JSX.Element | undefined>();
   const investments = getValue(props.cache.investments) || [];
 
@@ -38,9 +36,9 @@ export const PageContent = (props: PageContentProps) => {
     setActiveFlow(undefined);
   }
 
-  async function onInvest(ic: InvestmentConfig, sapi: SignerApi) {
+  async function onInvest(ic: InvestmentConfig) {
     const investment = await papi.getInvestment(ic);
-    await switchNetwork({ chainId: investment.chain.id });
+    const sapi = await walletConnect(investment.chain);
     const acceptedTokens = await investment.acceptedInvestTokens();
     const flow = (
       <FlowOverlay
@@ -61,7 +59,7 @@ export const PageContent = (props: PageContentProps) => {
       papi,
       investment,
       metrics,
-      sapi && (() => onInvest(investment, sapi))
+      props.walletAddress ? () => onInvest(investment) : undefined
     );
   });
 
@@ -87,8 +85,7 @@ function makeInvestGridItem(
   metrics: Loading<MetricsResp>,
   onInvest?: () => Promise<void>
 ): InvestGridItem {
-  const chain =
-    papi.chainConfigs.get(ic.contractAddress.chainId)?.chain.name || '??';
+  const chain = papi.chains.get(ic.contractAddress.chainId)?.name || '??';
   return {
     icon: ic.icon,
     name: ic.name,

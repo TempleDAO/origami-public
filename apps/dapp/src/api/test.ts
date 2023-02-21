@@ -14,8 +14,8 @@ import {
   SignerApi,
 } from '@/api/api';
 import {
-  BlockExplorerUrlBuilders,
-  ChainConfig,
+  Chain,
+  ChainExplorer,
   ChainId,
   HistoricPeriod,
   HistoryPoint,
@@ -28,8 +28,6 @@ import {
 } from '@/api/types';
 
 import { useMemo } from 'react';
-import { getProvider as getWagmiProvider } from '@wagmi/core';
-import { arbitrum as arbitrumChain } from '@wagmi/core/chains';
 import { newToken, tokenKey, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { DBN_ZERO, DecimalBigNumber } from '@/utils/decimal-big-number';
 import { sleep } from '@/utils/sleep';
@@ -83,12 +81,20 @@ class TestProviderApiImpl implements TestProviderApi {
 
   sleepMs = 500;
 
-  chainConfigs = new VMap<ChainId, ChainConfig>((c) => '' + c);
+  chains = new VMap<ChainId, Chain>((c) => '' + c);
   investments: InvestmentConfig[] = [gmxInvestment(), glpInvestment()];
 
   constructor() {
-    const chainConfig = arbitrum();
-    this.chainConfigs.put(chainConfig.chain.id, chainConfig);
+    const a = arbitrum();
+    this.chains.put(a.id, {
+      name: a.name,
+      id: a.id,
+      nativeCurrency: a.nativeCurrency,
+      rpcUrl: 'http://something',
+      walletRpcUrl: 'http://something',
+      subgraphUrl: 'http://something',
+      explorer: dummyExplorer(),
+    });
   }
 
   async getToken(config: TokenConfig): Promise<Token> {
@@ -184,18 +190,14 @@ class TestProviderApiImpl implements TestProviderApi {
       encodedQuote: '',
     };
   }
-
-  getProvider(chainId?: ChainId) {
-    return getWagmiProvider({ chainId });
-  }
 }
 
 class TestSignerApiImpl implements TestSignerApi {
   signerAddress = TEST_SIGNER_ADDRESS;
   sleepMs = 1000;
 
-  chainConfig = arbitrum();
-  chainId = this.chainConfig.chain.id;
+  chain = arbitrum();
+  chainId = this.chain.id;
 
   async invest(req: InvestReq): Promise<InvestResp> {
     req.onStage && req.onStage({ kind: 'approve' });
@@ -204,7 +206,7 @@ class TestSignerApiImpl implements TestSignerApi {
     await sleep(this.sleepMs);
     const result = {
       receiptTokenAmount: req.quote.receiptTokenAmount,
-      txExplorerUrl: this.chainConfig.urlBuilders.transactionUrl('0x1234'),
+      txExplorerUrl: this.chain.explorer.transactionUrl('0x1234'),
     };
     req.onStage && req.onStage({ kind: 'done', result });
     return result;
@@ -217,7 +219,7 @@ class TestSignerApiImpl implements TestSignerApi {
     await sleep(this.sleepMs);
     const result = {
       amountOut: req.quote.toAmount,
-      txExplorerUrl: this.chainConfig.urlBuilders.transactionUrl('0x1234'),
+      txExplorerUrl: this.chain.explorer.transactionUrl('0x1234'),
     };
     req.onStage && req.onStage({ kind: 'done', result });
     return result;
@@ -228,15 +230,23 @@ const TEST_SIGNER_ADDRESS = '0xSIGNER';
 
 const ARBITRUM_ID = 42161;
 
-export function arbitrum(): ChainConfig {
+export function arbitrum(): Chain {
   return {
-    chain: arbitrumChain,
-    subgraphUrl: '',
-    urlBuilders: dummyExplorer(),
+    id: ARBITRUM_ID,
+    name: 'Arbitrum One',
+    nativeCurrency: {
+      symbol: 'ETH',
+      name: 'Ether',
+      decimals: 18,
+    },
+    explorer: dummyExplorer(),
+    rpcUrl: 'http://somewhere',
+    walletRpcUrl: 'http://somewhere',
+    subgraphUrl: 'http://somewhere',
   };
 }
 
-export function dummyExplorer(): BlockExplorerUrlBuilders {
+export function dummyExplorer(): ChainExplorer {
   return {
     transactionUrl: (hash) => `https:/dummy-explorer/tx/${hash}`,
     tokenUrl: (hash) => `https:/dummy-explorer/token/${hash}`,
@@ -297,7 +307,7 @@ export function gmxInvestment(): Investment {
     return gmxAcceptedToken();
   });
   return {
-    contractAddress: { address: '0xINVEST-GMX', chainId: arbitrum().chain.id },
+    contractAddress: { address: '0xINVEST-GMX', chainId: arbitrum().id },
     icon: 'gmx',
     name: 'ovGMX',
     description: 'Origami investment in the GMX utility token',
@@ -307,7 +317,7 @@ export function gmxInvestment(): Investment {
     acceptedExitTokens: acceptedTokens.get,
     getMetrics,
     getHistoricMetric,
-    chain: arbitrumChain,
+    chain: arbitrum(),
     info: investInfo('GMX'),
     moreInfoUrl:
       'https://arbiscan.io/token/0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
@@ -316,7 +326,7 @@ export function gmxInvestment(): Investment {
 
 export function gmxAcceptedToken(): TokenOrNative[] {
   return [
-    { kind: 'native', chain: arbitrumChain },
+    { kind: 'native', chain: arbitrum() },
     { kind: 'token', token: gmx() },
     { kind: 'token', token: dai() },
   ];
@@ -341,7 +351,7 @@ export function glpInvestment(): Investment {
     return gmxAcceptedToken();
   });
   return {
-    contractAddress: { address: '0xINVEST-GLP', chainId: arbitrumChain.id },
+    contractAddress: { address: '0xINVEST-GLP', chainId: arbitrum().id },
     icon: 'glp',
     name: 'ovGLP',
     description: 'Origami investment in the GMX liquidity provider (LP) token',
@@ -352,7 +362,7 @@ export function glpInvestment(): Investment {
     acceptedExitTokens: acceptedTokens.get,
     getMetrics,
     getHistoricMetric,
-    chain: arbitrumChain,
+    chain: arbitrum(),
     info: investInfo('GMX LP'),
     moreInfoUrl:
       'https://arbiscan.io/token/0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',

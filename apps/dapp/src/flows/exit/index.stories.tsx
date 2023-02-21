@@ -133,7 +133,7 @@ function useTestContext(papi: ProviderApi, sapi: SignerApi): Ctx {
 const TEST_QUOTE: ExitQuoteResp = {
   investment: gmxInvestment(),
   toAmount: DecimalBigNumber.parseUnits('10', 0),
-  to: { kind: 'native', chain: arbitrum().chain },
+  to: { kind: 'native', chain: arbitrum() },
   receiptTokenAmount: DecimalBigNumber.parseUnits('35.21', 2),
   feeBps: [],
   encodedQuote: '',

@@ -5,6 +5,7 @@ import {
   Navigate,
   RouterProvider,
 } from 'react-router-dom';
+import { Buffer } from 'buffer';
 import { ThemeContext } from 'styled-components';
 
 import { GlobalStyle } from './styles/GlobalStyle';
@@ -17,6 +18,11 @@ import './styles/fonts.css';
 import { ApiManagerProvider } from './hooks/use-api-manager';
 import { getApiConfig } from './config';
 import { AppLayout } from './components/Layouts/AppLayout';
+
+// polyfill Buffer required for WalletConnect
+if (!window.Buffer) {
+  window.Buffer = Buffer;
+}
 
 const router = createBrowserRouter([
   {

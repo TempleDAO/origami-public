@@ -17,6 +17,7 @@ export const Default = () => {
     <PageContent
       papi={papi}
       sapi={sapi}
+      walletAddress={sapi.signerAddress}
       cache={cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
@@ -32,6 +33,7 @@ export const Loading = () => {
     <PageContent
       papi={papi}
       sapi={sapi}
+      walletAddress={sapi.signerAddress}
       cache={cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
@@ -47,6 +49,7 @@ export const SingleHolding = () => {
     <PageContent
       papi={papi}
       sapi={sapi}
+      walletAddress={sapi.signerAddress}
       cache={cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}

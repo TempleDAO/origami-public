@@ -1,5 +1,4 @@
 import type { FC } from 'react';
-import type { Chain } from '@wagmi/core';
 import type { ExitQuoteResp } from '@/api/api';
 import type { FormState, State, Ctx } from './types';
 
@@ -27,7 +26,7 @@ import {
   textP1,
   textP2,
 } from '@/styles/mixins/text-styles';
-import { TokenOrNative } from '@/api/types';
+import { Chain, TokenOrNative } from '@/api/types';
 import { decimalBigNumberField } from '@/utils/fields/ethers';
 import { useTypedFieldState } from '@/utils/fields/hooks';
 import { FieldDbn } from '@/components/commons/FieldDbn';

@@ -1,46 +1,62 @@
 import { useState } from 'react';
-import { getAccount } from '@wagmi/core';
 import styled from 'styled-components';
 
 import { Icon } from './Icon';
-import { useApiManager } from '@/hooks/use-api-manager';
+import { SupportedWallet, useApiManager } from '@/hooks/use-api-manager';
 import { truncateAddress } from '@/utils/truncate-address';
-import { noop } from '@/utils/noop';
 import clickableStyles from '@/styles/mixins/clickable-styles';
+import { Spinner } from './Spinner';
 
 export const ConnectWalletButton = () => {
-  const { connectSigner, disconnectSigner } = useApiManager();
-  const { address, isConnected } = getAccount();
+  const { walletInitialize, walletDisconnect } = useApiManager();
+  const apim = useApiManager();
+  const address = apim.wallet?.address;
   const [mouseOver, setMouseOver] = useState(false);
+  const [inProgress, setInProgress] = useState(false);
 
-  const label =
-    isConnected && address ? truncateAddress(address) : 'CONNECT WALLET';
+  async function connect(walletKind: SupportedWallet) {
+    setInProgress(true);
+    await walletInitialize(walletKind);
+    setInProgress(false);
+    setMouseOver(false);
+  }
 
-  return (
-    <>
+  async function disconnect() {
+    setInProgress(true);
+    await walletDisconnect();
+    setInProgress(false);
+    setMouseOver(false);
+  }
+
+  if (inProgress) {
+    return (
+      <ButtonBox>
+        <Spinner size="small" />
+      </ButtonBox>
+    );
+  }
+
+  if (address) {
+    return (
       <ButtonBox
-        onClick={isConnected ? disconnectSigner : noop}
+        onClick={disconnect}
         onMouseEnter={() => setMouseOver(true)}
         onMouseLeave={() => setMouseOver(false)}
       >
-        {isConnected ? (
-          <span>{mouseOver ? 'DISCONNECT' : label}</span>
-        ) : (
-          <>
-            <Icon
-              iconName="metamask"
-              size={30}
-              onClick={() => connectSigner('metaMask')}
-            />
-            <Icon
-              iconName="wallet-connect"
-              size={30}
-              onClick={() => connectSigner('walletConnect')}
-            />
-          </>
-        )}
+        <span>{mouseOver ? 'DISCONNECT' : truncateAddress(address)}</span>
       </ButtonBox>
-    </>
+    );
+  }
+
+  return (
+    <ButtonBox>
+      <Icon iconName="metamask" size={30} onClick={() => connect('metaMask')} />
+      <Icon
+        iconName="wallet-connect"
+        size={30}
+        onClick={() => connect('walletConnect')}
+      />
+    </ButtonBox>
   );
 };
 

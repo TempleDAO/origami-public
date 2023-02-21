@@ -1,4 +1,4 @@
-import type { Chain } from '@wagmi/core';
+import { Chain } from '@/api/types';
 import type { FC, MouseEventHandler } from 'react';
 
 import styled from 'styled-components';

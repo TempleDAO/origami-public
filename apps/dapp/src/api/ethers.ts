@@ -18,7 +18,6 @@ import {
 } from '@/utils/memoized';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { VMap } from '@/utils/vmap';
-import { Chain } from '@wagmi/core';
 import {
   BigNumber,
   ContractReceipt,
@@ -27,7 +26,6 @@ import {
   providers,
   Signer,
 } from 'ethers';
-import { getProvider as getWagmiProvider } from '@wagmi/core';
 import {
   ExitQuoteReq,
   ExitQuoteResp,
@@ -44,7 +42,7 @@ import {
   SignerApi,
 } from './api';
 import {
-  ChainConfig,
+  Chain,
   ChainId,
   ContractAddress,
   HistoricPeriod,
@@ -71,7 +69,7 @@ import { ITokenPrices } from '@/typechain/ITokenPrices';
 import { first, matchEvents } from './utils';
 
 export interface ApiConfig {
-  chainConfigs: ChainConfig[];
+  chains: Chain[];
   tokens: ExtendedTokenConfig[];
   investments: InvestmentConfig[];
   priceContracts: PriceContractConfig[];
@@ -95,7 +93,7 @@ export function createSignerApi(
 }
 
 class ProviderApiImpl implements ProviderApi {
-  chainConfigs: VMap<ChainId, ChainConfig>;
+  chains: VMap<ChainId, Chain>;
   investments: InvestmentConfig[];
   providers: VMap<ChainId, providers.BaseProvider>;
   tokens: MemoizedAsyncMap<TokenConfig, Token>;
@@ -107,9 +105,9 @@ class ProviderApiImpl implements ProviderApi {
   constructor(readonly config: ApiConfig) {
     console.log('api: new ProviderApiImpl');
     this.investments = config.investments;
-    this.chainConfigs = new VMap((c) => c.toString());
-    for (const chainConfig of config.chainConfigs) {
-      this.chainConfigs.put(chainConfig.chain.id, chainConfig);
+    this.chains = new VMap((c) => c.toString());
+    for (const c of config.chains) {
+      this.chains.put(c.id, c);
     }
     this.providers = new VMap<ChainId, providers.BaseProvider>((cid) =>
       cid.toString()
@@ -123,8 +121,8 @@ class ProviderApiImpl implements ProviderApi {
       (ic) => this.loadInvestment(ic)
     );
     this.subgraphUrls = new VMap<ChainId, string>(chainIdKey);
-    for (const c of config.chainConfigs) {
-      this.subgraphUrls.put(c.chain.id, c.subgraphUrl);
+    for (const c of config.chains) {
+      this.subgraphUrls.put(c.id, c.subgraphUrl);
     }
     this.tokenUsdPrices = createMemoizedAsyncMap(tokenKey, (t) =>
       this.loadTokenUsdPrice(t)
@@ -136,16 +134,28 @@ class ProviderApiImpl implements ProviderApi {
     setInterval(() => this.every60Secs(), 60000);
   }
 
-  private getChainConfig(chainId: ChainId): ChainConfig {
-    const chain = this.chainConfigs.get(chainId);
+  private getProvider(chainId: ChainId): providers.BaseProvider {
+    let provider = this.providers.get(chainId);
+    if (provider === undefined) {
+      const chain = this.chains.get(chainId);
+      if (chain === undefined) {
+        throw new Error('No chain configured for chain id ' + chainId);
+      }
+      console.log(
+        'api: new provider for chain ' + chainId + ' via ' + chain.rpcUrl
+      );
+      provider = ethers.getDefaultProvider(chain.rpcUrl);
+      this.providers.put(chainId, provider);
+    }
+    return provider;
+  }
+
+  private getChain(chainId: ChainId): Chain {
+    const chain = this.chains.get(chainId);
     if (!chain) {
       throw new Error(`chain ${chainId} not configured`);
     }
     return chain;
-  }
-
-  getProvider(chainId?: ChainId) {
-    return getWagmiProvider({ chainId });
   }
 
   getToken(config: TokenConfig): Promise<Token> {
@@ -206,7 +216,7 @@ class ProviderApiImpl implements ProviderApi {
 
   private async loadInvestment_(ic: InvestmentConfig): Promise<Investment> {
     const chainId = ic.contractAddress.chainId;
-    const { chain, urlBuilders } = this.getChainConfig(chainId);
+    const chain = this.getChain(chainId);
     const provider = this.getProvider(chainId);
     const contract = IOrigamiInvestment__factory.connect(
       ic.contractAddress.address,
@@ -260,10 +270,7 @@ class ProviderApiImpl implements ProviderApi {
 
     const investment = {
       ...ic,
-      chain: {
-        ...chain,
-        explorer: urlBuilders,
-      },
+      chain,
       receiptToken,
       acceptedInvestTokens,
       acceptedExitTokens,
@@ -308,8 +315,7 @@ class ProviderApiImpl implements ProviderApi {
   ): Promise<DecimalBigNumber> {
     const provider = this.getProvider(chain);
     const balance = await provider.getBalance(address);
-    const decimals =
-      this.chainConfigs.get(chain)?.chain.nativeCurrency.decimals || 18;
+    const decimals = this.chains.get(chain)?.nativeCurrency.decimals || 18;
     return DecimalBigNumber.fromBN(balance, decimals);
   }
 
@@ -575,7 +581,7 @@ class ProviderApiImpl implements ProviderApi {
 }
 
 class SignerApiImpl implements SignerApi {
-  chainConfigs: VMap<ChainId, ChainConfig>;
+  chains: VMap<ChainId, Chain>;
 
   constructor(
     readonly config: ApiConfig,
@@ -583,14 +589,14 @@ class SignerApiImpl implements SignerApi {
     readonly chainId: ChainId,
     readonly signer: Signer
   ) {
-    this.chainConfigs = new VMap((c) => c.toString());
-    for (const c of config.chainConfigs) {
-      this.chainConfigs.put(c.chain.id, c);
+    this.chains = new VMap((c) => c.toString());
+    for (const c of config.chains) {
+      this.chains.put(c.id, c);
     }
   }
 
-  getChainConfig(chainId: ChainId): ChainConfig {
-    const chain = this.chainConfigs.get(chainId);
+  getChain(chainId: ChainId): Chain {
+    const chain = this.chains.get(chainId);
     if (!chain) {
       throw new Error(`chain ${chainId} not configured`);
     }
@@ -610,7 +616,7 @@ class SignerApiImpl implements SignerApi {
     if (chainId != this.chainId) {
       throw new Error("Signer and investment chain ids don't match");
     }
-    const { chain, urlBuilders } = this.getChainConfig(chainId);
+    const chain = this.getChain(chainId);
 
     const investmentContract = IOrigamiInvestment__factory.connect(
       req.quote.investment.contractAddress.address,
@@ -684,7 +690,7 @@ class SignerApiImpl implements SignerApi {
           investEvent.args.investmentAmount,
           req.quote.investment.receiptToken.decimals
         ),
-        txExplorerUrl: urlBuilders.transactionUrl(receipt.transactionHash),
+        txExplorerUrl: chain.explorer.transactionUrl(receipt.transactionHash),
       };
       req.onStage && req.onStage({ kind: 'done', result });
       return result;
@@ -706,9 +712,6 @@ class SignerApiImpl implements SignerApi {
     if (chain.id != this.chainId) {
       throw new Error("Signer and investment chain ids don't match");
     }
-
-    const { urlBuilders } = this.getChainConfig(chain.id);
-
     const toAmountDecimals = tokenOrNativeAmountDecimals(req.quote.to);
 
     const investmentContract = IOrigamiInvestment__factory.connect(
@@ -750,7 +753,7 @@ class SignerApiImpl implements SignerApi {
           exitEvent.args.toTokenAmount,
           toAmountDecimals
         ),
-        txExplorerUrl: urlBuilders.transactionUrl(receipt.transactionHash),
+        txExplorerUrl: chain.explorer.transactionUrl(receipt.transactionHash),
       };
       req.onStage && req.onStage({ kind: 'done', result });
       return result;

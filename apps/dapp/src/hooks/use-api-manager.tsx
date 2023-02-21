@@ -1,43 +1,23 @@
-import type { Signer } from 'ethers';
-import type { Chain } from '@wagmi/core';
-import type { ProviderApi, SignerApi } from '@/api/api';
-import type { ChainConfig, ChainId } from '@/api/types';
-import type { SupportedWallet } from '@/config/connectors';
-
-import React, { useMemo, useState, useEffect } from 'react';
-import {
-  connect,
-  disconnect,
-  fetchSigner,
-  getAccount,
-  getNetwork,
-  switchNetwork as wagmiSwitchNetwork,
-} from '@wagmi/core';
+import { ProviderApi, SignerApi } from '@/api/api';
+import { Chain } from '@/api/types';
 import { createProviderApi, createSignerApi, ApiConfig } from '@/api/ethers';
-import { ApiCache, useCache } from '@/api/cache';
-import { CONNECTORS } from '@/config/connectors';
-import { first } from '@/api/utils';
-import { VMap } from '@/utils/vmap';
 
-import { configureChains, createClient } from '@wagmi/core';
-import { jsonRpcProvider } from '@wagmi/core/providers/jsonRpc';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ApiCache, useCache } from '@/api/cache';
+import { AppWallet, WalletState } from '@/wallets/types';
+import { createMetaMaskWallet } from '@/wallets/metamask';
+import { createWalletConnectWallet } from '@/wallets/walletconnect';
+import { assertNever } from '@/utils/assert';
 
 interface ApiManager {
   papi: ProviderApi;
   sapi: SignerApi | undefined;
-  wallet: WalletConnection | undefined;
+  wallet: WalletState | undefined;
   cache: ApiCache;
 
-  switchNetwork({ chainId }: { chainId: number }): Promise<Chain>;
-  disconnectSigner(): Promise<void>;
-  connectSigner(walletKind: SupportedWallet, chainId?: ChainId): Promise<void>;
-}
-
-export interface WalletConnection {
-  signer: Signer;
-  signerApi: SignerApi;
-  chainId: ChainId;
-  address: string;
+  walletInitialize(walletKind: SupportedWallet): Promise<void>;
+  walletConnect(chain: Chain): Promise<SignerApi>;
+  walletDisconnect(): Promise<void>;
 }
 
 export const ApiManagerContext =
@@ -47,108 +27,88 @@ export function ApiManagerProvider(props: {
   apiConfig: ApiConfig;
   children?: React.ReactNode;
 }) {
-  const _wagmiClient = useMemo(() => {
-    const { chains: _wagmiChains, provider } = _configureWagmiChains(
-      props.apiConfig.chainConfigs
-    );
-
-    return createClient({
-      autoConnect: true,
-      provider,
-      connectors: Object.values(CONNECTORS),
-    });
-  }, [props.apiConfig.chainConfigs]);
-
   const papi = useMemo(
     () => createProviderApi(props.apiConfig),
     [props.apiConfig]
   );
+  const [appWallet, setAppWallet] = useState<AppWallet | undefined>();
+  const [walletState, setWalletState] = useState<WalletState | undefined>();
+  const [sapi, setSApi] = useState<SignerApi | undefined>();
 
-  const [wallet, setWallet] = useState<WalletConnection | undefined>();
+  async function walletInitialize(walletKind: SupportedWallet) {
+    const appWallet = await createAppWallet(walletKind);
+    setAppWallet(appWallet);
+    setWalletState(appWallet.getState());
+    localStorage.setItem(LOCALSTORE_WALLET_STATE, walletKind);
+  }
 
-  /**
-   * wagmi manages the connection status to MetaMask via localStorage since
-   * MetaMask cannot be disconnected programatically. This means we can preserve our connection
-   * across page visits/refreshes for a better UX.
-   */
+  async function walletConnect(chain: Chain): Promise<SignerApi> {
+    if (!appWallet) {
+      throw new Error('no wallet initialized');
+    }
+    await appWallet.connect(chain);
+    const walletState = appWallet.getState();
+    const connection = walletState.connection;
+    if (!connection) {
+      throw new Error('Failed to connect');
+    }
+    setWalletState(walletState);
+    const sapi = createSignerApi(
+      props.apiConfig,
+      walletState.address,
+      connection.chainId,
+      connection.signer
+    );
+    setSApi(sapi);
+    return sapi;
+  }
+
+  async function walletDisconnect() {
+    if (appWallet) {
+      await appWallet.disconnect();
+      setAppWallet(undefined);
+      setWalletState(undefined);
+      setSApi(undefined);
+    }
+    localStorage.removeItem(LOCALSTORE_WALLET_STATE);
+  }
+
   useEffect(() => {
-    async function restoreMetaMaskConnectionOnMount() {
-      const { isConnected } = getAccount();
-
-      if (!isConnected) {
-        return;
-      }
-
-      const metaMask: SupportedWallet = 'metaMask';
-
-      const wagmiWallet = localStorage.getItem('wagmi.wallet');
-      const { chain } = getNetwork();
-
-      if (!chain?.id || wagmiWallet !== `"${metaMask}"`) {
-        return;
-      }
-
-      const wallet = await createConnection(
-        chain.id,
-        props.apiConfig,
-        metaMask
-      );
-
-      setWallet(wallet);
+    const walletKind = localStorage.getItem(LOCALSTORE_WALLET_STATE);
+    if (walletKind != null) {
+      walletInitialize(walletKind as SupportedWallet);
     }
+  }, []); // eslint-disable-line
 
-    restoreMetaMaskConnectionOnMount();
-  }, [props.apiConfig]);
-
-  async function switchNetwork({ chainId }: { chainId: number }) {
-    const network = getNetwork();
-
-    if (network?.chain?.id === chainId) {
-      return network.chain;
-    }
-
-    return wagmiSwitchNetwork({ chainId });
-  }
-
-  async function disconnectSigner() {
-    await disconnect();
-    setWallet(undefined);
-  }
-
-  async function connectSigner(
-    walletKind: SupportedWallet,
-    mChainId?: ChainId
-  ) {
-    if (typeof window !== undefined) {
-      const newWallet = await createConnection(
-        mChainId,
-        props.apiConfig,
-        walletKind
-      );
-      setWallet((oldWallet) =>
-        !oldWallet || oldWallet.chainId !== newWallet.chainId
-          ? newWallet
-          : oldWallet
-      );
-    }
-  }
-
-  const cache = useCache(papi, wallet?.address);
+  const cache = useCache(papi, walletState?.address);
 
   const apiManager: ApiManager = {
     papi,
-    sapi: wallet && wallet.signerApi,
-    wallet: wallet,
+    sapi,
+    wallet: walletState,
     cache,
-    disconnectSigner,
-    connectSigner,
-    switchNetwork,
+    walletInitialize,
+    walletConnect,
+    walletDisconnect,
   };
   return (
     <ApiManagerContext.Provider value={apiManager}>
       {props.children}
     </ApiManagerContext.Provider>
   );
+}
+
+export type SupportedWallet = 'metaMask' | 'walletConnect';
+
+export async function createAppWallet(
+  walletKind: SupportedWallet
+): Promise<AppWallet> {
+  if (walletKind === 'metaMask') {
+    return createMetaMaskWallet();
+  } else if (walletKind == 'walletConnect') {
+    return createWalletConnectWallet();
+  }
+  return assertNever(walletKind);
 }
 
 export function useApiManager(): ApiManager {
@@ -159,102 +119,4 @@ export function useApiManager(): ApiManager {
   return chainSigner;
 }
 
-/**
- * Create a new connection to the wallet, switching to and setting up the specified chain if required.
- */
-async function createConnection(
-  mChainId: ChainId | undefined,
-  apiConfig: ApiConfig,
-  walletKind: SupportedWallet
-): Promise<WalletConnection> {
-  const provider = await connect({
-    connector: CONNECTORS[walletKind],
-    chainId: mChainId,
-  });
-
-  let chainId = provider.chain.id;
-
-  if (provider.chain.unsupported) {
-    const fallbackChainConfig = first(apiConfig.chainConfigs);
-
-    if (!fallbackChainConfig) {
-      throw Error(
-        `Failed to connect: ApiConfig has no chains configured. Unable to setup fallback chain on wallet connection.`
-      );
-    }
-
-    try {
-      const supportedChain = await wagmiSwitchNetwork({
-        chainId: fallbackChainConfig.chain.id,
-      });
-      chainId = supportedChain.id;
-    } catch (e) {
-      console.error(
-        'User refused network change to a supported Origami network'
-      );
-    }
-  }
-
-  const signer = await fetchSigner({ chainId: chainId });
-
-  if (!signer) {
-    throw Error('Failed to get `Signer` instance when connecting to wallet');
-  }
-
-  const { address } = getAccount();
-
-  if (!address) {
-    throw Error('Failed to get account address when connecting to wallet');
-  }
-
-  const signerApi = createSignerApi(apiConfig, address, chainId, signer);
-
-  return { signer, signerApi, chainId, address };
-}
-
-/**
- * Create a new instance of a wagmi chain configuration object from Origami's chain configurations
- * @param chainConfigs Origami supported chains configuration
- * @returns wagmi chains and provider objects
- */
-function _configureWagmiChains(chainConfigs: ChainConfig[]) {
-  const supportedChains = chainConfigs.map((config) => config.chain);
-
-  const chainConfigsVmap: VMap<number, ChainConfig> = new VMap((c) =>
-    c.toString()
-  );
-
-  for (const chainConfig of chainConfigs) {
-    chainConfigsVmap.put(chainConfig.chain.id, chainConfig);
-  }
-
-  const wagmiChainConfig = configureChains(supportedChains, [
-    jsonRpcProvider({
-      rpc: (chain) => {
-        const chainConfig = chainConfigsVmap.get(chain.id);
-
-        if (!chainConfig) {
-          throw new Error(
-            `Unsupported chain: Missing ChainConfig for chain id ${chain.id} while instantiating JsonRpcProvider.`
-          );
-        }
-
-        const rpcUrl =
-          chainConfig.origamiRpcUrl ?? chain.rpcUrls.default.http[0];
-
-        return {
-          http: rpcUrl,
-        };
-      },
-    }),
-  ]);
-
-  return wagmiChainConfig;
-}
-
-export type LocalProvider = {
-  request: (request: {
-    method: string;
-    params?: Array<unknown>;
-  }) => Promise<unknown>;
-};
+const LOCALSTORE_WALLET_STATE = 'walletState';

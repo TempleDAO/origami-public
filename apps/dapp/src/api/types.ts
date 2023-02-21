@@ -1,7 +1,6 @@
-import type { BigNumber } from 'ethers';
-import type { Chain as WagmiChain } from '@wagmi/core';
-import type { DecimalBigNumber } from '@/utils/decimal-big-number';
-import type { HistoricMetricReq, MetricsResp } from './api';
+import { BigNumber } from 'ethers';
+import { DecimalBigNumber } from '@/utils/decimal-big-number';
+import { HistoricMetricReq, MetricsResp } from './api';
 
 export type ChainId = number;
 
@@ -10,16 +9,19 @@ export interface ContractAddress {
   chainId: ChainId;
 }
 
-export interface BlockExplorerUrlBuilders {
-  transactionUrl(txhash: string): string;
-  tokenUrl(tokenHash: string): string;
+export interface Chain {
+  id: ChainId;
+  name: string;
+  nativeCurrency: NativeCurrency;
+  explorer: ChainExplorer;
+  rpcUrl: string;
+  walletRpcUrl: string;
+  subgraphUrl: string;
 }
 
-export interface ChainConfig {
-  chain: WagmiChain;
-  subgraphUrl: string;
-  urlBuilders: BlockExplorerUrlBuilders;
-  origamiRpcUrl?: string;
+export interface ChainExplorer {
+  transactionUrl(txhash: string): string;
+  tokenUrl(tokenHash: string): string;
 }
 
 export interface NativeCurrency {
@@ -60,7 +62,7 @@ export interface InvestmentConfig {
 export type PriceContractConfig = ContractAddress;
 
 export interface Investment extends InvestmentConfig {
-  chain: WagmiChain;
+  chain: Chain;
 
   receiptToken: Token;
   acceptedInvestTokens(): Promise<TokenOrNative[]>;
@@ -71,7 +73,7 @@ export interface Investment extends InvestmentConfig {
 
 export type TokenOrNative =
   | { kind: 'token'; token: Token }
-  | { kind: 'native'; chain: WagmiChain };
+  | { kind: 'native'; chain: Chain };
 
 export type HistoricPeriod = 'day' | 'week' | 'month' | 'all';
 

@@ -1,6 +1,6 @@
 import { ProviderApi } from '@/api/api';
-import { Chain } from '@wagmi/core';
 import {
+  Chain,
   ChainId,
   ContractAddress,
   Investment,
