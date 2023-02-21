@@ -225,7 +225,7 @@ const CardColumn = styled.section`
 const HeadingGrid = styled.div`
   width: 100%;
   display: none;
-  grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 6fr 1fr 1fr 1fr 1fr;
   ${breakpoints.md(`
     display: grid;
   `)}
@@ -253,7 +253,7 @@ const CardContent = styled.div`
   row-gap: 1rem;
   grid-template-columns: 1fr 1fr 1fr;
   ${breakpoints.md(`
-    grid-template-columns: 3fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 6fr 1fr 1fr 1fr 1fr;
   `)}
 `;
 
