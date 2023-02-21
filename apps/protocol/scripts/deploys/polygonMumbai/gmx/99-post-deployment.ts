@@ -152,6 +152,14 @@ async function main() {
     await mine(contracts.glpManager.addOperator(contracts.gmxRewardsAggregator.address));
     await mine(contracts.glpManager.addOperator(contracts.glpRewardsAggregator.address));
 
+    // Add the timelock and multisig as valid pausers
+    await mine(contracts.gmxManager.setPauser(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(contracts.gmxManager.setPauser(DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
+    await mine(contracts.glpManager.setPauser(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(contracts.glpManager.setPauser(DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
+    await mine(contracts.gmxManager.setPauser(owner.getAddress(), true));
+    await mine(contracts.glpManager.setPauser(owner.getAddress(), true));
+
     // The Investments & managers are added as operators such that they can buy/sell/stake/unstake GLP/GMX
     await mine(contracts.gmxEarnAccount.addOperator(contracts.gmxManager.address));
 

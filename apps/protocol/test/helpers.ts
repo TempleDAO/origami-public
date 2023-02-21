@@ -15,11 +15,18 @@ export const ZERO_DEADLINE = 0;
 export const BN_ZERO = BigNumber.from(0);
 
 export async function shouldRevertNotOwner(p: Promise<any>) {
-  await expect(p).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(p).to.be.revertedWith("Ownable: caller is not the owner");
+}
+
+export async function shouldRevertNotGov(
+    contract: { interface: any },
+    p: Promise<any>,
+) {
+    await expect(p).to.be.revertedWithCustomError(contract, "NotGovernor");
 }
 
 export async function shouldRevertErc20Balance(p: Promise<any>) {
-  await expect(p).to.be.revertedWith("ERC20: transfer amount exceeds balance");
+    await expect(p).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 }
 
 export async function shouldRevertNotOperator(
@@ -184,7 +191,7 @@ export async function deployUupsProxy<T extends Initializable>(
 
 export async function upgradeUupsProxy<T extends Initializable>(
   existingProxyAddress: string,
-  constructorArgs: unknown[],
+  constructorArgs: unknown[] | undefined,
   factory: ContractFactory): Promise<T> {
 
   if (!existingProxyAddress || !isAddress(existingProxyAddress)) {
@@ -200,7 +207,7 @@ export async function upgradeUupsProxy<T extends Initializable>(
 export async function upgradeUupsProxyAndCall<T extends Initializable>(
   existingProxyAddress: string,
   factory: ContractFactory,
-  constructorArgs: unknown[],
+  constructorArgs: unknown[] | undefined,
   call: string | { fn: string; args?: unknown[] }): Promise<T> {
 
   if (!existingProxyAddress || !isAddress(existingProxyAddress)) {

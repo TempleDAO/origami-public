@@ -18,7 +18,7 @@ import {
     mineForwardSeconds, 
     ONE_ETH, 
     recoverToken, 
-    shouldRevertNotOwner, 
+    shouldRevertNotGov,
     ZERO_ADDRESS,
     ZERO_DEADLINE,
     ZERO_SLIPPAGE
@@ -33,6 +33,8 @@ describe("Origami GLP Investment", async () => {
     let fred: Signer;
     let feeCollector: Signer;
     let dailyTransferKeeper: Signer;
+    let gov: Signer;
+    let govAddr: string;
     let origamiGlpManager: OrigamiGmxManager;
     let oGMX: OrigamiGmxInvestment;  
     let oGLP: OrigamiGlpInvestment;
@@ -47,21 +49,24 @@ describe("Origami GLP Investment", async () => {
     let secondaryEarnAccount: OrigamiGmxEarnAccount;
 
     before( async () => {
-        [owner, alan, bob, fred, feeCollector, dailyTransferKeeper] = await getSigners();
+        [owner, alan, bob, fred, feeCollector, dailyTransferKeeper, gov] = await getSigners();
+        govAddr = await gov.getAddress();
     });
     
     async function setup() {
         gmxContracts = await deployGmx(owner, esGmxPerSecond, esGmxPerSecond, ethPerSecond, ethPerSecond);
 
-        oGMX = await new OrigamiGmxInvestment__factory(owner).deploy();
+        oGMX = await new OrigamiGmxInvestment__factory(gov).deploy(govAddr);
         
-        oGLP = await new OrigamiGlpInvestment__factory(owner).deploy(
+        oGLP = await new OrigamiGlpInvestment__factory(gov).deploy(
+            govAddr,
             gmxContracts.wrappedNativeToken.address,
         );
 
         primaryEarnAccount = await deployUupsProxy(
-            new OrigamiGmxEarnAccount__factory(owner), 
+            new OrigamiGmxEarnAccount__factory(gov), 
             [gmxContracts.gmxRewardRouter.address],
+            govAddr,
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             await gmxContracts.gmxRewardRouter.glpVester(),
@@ -69,15 +74,17 @@ describe("Origami GLP Investment", async () => {
         );
 
         secondaryEarnAccount = await deployUupsProxy(
-            new OrigamiGmxEarnAccount__factory(owner), 
+            new OrigamiGmxEarnAccount__factory(gov), 
             [gmxContracts.gmxRewardRouter.address],
+            govAddr,
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             await gmxContracts.gmxRewardRouter.glpVester(),
             gmxContracts.stakedGlp.address,
         );
 
-        origamiGlpManager = await new OrigamiGmxManager__factory(owner).deploy(
+        origamiGlpManager = await new OrigamiGmxManager__factory(gov).deploy(
+            govAddr,
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             oGMX.address,
@@ -103,13 +110,13 @@ describe("Origami GLP Investment", async () => {
         await secondaryEarnAccount.addOperator(dailyTransferKeeper.getAddress());
 
         // The origamiGlpManager mints/burns oGlp tokens
-        await oGLP.addMinter(owner.getAddress());
+        await oGLP.addMinter(govAddr);
 
         await addDefaultGlpLiquidity(bob, gmxContracts);
 
-        randoErc20 = await new DummyMintableToken__factory(owner).deploy("rando", "rando");
-        await randoErc20.addMinter(owner.getAddress());
-        await randoErc20.mint(owner.getAddress(), ONE_ETH);
+        randoErc20 = await new DummyMintableToken__factory(gov).deploy(govAddr, "rando", "rando");
+        await randoErc20.addMinter(govAddr);
+        await randoErc20.mint(govAddr, ONE_ETH);
 
         return {
             gmxContracts,
@@ -139,12 +146,12 @@ describe("Origami GLP Investment", async () => {
     });
 
     it("admin", async () => {
-        await shouldRevertNotOwner(oGLP.connect(alan).setOrigamiGlpManager(ZERO_ADDRESS));
-        await shouldRevertNotOwner(oGLP.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
+        await shouldRevertNotGov(oGLP, oGLP.connect(owner).setOrigamiGlpManager(ZERO_ADDRESS));
+        await shouldRevertNotGov(oGLP, oGLP.connect(owner).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
 
         // Happy paths
-        await oGLP.setOrigamiGlpManager(origamiGlpManager.address);
-        await expect(oGLP.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
+        await oGLP.connect(gov).setOrigamiGlpManager(origamiGlpManager.address);
+        await expect(oGLP.connect(gov).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
             .to.revertedWith("ERC20: transfer amount exceeds balance");
     });
 
@@ -187,12 +194,13 @@ describe("Origami GLP Investment", async () => {
             glpExitsPaused: true,
             gmxExitsPaused: true,
         };
+        await origamiGlpManager.setPauser(govAddr, true);
         await origamiGlpManager.setPaused(paused);
         expect(await oGLP.areInvestmentsPaused()).eq(true);
         expect(await oGLP.areExitsPaused()).eq(true);
     });
 
-    it("owner can recover tokens", async () => {           
+    it("gov can recover tokens", async () => {           
         const amount = 50;
         await gmxContracts.bnbToken.mint(oGLP.address, amount);
         await recoverToken(gmxContracts.bnbToken, amount, oGLP, owner);   
@@ -215,6 +223,7 @@ describe("Origami GLP Investment", async () => {
             .withArgs(ZERO_ADDRESS);
 
         const origamiGlpManager2 = await new OrigamiGmxManager__factory(owner).deploy(
+            govAddr,
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             oGMX.address,

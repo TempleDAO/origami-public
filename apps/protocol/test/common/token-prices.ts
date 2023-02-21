@@ -10,7 +10,13 @@ import {
     DummyMintableToken__factory,
     TokenPrices, TokenPrices__factory, DummyOracle,
 } from "../../typechain";
-import { blockTimestamp, forkMainnet, mineForwardSeconds, shouldRevertNotOwner, ZERO_ADDRESS } from "../helpers";
+import { 
+    blockTimestamp, 
+    forkMainnet, 
+    mineForwardSeconds, 
+    shouldRevertNotOwner,
+    ZERO_ADDRESS
+} from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { deployGmx } from "../investments/gmx/gmx-helpers";
 import { getSigners } from "../signers";
@@ -305,8 +311,8 @@ describe("Token Prices", async () => {
 
         async function setup() {
             tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            reserveToken = await new DummyMintableToken__factory(owner).deploy("oToken", "oToken");
-            repricingToken = await new DummyRepricingToken__factory(owner).deploy("ovToken", "ovToken", reserveToken.address, repricingTokenVestingDuration);
+            reserveToken = await new DummyMintableToken__factory(owner).deploy(owner.getAddress(), "oToken", "oToken");
+            repricingToken = await new DummyRepricingToken__factory(owner).deploy(owner.getAddress(), "ovToken", "ovToken", reserveToken.address, repricingTokenVestingDuration);
             await repricingToken.addOperator(owner.getAddress());
 
             await reserveToken.addMinter(owner.getAddress());

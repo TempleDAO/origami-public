@@ -12,7 +12,7 @@ import {
 } from "../../typechain";
 import { 
     expectBalancesChangeBy, 
-    shouldRevertNotOwner, 
+    shouldRevertNotGov,
     ZERO_ADDRESS, EmptyBytes, 
     getEthBalance,
     encodeInvestQuoteData,
@@ -38,6 +38,8 @@ describe("Origami Investment Vault", async () => {
     let operator: Signer;
     let alan: Signer;
     let bob: Signer;
+    let gov: Signer;
+    let govAddr: string;
     let oToken: DummyOrigamiInvestment;
     let ovToken: OrigamiInvestmentVault;
     let tokenPrices: TokenPrices;
@@ -48,17 +50,19 @@ describe("Origami Investment Vault", async () => {
     let rewardToken2: MintableToken;
     
     before( async () => {
-        [owner, operator, alan, bob] = await getSigners();
+        [owner, operator, alan, bob, gov] = await getSigners();
+        govAddr = await gov.getAddress();
     });
 
     async function setup() {
         // Setup oToken
         {
-            underlyingInvestToken = await new DummyMintableToken__factory(owner).deploy("investToken", "investToken");
+            underlyingInvestToken = await new DummyMintableToken__factory(gov).deploy(govAddr, "investToken", "investToken");
             underlyingInvestToken.addMinter(operator.getAddress());
-            underlyingExitToken = await new DummyMintableToken__factory(owner).deploy("exitToken", "exitToken");
+            underlyingExitToken = await new DummyMintableToken__factory(gov).deploy(govAddr, "exitToken", "exitToken");
             underlyingExitToken.addMinter(operator.getAddress());
-            oToken = await new DummyOrigamiInvestment__factory(owner).deploy(
+            oToken = await new DummyOrigamiInvestment__factory(gov).deploy(
+                govAddr,
                 "oToken", "oToken", 
                 underlyingInvestToken.address, 
                 underlyingExitToken.address
@@ -68,16 +72,16 @@ describe("Origami Investment Vault", async () => {
         
         // Setup ovToken
         {
-            tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            ovToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovToken", "ovToken", oToken.address, tokenPrices.address, 5, vestingDuration);
+            tokenPrices = await new TokenPrices__factory(gov).deploy(30);
+            ovToken = await new OrigamiInvestmentVault__factory(gov).deploy(govAddr, "ovToken", "ovToken", oToken.address, tokenPrices.address, 5, vestingDuration);
             await ovToken.addOperator(operator.getAddress());
         }
         
         // Setup investment manager
         {
-            rewardToken1 = await new DummyMintableToken__factory(owner).deploy("rwd1", "rwd1");
-            rewardToken2 = await new DummyMintableToken__factory(owner).deploy("rwd2", "rwd2");
-            investmentManager = await new DummyOrigamiInvestmentManager__factory(owner).deploy(
+            rewardToken1 = await new DummyMintableToken__factory(gov).deploy(govAddr, "rwd1", "rwd1");
+            rewardToken2 = await new DummyMintableToken__factory(gov).deploy(govAddr, "rwd2", "rwd2");
+            investmentManager = await new DummyOrigamiInvestmentManager__factory(gov).deploy(
                 [rewardToken1.address, rewardToken2.address],
                 [
                     ethers.utils.parseEther("0.000028935185185185"), // 2.5 per day, 912.5 per year
@@ -104,7 +108,7 @@ describe("Origami Investment Vault", async () => {
             };
 
             // Set $rewardToken1 == 30
-            const rewardToken1UsdOracle = await new DummyOracle__factory(owner).deploy(oracleAnswer, 8);
+            const rewardToken1UsdOracle = await new DummyOracle__factory(gov).deploy(oracleAnswer, 8);
             const encodedRewardToken1UsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [rewardToken1UsdOracle.address, 600]);
             await tokenPrices.setTokenPriceFunction(rewardToken1.address, encodedRewardToken1UsdOracle);
 
@@ -113,7 +117,7 @@ describe("Origami Investment Vault", async () => {
                 ...oracleAnswer,
                 answer: BigNumber.from("5000000000")
             };
-            const rewardToken2UsdOracle = await new DummyOracle__factory(owner).deploy(oracleAnswer, 8);
+            const rewardToken2UsdOracle = await new DummyOracle__factory(gov).deploy(oracleAnswer, 8);
             const encodedRewardToken2UsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [rewardToken2UsdOracle.address, 600]);
             await tokenPrices.setTokenPriceFunction(rewardToken2.address, encodedRewardToken2UsdOracle);
 
@@ -122,7 +126,7 @@ describe("Origami Investment Vault", async () => {
                 ...oracleAnswer,
                 answer: BigNumber.from("1500000000")
             };
-            const oTokenUsdOracle = await new DummyOracle__factory(owner).deploy(oracleAnswer, 8);
+            const oTokenUsdOracle = await new DummyOracle__factory(gov).deploy(oracleAnswer, 8);
             const encodedoTokenUsdOracle = tokenPricesInterface.encodeFunctionData("oraclePrice", [oTokenUsdOracle.address, 600]);
             await tokenPrices.setTokenPriceFunction(oToken.address, encodedoTokenUsdOracle);
 
@@ -190,21 +194,21 @@ describe("Origami Investment Vault", async () => {
     });
 
     it("admin", async () => {
-        await shouldRevertNotOwner(ovToken.connect(alan).setInvestmentManager(investmentManager.address));
-        await shouldRevertNotOwner(ovToken.connect(alan).setTokenPrices(tokenPrices.address));
-        await shouldRevertNotOwner(ovToken.connect(alan).setPerformanceFee(80, 100));
+        await shouldRevertNotGov(ovToken, ovToken.connect(owner).setInvestmentManager(investmentManager.address));
+        await shouldRevertNotGov(ovToken, ovToken.connect(owner).setTokenPrices(tokenPrices.address));
+        await shouldRevertNotGov(ovToken, ovToken.connect(owner).setPerformanceFee(80, 100));
 
         await expect(ovToken.connect(alan).addPendingReserves(0))
             .to.revertedWithCustomError(ovToken, "OnlyOperators")
             .withArgs(await alan.getAddress());
 
         // Happy paths
-        await ovToken.setInvestmentManager(investmentManager.address);
-        await ovToken.setTokenPrices(tokenPrices.address);
-        await ovToken.setPerformanceFee(80, 100);
+        await ovToken.connect(gov).setInvestmentManager(investmentManager.address);
+        await ovToken.connect(gov).setTokenPrices(tokenPrices.address);
+        await ovToken.connect(gov).setPerformanceFee(80, 100);
     });
 
-    it("owner can set the investment manager", async () => {           
+    it("gov can set the investment manager", async () => {           
         await expect(ovToken.setInvestmentManager(ZERO_ADDRESS))
             .to.be.revertedWithCustomError(ovToken, "InvalidAddress")
             .withArgs(ZERO_ADDRESS);
@@ -214,7 +218,7 @@ describe("Origami Investment Vault", async () => {
         expect(await ovToken.investmentManager()).to.eq(investmentManager.address);
     });
 
-    it("owner can set token prices", async () => {           
+    it("gov can set token prices", async () => {           
         await expect(ovToken.setTokenPrices(ZERO_ADDRESS))
             .to.be.revertedWithCustomError(ovToken, "InvalidAddress")
             .withArgs(ZERO_ADDRESS);

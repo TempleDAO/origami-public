@@ -1,4 +1,4 @@
-import { BigNumber, BigNumberish, Signer } from 'ethers';
+import { BigNumber, BigNumberish, Contract, Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import { applySlippage, impersonateSigner, mineForwardSeconds, ZERO_ADDRESS } from '../../../../test/helpers';
 import { 
@@ -23,6 +23,8 @@ import {
     IERC20,
     GMX_EsGMX__factory,
     GMX_Timelock__factory,
+    TimelockController__factory,
+    TimelockController,
 } from '../../../../typechain';
 import {
     ZeroExQuoteParams,
@@ -36,6 +38,7 @@ import {
 import { GmxDeployedContracts, getDeployedContracts } from '../../arbitrum/gmx/contract-addresses';
 
 interface ContractInstances {
+    timelock: TimelockController,
     gmxEarnAccount: OrigamiGmxEarnAccount,
     glpPrimaryEarnAccount: OrigamiGmxEarnAccount,
     glpSecondaryEarnAccount: OrigamiGmxEarnAccount,
@@ -57,6 +60,7 @@ interface ContractInstances {
 
 function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: Signer): ContractInstances {
     return {
+        timelock: TimelockController__factory.connect(DEPLOYED.ORIGAMI.GOV_TIMELOCK, owner),
         gmxEarnAccount: OrigamiGmxEarnAccount__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_EARN_ACCOUNT, owner),
         glpPrimaryEarnAccount: OrigamiGmxEarnAccount__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_PRIMARY_EARN_ACCOUNT, owner),
         glpSecondaryEarnAccount: OrigamiGmxEarnAccount__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_SECONDARY_EARN_ACCOUNT, owner),
@@ -414,6 +418,59 @@ enableSlippageProtection=true" | jq
     console.log("\tovGMX Vested & Pending After:", (await contracts.ovGMX.vestedReserves()).add(await contracts.ovGMX.pendingReserves()));
 }
 
+async function acceptGov(contracts: ContractInstances, owner: Signer, contractToSet: Contract) {
+    const now = Math.floor(Date.now() / 1000).toString();
+    const eighteen_hours = 18*60*60;
+    const encoded = contractToSet.interface.encodeFunctionData("acceptGov");
+    await mine(contracts.timelock.connect(owner).schedule(
+        contractToSet.address,
+        0,
+        encoded,
+        ethers.utils.formatBytes32String(""),
+        ethers.utils.formatBytes32String(now),
+        eighteen_hours,
+    ));
+    await mineForwardSeconds(eighteen_hours);
+    await mine(contracts.timelock.connect(owner).execute(
+        contractToSet.address,
+        0,
+        encoded,
+        ethers.utils.formatBytes32String(""),
+        ethers.utils.formatBytes32String(now)
+    ));
+
+    console.log("Gov for:", contractToSet.address, "=", await contractToSet.gov());
+}
+
+// Have the timelock accept governance, and then give it back to owner
+// as a test that the process works.
+async function claimGov(contracts: ContractInstances, owner: Signer, contractToSet: Contract) {
+    await acceptGov(contracts, owner, contractToSet);
+
+    const now = Math.floor(Date.now() / 1000).toString();
+    const eighteen_hours = 18*60*60;
+    const encoded = contractToSet.interface.encodeFunctionData("proposeNewGov", [await owner.getAddress()]);
+    await mine(contracts.timelock.connect(owner).schedule(
+        contractToSet.address,
+        0,
+        encoded,
+        ethers.utils.formatBytes32String(""),
+        ethers.utils.formatBytes32String(now),
+        eighteen_hours,
+    ));
+    await mineForwardSeconds(eighteen_hours);
+    await mine(contracts.timelock.connect(owner).execute(
+        contractToSet.address,
+        0,
+        encoded,
+        ethers.utils.formatBytes32String(""),
+        ethers.utils.formatBytes32String(now)
+    ));
+
+    await mine(contractToSet.connect(owner).acceptGov());
+    console.log("Gov for:", contractToSet.address, "=", await contractToSet.gov());
+}
+
 async function main() {
     ensureExpectedEnvvars();
     const [owner, fred, joe, bob, feeCollector] = await ethers.getSigners();
@@ -421,10 +478,16 @@ async function main() {
     const DEPLOYED: GmxDeployedContracts = getDeployedContracts();
     console.log("owner addr:", await owner.getAddress());
     console.log("origami msig:", DEPLOYED.ORIGAMI.MULTISIG);
+    console.log("origami timelock gov:", DEPLOYED.ORIGAMI.GOV_TIMELOCK);
     
     const origamiMultisig = await impersonateAndFund(owner, DEPLOYED.ORIGAMI.MULTISIG, 10);
     const contracts = connectToContracts(DEPLOYED, origamiMultisig);
 
+    await claimGov(contracts, origamiMultisig, contracts.gmxRewardsAggregator);
+    await claimGov(contracts, origamiMultisig, contracts.glpRewardsAggregator);
+    await claimGov(contracts, origamiMultisig, contracts.oGMX);
+    await claimGov(contracts, origamiMultisig, contracts.oGLP);
+    
     await setUpstreamRewardRates(contracts, owner);
     await updateOracleThreshold(DEPLOYED, contracts);
 

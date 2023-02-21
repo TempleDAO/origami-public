@@ -1,4 +1,3 @@
-import { ethers } from "hardhat";
 import { Signer } from "ethers";
 import { expect } from "chai";
 import { 
@@ -12,23 +11,26 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getSigners } from "../signers";
 
 describe("Origami Investment Base Class", async () => {
-    let owner: Signer;
     let alan: Signer;
     let oToken: DummyOrigamiInvestment;
+    let gov: Signer;
+    let govAddr: string;
     
     before( async () => {
-        [owner, alan] = await getSigners();
+        [alan, gov] = await getSigners();
+        govAddr = await gov.getAddress();
     });
 
     async function setup() {
-        const underlyingInvestToken = await new DummyMintableToken__factory(owner).deploy("investToken", "investToken");
+        const underlyingInvestToken = await new DummyMintableToken__factory(gov).deploy(govAddr, "investToken", "investToken");
 
-        oToken = await new DummyOrigamiInvestment__factory(owner).deploy(
+        oToken = await new DummyOrigamiInvestment__factory(gov).deploy(
+            govAddr,
             "oX", "oX", 
             underlyingInvestToken.address, 
             underlyingInvestToken.address
         );
-        await oToken.addMinter(owner.getAddress());
+        await oToken.addMinter(gov.getAddress());
         return {
             oToken,
         };

@@ -15,6 +15,7 @@ async function main() {
   const factory = new OrigamiInvestmentVault__factory(owner);
   await deployAndMine(
     'ovGLP', factory, factory.deploy,
+    await owner.getAddress(),
     'Origami GLP Investment Vault', 'ovGLP',
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGLP,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.TOKEN_PRICES,

@@ -13,6 +13,7 @@ async function main() {
   const factory = new OrigamiGmxInvestment__factory(owner);
   await deployAndMine(
     'oGMX', factory, factory.deploy,
+    await owner.getAddress(),
   );
 }
 

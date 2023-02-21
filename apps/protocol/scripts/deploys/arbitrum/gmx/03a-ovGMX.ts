@@ -15,6 +15,7 @@ async function main() {
   const factory = new OrigamiInvestmentVault__factory(owner);
   await deployAndMine(
     'ovGMX', factory, factory.deploy,
+    await owner.getAddress(),
     'Origami GMX Investment Vault', 'ovGMX',
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGMX,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.TOKEN_PRICES,

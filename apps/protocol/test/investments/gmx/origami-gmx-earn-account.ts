@@ -7,7 +7,7 @@ import {
     deployUupsProxy,
     expectApproxEqRel,
     mineForwardSeconds, 
-    shouldRevertNotOwner, 
+    shouldRevertNotGov,
     tolerance, 
     upgradeUupsProxy, 
     upgradeUupsProxyAndCall, 
@@ -36,6 +36,8 @@ describe("Origami GMX Earn Account", async () => {
     let alan: Signer;
     let bob: Signer;
     let operator: Signer;
+    let gov: Signer;
+    let govAddr: string;
     let origamiGmxEarnAccount: OrigamiGmxEarnAccount;
     let gmxContracts: GmxContracts;
     let esGmxVester: IGmxVester;
@@ -46,7 +48,8 @@ describe("Origami GMX Earn Account", async () => {
     const esGmxPerSecond = BigNumber.from("20667989410000000"); // 0.02066798941 esGmx per second
 
     before( async () => {
-        [owner, alan, bob, operator] = await getSigners();
+        [owner, alan, bob, operator, gov] = await getSigners();
+        govAddr = await gov.getAddress();
     });
     
     async function setup() {
@@ -58,10 +61,11 @@ describe("Origami GMX Earn Account", async () => {
         await gmxContracts.gmxToken.mint(await owner.getAddress(), gmxAmount);
         expect(await gmxContracts.gmxToken.balanceOf(await owner.getAddress())).eq(gmxAmount);
 
-        esGmxVester = IGmxVester__factory.connect(await gmxContracts.gmxRewardRouter.gmxVester(), owner);
+        esGmxVester = IGmxVester__factory.connect(await gmxContracts.gmxRewardRouter.gmxVester(), gov);
         origamiGmxEarnAccount = await deployUupsProxy(
-            new OrigamiGmxEarnAccount__factory(owner), 
+            new OrigamiGmxEarnAccount__factory(gov), 
             [gmxContracts.gmxRewardRouter.address],
+            govAddr,
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             esGmxVester.address,
@@ -69,7 +73,8 @@ describe("Origami GMX Earn Account", async () => {
         );
         await origamiGmxEarnAccount.addOperator(operator.getAddress());
 
-        origamiGmxManager = await new OrigamiGmxManager__factory(owner).deploy(
+        origamiGmxManager = await new OrigamiGmxManager__factory(gov).deploy(
+            govAddr,
             gmxContracts.gmxRewardRouter.address,
             gmxContracts.glpRewardRouter.address,
             ZERO_ADDRESS,
@@ -103,9 +108,9 @@ describe("Origami GMX Earn Account", async () => {
 
     describe("Common Admin", async () => {
         it("admin tests", async () => {
-            await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).addOperator(await operator.getAddress()));
-            await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).removeOperator(await operator.getAddress()));
-            await shouldRevertNotOwner(origamiGmxEarnAccount.connect(alan).initGmxContracts(
+            await shouldRevertNotGov(origamiGmxEarnAccount, origamiGmxEarnAccount.connect(owner).addOperator(await operator.getAddress()));
+            await shouldRevertNotGov(origamiGmxEarnAccount, origamiGmxEarnAccount.connect(owner).removeOperator(await operator.getAddress()));
+            await shouldRevertNotGov(origamiGmxEarnAccount, origamiGmxEarnAccount.connect(owner).initGmxContracts(
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 esGmxVester.address,
@@ -158,7 +163,7 @@ describe("Origami GMX Earn Account", async () => {
                 .withArgs(await alan.getAddress());   
             
             // Happy Paths
-            await origamiGmxEarnAccount.addOperator(alan.getAddress());
+            await origamiGmxEarnAccount.connect(gov).addOperator(alan.getAddress());
 
             await expect(origamiGmxEarnAccount.connect(alan).stakeGmx(0))
                 .to.be.revertedWith("RewardRouter: invalid _amount");
@@ -184,13 +189,13 @@ describe("Origami GMX Earn Account", async () => {
             await expect(origamiGmxEarnAccount.connect(alan).withdrawFromEsGmxVesting(gmxContracts.gmxRewardRouter.gmxVester()))
                 .to.be.revertedWith("Vester: vested amount is zero");
 
-            await origamiGmxEarnAccount.initGmxContracts(
+            await origamiGmxEarnAccount.connect(gov).initGmxContracts(
                 gmxContracts.gmxRewardRouter.address, 
                 gmxContracts.glpRewardRouter.address, 
                 esGmxVester.address, 
                 gmxContracts.stakedGlp.address
             );
-            await origamiGmxEarnAccount.removeOperator(alan.getAddress());
+            await origamiGmxEarnAccount.connect(gov).removeOperator(alan.getAddress());
         });
 
         it("constructor", async () => {
@@ -209,7 +214,7 @@ describe("Origami GMX Earn Account", async () => {
 
             // These are immutable vars - so check they're set on the underlying too
             const underlyingImplAddress = await upgrades.erc1967.getImplementationAddress(origamiGmxEarnAccount.address);
-            const underlyingImpl = OrigamiGmxEarnAccount__factory.connect(underlyingImplAddress, owner);
+            const underlyingImpl = OrigamiGmxEarnAccount__factory.connect(underlyingImplAddress, gov);
             expect(await underlyingImpl.gmxToken()).eq(gmxContracts.gmxToken.address); 
             expect(await underlyingImpl.esGmxToken()).eq(gmxContracts.esGmxToken.address); 
             expect(await underlyingImpl.wrappedNativeToken()).eq(gmxContracts.wrappedNativeToken.address); 
@@ -602,7 +607,8 @@ describe("Origami GMX Earn Account", async () => {
             let expectedStakedGlpAmount = BN_ZERO;
             if (useGlp) {
                 await gmxContracts.bnbToken.mint(origamiGmxEarnAccount.address, stakeAmount);
-                const origamiGmxManager = await new OrigamiGmxManager__factory(owner).deploy(
+                const origamiGmxManager = await new OrigamiGmxManager__factory(gov).deploy(
+                    govAddr,
                     gmxContracts.gmxRewardRouter.address,
                     gmxContracts.glpRewardRouter.address,
                     ZERO_ADDRESS,
@@ -980,7 +986,7 @@ describe("Origami GMX Earn Account", async () => {
             expect(esGmxBal).gt(0);
 
             // Deposit into vesting
-            const vester = GMX_Vester__factory.connect(await gmxContracts.gmxRewardRouter.gmxVester(), owner);
+            const vester = GMX_Vester__factory.connect(await gmxContracts.gmxRewardRouter.gmxVester(), gov);
             await origamiGmxEarnAccount.connect(operator).depositIntoEsGmxVesting(vester.address, esGmxBal);
 
             let vestedBal = await vester.getTotalVested(origamiGmxEarnAccount.address);
@@ -1179,8 +1185,15 @@ describe("Origami GMX Earn Account", async () => {
             // Check a var before upgrade
             expect(await origamiGmxEarnAccount.gmxToken()).eq(gmxContracts.gmxToken.address);
 
-            // Upgrade the contract
-            await upgradeUupsProxy(origamiGmxEarnAccount.address, [gmxContracts.gmxRewardRouter.address], new DummyOrigamiGmxEarnAccount__factory(owner));
+            // Only governance can upgrade
+            await expect(upgradeUupsProxy(origamiGmxEarnAccount.address, [gmxContracts.gmxRewardRouter.address], new DummyOrigamiGmxEarnAccount__factory(owner)))
+                .to.revertedWithCustomError(origamiGmxEarnAccount, "NotGovernor");
+
+            // Gov upgrades the contract
+            await upgradeUupsProxy(origamiGmxEarnAccount.address, [gmxContracts.gmxRewardRouter.address], new DummyOrigamiGmxEarnAccount__factory(gov));
+
+            // The gov remains unchanged even though gov upgraded it
+            expect(await origamiGmxEarnAccount.gov()).eq(await gov.getAddress());
 
             // Check the new contract storage after upgrading it.
             expect(await origamiGmxEarnAccount.gmxToken()).eq(gmxContracts.gmxToken.address);
@@ -1191,13 +1204,13 @@ describe("Origami GMX Earn Account", async () => {
             expect(await origamiGmxEarnAccount.gmxToken()).eq(gmxContracts.gmxToken.address);
 
             // Upgrade the contract and call the function
-            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), [gmxContracts.gmxRewardRouter.address], {
+            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(gov), [gmxContracts.gmxRewardRouter.address], {
                 fn: "setNewAddr",
                 args: [await alan.getAddress()]
             });
 
             // Get the new contract
-            const newAcct = DummyOrigamiGmxEarnAccount__factory.connect(origamiGmxEarnAccount.address, owner);
+            const newAcct = DummyOrigamiGmxEarnAccount__factory.connect(origamiGmxEarnAccount.address, gov);
 
             // The new contract addr is the same as the previous contract
             expect(newAcct.address).eq(origamiGmxEarnAccount.address);
@@ -1209,26 +1222,26 @@ describe("Origami GMX Earn Account", async () => {
             expect(await newAcct.newAddr()).eq(await alan.getAddress());
 
             // Check the ownership of authorizeUpgrade
-            await shouldRevertNotOwner(newAcct.connect(alan).authorizeUpgrade());
+            await shouldRevertNotGov(origamiGmxEarnAccount, newAcct.connect(alan).authorizeUpgrade());
             await newAcct.authorizeUpgrade();
         });
 
         it("after upgrading, calling a method on the proxy definitely then calls the new contract", async () => {
             // Upgrade the contract and call the function
-            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), [gmxContracts.gmxRewardRouter.address], {
+            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(gov), [gmxContracts.gmxRewardRouter.address], {
                 fn: "setNewAddr",
                 args: [await alan.getAddress()]
             });
 
             // Get the new contract
-            const newAcct = DummyOrigamiGmxEarnAccount__factory.connect(origamiGmxEarnAccount.address, owner);
+            const newAcct = DummyOrigamiGmxEarnAccount__factory.connect(origamiGmxEarnAccount.address, gov);
 
             // Check the new contract storage
             expect(await newAcct.newAddr()).eq(await alan.getAddress());
 
             // Calling a method on the proxy definitely calls the new contract
-            await newAcct.setNewAddr(await owner.getAddress());
-            expect(await newAcct.newAddr()).eq(await owner.getAddress());
+            await newAcct.setNewAddr(await gov.getAddress());
+            expect(await newAcct.newAddr()).eq(await gov.getAddress());
         });
 
         it("after upgrading, calling a method on the implementation contract directly doesn't affect the old contract", async () => {
@@ -1241,19 +1254,19 @@ describe("Origami GMX Earn Account", async () => {
             
             // Get the old implementation contract
             const oldUnderlyingImplAddress = await upgrades.erc1967.getImplementationAddress(origamiGmxEarnAccount.address);
-            const oldUnderlyingImpl = OrigamiGmxEarnAccount__factory.connect(oldUnderlyingImplAddress, owner);
+            const oldUnderlyingImpl = OrigamiGmxEarnAccount__factory.connect(oldUnderlyingImplAddress, gov);
             
             // Upgrade the staking contract and call the function
-            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(owner), [gmxContracts.gmxRewardRouter.address], {
+            await upgradeUupsProxyAndCall(origamiGmxEarnAccount.address, new DummyOrigamiGmxEarnAccount__factory(gov), [gmxContracts.gmxRewardRouter.address], {
                 fn: "setNewAddr",
                 args: [await alan.getAddress()]
             });
 
             // Get the new staking and its implementation contract
-            const newContract = DummyOrigamiGmxEarnAccount__factory.connect(origamiGmxEarnAccount.address, owner);
+            const newContract = DummyOrigamiGmxEarnAccount__factory.connect(origamiGmxEarnAccount.address, gov);
 
             const newUnderlyingImplAddress = await upgrades.erc1967.getImplementationAddress(origamiGmxEarnAccount.address);
-            const newUnderlyingImpl = DummyOrigamiGmxEarnAccount__factory.connect(newUnderlyingImplAddress, owner);
+            const newUnderlyingImpl = DummyOrigamiGmxEarnAccount__factory.connect(newUnderlyingImplAddress, gov);
 
             {
                 expect(await newUnderlyingImpl.gmxToken()).eq(gmxContracts.gmxToken.address); 
@@ -1265,7 +1278,7 @@ describe("Origami GMX Earn Account", async () => {
 
             // Calling a method on the old implementation contract directly affects nothing in the new contract
             // All tx to old implementation contract are reverted as all the storage vars are completely empty.
-            await shouldRevertNotOwner(oldUnderlyingImpl.addOperator(bob.getAddress()));
+            await shouldRevertNotGov(oldUnderlyingImpl, oldUnderlyingImpl.addOperator(bob.getAddress()));
             
             // Stake some more -- still works
             {
@@ -1276,9 +1289,9 @@ describe("Origami GMX Earn Account", async () => {
             
             // Calling a method on the new implementation contract directly doesn't affect the contract
             const newAddr = await newContract.newAddr();
-            await newUnderlyingImpl.setNewAddr(await owner.getAddress());
+            await newUnderlyingImpl.setNewAddr(await gov.getAddress());
 
-            expect(await newUnderlyingImpl.newAddr()).eq(await owner.getAddress());
+            expect(await newUnderlyingImpl.newAddr()).eq(await gov.getAddress());
             expect(await newContract.newAddr()).eq(newAddr);
             expect(await newUnderlyingImpl.newAddr()).not.eq(await newContract.newAddr());
         });

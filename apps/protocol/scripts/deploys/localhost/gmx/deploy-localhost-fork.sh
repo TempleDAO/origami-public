@@ -6,6 +6,7 @@
 
 set -x
 set -e
+npx hardhat run --network localhost scripts/deploys/arbitrum/01-timelock.ts
 npx hardhat run --network localhost scripts/deploys/arbitrum/gmx/01-token-prices.ts
 npx hardhat run --network localhost scripts/deploys/arbitrum/gmx/02a-oGMX.ts
 npx hardhat run --network localhost scripts/deploys/arbitrum/gmx/02b-oGLP.ts

@@ -5,7 +5,7 @@ import {
     mineForwardSeconds,
     ZERO_ADDRESS, 
     recoverToken, 
-    shouldRevertNotOwner, 
+    shouldRevertNotGov,
     deployUupsProxy, 
     shouldRevertNotOperator, 
     expectApproxEqRel, 
@@ -41,6 +41,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
     let bob: Signer;
     let operator: Signer;
     let compoundingFeeCollector: Signer;
+    let gov: Signer;
+    let govAddr: string;
 
     let dex: DummyDex;
     
@@ -67,20 +69,22 @@ describe("Origami GMX Rewards Aggregator", async () => {
     const vestingDuration = 86400;
 
     before( async () => {
-        [owner, bob, alan, operator, feeCollector, compoundingFeeCollector] = await getSigners();
+        [owner, bob, alan, operator, feeCollector, compoundingFeeCollector, gov] = await getSigners();
+        govAddr = await gov.getAddress();
     });
 
     async function setup() {
         gmxContracts = await deployGmx(owner, esGmxPerSecond, esGmxPerSecond, ethPerSecond, ethPerSecond);
 
-        oGmxToken =  await new OrigamiGmxInvestment__factory(owner).deploy();
-        oGlpToken = await new OrigamiGlpInvestment__factory(owner).deploy(
+        oGmxToken =  await new OrigamiGmxInvestment__factory(gov).deploy(govAddr);
+        oGlpToken = await new OrigamiGlpInvestment__factory(gov).deploy(
+            govAddr,
             gmxContracts.wrappedNativeToken.address,
         );
 
         // Set up DEX
         {
-            dex = await new DummyDex__factory(owner).deploy(
+            dex = await new DummyDex__factory(gov).deploy(
                 gmxContracts.gmxToken.address,
                 gmxContracts.wrappedNativeToken.address,
                 ethers.utils.parseEther("1"), // Use a price of 1 ETH == 100 GMX
@@ -92,22 +96,24 @@ describe("Origami GMX Rewards Aggregator", async () => {
         
         // Setup ovTokens
         {
-            tokenPrices = await new TokenPrices__factory(owner).deploy(30);
-            ovGmxToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGmxToken", "ovGmxToken", oGmxToken.address, tokenPrices.address, 5, vestingDuration);
-            ovGlpToken = await new OrigamiInvestmentVault__factory(owner).deploy("ovGlpToken", "ovGlpToken", oGlpToken.address, tokenPrices.address, 5, vestingDuration);
+            tokenPrices = await new TokenPrices__factory(gov).deploy(30);
+            ovGmxToken = await new OrigamiInvestmentVault__factory(gov).deploy(govAddr, "ovGmxToken", "ovGmxToken", oGmxToken.address, tokenPrices.address, 5, vestingDuration);
+            ovGlpToken = await new OrigamiInvestmentVault__factory(gov).deploy(govAddr, "ovGlpToken", "ovGlpToken", oGlpToken.address, tokenPrices.address, 5, vestingDuration);
         }
         
         // Setup the GMX Manager/Earn Account
         {
             gmxEarnAccount = await deployUupsProxy(
-                new OrigamiGmxEarnAccount__factory(owner), 
+                new OrigamiGmxEarnAccount__factory(gov), 
                 [gmxContracts.gmxRewardRouter.address],
+                govAddr,
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.gmxRewardRouter.gmxVester(),
                 gmxContracts.stakedGlp.address,
             );
-            origamiGmxManager = await new OrigamiGmxManager__factory(owner).deploy(
+            origamiGmxManager = await new OrigamiGmxManager__factory(gov).deploy(
+                govAddr,
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 oGmxToken.address,
@@ -128,22 +134,25 @@ describe("Origami GMX Rewards Aggregator", async () => {
         // Setup the GLP Manager/Earn Account
         {
             primaryGlpEarnAccount = await deployUupsProxy(
-                new OrigamiGmxEarnAccount__factory(owner), 
+                new OrigamiGmxEarnAccount__factory(gov), 
                 [gmxContracts.gmxRewardRouter.address],
+                govAddr,
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.glpRewardRouter.glpVester(),
                 gmxContracts.stakedGlp.address,
             );
             secondaryGlpEarnAccount = await deployUupsProxy(
-                new OrigamiGmxEarnAccount__factory(owner), 
+                new OrigamiGmxEarnAccount__factory(gov), 
                 [gmxContracts.gmxRewardRouter.address],
+                govAddr,
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 await gmxContracts.glpRewardRouter.glpVester(),
                 gmxContracts.stakedGlp.address,
             );
-            origamiGlpManager = await new OrigamiGmxManager__factory(owner).deploy(
+            origamiGlpManager = await new OrigamiGmxManager__factory(gov).deploy(
+                govAddr,
                 gmxContracts.gmxRewardRouter.address,
                 gmxContracts.glpRewardRouter.address,
                 oGmxToken.address,
@@ -163,7 +172,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
 
         // Setup the rewards aggregators
         {
-            origamiGmxRewardsAggr = await new OrigamiGmxRewardsAggregator__factory(owner).deploy(
+            origamiGmxRewardsAggr = await new OrigamiGmxRewardsAggregator__factory(gov).deploy(
+                govAddr,
                 GmxVaultType.GMX,
                 origamiGmxManager.address,
                 origamiGlpManager.address,
@@ -175,7 +185,8 @@ describe("Origami GMX Rewards Aggregator", async () => {
             await origamiGmxManager.addOperator(origamiGmxRewardsAggr.address);
             await origamiGlpManager.addOperator(origamiGmxRewardsAggr.address);
 
-            origamiGlpRewardsAggr = await new OrigamiGmxRewardsAggregator__factory(owner).deploy(
+            origamiGlpRewardsAggr = await new OrigamiGmxRewardsAggregator__factory(gov).deploy(
+                govAddr,
                 GmxVaultType.GLP,
                 origamiGmxManager.address,
                 origamiGlpManager.address,
@@ -198,10 +209,10 @@ describe("Origami GMX Rewards Aggregator", async () => {
             await origamiGlpRewardsAggr.addOperator(operator.getAddress());
         }
 
-        // Allow owner to mint for staking purposes.
+        // Allow gov to mint for staking purposes.
         {
-            await oGmxToken.addMinter(owner.getAddress());
-            await oGlpToken.addMinter(owner.getAddress());
+            await oGmxToken.addMinter(gov.getAddress());
+            await oGlpToken.addMinter(gov.getAddress());
         }
 
         return {
@@ -267,34 +278,34 @@ describe("Origami GMX Rewards Aggregator", async () => {
         }
 
         it("admin", async () => {
-            await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).setOrigamiGmxManagers(
+            await shouldRevertNotGov(origamiGmxRewardsAggr, origamiGmxRewardsAggr.connect(owner).setOrigamiGmxManagers(
                 GmxVaultType.GMX,
                 origamiGmxManager.address, 
                 origamiGlpManager.address
             ));
-            await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).setPerformanceFeeCollector(await alan.getAddress()));
-            await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
-            await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).addOperator(await operator.getAddress()));
-            await shouldRevertNotOwner(origamiGmxRewardsAggr.connect(alan).removeOperator(await operator.getAddress()));
+            await shouldRevertNotGov(origamiGmxRewardsAggr, origamiGmxRewardsAggr.connect(owner).setPerformanceFeeCollector(await alan.getAddress()));
+            await shouldRevertNotGov(origamiGmxRewardsAggr, origamiGmxRewardsAggr.connect(alan).recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10));
+            await shouldRevertNotGov(origamiGmxRewardsAggr, origamiGmxRewardsAggr.connect(owner).addOperator(await operator.getAddress()));
+            await shouldRevertNotGov(origamiGmxRewardsAggr, origamiGmxRewardsAggr.connect(owner).removeOperator(await operator.getAddress()));
 
             const harvestParams = await dummyHarvestParams();
-            await shouldRevertNotOperator(origamiGmxRewardsAggr.harvestRewards(harvestParams), origamiGmxRewardsAggr, owner);
+            await shouldRevertNotOperator(origamiGmxRewardsAggr.harvestRewards(harvestParams), origamiGmxRewardsAggr, gov);
 
             // Happy Paths
             await expect(origamiGmxRewardsAggr.connect(operator).harvestRewards(harvestParams))
                 .to.revertedWith("ERC20: transfer amount exceeds balance");
 
-            await origamiGmxRewardsAggr.setOrigamiGmxManagers(
+            await origamiGmxRewardsAggr.connect(gov).setOrigamiGmxManagers(
                 GmxVaultType.GMX,
                 origamiGmxManager.address, 
                 origamiGlpManager.address
             );
-            await origamiGmxRewardsAggr.setPerformanceFeeCollector(await alan.getAddress());
+            await origamiGmxRewardsAggr.connect(gov).setPerformanceFeeCollector(await alan.getAddress());
             await expect(origamiGmxRewardsAggr.recoverToken(gmxContracts.bnbToken.address, alan.getAddress(), 10))
                 .to.revertedWith("ERC20: transfer amount exceeds balance");
 
-            await origamiGmxRewardsAggr.addOperator(await operator.getAddress());
-            await origamiGmxRewardsAggr.removeOperator(await operator.getAddress());
+            await origamiGmxRewardsAggr.connect(gov).addOperator(await operator.getAddress());
+            await origamiGmxRewardsAggr.connect(gov).removeOperator(await operator.getAddress());
         });
 
         it("should add operator", async() => {
@@ -328,7 +339,7 @@ describe("Origami GMX Rewards Aggregator", async () => {
             expect(await origamiGmxRewardsAggr.performanceFeeCollector()).eq(await alan.getAddress());
         });
 
-        it("owner can recover tokens", async () => {
+        it("gov can recover tokens", async () => {
             const amount = 50;
             await gmxContracts.bnbToken.mint(origamiGmxRewardsAggr.address, amount);
             await recoverToken(gmxContracts.bnbToken, amount, origamiGmxRewardsAggr, owner);   

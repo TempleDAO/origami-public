@@ -16,6 +16,7 @@ async function main() {
   const factory = new OrigamiGmxRewardsAggregator__factory(owner);
   await deployAndMine(
     'origamiGlpRewardsAggregator', factory, factory.deploy,
+    await owner.getAddress(),
     GmxVaultType.GLP,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GMX_MANAGER,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.GLP_MANAGER,

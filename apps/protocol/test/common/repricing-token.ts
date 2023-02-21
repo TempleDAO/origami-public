@@ -10,7 +10,7 @@ import {
     blockTimestamp, 
     mineForwardSeconds, 
     recoverToken, 
-    shouldRevertNotOwner,
+    shouldRevertNotGov,
     testErc20Permit
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
@@ -24,17 +24,20 @@ describe("Repricing Token", async () => {
     let alan: OrigamiSignerWithAddress;
     let bob: OrigamiSignerWithAddress;
     let spender: OrigamiSignerWithAddress;
+    let gov: OrigamiSignerWithAddress;
+    let govAddr: string;
 
     const reservesVestingDuration = 86400;
 
     before(async () => {
-        [owner, operator, alan, bob, spender] = await getSigners();
+        [owner, operator, alan, bob, spender, gov] = await getSigners();
+        govAddr = await gov.getAddress();
     });
 
     async function setup() {
-        reserveToken = await new DummyMintableToken__factory(owner).deploy("reserveToken", "rToken");
-        await reserveToken.addMinter(owner.getAddress());
-        repricingToken = await new DummyRepricingToken__factory(owner).deploy("ovTokenName", "ovToken", reserveToken.address, reservesVestingDuration);
+        reserveToken = await new DummyMintableToken__factory(gov).deploy(govAddr, "reserveToken", "rToken");
+        await reserveToken.addMinter(gov.getAddress());
+        repricingToken = await new DummyRepricingToken__factory(gov).deploy(govAddr, "ovTokenName", "ovToken", reserveToken.address, reservesVestingDuration);
         await repricingToken.addOperator(operator.getAddress());
 
         return {
@@ -67,22 +70,22 @@ describe("Repricing Token", async () => {
     });
 
     it("admin", async () => {
-        await shouldRevertNotOwner(repricingToken.connect(alan).setReservesVestingDuration(0));
-        await shouldRevertNotOwner(repricingToken.connect(alan).addOperator(ZERO_ADDRESS));
-        await shouldRevertNotOwner(repricingToken.connect(alan).removeOperator(ZERO_ADDRESS));
-        await shouldRevertNotOwner(repricingToken.connect(alan).recoverToken(repricingToken.address, alan.getAddress(), 10));
+        await shouldRevertNotGov(repricingToken, repricingToken.connect(owner).setReservesVestingDuration(0));
+        await shouldRevertNotGov(repricingToken, repricingToken.connect(owner).addOperator(ZERO_ADDRESS));
+        await shouldRevertNotGov(repricingToken, repricingToken.connect(owner).removeOperator(ZERO_ADDRESS));
+        await shouldRevertNotGov(repricingToken, repricingToken.connect(alan).recoverToken(repricingToken.address, alan.getAddress(), 10));
         await expect(repricingToken.connect(alan).addPendingReserves(0))
             .to.revertedWithCustomError(repricingToken, "OnlyOperators")
             .withArgs(await alan.getAddress());
 
         // Happy paths
-        await repricingToken.setReservesVestingDuration(0);
-        await expect(repricingToken.recoverToken(repricingToken.address, alan.getAddress(), 10))
+        await repricingToken.connect(gov).setReservesVestingDuration(0);
+        await expect(repricingToken.connect(gov).recoverToken(repricingToken.address, alan.getAddress(), 10))
             .to.revertedWith("ERC20: transfer amount exceeds balance");
-        await repricingToken.addOperator(alan.getAddress());
+        await repricingToken.connect(gov).addOperator(alan.getAddress());
         await expect(repricingToken.connect(alan).addPendingReserves(0))
             .to.be.revertedWithCustomError(repricingToken, "ExpectedNonZero");
-        await repricingToken.removeOperator(alan.getAddress());
+        await repricingToken.connect(gov).removeOperator(alan.getAddress());
     });
 
     it("should add operator", async() => {
@@ -93,7 +96,7 @@ describe("Repricing Token", async () => {
         // removeOperator() test covered by operators.ts
     });
     
-    it("owner can recover tokens", async () => {
+    it("gov can recover tokens", async () => {
         // Add some reserves.
         {
             const amount = 50;
@@ -128,8 +131,8 @@ describe("Repricing Token", async () => {
         // Any other token can be recovered too
         {
             const amount = 50;
-            const rando = await new DummyMintableToken__factory(owner).deploy("rando", "rando");
-            await rando.addMinter(owner.getAddress());
+            const rando = await new DummyMintableToken__factory(gov).deploy(govAddr, "rando", "rando");
+            await rando.addMinter(gov.getAddress());
             await rando.mint(repricingToken.address, amount);
             await recoverToken(rando, amount, repricingToken, owner);
         }

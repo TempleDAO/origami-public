@@ -145,18 +145,20 @@ async function main() {
     const ovGLP = OrigamiInvestmentVault__factory.connect(DEPLOYED.ORIGAMI.GMX.ovGLP, owner);
     const tokenPrices = TokenPrices__factory.connect(DEPLOYED.ORIGAMI.TOKEN_PRICES, owner);
 
+    // Propose governance change to the timelock
+    await mine(oGMX.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(oGLP.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(ovGMX.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(ovGLP.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(gmxEarnAccount.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(glpPrimaryEarnAccount.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(glpSecondaryEarnAccount.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(gmxManager.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(glpManager.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(gmxRewardsAggr.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+    await mine(glpRewardsAggr.proposeNewGov(DEPLOYED.ORIGAMI.GOV_TIMELOCK));
+
     // Transfer ownership to the multisig
-    await mine(oGMX.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(oGLP.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(ovGMX.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(ovGLP.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(gmxEarnAccount.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(glpPrimaryEarnAccount.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(glpSecondaryEarnAccount.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(gmxManager.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(glpManager.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(gmxRewardsAggr.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(glpRewardsAggr.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(tokenPrices.transferOwnership(DEPLOYED.ORIGAMI.MULTISIG));
 }
 

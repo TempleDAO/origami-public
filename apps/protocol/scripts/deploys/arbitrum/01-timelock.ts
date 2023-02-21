@@ -1,29 +1,28 @@
 import '@nomiclabs/hardhat-ethers';
 import { ethers } from 'hardhat';
-import { OrigamiInvestmentVault__factory } from '../../../../typechain';
+import { TimelockController__factory } from '../../../typechain';
 import {
   deployAndMine,
   ensureExpectedEnvvars,
-} from '../../helpers';
-import {getDeployedContracts} from './contract-addresses';
+} from '../helpers';
+import { getDeployedContracts } from './gmx/contract-addresses';
+import { ZERO_ADDRESS } from '../../../test/helpers';
 
 async function main() {
   ensureExpectedEnvvars();
   const [owner] = await ethers.getSigners();
   const GMX_DEPLOYED_CONTRACTS = getDeployedContracts();
 
-  const factory = new OrigamiInvestmentVault__factory(owner);
+  const factory = new TimelockController__factory(owner);
   await deployAndMine(
-    'ovGMX', factory, factory.deploy,
-    'Origami GMX Investment Vault', 'ovGMX',
-    owner.getAddress(),
-    GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGMX,
-    GMX_DEPLOYED_CONTRACTS.ORIGAMI.TOKEN_PRICES,
-    5, // 5% performance fee
-    7 * 86400 // Weekly vesting of reserves
+    'timelockController', factory, factory.deploy,
+    18*60*60, // 18 hours
+    [GMX_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG],
+    [GMX_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG],
+    ZERO_ADDRESS,
   );
 }
-
+        
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main()

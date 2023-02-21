@@ -3,6 +3,7 @@ import { network } from "hardhat";
 export interface GmxDeployedContracts {
     ORIGAMI: {
         MULTISIG: string,
+        GOV_TIMELOCK: string,
         OZ_BOT_EOA: string,
 
         GMX: {
@@ -86,6 +87,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     arbitrum: {
         ORIGAMI: {
             MULTISIG: '',
+            GOV_TIMELOCK: '',
             OZ_BOT_EOA: '',
 
             TOKEN_PRICES: '',
@@ -175,6 +177,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     avalanche: {
         ORIGAMI: {
             MULTISIG: '',
+            GOV_TIMELOCK: '',
             OZ_BOT_EOA: '',
 
             TOKEN_PRICES: '',
@@ -265,26 +268,27 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     localhost: {
         ORIGAMI: {
             MULTISIG: '0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526',
+            GOV_TIMELOCK: '0xf5059a5D33d5853360D16C683c16e67980206f36',
             OZ_BOT_EOA: '0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526',
 
-            TOKEN_PRICES: '0xf5059a5D33d5853360D16C683c16e67980206f36',
+            TOKEN_PRICES: '0x95401dc811bb5740090279Ba06cfA8fcF6113778',
 
             GMX: {
-                oGMX: '0x95401dc811bb5740090279Ba06cfA8fcF6113778',
-                oGLP: '0x998abeb3E57409262aE5b751f60747921B33613E',
+                oGMX: '0x998abeb3E57409262aE5b751f60747921B33613E',
+                oGLP: '0x70e0bA845a1A0F2DA3359C97E0285013525FFC49',
 
-                ovGMX: '0x70e0bA845a1A0F2DA3359C97E0285013525FFC49',
-                ovGLP: '0x4826533B4897376654Bb4d4AD88B7faFD0C98528',
+                ovGMX: '0x4826533B4897376654Bb4d4AD88B7faFD0C98528',
+                ovGLP: '0x99bbA657f2BbC93c02D617f8bA121cB8Fc104Acf',
 
-                GMX_EARN_ACCOUNT: '0x0E801D84Fa97b50751Dbf25036d067dCf18858bF',
-                GLP_PRIMARY_EARN_ACCOUNT: '0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf',
-                GLP_SECONDARY_EARN_ACCOUNT: '0x9d4454B023096f34B160D6B654540c56A1F81688',
+                GMX_EARN_ACCOUNT: '0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf',
+                GLP_PRIMARY_EARN_ACCOUNT: '0x9d4454B023096f34B160D6B654540c56A1F81688',
+                GLP_SECONDARY_EARN_ACCOUNT: '0x5eb3Bc0a489C5A8288765d2336659EbCA68FCd00',
 
-                GMX_MANAGER: '0x5eb3Bc0a489C5A8288765d2336659EbCA68FCd00',
-                GLP_MANAGER: '0x36C02dA8a0983159322a80FFE9F24b1acfF8B570',
+                GMX_MANAGER: '0x36C02dA8a0983159322a80FFE9F24b1acfF8B570',
+                GLP_MANAGER: '0x809d550fca64d94Bd9F66E60752A544199cfAC3D',
 
-                GMX_REWARDS_AGGREGATOR: '0x809d550fca64d94Bd9F66E60752A544199cfAC3D',
-                GLP_REWARDS_AGGREGATOR: '0x4c5859f0F772848b2D91F1D83E2Fe57935348029',
+                GMX_REWARDS_AGGREGATOR: '0x4c5859f0F772848b2D91F1D83E2Fe57935348029',
+                GLP_REWARDS_AGGREGATOR: '0x1291Be112d480055DaFd8a610b7d1e203891C274',
             },
         },
 

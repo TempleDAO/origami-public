@@ -16,6 +16,7 @@ async function main() {
   await deployAndMine(
     'ovGLP', factory, factory.deploy,
     'Origami GLP Investment Vault', 'ovGLP',
+    owner.getAddress(),
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGLP,
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.TOKEN_PRICES,
     5, // 5% performance fee
