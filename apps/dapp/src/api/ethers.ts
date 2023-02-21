@@ -690,7 +690,7 @@ class SignerApiImpl implements SignerApi {
           investEvent.args.investmentAmount,
           req.quote.investment.receiptToken.decimals
         ),
-        txExplorerUrl: chain.explorer.transactionUrl(receipt.transactionHash),
+        txHash: receipt.transactionHash,
       };
       req.onStage && req.onStage({ kind: 'done', result });
       return result;
@@ -753,7 +753,7 @@ class SignerApiImpl implements SignerApi {
           exitEvent.args.toTokenAmount,
           toAmountDecimals
         ),
-        txExplorerUrl: chain.explorer.transactionUrl(receipt.transactionHash),
+        txHash: receipt.transactionHash,
       };
       req.onStage && req.onStage({ kind: 'done', result });
       return result;

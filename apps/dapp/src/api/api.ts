@@ -92,7 +92,7 @@ export type InvestStage =
 
 export interface InvestResp {
   receiptTokenAmount: DecimalBigNumber;
-  txExplorerUrl: string;
+  txHash: string;
 }
 
 export interface ExitQuoteReq {
@@ -120,5 +120,5 @@ export type ExitStage =
 
 export interface ExitResp {
   amountOut: DecimalBigNumber;
-  txExplorerUrl: string;
+  txHash: string;
 }

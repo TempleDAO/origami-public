@@ -18,6 +18,7 @@ import { tokenOrNativeSymbol, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import { LoadingText } from '@/components/commons/LoadingText';
 import { lmap } from '@/utils/loading-value';
+import { truncateAddress } from '@/utils/truncate-address';
 
 type RunProps = {
   ctx: Ctx;
@@ -95,11 +96,14 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
             <DivH3>
               TRANSACTION SUCCESSFUL
               <StyledAnchor
-                href={result.txExplorerUrl}
+                href={ctx.investment.chain.explorer.transactionUrl(
+                  result.txHash
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Icon iconName="open-in-new" size={20} />
+                ({truncateAddress(result.txHash)}
+                <Icon iconName="open-in-new" size={20} />)
               </StyledAnchor>
             </DivH3>
             <DivP1_>You received:</DivP1_>
@@ -182,4 +186,6 @@ const ActionLabel = styled.div<{ active: boolean }>`
 
 const StyledAnchor = styled.a`
   display: flex;
+  ${textP2}
+  color: ${(props) => props.theme.colors.white};
 `;

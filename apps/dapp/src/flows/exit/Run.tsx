@@ -18,6 +18,7 @@ import { tokenOrNativeSymbol, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import { LoadingText } from '@/components/commons/LoadingText';
 import { lmap } from '@/utils/loading-value';
+import { truncateAddress } from '@/utils/truncate-address';
 
 type RunProps = {
   ctx: Ctx;
@@ -53,18 +54,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
 
   return (
     <FlexDownSpaced>
-      <Title>
-        EXIT
-        {result && (
-          <StyledAnchor
-            href={result.txExplorerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Icon iconName="open-in-new" size={20} />
-          </StyledAnchor>
-        )}
-      </Title>
+      <Title>EXIT</Title>
       <FlexDown>
         <div>
           <SpanH2>{formatDecimalBigNumber(receiptTokenAmount)}</SpanH2>{' '}
@@ -89,6 +79,19 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
         {stage === 'exit' && <Spinner size="small" />}
       </FlexRightSpaced>
       <FlexDown>
+        {result && (
+          <DivH3>
+            TRANSACTION SUCCESSFUL
+            <StyledAnchor
+              href={ctx.investment.chain.explorer.transactionUrl(result.txHash)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ({truncateAddress(result.txHash)}
+              <Icon iconName="open-in-new" size={20} />)
+            </StyledAnchor>
+          </DivH3>
+        )}
         <div>
           <SpanH2>{exitToAmountStr}</SpanH2> <SpanH3>{exitToAsset}</SpanH3>
         </div>
@@ -154,6 +157,14 @@ const DivP2 = styled.div`
   ${textP2}
 `;
 
+const DivH3 = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  ${textH3};
+`;
+
 const ActionLabel = styled.div<{ active: boolean }>`
   ${textP1}
   color: ${(props) =>
@@ -162,4 +173,6 @@ const ActionLabel = styled.div<{ active: boolean }>`
 
 const StyledAnchor = styled.a`
   display: flex;
+  ${textP2}
+  color: ${(props) => props.theme.colors.white};
 `;

@@ -206,7 +206,7 @@ class TestSignerApiImpl implements TestSignerApi {
     await sleep(this.sleepMs);
     const result = {
       receiptTokenAmount: req.quote.receiptTokenAmount,
-      txExplorerUrl: this.chain.explorer.transactionUrl('0x1234'),
+      txHash: '0x1234',
     };
     req.onStage && req.onStage({ kind: 'done', result });
     return result;
@@ -219,7 +219,7 @@ class TestSignerApiImpl implements TestSignerApi {
     await sleep(this.sleepMs);
     const result = {
       amountOut: req.quote.toAmount,
-      txExplorerUrl: this.chain.explorer.transactionUrl('0x1234'),
+      txHash: '0x1234',
     };
     req.onStage && req.onStage({ kind: 'done', result });
     return result;

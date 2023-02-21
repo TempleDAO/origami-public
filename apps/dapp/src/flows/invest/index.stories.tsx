@@ -146,7 +146,7 @@ const TEST_INVEST_REQ: InvestReq = {
 
 const TEST_INVEST_RESP: InvestResp = {
   receiptTokenAmount: DecimalBigNumber.parseUnits('34.99', 2),
-  txExplorerUrl: 'https://dummy-explorer/tx/0x12345',
+  txHash: '0x12345',
 };
 
 const Main = styled.main`
