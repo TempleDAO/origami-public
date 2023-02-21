@@ -2,7 +2,6 @@ pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/RepricingToken.sol)
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -11,6 +10,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IRepricingToken} from "../interfaces/common/IRepricingToken.sol";
 import {CommonEventsAndErrors} from "./CommonEventsAndErrors.sol";
 import {Operators} from "./access/Operators.sol";
+import {Governable} from "./access/Governable.sol";
 
 /// @notice A re-pricing token which implements the ERC20 interface.
 /// Each minted RepricingToken represents 1 share.
@@ -18,7 +18,7 @@ import {Operators} from "./access/Operators.sol";
 ///  pricePerShare = numShares * totalReserves / totalSupply
 /// Operators can add new reserves in order to increase the pricePerShare.
 /// These new reserves are vested per second, over a set period of time.
-abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Operators {
+abstract contract RepricingToken is IRepricingToken, ERC20Permit, Governable, Operators {
     using SafeERC20 for IERC20;
 
     /// @notice The token used to track reserves for this investment
@@ -51,9 +51,16 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
 
     error CannotCheckpointReserves(uint256 secsSinceLastCheckpoint, uint256 vestingDuration);
 
-    constructor(string memory _name, string memory _symbol, address _reserveToken, uint256 _reservesVestingDuration)
+    constructor(
+        string memory _name, 
+        string memory _symbol, 
+        address _reserveToken, 
+        uint256 _reservesVestingDuration, 
+        address _initialGov
+    )
         ERC20(_name, _symbol)
         ERC20Permit(_name)
+        Governable(_initialGov)
     {
         reserveToken = _reserveToken;
         reservesVestingDuration = _reservesVestingDuration;
@@ -62,24 +69,24 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Ownable, Opera
     /// @notice Update the vesting duration for any new reserves being added.
     /// @dev This will first checkpoint any pending reserves, any carried over amount will be
     /// spread out over the new duration.
-    function setReservesVestingDuration(uint256 _reservesVestingDuration) external onlyOwner {
+    function setReservesVestingDuration(uint256 _reservesVestingDuration) external onlyGov {
         _checkpointAndAddReserves(0);
         reservesVestingDuration = _reservesVestingDuration;
         emit ReservesVestingDurationSet(_reservesVestingDuration);
     }
 
     /// @notice Grant `_account` the operator role
-    function addOperator(address _account) external override onlyOwner {
+    function addOperator(address _account) external override onlyGov {
         _addOperator(_account);
     }
 
     /// @notice Revoke the operator role from `_account`
-    function removeOperator(address _account) external override onlyOwner {
+    function removeOperator(address _account) external override onlyGov {
         _removeOperator(_account);
     }
 
     /// @notice Owner can recover tokens
-    function recoverToken(address _token, address _to, uint256 _amount) external onlyOwner {
+    function recoverToken(address _token, address _to, uint256 _amount) external onlyGov {
         // If the _token is the reserve token, the owner can only remove any surplus reserves (ie donation reserves).
         // It can't dip into the actual user or protocol added reserves. 
         // This includes any vested rewards plus any unvested (but pending) reserves

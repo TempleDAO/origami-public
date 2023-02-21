@@ -22,11 +22,12 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
     bool public exitsPaused;
 
     constructor(
+        address _initialGov,
         string memory _name,
         string memory _symbol,
         address _investToken,
         address _exitToken
-    ) OrigamiInvestment(_name, _symbol) {
+    ) OrigamiInvestment(_name, _symbol, _initialGov) {
         investToken = _investToken;
         exitToken = _exitToken;
     }

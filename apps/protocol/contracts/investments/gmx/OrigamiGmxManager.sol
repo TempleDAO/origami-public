@@ -2,7 +2,6 @@ pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/gmx/OrigamiGmxManager.sol)
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -15,13 +14,14 @@ import {IGmxVault} from "../../interfaces/external/gmx/IGmxVault.sol";
 import {IGlpManager} from "../../interfaces/external/gmx/IGlpManager.sol";
 import {IGmxVaultPriceFeed} from "../../interfaces/external/gmx/IGmxVaultPriceFeed.sol";
 
+import {Governable} from "../../common/access/Governable.sol";
 import {Operators} from "../../common/access/Operators.sol";
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 
 /// @title Origami GMX/GLP Manager
 /// @notice Manages Origami's GMX and GLP positions, policy decisions and rewards harvesting/compounding.
-contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
+contract OrigamiGmxManager is IOrigamiGmxManager, Governable, Operators {
     using SafeERC20 for IERC20;
     using SafeERC20 for IMintableToken;
     using FractionalAmount for FractionalAmount.Data;
@@ -87,6 +87,10 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     /// not reset the cooldown clock.
     IOrigamiGmxEarnAccount public secondaryEarnAccount;
 
+    /// @notice A set of accounts which are allowed to pause deposits/withdrawals immediately
+    /// under emergency
+    mapping(address => bool) public pausers;
+
     /// @notice The current paused/unpaused state of investments/exits.
     IOrigamiGmxManager.Paused private _paused;
 
@@ -97,9 +101,11 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     event RewardsAggregatorsSet(address indexed gmxRewardsAggregator, address indexed glpRewardsAggregator);
     event PrimaryEarnAccountSet(address indexed account);
     event SecondaryEarnAccountSet(address indexed account);
+    event PauserSet(address indexed account, bool canPause);
     event PausedSet(Paused paused);
 
     constructor(
+        address _initialGov,
         address _gmxRewardRouter,
         address _glpRewardRouter,
         address _oGmxTokenAddr,
@@ -107,7 +113,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         address _feeCollectorAddr,
         address _primaryEarnAccount,
         address _secondaryEarnAccount
-    ) {
+    ) Governable(_initialGov) {
         _initGmxContracts(_gmxRewardRouter, _glpRewardRouter);
 
         oGmxToken = IMintableToken(_oGmxTokenAddr);
@@ -143,7 +149,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
     function initGmxContracts(
         address _gmxRewardRouter, 
         address _glpRewardRouter
-    ) external onlyOwner {
+    ) external onlyGov {
         _initGmxContracts(_gmxRewardRouter, _glpRewardRouter);
     }
 
@@ -162,41 +168,50 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         });
     }
 
-    function setPaused(Paused memory updatedPaused) external onlyOwner {
+    /// @notice Allow/Deny an account to pause/unpause deposits or withdrawals
+    function setPauser(address account, bool canPause) external onlyGov {
+        pausers[account] = canPause;
+        emit PauserSet(account, canPause);
+    }
+
+    /// @notice Pause/unpause deposits or withdrawals
+    /// @dev Can only be called by allowed pausers or governance.
+    function setPaused(Paused memory updatedPaused) external {
+        if (pausers[msg.sender] == false) revert CommonEventsAndErrors.InvalidAddress(msg.sender);
         emit PausedSet(_paused);
         _paused = updatedPaused;
     }
 
     /// @notice Set the fee rate Origami takes on oGMX rewards
     /// (which are minted based off the quantity of esGMX rewards we receive)
-    function setOGmxRewardsFeeRate(uint128 _numerator, uint128 _denominator) external onlyOwner {
+    function setOGmxRewardsFeeRate(uint128 _numerator, uint128 _denominator) external onlyGov {
         emit OGmxRewardsFeeRateSet(_numerator, _denominator);
         oGmxRewardsFeeRate.set(_numerator, _denominator);
     }
 
     /// @notice Set the proportion of esGMX that we vest whenever rewards are harvested.
     /// The remainder are staked.
-    function setEsGmxVestingRate(uint128 _numerator, uint128 _denominator) external onlyOwner {
+    function setEsGmxVestingRate(uint128 _numerator, uint128 _denominator) external onlyGov {
         emit EsGmxVestingRateSet(_numerator, _denominator);
         esGmxVestingRate.set(_numerator, _denominator);
     }
 
     /// @notice Set the proportion of fees oGMX/oGLP Origami retains when users sell out
     /// of their position.
-    function setSellFeeRate(uint128 _numerator, uint128 _denominator) external onlyOwner {
+    function setSellFeeRate(uint128 _numerator, uint128 _denominator) external onlyGov {
         emit SellFeeRateSet(_numerator, _denominator);
         sellFeeRate.set(_numerator, _denominator);
     }
 
     /// @notice Set the address for where Origami fees are sent
-    function setFeeCollector(address _feeCollector) external onlyOwner {
+    function setFeeCollector(address _feeCollector) external onlyGov {
         if (_feeCollector == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit FeeCollectorSet(_feeCollector);
         feeCollector = _feeCollector;
     }
 
     /// @notice Set the Origami account responsible for holding the majority of staked GMX/GLP/esGMX/mult points on GMX.io
-    function setPrimaryEarnAccount(address _primaryEarnAccount) external onlyOwner {
+    function setPrimaryEarnAccount(address _primaryEarnAccount) external onlyGov {
         if (_primaryEarnAccount == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit PrimaryEarnAccountSet(_primaryEarnAccount);
         primaryEarnAccount = IOrigamiGmxEarnAccount(_primaryEarnAccount);
@@ -204,13 +219,13 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
 
     /// @notice Set the Origami account responsible for holding a smaller/initial amount of staked GMX/GLP/esGMX/mult points on GMX.io
     /// @dev This is allowed to be set to 0x, ie unset.
-    function setSecondaryEarnAccount(address _secondaryEarnAccount) external onlyOwner {
+    function setSecondaryEarnAccount(address _secondaryEarnAccount) external onlyGov {
         emit SecondaryEarnAccountSet(_secondaryEarnAccount);
         secondaryEarnAccount = IOrigamiGmxEarnAccount(_secondaryEarnAccount);
     }
 
     /// @notice Set the Origami GMX/GLP rewards aggregators
-    function setRewardsAggregators(address _gmxRewardsAggregator, address _glpRewardsAggregator) external onlyOwner {
+    function setRewardsAggregators(address _gmxRewardsAggregator, address _glpRewardsAggregator) external onlyGov {
         if (_gmxRewardsAggregator == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         if (_glpRewardsAggregator == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit RewardsAggregatorsSet(_gmxRewardsAggregator, _glpRewardsAggregator);
@@ -218,11 +233,11 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         glpRewardsAggregator = _glpRewardsAggregator;
     }
 
-    function addOperator(address _address) external override onlyOwner {
+    function addOperator(address _address) external override onlyGov {
         _addOperator(_address);
     }
 
-    function removeOperator(address _address) external override onlyOwner {
+    function removeOperator(address _address) external override onlyGov {
         _removeOperator(_address);
     }
 
@@ -802,7 +817,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Ownable, Operators {
         address _token,
         address _to,
         uint256 _amount
-    ) external onlyOwner {
+    ) external onlyGov {
         // This contract doesn't hold any tokens under normal operations.
         // So no checks on valid tokens to recover are required.
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);

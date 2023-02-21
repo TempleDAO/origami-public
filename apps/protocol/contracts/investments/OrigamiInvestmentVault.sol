@@ -45,13 +45,14 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
     event PerformanceFeeSet(uint128 numerator, uint128 denominator);
 
     constructor(
+        address _initialGov,
         string memory _name,
         string memory _symbol,
         address _origamiInvestment,
         address _tokenPrices,
         uint256 _performanceFeePercent,
         uint256 _reservesActualisationDuration
-    ) RepricingToken(_name, _symbol, _origamiInvestment, _reservesActualisationDuration) {
+    ) RepricingToken(_name, _symbol, _origamiInvestment, _reservesActualisationDuration, _initialGov) {
         tokenPrices = ITokenPrices(_tokenPrices);
         FractionalAmount.set(performanceFee, uint128(_performanceFeePercent), 100);
     }
@@ -77,20 +78,20 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
         return IOrigamiInvestment(reserveToken).areExitsPaused();
     }
 
-    function setInvestmentManager(address _investmentManager) external onlyOwner {
+    function setInvestmentManager(address _investmentManager) external onlyGov {
         if (_investmentManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit InvestmentManagerSet(_investmentManager);
         investmentManager = IOrigamiInvestmentManager(_investmentManager);
     }
 
-    function setTokenPrices(address _tokenPrices) external onlyOwner {
+    function setTokenPrices(address _tokenPrices) external onlyGov {
         if (_tokenPrices == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit TokenPricesSet(_tokenPrices);
         tokenPrices = ITokenPrices(_tokenPrices);
     }
 
     /// @notice Set the vault performance fee
-    function setPerformanceFee(uint128 _numerator, uint128 _denominator) external onlyOwner {
+    function setPerformanceFee(uint128 _numerator, uint128 _denominator) external onlyGov {
         emit PerformanceFeeSet(_numerator, _denominator);
         FractionalAmount.set(performanceFee, _numerator, _denominator);
     }

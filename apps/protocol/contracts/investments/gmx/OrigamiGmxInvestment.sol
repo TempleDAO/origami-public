@@ -20,10 +20,12 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
 
     event OrigamiGmxManagerSet(address indexed origamiGmxManager);
     
-    constructor() OrigamiInvestment("Origami GMX Investment", "oGMX") {}
+    constructor(
+        address _initialGov
+    ) OrigamiInvestment("Origami GMX Investment", "oGMX", _initialGov) {}
 
     /// @notice Set the Origami GMX Manager contract used to apply GMX to earn rewards.
-    function setOrigamiGmxManager(address _origamiGmxManager) external onlyOwner {
+    function setOrigamiGmxManager(address _origamiGmxManager) external onlyGov {
         if (_origamiGmxManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit OrigamiGmxManagerSet(_origamiGmxManager);
         origamiGmxManager = IOrigamiGmxManager(_origamiGmxManager);

@@ -2,7 +2,6 @@ pragma solidity 0.8.17;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/gmx/OrigamiGmxRewardsAggregator.sol)
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -14,13 +13,14 @@ import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiG
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
 import {Operators} from "../../common/access/Operators.sol";
+import {Governable} from "../../common/access/Governable.sol";
 
 /// @title Origami GMX/GLP Rewards Aggregator
 /// @notice Manages the collation and selection of GMX.io rewards sources to the correct Origami investment vault.
 /// ie the Origami GMX vault and the Origami GLP vault
 /// @dev This implements the IOrigamiInvestmentManager interface -- the Origami GMX/GLP Rewards Distributor 
 /// calls to harvest aggregated rewards.
-contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Operators {
+contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Governable, Operators {
     using SafeERC20 for IERC20;
 
     /**
@@ -99,6 +99,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
     error UnknownSwapError(bytes result);
 
     constructor(
+        address _initialGov,
         IOrigamiGmxEarnAccount.VaultType _vaultType,
         address _gmxManager,
         address _glpManager,
@@ -106,7 +107,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         address _wrappedNativeToken,
         address _zeroExProxy,
         address _performanceFeeCollector
-    ) {
+    ) Governable(_initialGov) {
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
         glpManager = IOrigamiGmxManager(_glpManager);
@@ -135,11 +136,11 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         }
     }
 
-    function addOperator(address _address) external override onlyOwner {
+    function addOperator(address _address) external override onlyGov {
         _addOperator(_address);
     }
 
-    function removeOperator(address _address) external override onlyOwner {
+    function removeOperator(address _address) external override onlyGov {
         _removeOperator(_address);
     }
     
@@ -148,7 +149,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         IOrigamiGmxEarnAccount.VaultType _vaultType, 
         address _gmxManager, 
         address _glpManager
-    ) external onlyOwner {
+    ) external onlyGov {
         emit OrigamiGmxManagersSet(_vaultType, _gmxManager, _glpManager);
         vaultType = _vaultType;
         gmxManager = IOrigamiGmxManager(_gmxManager);
@@ -156,7 +157,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
     }
 
     /// @notice Set the address for where Origami performance fees are sent
-    function setPerformanceFeeCollector(address _performanceFeeCollector) external onlyOwner {
+    function setPerformanceFeeCollector(address _performanceFeeCollector) external onlyGov {
         emit PerformanceFeeCollectorSet(_performanceFeeCollector);
         performanceFeeCollector = _performanceFeeCollector;
     }
@@ -321,7 +322,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Ownable, Oper
         address _token,
         address _to,
         uint256 _amount
-    ) external onlyOwner {
+    ) external onlyGov {
         // Can't recover any of the reward tokens or transient conversion tokens.
         if (_token == address(wrappedNativeToken)) revert CommonEventsAndErrors.InvalidToken(_token);
         if (_token == address(gmxManager.gmxToken())) revert CommonEventsAndErrors.InvalidToken(_token);

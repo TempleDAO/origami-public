@@ -3,7 +3,6 @@ pragma solidity 0.8.17;
 // Origami (investments/gmx/OrigamiGmxEarnAccount.sol)
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -18,13 +17,14 @@ import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiG
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 import {Operators} from "../../common/access/Operators.sol";
+import {GovernableUpgradeable} from "../../common/access/GovernableUpgradeable.sol";
 
 /// @title Origami's account used for earning rewards for staking GMX/GLP 
 /// @notice The Origami contract responsible for managing GMX/GLP staking and harvesting/compounding rewards.
 /// This contract is kept relatively simple acting as a proxy to GMX.io staking/unstaking/rewards collection/etc,
 /// as it would be difficult to upgrade (multiplier points may be burned which would be detrimental to the product).
 /// @dev The Owner will be the Origami msig. The Operators will be the OrigamiGmxManager and OrigamiGmxLocker/OrigamiGlpLocker
-contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, OwnableUpgradeable, Operators, UUPSUpgradeable {
+contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, GovernableUpgradeable, Operators, UUPSUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     // Note: The below contracts are GMX.io contracts which can be found
@@ -121,8 +121,8 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         wrappedNativeToken = IERC20Upgradeable(_gmxRewardRouter.weth());
     }
 
-    function initialize(address _gmxRewardRouter, address _glpRewardRouter, address _esGmxVester, address _stakedGlp) initializer external {
-        __Ownable_init();
+    function initialize(address _initialGov, address _gmxRewardRouter, address _glpRewardRouter, address _esGmxVester, address _stakedGlp) initializer external {
+        __Governable_init(_initialGov);
         __UUPSUpgradeable_init();
 
         _initGmxContracts(_gmxRewardRouter, _glpRewardRouter, _esGmxVester, _stakedGlp);
@@ -130,7 +130,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
 
     function _authorizeUpgrade(address newImplementation)
         internal
-        onlyOwner
+        onlyGov
         override
     {}
 
@@ -158,7 +158,7 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         address _glpRewardRouter, 
         address _esGmxVester, 
         address _stakedGlp
-    ) external onlyOwner {
+    ) external onlyGov {
         _initGmxContracts(
             _gmxRewardRouter, 
             _glpRewardRouter, 
@@ -167,11 +167,11 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Ownable
         );
     }
 
-    function addOperator(address _address) external override onlyOwner {
+    function addOperator(address _address) external override onlyGov {
         _addOperator(_address);
     }
 
-    function removeOperator(address _address) external override onlyOwner {
+    function removeOperator(address _address) external override onlyGov {
         _removeOperator(_address);
     }
 

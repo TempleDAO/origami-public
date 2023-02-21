@@ -28,8 +28,9 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     event OrigamiGlpManagerSet(address indexed origamiGlpManager);
 
     constructor(
+        address _initialGov,
         address _wrappedNativeToken
-    ) OrigamiInvestment("Origami GLP Investment", "oGLP") {
+    ) OrigamiInvestment("Origami GLP Investment", "oGLP", _initialGov) {
         wrappedNativeToken = _wrappedNativeToken;
     }
 
@@ -40,7 +41,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     }
 
     /// @notice Set the Origami GLP Manager contract used to apply GLP to earn rewards.
-    function setOrigamiGlpManager(address _origamiGlpManager) external onlyOwner {
+    function setOrigamiGlpManager(address _origamiGlpManager) external onlyGov {
         if (_origamiGlpManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         emit OrigamiGlpManagerSet(_origamiGlpManager);
         origamiGlpManager = IOrigamiGmxManager(_origamiGlpManager);

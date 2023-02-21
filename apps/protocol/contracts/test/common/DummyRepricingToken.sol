@@ -9,11 +9,12 @@ contract DummyRepricingToken is RepricingToken {
     using SafeERC20 for IERC20;
 
     constructor(
+        address _initialGov,
         string memory _name,
         string memory _symbol,
         address _reserveToken,
         uint256 _reservesActualisationDuration
-    ) RepricingToken(_name, _symbol, _reserveToken, _reservesActualisationDuration) {}
+    ) RepricingToken(_name, _symbol, _reserveToken, _reservesActualisationDuration, _initialGov) {}
 
     function mint(address _to, uint256 _amount) external {
         _mint(_to, _amount);

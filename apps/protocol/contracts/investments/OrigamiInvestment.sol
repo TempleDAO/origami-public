@@ -23,7 +23,8 @@ abstract contract OrigamiInvestment is IOrigamiInvestment, MintableToken, Reentr
 
     constructor(
         string memory _name,
-        string memory _symbol
-    ) MintableToken(_name, _symbol) {
+        string memory _symbol,
+        address _initialGov
+    ) MintableToken(_name, _symbol, _initialGov) {
     }
 }
