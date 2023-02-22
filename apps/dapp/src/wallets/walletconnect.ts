@@ -9,14 +9,26 @@ import {
 } from '@wagmi/core';
 import { publicProvider } from '@wagmi/core/providers/public';
 
-import { polygonMumbai, avalancheFuji } from '@wagmi/chains';
+import {
+  mainnet,
+  polygon,
+  polygonMumbai,
+  avalanche,
+  avalancheFuji,
+} from '@wagmi/chains';
 
 /** AppWallet implementation for walletconnect, via wagmi*/
-export async function createWalletConnectWallet(): Promise<AppWallet> {
-  initializeWagmi();
+export async function createWalletConnectWallet(
+  chains: Chain[]
+): Promise<AppWallet> {
+  const wagmiChains = ALL_WAGMI_CHAINS.filter((wc) =>
+    chains.find((c) => c.id == wc.id)
+  );
+
+  initializeWagmi(wagmiChains);
 
   const connector = new WalletConnectConnector({
-    chains: WAGMI_CHAINS,
+    chains: wagmiChains,
     options: {
       qrcode: true,
       version: '2',
@@ -62,9 +74,9 @@ export async function createWalletConnectWallet(): Promise<AppWallet> {
 
 let wagmi_initialised = false;
 
-function initializeWagmi() {
+function initializeWagmi(wagmiChains: WagmiChain[]) {
   if (!wagmi_initialised) {
-    const { provider, webSocketProvider } = configureChains(WAGMI_CHAINS, [
+    const { provider, webSocketProvider } = configureChains(wagmiChains, [
       publicProvider(),
     ]);
 
@@ -76,8 +88,16 @@ function initializeWagmi() {
   }
 }
 
-// TODO: tie this in with the config directory
-const WAGMI_CHAINS: WagmiChain[] = [polygonMumbai, avalancheFuji];
+/// This is the superset of all chains used by the app, accross all environments.
+/// At runtime, wagmi will be configured to use only those required for the configured
+/// investments.
+const ALL_WAGMI_CHAINS: WagmiChain[] = [
+  mainnet,
+  polygon,
+  polygonMumbai,
+  avalanche,
+  avalancheFuji,
+];
 
 // Created via the wallet connect web console.
 const WALLET_CONNECT_PROJECT_ID = '9a4023728c00ee517019dbbc07e92481';

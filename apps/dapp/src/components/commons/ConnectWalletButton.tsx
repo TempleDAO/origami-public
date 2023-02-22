@@ -16,16 +16,22 @@ export const ConnectWalletButton = () => {
 
   async function connect(walletKind: SupportedWallet) {
     setInProgress(true);
-    await walletInitialize(walletKind);
-    setInProgress(false);
-    setMouseOver(false);
+    try {
+      await walletInitialize(walletKind);
+    } finally {
+      setInProgress(false);
+      setMouseOver(false);
+    }
   }
 
   async function disconnect() {
     setInProgress(true);
-    await walletDisconnect();
-    setInProgress(false);
-    setMouseOver(false);
+    try {
+      await walletDisconnect();
+    } finally {
+      setInProgress(false);
+      setMouseOver(false);
+    }
   }
 
   if (inProgress) {

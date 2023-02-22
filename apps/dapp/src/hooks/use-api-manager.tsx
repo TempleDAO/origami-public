@@ -36,7 +36,7 @@ export function ApiManagerProvider(props: {
   const [sapi, setSApi] = useState<SignerApi | undefined>();
 
   async function walletInitialize(walletKind: SupportedWallet) {
-    const appWallet = await createAppWallet(walletKind);
+    const appWallet = await createAppWallet(walletKind, props.apiConfig.chains);
     setAppWallet(appWallet);
     setWalletState(appWallet.getState());
     localStorage.setItem(LOCALSTORE_WALLET_STATE, walletKind);
@@ -101,12 +101,13 @@ export function ApiManagerProvider(props: {
 export type SupportedWallet = 'metaMask' | 'walletConnect';
 
 export async function createAppWallet(
-  walletKind: SupportedWallet
+  walletKind: SupportedWallet,
+  chains: Chain[]
 ): Promise<AppWallet> {
   if (walletKind === 'metaMask') {
     return createMetaMaskWallet();
   } else if (walletKind == 'walletConnect') {
-    return createWalletConnectWallet();
+    return createWalletConnectWallet(chains);
   }
   return assertNever(walletKind);
 }
