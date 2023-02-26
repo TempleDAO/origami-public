@@ -28,6 +28,10 @@ contract DummyGovernableUpgradeable is Initializable, GovernableUpgradeable, UUP
         override
     {}
     
+    function do_init(address initialGovernor) external {
+        _init(initialGovernor);
+    }
+    
     function testOnlyGov() external view onlyGov returns (uint256) {
         return 1;
     }

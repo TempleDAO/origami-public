@@ -7,6 +7,10 @@ import {Governable} from "../../../common/access/Governable.sol";
 contract DummyGovernable is Initializable, Governable {
     constructor(address initialGovernor) Governable(initialGovernor) {}
 
+    function do_init(address initialGovernor) external {
+        _init(initialGovernor);
+    }
+
     function testOnlyGov() external view onlyGov returns (uint256) {
         return 1;
     }

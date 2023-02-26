@@ -53,9 +53,15 @@ describe("Governable", async () => {
     });
 
     describe("non-upgradeable", async () => {
-        it("Check modifiers", async () => {
+        it("construction and init", async () => {
             expect(await governable.gov()).eq(await timelock.getAddress());
 
+            // Already initialized
+            await expect(governable.do_init(owner.getAddress()))
+                .to.be.revertedWithCustomError(governable, "NotGovernor");
+        });
+
+        it("Check modifiers", async () => {
             await expect(governable.connect(owner).testOnlyGov())
                 .to.revertedWithCustomError(governable, "NotGovernor");
 
@@ -90,9 +96,15 @@ describe("Governable", async () => {
     });
 
     describe("upgradeable", async () => {
-        it("Check modifiers", async () => {
+        it("construction and init", async () => {
             expect(await governableUpgradeable.gov()).eq(await timelock.getAddress());
 
+            // Already initialized
+            await expect(governableUpgradeable.do_init(owner.getAddress()))
+                .to.be.revertedWithCustomError(governableUpgradeable, "NotGovernor");
+        });
+
+        it("Check modifiers", async () => {
             await expect(governableUpgradeable.connect(owner).testOnlyGov())
                 .to.revertedWithCustomError(governableUpgradeable, "NotGovernor");
 
