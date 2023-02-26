@@ -52,7 +52,7 @@ abstract contract MintableToken is IMintableToken, ERC20Permit, Governable {
         emit RemovedMinter(account);
     }
 
-    /// @notice Owner can recover tokens
+    /// @notice Gov can recover tokens
     function recoverToken(address _token, address _to, uint256 _amount) external onlyGov {
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
         IERC20(_token).safeTransfer(_to, _amount);

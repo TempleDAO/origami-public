@@ -23,7 +23,8 @@ import {GovernableUpgradeable} from "../../common/access/GovernableUpgradeable.s
 /// @notice The Origami contract responsible for managing GMX/GLP staking and harvesting/compounding rewards.
 /// This contract is kept relatively simple acting as a proxy to GMX.io staking/unstaking/rewards collection/etc,
 /// as it would be difficult to upgrade (multiplier points may be burned which would be detrimental to the product).
-/// @dev The Owner will be the Origami msig. The Operators will be the OrigamiGmxManager and OrigamiGmxLocker/OrigamiGlpLocker
+/// @dev The Gov will be the Origami Timelock, and only gov is able to upgrade.
+/// The Operators will be the OrigamiGmxManager and OrigamiGmxLocker/OrigamiGlpLocker
 contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, GovernableUpgradeable, Operators, UUPSUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 

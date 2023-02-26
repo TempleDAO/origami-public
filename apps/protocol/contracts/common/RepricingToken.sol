@@ -85,9 +85,9 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Governable, Op
         _removeOperator(_account);
     }
 
-    /// @notice Owner can recover tokens
+    /// @notice Gov can recover tokens
     function recoverToken(address _token, address _to, uint256 _amount) external onlyGov {
-        // If the _token is the reserve token, the owner can only remove any surplus reserves (ie donation reserves).
+        // If the _token is the reserve token, the gov can only remove any surplus reserves (ie donation reserves).
         // It can't dip into the actual user or protocol added reserves. 
         // This includes any vested rewards plus any unvested (but pending) reserves
         if (_token == reserveToken) {

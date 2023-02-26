@@ -317,7 +317,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, Governable, O
         }
     }
 
-    /// @notice Owner can recover tokens
+    /// @notice Gov can recover tokens
     function recoverToken(
         address _token,
         address _to,
