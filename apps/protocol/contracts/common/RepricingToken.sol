@@ -219,7 +219,7 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Governable, Op
         vestedReserves -= reserveTokenAmount;
         emit VestedReservesRemoved(reserveTokenAmount);
 
-        if (receiver != address(this) && reserveTokenAmount != 0) {
+        if (receiver != address(this)) {
             IERC20(reserveToken).safeTransfer(receiver, reserveTokenAmount);
         }
 
