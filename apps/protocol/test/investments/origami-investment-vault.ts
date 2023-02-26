@@ -770,15 +770,18 @@ describe("Origami Investment Vault", async () => {
             const quote = await ovToken.exitQuote(amount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
+                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, alan.getAddress()))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
+                    .to.emit(oToken, "Transfer")
+                    .withArgs(ovToken.address, await alan.getAddress(), quote.quoteData.expectedToTokenAmount)
                     .to.emit(ovToken, "VestedReservesRemoved")
                     .withArgs(quote.quoteData.expectedToTokenAmount)
                     .to.emit(ovToken, "Exited")
-                    .withArgs(await bob.getAddress(), amount, oToken.address, quote.quoteData.expectedToTokenAmount, await bob.getAddress());
+                    .withArgs(await bob.getAddress(), amount, oToken.address, quote.quoteData.expectedToTokenAmount, await alan.getAddress());
             },
-                [oToken, bob, quote.quoteData.expectedToTokenAmount],
+                [oToken, alan, quote.quoteData.expectedToTokenAmount],
+                [oToken, bob, 0],
                 [oToken, ovToken, quote.quoteData.expectedToTokenAmount.mul(-1)],
                 [ovToken, bob, amount.mul(-1)],
             );
@@ -798,19 +801,20 @@ describe("Origami Investment Vault", async () => {
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, bob.getAddress()))
+                await expect(ovToken.connect(bob).exitToToken(quote.quoteData, alan.getAddress()))
                     .to.emit(ovToken, "Transfer")
                     .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
                     .to.emit(ovToken, "VestedReservesRemoved")
                     .withArgs(expectedReserveAmount)
                     .to.emit(ovToken, "Exited")
-                    .withArgs(await bob.getAddress(), amount, underlyingExitToken.address, quote.quoteData.expectedToTokenAmount, await bob.getAddress())
+                    .withArgs(await bob.getAddress(), amount, underlyingExitToken.address, quote.quoteData.expectedToTokenAmount, await alan.getAddress())
                     .to.emit(oToken, "Exited")
-                    .withArgs(ovToken.address, expectedReserveAmount, underlyingExitToken.address, quote.quoteData.expectedToTokenAmount, await bob.getAddress())
+                    .withArgs(ovToken.address, expectedReserveAmount, underlyingExitToken.address, quote.quoteData.expectedToTokenAmount, await alan.getAddress())
                     .to.emit(underlyingExitToken, "Transfer")
-                    .withArgs(oToken.address, await bob.getAddress(), quote.quoteData.expectedToTokenAmount);
+                    .withArgs(oToken.address, await alan.getAddress(), quote.quoteData.expectedToTokenAmount);
                 },
-                [underlyingExitToken, bob, quote.quoteData.expectedToTokenAmount],
+                [underlyingExitToken, alan, quote.quoteData.expectedToTokenAmount],
+                [underlyingExitToken, bob, 0],
                 [underlyingExitToken, oToken, quote.quoteData.expectedToTokenAmount.mul(-1)],
                 [ovToken, bob, amount.mul(-1)],
                 [oToken, ovToken, expectedReserveAmount.mul(-1)],
@@ -916,26 +920,29 @@ describe("Origami Investment Vault", async () => {
             const expectedReserveAmount = await ovToken.sharesToReserves(amount);
 
             const bobEthBefore = await getEthBalance(bob);
+            const alanEthBefore = await getEthBalance(alan);
             const oTokenEthBefore = await getEthBalance(oToken);
 
             await expectBalancesChangeBy(async () => { 
-                await expect(ovToken.connect(bob).exitToNative(quote.quoteData, bob.getAddress()))
+                await expect(ovToken.connect(bob).exitToNative(quote.quoteData, alan.getAddress()))
                 .to.emit(ovToken, "Transfer")
                 .withArgs(await bob.getAddress(), ZERO_ADDRESS, amount)
                 .to.emit(ovToken, "VestedReservesRemoved")
                 .withArgs(expectedReserveAmount)
                 .to.emit(ovToken, "Exited")
-                .withArgs(await bob.getAddress(), amount, ZERO_ADDRESS, quote.quoteData.expectedToTokenAmount, await bob.getAddress())
+                .withArgs(await bob.getAddress(), amount, ZERO_ADDRESS, quote.quoteData.expectedToTokenAmount, await alan.getAddress())
                 .to.emit(oToken, "Exited")
-                .withArgs(ovToken.address, expectedReserveAmount, ZERO_ADDRESS, quote.quoteData.expectedToTokenAmount, await bob.getAddress())
+                .withArgs(ovToken.address, expectedReserveAmount, ZERO_ADDRESS, quote.quoteData.expectedToTokenAmount, await alan.getAddress())
             },
                 [ovToken, bob, amount.mul(-1)],
                 [oToken, ovToken, expectedReserveAmount.mul(-1)],
             );
 
             const bobEthAfter = await getEthBalance(bob);
+            const alanEthAfter = await getEthBalance(alan);
             const oTokenEthAfter = await getEthBalance(oToken);
-            expectApproxEqRel(bobEthAfter.sub(bobEthBefore), quote.quoteData.expectedToTokenAmount, MAX_REL_DELTA);
+            expectApproxEqRel(bobEthAfter, bobEthBefore, MAX_REL_DELTA); // Bob paid for gas only
+            expect(alanEthAfter.sub(alanEthBefore)).eq(quote.quoteData.expectedToTokenAmount);
             expect(oTokenEthAfter.sub(oTokenEthBefore).mul(-1)).eq(quote.quoteData.expectedToTokenAmount);
             
             expect(await oToken.totalSupply()).eq(oTokenSupply.sub(expectedReserveAmount));

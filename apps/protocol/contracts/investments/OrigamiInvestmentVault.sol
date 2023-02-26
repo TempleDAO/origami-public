@@ -322,7 +322,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
                 quoteData.investmentTokenAmount,
                 msg.sender,
                 quoteData.minToTokenAmount,
-                msg.sender
+                recipient
             );
         } else {
             UnderlyingExitQuoteData memory underlyingQuoteData = abi.decode(
