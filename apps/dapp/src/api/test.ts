@@ -167,8 +167,11 @@ class TestProviderApiImpl implements TestProviderApi {
       investment: req.investment,
       amount: req.amount,
       from: req.from,
+      slippageBps: req.slippageBps,
+      deadline: req.deadline,
       feeBps: [],
-      receiptTokenAmount,
+      expectedInvestmentAmount: receiptTokenAmount,
+      minInvestmentAmount: applySlippage(receiptTokenAmount, req.slippageBps),
       encodedQuote: '',
     };
   }
@@ -176,17 +179,20 @@ class TestProviderApiImpl implements TestProviderApi {
   async exitQuote(req: ExitQuoteReq): Promise<ExitQuoteResp> {
     const inUsdAmount = (
       await this.getTokenUsdPrice(req.investment.receiptToken)
-    ).mul(req.receiptTokenAmount);
+    ).mul(req.exitAmount);
     const toAmount = inUsdAmount.div(
       await tokenOrNativeUsdPrice(this, req.to),
       req.investment.receiptToken.decimals
     );
     return {
       investment: req.investment,
-      receiptTokenAmount: req.receiptTokenAmount,
+      exitAmount: req.exitAmount,
       to: req.to,
+      slippageBps: req.slippageBps,
+      deadline: req.deadline,
       feeBps: [],
-      toAmount,
+      expectedToAmount: toAmount,
+      minToAmount: applySlippage(toAmount, req.slippageBps),
       encodedQuote: '',
     };
   }
@@ -205,7 +211,7 @@ class TestSignerApiImpl implements TestSignerApi {
     req.onStage && req.onStage({ kind: 'invest' });
     await sleep(this.sleepMs);
     const result = {
-      receiptTokenAmount: req.quote.receiptTokenAmount,
+      investTokenAmount: req.quote.expectedInvestmentAmount,
       txHash: '0x1234',
     };
     req.onStage && req.onStage({ kind: 'done', result });
@@ -218,7 +224,7 @@ class TestSignerApiImpl implements TestSignerApi {
     req.onStage && req.onStage({ kind: 'exit' });
     await sleep(this.sleepMs);
     const result = {
-      amountOut: req.quote.toAmount,
+      amountOut: req.quote.expectedToAmount,
       txHash: '0x1234',
     };
     req.onStage && req.onStage({ kind: 'done', result });
@@ -479,3 +485,13 @@ export async function getHistory1(
   }
   return slice(data);
 }
+
+const applySlippage = (
+  expectedAmount: DecimalBigNumber,
+  slippageBps: number
+) => {
+  const decimals = expectedAmount.getDecimals();
+  const bn = expectedAmount.toBN(decimals);
+  const withSlippage = bn.mul(10_000 - slippageBps).div(10_000);
+  return DecimalBigNumber.fromBN(withSlippage, decimals);
+};

@@ -517,14 +517,23 @@ class ProviderApiImpl implements ProviderApi {
     const amount = req.amount.toBN(amountDecimals);
 
     const fromTokenAddr = this.getReqTokenAddr(req.from);
-    const quote = await contract.investQuote(amount, fromTokenAddr);
+    const quote = await contract.investQuote(
+      amount,
+      fromTokenAddr,
+      req.slippageBps,
+      req.deadline
+    );
     return {
       ...req,
       feeBps: quote.investFeeBps.map((x: BigNumber) =>
         DecimalBigNumber.fromBN(x, 0)
       ),
-      receiptTokenAmount: DecimalBigNumber.fromBN(
+      expectedInvestmentAmount: DecimalBigNumber.fromBN(
         quote.quoteData.expectedInvestmentAmount,
+        req.investment.receiptToken.decimals
+      ),
+      minInvestmentAmount: DecimalBigNumber.fromBN(
+        quote.quoteData.minInvestmentAmount,
         req.investment.receiptToken.decimals
       ),
       encodedQuote: quote.quoteData,
@@ -546,15 +555,15 @@ class ProviderApiImpl implements ProviderApi {
       provider
     );
 
-    const fromAmount = req.investment.receiptToken.toBN(req.receiptTokenAmount);
+    const fromAmount = req.investment.receiptToken.toBN(req.exitAmount);
     const toTokenAddress = this.getReqTokenAddr(req.to);
     const toAmountDecimals = tokenOrNativeAmountDecimals(req.to);
 
-    const quote = await contract.exitQuote(fromAmount, toTokenAddress);
-
-    const toAmount = DecimalBigNumber.fromBN(
-      quote.quoteData.expectedToTokenAmount,
-      toAmountDecimals
+    const quote = await contract.exitQuote(
+      fromAmount,
+      toTokenAddress,
+      req.slippageBps,
+      req.deadline
     );
 
     return {
@@ -562,7 +571,14 @@ class ProviderApiImpl implements ProviderApi {
       feeBps: quote.exitFeeBps.map((x: BigNumber) =>
         DecimalBigNumber.fromBN(x, 0)
       ),
-      toAmount,
+      expectedToAmount: DecimalBigNumber.fromBN(
+        quote.quoteData.expectedToTokenAmount,
+        toAmountDecimals
+      ),
+      minToAmount: DecimalBigNumber.fromBN(
+        quote.quoteData.minToTokenAmount,
+        toAmountDecimals
+      ),
       encodedQuote: quote.quoteData,
     };
   }
@@ -653,7 +669,6 @@ class SignerApiImpl implements SignerApi {
         const amount = req.quote.amount.toBN(chain.nativeCurrency.decimals);
         tx = await investmentContract.investWithNative(
           req.quote.encodedQuote as IOrigamiInvestment.InvestQuoteDataStruct,
-          req.slippageBps,
           { value: amount }
         );
         break;
@@ -666,11 +681,7 @@ class SignerApiImpl implements SignerApi {
             maxFeePerGas,
             maxPriorityFeePerGas,
           };
-          tx = await investmentContract.investWithToken(
-            quote,
-            req.slippageBps,
-            overrides
-          );
+          tx = await investmentContract.investWithToken(quote, overrides);
         }
         break;
     }
@@ -686,7 +697,7 @@ class SignerApiImpl implements SignerApi {
 
     if (investEvent) {
       const result = {
-        receiptTokenAmount: DecimalBigNumber.fromBN(
+        investTokenAmount: DecimalBigNumber.fromBN(
           investEvent.args.investmentAmount,
           req.quote.investment.receiptToken.decimals
         ),
@@ -726,14 +737,12 @@ class SignerApiImpl implements SignerApi {
       case 'native':
         tx = await investmentContract.exitToNative(
           req.quote.encodedQuote as IOrigamiInvestment.ExitQuoteDataStruct,
-          req.slippageBps,
           this.signerAddress
         );
         break;
       case 'token':
         tx = await investmentContract.exitToToken(
           req.quote.encodedQuote as IOrigamiInvestment.ExitQuoteDataStruct,
-          req.slippageBps,
           this.signerAddress
         );
         break;

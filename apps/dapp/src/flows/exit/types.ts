@@ -34,7 +34,6 @@ export interface RunOnChainState {
 export interface InitialValues {
   amount: DecimalBigNumber;
   toAsset: TokenOrNative;
-  slippageBps: number;
 }
 
 export function formState(initial?: InitialValues): FormState {
@@ -65,12 +64,10 @@ export const start = formState;
 export async function runExit(
   api: Pick<SignerApi, 'exit'>,
   setState: (state: State) => void,
-  quote: ExitQuoteResp,
-  slippageBps: number
+  quote: ExitQuoteResp
 ): Promise<void> {
   const req: ExitReq = {
     quote,
-    slippageBps,
     onStage,
   };
 
@@ -84,9 +81,8 @@ export async function runExit(
     console.error(e);
     setState(
       formState({
-        amount: req.quote.receiptTokenAmount,
+        amount: req.quote.exitAmount,
         toAsset: req.quote.to,
-        slippageBps: req.slippageBps,
       })
     );
   }

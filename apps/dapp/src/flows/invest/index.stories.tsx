@@ -134,18 +134,20 @@ const TEST_QUOTE: InvestQuoteResp = {
   investment: gmxInvestment(),
   amount: DecimalBigNumber.parseUnits('10', 0),
   from: { kind: 'native', chain: arbitrum() },
-  receiptTokenAmount: DecimalBigNumber.parseUnits('35.21', 2),
+  expectedInvestmentAmount: DecimalBigNumber.parseUnits('35.21', 2),
+  minInvestmentAmount: DecimalBigNumber.parseUnits('34.15', 2),
+  slippageBps: 100,
+  deadline: 0,
   feeBps: [],
   encodedQuote: '',
 };
 
 const TEST_INVEST_REQ: InvestReq = {
   quote: TEST_QUOTE,
-  slippageBps: 100,
 };
 
 const TEST_INVEST_RESP: InvestResp = {
-  receiptTokenAmount: DecimalBigNumber.parseUnits('34.99', 2),
+  investTokenAmount: DecimalBigNumber.parseUnits('34.99', 2),
   txHash: '0x12345',
 };
 

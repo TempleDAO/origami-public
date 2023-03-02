@@ -36,7 +36,6 @@ export interface RunOnChainState {
 export interface InitialValues {
   amount: DecimalBigNumber;
   ofAsset: TokenOrNative;
-  slippageBps: number;
 }
 
 export function formState(initial?: InitialValues): FormState {
@@ -67,12 +66,10 @@ export const start = formState;
 export async function runInvest(
   api: Pick<SignerApi, 'invest'>,
   setState: (state: State) => void,
-  quote: InvestQuoteResp,
-  slippageBps: number
+  quote: InvestQuoteResp
 ): Promise<void> {
   const req: InvestReq = {
     quote,
-    slippageBps,
     onStage,
   };
 
@@ -88,7 +85,6 @@ export async function runInvest(
       formState({
         amount: req.quote.amount,
         ofAsset: req.quote.from,
-        slippageBps: req.slippageBps,
       })
     );
   }

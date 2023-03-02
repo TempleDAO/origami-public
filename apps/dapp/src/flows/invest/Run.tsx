@@ -48,8 +48,8 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
   );
 
   const receivedAmount = result
-    ? result.receiptTokenAmount
-    : state.req.quote.receiptTokenAmount;
+    ? result.investTokenAmount
+    : state.req.quote.expectedInvestmentAmount;
   const receivedAsset = ctx.investment.receiptToken.symbol;
   const receivedUsdValue = lmap(receivedUsdPrice, (price) =>
     formatDecimalBigNumber(price.mul(receivedAmount))

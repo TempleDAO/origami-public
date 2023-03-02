@@ -132,16 +132,18 @@ function useTestContext(papi: ProviderApi, sapi: SignerApi): Ctx {
 
 const TEST_QUOTE: ExitQuoteResp = {
   investment: gmxInvestment(),
-  toAmount: DecimalBigNumber.parseUnits('10', 0),
+  expectedToAmount: DecimalBigNumber.parseUnits('10', 0),
+  minToAmount: DecimalBigNumber.parseUnits('9.9', 1),
   to: { kind: 'native', chain: arbitrum() },
-  receiptTokenAmount: DecimalBigNumber.parseUnits('35.21', 2),
+  exitAmount: DecimalBigNumber.parseUnits('35.21', 2),
+  slippageBps: 100,
+  deadline: 0,
   feeBps: [],
   encodedQuote: '',
 };
 
 const TEST_EXIT_REQ: ExitReq = {
   quote: TEST_QUOTE,
-  slippageBps: 100,
 };
 
 const TEXT_EXIT_RESP: ExitResp = {

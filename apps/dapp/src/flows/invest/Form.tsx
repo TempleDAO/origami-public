@@ -93,6 +93,8 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
         investment: investment,
         from: investFrom,
         amount: debouncedInvestAmount,
+        slippageBps: options.slippageTolerance * 10000,
+        deadline: 0,
       });
       return ready(quote);
     },
@@ -107,8 +109,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
 
   async function onConfirm() {
     if (canConfirm) {
-      const slippageBps = options.slippageTolerance * 10000;
-      runInvest(sapi, setState, quote.value, slippageBps);
+      runInvest(sapi, setState, quote.value);
     }
   }
 
@@ -169,7 +170,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
             {investAmountState.isModified() ? (
               <LoadingText
                 value={lmap(quote, (q) =>
-                  formatDecimalBigNumber(q.receiptTokenAmount)
+                  formatDecimalBigNumber(q.expectedInvestmentAmount)
                 )}
               />
             ) : (

@@ -31,7 +31,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
   const result = stage === 'done' && state.stage.result;
   const receiptToken = ctx.investment.receiptToken;
 
-  const receiptTokenAmount = state.req.quote.receiptTokenAmount;
+  const receiptTokenAmount = state.req.quote.exitAmount;
   const [receiptTokenPrice] = useAsyncLoad(() =>
     ctx.papi.getTokenUsdPrice(receiptToken)
   );
@@ -43,7 +43,9 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
     state.req.quote.investment.chain,
     state.req.quote.to
   );
-  const exitToAmount = result ? result.amountOut : state.req.quote.toAmount;
+  const exitToAmount = result
+    ? result.amountOut
+    : state.req.quote.expectedToAmount;
   const [exitToPrice] = useAsyncLoad(() =>
     tokenOrNativeUsdPrice(ctx.papi, state.req.quote.to)
   );

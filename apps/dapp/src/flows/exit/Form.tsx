@@ -83,7 +83,9 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
       }
       const quote = await papi.exitQuote({
         investment: investment,
-        receiptTokenAmount: debouncedExitAmount,
+        exitAmount: debouncedExitAmount,
+        slippageBps: options.slippageTolerance * 10000,
+        deadline: 0,
         to: exitTo,
       });
       return ready(quote);
@@ -99,8 +101,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
 
   async function onConfirm() {
     if (canConfirm) {
-      const slippageBps = options.slippageTolerance * 10000;
-      runExit(sapi, setState, quote.value, slippageBps);
+      runExit(sapi, setState, quote.value);
     }
   }
 
@@ -168,7 +169,9 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
           <SpanH2>
             {exitAmountState.isModified() ? (
               <LoadingText
-                value={lmap(quote, (q) => formatDecimalBigNumber(q.toAmount))}
+                value={lmap(quote, (q) =>
+                  formatDecimalBigNumber(q.expectedToAmount)
+                )}
               />
             ) : (
               0

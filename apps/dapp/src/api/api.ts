@@ -71,17 +71,19 @@ export interface InvestQuoteReq {
   investment: Investment;
   amount: DecimalBigNumber;
   from: TokenOrNative;
+  slippageBps: number;
+  deadline: number;
 }
 
 export interface InvestQuoteResp extends InvestQuoteReq {
-  receiptTokenAmount: DecimalBigNumber;
+  expectedInvestmentAmount: DecimalBigNumber;
+  minInvestmentAmount: DecimalBigNumber;
   feeBps: DecimalBigNumber[];
   encodedQuote: unknown;
 }
 
 export interface InvestReq {
   quote: InvestQuoteResp;
-  slippageBps: number;
   onStage?(stage: InvestStage): void;
 }
 
@@ -91,25 +93,27 @@ export type InvestStage =
   | { kind: 'done'; result: InvestResp };
 
 export interface InvestResp {
-  receiptTokenAmount: DecimalBigNumber;
+  investTokenAmount: DecimalBigNumber;
   txHash: string;
 }
 
 export interface ExitQuoteReq {
   investment: Investment;
-  receiptTokenAmount: DecimalBigNumber;
+  exitAmount: DecimalBigNumber;
   to: TokenOrNative;
+  slippageBps: number;
+  deadline: number;
 }
 
 export interface ExitQuoteResp extends ExitQuoteReq {
-  toAmount: DecimalBigNumber;
+  expectedToAmount: DecimalBigNumber;
+  minToAmount: DecimalBigNumber;
   feeBps: DecimalBigNumber[];
   encodedQuote: unknown;
 }
 
 export interface ExitReq {
   quote: ExitQuoteResp;
-  slippageBps: number;
   onStage?(stage: ExitStage): void;
 }
 
