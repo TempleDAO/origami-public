@@ -2,6 +2,11 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_initialGov",
+        "type": "address"
+      },
+      {
         "internalType": "string",
         "name": "_name",
         "type": "string"
@@ -25,10 +30,31 @@
         "internalType": "uint256",
         "name": "_performanceFeePercent",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_reservesActualisationDuration",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "secsSinceLastCheckpoint",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "vestingDuration",
+        "type": "uint256"
+      }
+    ],
+    "name": "CannotCheckpointReserves",
+    "type": "error"
   },
   {
     "inputs": [],
@@ -97,6 +123,11 @@
       }
     ],
     "name": "InvalidToken",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotGovernor",
     "type": "error"
   },
   {
@@ -287,17 +318,55 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "previousOwner",
+        "name": "previousGov",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "newOwner",
+        "name": "newGov",
         "type": "address"
       }
     ],
-    "name": "OwnershipTransferred",
+    "name": "NewGovernorAccepted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousGov",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousProposedGov",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newProposedGov",
+        "type": "address"
+      }
+    ],
+    "name": "NewGovernorProposed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "PendingReservesAdded",
     "type": "event"
   },
   {
@@ -369,11 +438,29 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amount",
+        "name": "fullyVestedReserves",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newVestedReserves",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "carriedOverPendingReserves",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newPendingReserves",
         "type": "uint256"
       }
     ],
-    "name": "ReservesAdded",
+    "name": "ReservesCheckpoint",
     "type": "event"
   },
   {
@@ -382,11 +469,11 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "amount",
+        "name": "duration",
         "type": "uint256"
       }
     ],
-    "name": "ReservesRemoved",
+    "name": "ReservesVestingDurationSet",
     "type": "event"
   },
   {
@@ -428,6 +515,45 @@
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "VestedReservesAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "VestedReservesRemoved",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "API_VERSION",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "DOMAIN_SEPARATOR",
     "outputs": [
@@ -438,6 +564,13 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "acceptGov",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -487,7 +620,7 @@
         "type": "uint256"
       }
     ],
-    "name": "addReserves",
+    "name": "addPendingReserves",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -514,6 +647,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "apiVersion",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -600,6 +746,13 @@
   },
   {
     "inputs": [],
+    "name": "checkpointReserves",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "decimals",
     "outputs": [
       {
@@ -646,6 +799,16 @@
         "internalType": "address",
         "name": "toToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "exitQuote",
@@ -664,7 +827,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -702,7 +880,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -714,11 +907,6 @@
         "internalType": "struct IOrigamiInvestment.ExitQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       },
       {
         "internalType": "address payable",
@@ -753,7 +941,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
             "type": "uint256"
           },
           {
@@ -765,11 +968,6 @@
         "internalType": "struct IOrigamiInvestment.ExitQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       },
       {
         "internalType": "address",
@@ -786,6 +984,19 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gov",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -823,6 +1034,16 @@
         "internalType": "address",
         "name": "fromToken",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
       }
     ],
     "name": "investQuote",
@@ -841,7 +1062,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -879,7 +1115,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -891,11 +1142,6 @@
         "internalType": "struct IOrigamiInvestment.InvestQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       }
     ],
     "name": "investWithNative",
@@ -925,7 +1171,22 @@
           },
           {
             "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
             "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
             "type": "uint256"
           },
           {
@@ -937,11 +1198,6 @@
         "internalType": "struct IOrigamiInvestment.InvestQuoteData",
         "name": "quoteData",
         "type": "tuple"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slippageBps",
-        "type": "uint256"
       }
     ],
     "name": "investWithToken",
@@ -963,6 +1219,19 @@
         "internalType": "contract IOrigamiInvestmentManager",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "lastVestingCheckpoint",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1004,7 +1273,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_account",
         "type": "address"
       }
     ],
@@ -1021,12 +1290,12 @@
   },
   {
     "inputs": [],
-    "name": "owner",
+    "name": "pendingReserves",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1097,6 +1366,19 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "newProposedGov",
+        "type": "address"
+      }
+    ],
+    "name": "proposeNewGov",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "_token",
         "type": "address"
       },
@@ -1125,26 +1407,6 @@
       }
     ],
     "name": "removeOperator",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "removeReserves",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1195,6 +1457,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "reservesVestingDuration",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -1221,6 +1496,19 @@
       }
     ],
     "name": "setPerformanceFee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_reservesVestingDuration",
+        "type": "uint256"
+      }
+    ],
+    "name": "setReservesVestingDuration",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1363,16 +1651,34 @@
     "type": "function"
   },
   {
-    "inputs": [
+    "inputs": [],
+    "name": "unvestedReserves",
+    "outputs": [
       {
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "accrued",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "outstanding",
+        "type": "uint256"
       }
     ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "vestedReserves",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ]

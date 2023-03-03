@@ -2,7 +2,6 @@ import { Invested, Exited } from '../../generated/GmxInvestment/OrigamiInvestmen
 import { getOrCreateInvestment, updateInvestment } from '../entities/investment'
 
 import { getPricedToken } from '../entities/pricedToken'
-import { getOrCreateToken } from '../entities/token'
 import { toDecimal } from '../utils/decimals'
 
 

@@ -15,7 +15,7 @@ async function main() {
   const factory = new OrigamiGlpInvestment__factory(owner);
   await deployAndMine(
     'oGLP', factory, factory.deploy,
-    owner.getAddress(),
+    await owner.getAddress(),
     GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.WETH_TOKEN,
   );
 }

@@ -15,7 +15,7 @@ async function main() {
   const factory = new OrigamiGmxManager__factory(owner);
   await deployAndMine(
     'origamiGlpManager', factory, factory.deploy,
-    owner.getAddress(),
+    await owner.getAddress(),
     GMX_DEPLOYED_CONTRACTS.GMX.STAKING.GMX_REWARD_ROUTER, 
     GMX_DEPLOYED_CONTRACTS.GMX.STAKING.GLP_REWARD_ROUTER, 
     GMX_DEPLOYED_CONTRACTS.ORIGAMI.GMX.oGMX,

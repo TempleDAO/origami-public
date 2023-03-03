@@ -1,421 +1,419 @@
 [
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"uint8",
-        "name":"_decimals",
-        "type":"uint8"
+        "internalType": "uint8",
+        "name": "_decimals",
+        "type": "uint8"
       }
     ],
-    "stateMutability":"nonpayable",
-    "type":"constructor"
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"bytes",
-        "name":"fnCalldata",
-        "type":"bytes"
+        "internalType": "bytes",
+        "name": "fnCalldata",
+        "type": "bytes"
       }
     ],
-    "name":"FailedPriceLookup",
-    "type":"error"
+    "name": "FailedPriceLookup",
+    "type": "error"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"int256",
-        "name":"",
-        "type":"int256"
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
       }
     ],
-    "name":"InvalidPrice",
-    "type":"error"
+    "name": "InvalidPrice",
+    "type": "error"
   },
   {
-    "anonymous":false,
-    "inputs":[
+    "anonymous": false,
+    "inputs": [
       {
-        "indexed":true,
-        "internalType":"address",
-        "name":"previousOwner",
-        "type":"address"
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
       },
       {
-        "indexed":true,
-        "internalType":"address",
-        "name":"newOwner",
-        "type":"address"
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
       }
     ],
-    "name":"OwnershipTransferred",
-    "type":"event"
+    "name": "OwnershipTransferred",
+    "type": "event"
   },
   {
-    "anonymous":false,
-    "inputs":[
+    "anonymous": false,
+    "inputs": [
       {
-        "indexed":true,
-        "internalType":"address",
-        "name":"token",
-        "type":"address"
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
-        "indexed":false,
-        "internalType":"bytes",
-        "name":"fnCalldata",
-        "type":"bytes"
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "fnCalldata",
+        "type": "bytes"
       }
     ],
-    "name":"TokenPriceFunctionSet",
-    "type":"event"
+    "name": "TokenPriceFunctionSet",
+    "type": "event"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"address",
-        "name":"sourceToken",
-        "type":"address"
+        "internalType": "address",
+        "name": "sourceToken",
+        "type": "address"
       }
     ],
-    "name":"aliasFor",
-    "outputs":[
+    "name": "aliasFor",
+    "outputs": [
       {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
-
-    ],
-    "name":"decimals",
-    "outputs":[
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [
       {
-        "internalType":"uint8",
-        "name":"",
-        "type":"uint8"
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"bytes",
-        "name":"numerator",
-        "type":"bytes"
+        "internalType": "bytes",
+        "name": "numerator",
+        "type": "bytes"
       },
       {
-        "internalType":"bytes",
-        "name":"denominator",
-        "type":"bytes"
+        "internalType": "bytes",
+        "name": "denominator",
+        "type": "bytes"
       }
     ],
-    "name":"div",
-    "outputs":[
+    "name": "div",
+    "outputs": [
       {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"contract IGlpManager",
-        "name":"glpManager",
-        "type":"address"
+        "internalType": "contract IGlpManager",
+        "name": "glpManager",
+        "type": "address"
       }
     ],
-    "name":"glpPrice",
-    "outputs":[
+    "name": "glpPrice",
+    "outputs": [
       {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"address",
-        "name":"vault",
-        "type":"address"
+        "internalType": "address",
+        "name": "vault",
+        "type": "address"
       },
       {
-        "internalType":"address",
-        "name":"token",
-        "type":"address"
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       }
     ],
-    "name":"gmxVaultPrice",
-    "outputs":[
+    "name": "gmxVaultPrice",
+    "outputs": [
       {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"bytes",
-        "name":"v1",
-        "type":"bytes"
+        "internalType": "bytes",
+        "name": "v1",
+        "type": "bytes"
       },
       {
-        "internalType":"bytes",
-        "name":"v2",
-        "type":"bytes"
+        "internalType": "bytes",
+        "name": "v2",
+        "type": "bytes"
       }
     ],
-    "name":"mul",
-    "outputs":[
+    "name": "mul",
+    "outputs": [
       {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"address",
-        "name":"_oracle",
-        "type":"address"
-      }
-    ],
-    "name":"oraclePrice",
-    "outputs":[
-      {
-        "internalType":"uint256",
-        "name":"price",
-        "type":"uint256"
-      }
-    ],
-    "stateMutability":"view",
-    "type":"function"
-  },
-  {
-    "inputs":[
-
-    ],
-    "name":"owner",
-    "outputs":[
-      {
-        "internalType":"address",
-        "name":"",
-        "type":"address"
-      }
-    ],
-    "stateMutability":"view",
-    "type":"function"
-  },
-  {
-    "inputs":[
-      {
-        "internalType":"address",
-        "name":"",
-        "type":"address"
-      }
-    ],
-    "name":"priceFnCalldata",
-    "outputs":[
-      {
-        "internalType":"bytes",
-        "name":"",
-        "type":"bytes"
-      }
-    ],
-    "stateMutability":"view",
-    "type":"function"
-  },
-  {
-    "inputs":[
-
-    ],
-    "name":"renounceOwnership",
-    "outputs":[
-
-    ],
-    "stateMutability":"nonpayable",
-    "type":"function"
-  },
-  {
-    "inputs":[
-      {
-        "internalType":"address",
-        "name":"_repricingToken",
-        "type":"address"
-      }
-    ],
-    "name":"repricingTokenPrice",
-    "outputs":[
-      {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
-      }
-    ],
-    "stateMutability":"view",
-    "type":"function"
-  },
-  {
-    "inputs":[
-      {
-        "internalType":"uint256",
-        "name":"_amount",
-        "type":"uint256"
-      }
-    ],
-    "name":"scalar",
-    "outputs":[
-      {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
-      }
-    ],
-    "stateMutability":"pure",
-    "type":"function"
-  },
-  {
-    "inputs":[
-      {
-        "internalType":"address",
-        "name":"token",
-        "type":"address"
+        "internalType": "address",
+        "name": "_oracle",
+        "type": "address"
       },
       {
-        "internalType":"bytes",
-        "name":"fnCalldata",
-        "type":"bytes"
+        "internalType": "uint256",
+        "name": "_stalenessThreshold",
+        "type": "uint256"
       }
     ],
-    "name":"setTokenPriceFunction",
-    "outputs":[
-
+    "name": "oraclePrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
     ],
-    "stateMutability":"nonpayable",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
       {
-        "internalType":"address",
-        "name":"token",
-        "type":"address"
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name":"tokenPrice",
-    "outputs":[
-      {
-        "internalType":"uint256",
-        "name":"price",
-        "type":"uint256"
-      }
-    ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"address[]",
-        "name":"tokens",
-        "type":"address[]"
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name":"tokenPrices",
-    "outputs":[
+    "name": "priceFnCalldata",
+    "outputs": [
       {
-        "internalType":"uint256[]",
-        "name":"prices",
-        "type":"uint256[]"
+        "internalType": "bytes",
+        "name": "",
+        "type": "bytes"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        "internalType":"contract IJoePair",
-        "name":"joePair",
-        "type":"address"
+        "internalType": "address",
+        "name": "_repricingToken",
+        "type": "address"
+      }
+    ],
+    "name": "repricingTokenPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "scalar",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
-        "internalType":"bool",
-        "name":"inQuotedOrder",
-        "type":"bool"
+        "internalType": "bytes",
+        "name": "fnCalldata",
+        "type": "bytes"
       }
     ],
-    "name":"traderJoePrice",
-    "outputs":[
-      {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
-      }
-    ],
-    "stateMutability":"view",
-    "type":"function"
+    "name": "setTokenPriceFunction",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"address",
-        "name":"newOwner",
-        "type":"address"
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       }
     ],
-    "name":"transferOwnership",
-    "outputs":[
-
+    "name": "tokenPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
     ],
-    "stateMutability":"nonpayable",
-    "type":"function"
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    "inputs":[
+    "inputs": [
       {
-        "internalType":"contract IUniswapV3Pool",
-        "name":"pool",
-        "type":"address"
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "name": "tokenPrices",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "prices",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IJoeLBQuoter",
+        "name": "joeQuoter",
+        "type": "address"
       },
       {
-        "internalType":"bool",
-        "name":"inQuotedOrder",
-        "type":"bool"
-      }
-    ],
-    "name":"univ3Price",
-    "outputs":[
+        "internalType": "address",
+        "name": "sellToken",
+        "type": "address"
+      },
       {
-        "internalType":"uint256",
-        "name":"",
-        "type":"uint256"
+        "internalType": "address",
+        "name": "buyToken",
+        "type": "address"
       }
     ],
-    "stateMutability":"view",
-    "type":"function"
+    "name": "traderJoeBestPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IUniswapV3Pool",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "inQuotedOrder",
+        "type": "bool"
+      }
+    ],
+    "name": "univ3Price",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

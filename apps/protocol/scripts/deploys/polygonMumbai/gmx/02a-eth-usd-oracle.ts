@@ -19,6 +19,7 @@ async function main() {
     updatedAtLag: 1,
     answeredInRound: 5
   };
+  console.log(answer);
   await deployAndMine(
     'ethUsdOracle', factory, factory.deploy,
     answer, 8,

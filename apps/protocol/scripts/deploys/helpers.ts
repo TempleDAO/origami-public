@@ -88,7 +88,16 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
       throw new Error(`Empty arg in position ${i}`);
   });
 
-  const renderedArgs: string = args.map(a => a.toString()).join(' ');
+  const renderedConstructorArgs: string = constructorArgs.map(a => {
+    if (typeof a === 'string') {
+        return a;
+    } else if (typeof a === 'number') {
+        return a.toString();
+    } else {
+        throw new Error(`Unknown constructor arg type: ${typeof a}`);
+    }
+  }).join(' ');
+  const renderedInitArgs: string = args.map(a => a.toString()).join(' ');
 
   let contract: T;
   if (network.name != "localhost" && existingProxyAddress && isAddress(existingProxyAddress)) {
@@ -97,7 +106,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
     console.log(`Old implementation address: ${oldImplAddress}`);
     contract = await upgrades.upgradeProxy(existingProxyAddress, factory, {kind, constructorArgs}) as T;
   } else {
-    console.log(`*******DEPLOYING upgradeable ${name} on ${network.name} and initializing with args ${renderedArgs}`);
+    console.log(`*******DEPLOYING upgradeable ${name} on ${network.name} with constructor args ${renderedConstructorArgs} and initializing with args ${renderedInitArgs}`);
     contract = await upgrades.deployProxy(factory, args, {kind, constructorArgs}) as T; 
   }
 
@@ -112,7 +121,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
   console.log(`export ${name}=${contract.address}`);
   // Hardhat will verify the underlying, and then the proxy and then link them together
   // No args since their passed into initialize() instead of the constructor.
-  console.log(`yarn hardhat verify --network ${network.name} ${contract.address}`);
+  console.log(`yarn hardhat verify --network ${network.name} ${contract.address} ${renderedConstructorArgs}`);
   console.log('********************\n');
 
   return contract;

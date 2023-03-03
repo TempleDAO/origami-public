@@ -1,4 +1,4 @@
-import { Invested, Exited, ReservesAdded, ReservesRemoved, TokenPricesSet, PerformanceFeeSet, InvestmentManagerSet } from '../../generated/GmxInvestmentVault/OrigamiInvestmentVault'
+import { Invested, Exited, PendingReservesAdded, TokenPricesSet, PerformanceFeeSet, InvestmentManagerSet } from '../../generated/GmxInvestmentVault/OrigamiInvestmentVault'
 import { OrigamiInvestmentVault as InvestmentVaultContract } from '../../generated/GmxInvestment/OrigamiInvestmentVault'
 
 import { createUserInvestment } from '../entities/userInvestment'
@@ -32,17 +32,10 @@ export function onExitedVault(event: Exited): void {
     createUserExit(event)
 }
 
-export function onReservesAdded(event: ReservesAdded): void {
+export function onPendingReservesAdded(event: PendingReservesAdded): void {
     const invVault = getOrCreateInvestmentVault(event.address, event.block.timestamp)
     const amount = toDecimal(event.params.amount, 18)
     invVault.totalReserves = invVault.totalReserves.plus(amount)
-    invVault.save()
-}
-
-export function onReservesRemoved(event: ReservesRemoved): void {
-    const invVault = getOrCreateInvestmentVault(event.address, event.block.timestamp)
-    const amount = toDecimal(event.params.amount, 18)
-    invVault.totalReserves = invVault.totalReserves.minus(amount)
     invVault.save()
 }
 

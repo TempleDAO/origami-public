@@ -92,10 +92,8 @@ dataSources:
           handler: onInvestedVault
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
           handler: onExitedVault
-        - event: ReservesAdded(uint256)
-          handler: onReservesAdded
-        - event: ReservesRemoved(uint256)
-          handler: onReservesRemoved
+        - event: PendingReservesAdded(uint256)
+          handler: onPendingReservesAdded
         - event: TokenPricesSet(indexed address)
           handler: onTokenPricesSet
         - event: PerformanceFeeSet(uint128,uint128)
@@ -130,10 +128,8 @@ dataSources:
           handler: onInvestedVault
         - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
           handler: onExitedVault
-        - event: ReservesAdded(uint256)
-          handler: onReservesAdded
-        - event: ReservesRemoved(uint256)
-          handler: onReservesRemoved
+        - event: PendingReservesAdded(uint256)
+          handler: onPendingReservesAdded
         - event: TokenPricesSet(indexed address)
           handler: onTokenPricesSet
         - event: PerformanceFeeSet(uint128,uint128)
