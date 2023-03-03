@@ -559,7 +559,21 @@ async function main() {
         true // _hasDynamicFees
     ));
 
-    addDefaultGlpLiquidity(
+    await mine(feeGmxDistributor.setTokensPerInterval(BigNumber.from('413359700000')));
+    await mine(stakedGmxDistributor.setTokensPerInterval(BigNumber.from('206679894000000')));
+    await mine(feeGlpDistributor.setTokensPerInterval(BigNumber.from('41335970000000')));
+    await mine(stakedGlpDistributor.setTokensPerInterval(BigNumber.from('20667989410000000')));
+
+    // Stake some GMX to seed the pool
+    {
+        const amount = ethers.utils.parseEther("1000000");
+        await mine(gmx.mint(owner.getAddress(), amount));
+        await mine(gmx.approve(stakedGmxTracker.address, amount));
+        await mine(gmxRewardRouter.stakeGmx(amount));
+    }
+
+    // Seed and stake some tokens for GLP
+    await addDefaultGlpLiquidity(
         glpManager,
         owner,
         glpRewardRouter,

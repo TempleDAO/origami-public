@@ -122,7 +122,9 @@ function getAPR(investmentVaultContract: InvestmentVaultContract): BigDecimal {
 }
 
 function getAPY(apr: BigDecimal): BigDecimal {
-  if (apr > BIG_DECIMAL_0) {
+  // 10,000% as an upper bound on APR such that the APY calc doesn't overflow
+  const maxValidApr = BigDecimal.fromString("10000")
+  if (apr > BIG_DECIMAL_0 && apr.lt(maxValidApr)) {
     const lhs = BIG_DECIMAL_1.plus(apr.div(BIG_DECIMAL_100).div(BIG_DECIMAL_365))
     const apy = ipow(lhs, 365).minus(BIG_DECIMAL_1)
     return apy.times(BIG_DECIMAL_100)

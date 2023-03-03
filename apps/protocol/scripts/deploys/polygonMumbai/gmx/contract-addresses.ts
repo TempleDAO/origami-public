@@ -86,6 +86,8 @@ export interface GmxDeployedContracts {
             GLP_REWARD_ROUTER: string,   
         },
     },
+
+    TESTNET_MINTER: string,
 };
 
 const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
@@ -260,7 +262,43 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
                 GLP_REWARD_ROUTER: '0xCaC7A62Dd3D9D82d973C2DFBc5dBa6EFbb2BAf60',
                 // yarn hardhat verify --network polygonMumbai 0xCaC7A62Dd3D9D82d973C2DFBc5dBa6EFbb2BAf60
             },
-        }
+        },
+
+        TESTNET_MINTER: '0x2B5ce096ce51Ff9EEF2D09a6d9a6e594D15e95F4',
+        // yarn hardhat verify --network polygonMumbai 0x2B5ce096ce51Ff9EEF2D09a6d9a6e594D15e95F4  --constructor-args arguments.js
+        // [
+        //     {
+        //       token: '0x7Edb6ea1A90318E9D2B3Ae03e5617A5AAFd7b249',
+        //       amount: "10000000000000000000",
+        //       mintType: 0
+        //     },
+        //     {
+        //       token: '0x6352dEabF5AC3A6f14d7A1e19092fBddcda89625',
+        //       amount: "67000000000000000000",
+        //       mintType: 0
+        //     },
+        //     {
+        //       token: '0x6C97233BBC1e8197688511586D46Ea7f98cBe775',
+        //       amount: "400000000000000000",
+        //       mintType: 0
+        //     },
+        //     {
+        //       token: '0x5B0eeE1336cD3f5136D3DaF6970236365b9E9cd7',
+        //       amount: "20000000000000000000000",
+        //       mintType: 0
+        //     },
+        //     {
+        //       token: '0x3be80dD1aC2533d91330C82aae89Fe4D2E540146',
+        //       amount: "500000000000000000000",
+        //       mintType: 0
+        //     },
+        //     {
+        //       token: '0x9d4Da39fB7971Eb27e951E26eC820fC137E71475',
+        //       amount: "20000000000000000000000",
+        //       mintType: 1
+        //     }
+        //   ],
+        // 86400
     },
 }
 
