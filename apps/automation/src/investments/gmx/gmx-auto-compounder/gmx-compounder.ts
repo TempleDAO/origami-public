@@ -165,7 +165,7 @@ export async function harvestGmxRewards(
     };
     console.log("Harvest Params:", harvestParams);
 
-    const encodedParams = encodeGmxHarvestParams(harvestParams);
+    const encodedParams = encodeGmxHarvestParams(rewardAggregator, harvestParams);
     console.log("harvestRewards encoded params:", encodedParams);
     const populatedTx = await rewardAggregator.populateTransaction['harvestRewards'](encodedParams);
     const tx = await sendTransaction(connection, commonConfig, populatedTx);

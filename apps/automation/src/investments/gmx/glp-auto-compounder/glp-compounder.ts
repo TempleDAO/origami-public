@@ -172,7 +172,7 @@ export async function harvestGlpRewards(
     };
     console.log("Harvest Params:", harvestParams);
 
-    const encodedParams = encodeGlpHarvestParams(harvestParams);
+    const encodedParams = encodeGlpHarvestParams(rewardAggregator, harvestParams);
     console.log("harvestRewards encoded params:", encodedParams);
     const populatedTx = await rewardAggregator.populateTransaction['harvestRewards'](encodedParams);
     const tx = await sendTransaction(connection, commonConfig, populatedTx);
