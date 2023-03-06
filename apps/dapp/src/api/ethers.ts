@@ -787,7 +787,8 @@ class SignerApiImpl implements SignerApi {
     if (allowance.gte(requiredAmountBN)) {
       return;
     }
-    const tx = await erc20.approve(approvedAddress, requiredAmountBN);
+    const actualApprovalAmount = ethers.constants.MaxUint256;
+    const tx = await erc20.approve(approvedAddress, actualApprovalAmount);
     await tx.wait();
   }
 
