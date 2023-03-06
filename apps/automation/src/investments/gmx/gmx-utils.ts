@@ -3,13 +3,14 @@ import { getBlockTimestamp } from "@/ethers";
 import { OrigamiGmxRewardsAggregator } from "@/typechain";
 import { utils } from "ethers";
 
-const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint256 expectedInvestmentAmount, bytes underlyingInvestmentQuoteData)';
-const exitQuoteTypes = 'tuple(uint256 investmentTokenAmount, address toToken, uint256 expectedToTokenAmount, bytes underlyingInvestmentQuoteData)';
+const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint256 maxSlippageBps, ' +
+    'uint256 deadline, uint256 expectedInvestmentAmount, uint256 minInvestmentAmount, bytes underlyingInvestmentQuoteData)';
+const exitQuoteTypes = 'tuple(uint256 investmentTokenAmount, address toToken, uint256 maxSlippageBps, ' + 
+    'uint256 deadline, uint256 expectedToTokenAmount, uint256 minToTokenAmount, bytes underlyingInvestmentQuoteData)';
 
 export const encodeGlpHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct): string => {
     const types = `tuple(${exitQuoteTypes} oGmxExitQuoteData, bytes gmxToNativeSwapData, ` +
-        `${investQuoteTypes} oGlpInvestQuoteData, uint256 oGmxExitSlippageBps, ` +
-        `uint256 oGlpInvestSlippageBps, uint256 addToReserveAmount)`; 
+        `${investQuoteTypes} oGlpInvestQuoteData, uint256 addToReserveAmountPct)`;
     return utils.defaultAbiCoder.encode(
         [types], 
         [params],
@@ -17,7 +18,7 @@ export const encodeGlpHarvestParams = (params: OrigamiGmxRewardsAggregator.Harve
 }
 
 export const encodeGmxHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct): string => {
-    const types = `tuple(bytes nativeToGmxSwapData, ${investQuoteTypes} oGmxInvestQuoteData, uint256 oGmxInvestSlippageBps, uint256 addToReserveAmount)`; 
+    const types = `tuple(bytes nativeToGmxSwapData, ${investQuoteTypes} oGmxInvestQuoteData, uint256 addToReserveAmountPct)`; 
     return utils.defaultAbiCoder.encode(
         [types], 
         [params],

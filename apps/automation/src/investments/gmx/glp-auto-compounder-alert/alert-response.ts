@@ -40,11 +40,9 @@ export async function getAlertResponse(
             const eventReason = reason as EventConditionSummary;
             console.log("event signature:", eventReason.signature);
             console.log("event params:", eventReason.params);
-            const harvestParams = eventReason.params.harvestParams as unknown[];
-            const addToReserveAmountStr = harvestParams[5] as string;
-            // Update when the number is big enough to display
-            addToReserveAmount = addToReserveAmountStr; // formatBigNumber(BigNumber.from(addToReserveAmountStr) as BigNumber, 18, 4);
-            description = `CompoundOvGlp(addToHarvestAmount=${addToReserveAmount})`;
+            const addToReserveAmountStr = eventReason.params.amount as string;
+            addToReserveAmount = formatBigNumber(BigNumber.from(addToReserveAmountStr) as BigNumber, 18, 4);
+            description = `PendingReservesAdded(amount=${addToReserveAmount})`;
         }
 
         const match: SentinelConditionMatch = {

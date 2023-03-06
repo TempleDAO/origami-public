@@ -171,6 +171,7 @@ async function main() {
     await mine(contracts.gmxEarnAccount.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.glpPrimaryEarnAccount.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.glpSecondaryEarnAccount.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpSecondaryEarnAccount.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
     
     // The Investments & managers mints/burns oGMXtokens.
     // The GLP manager also needs mint access on oGMX, for rewards.
