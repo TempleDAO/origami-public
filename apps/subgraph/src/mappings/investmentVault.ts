@@ -4,7 +4,6 @@ import { OrigamiInvestmentVault as InvestmentVaultContract } from '../../generat
 import { createUserInvestment } from '../entities/userInvestment'
 import { createUserExit } from '../entities/userExit'
 import { getInvestmentVault, getOrCreateInvestmentVault } from '../entities/investmentVault'
-import { toDecimal } from '../utils/decimals'
 import { getOrCreatePricedToken } from '../entities/pricedToken'
 import { BIG_DECIMAL_100 } from '../utils/constants'
 
@@ -33,10 +32,7 @@ export function onExitedVault(event: Exited): void {
 }
 
 export function onPendingReservesAdded(event: PendingReservesAdded): void {
-    const invVault = getOrCreateInvestmentVault(event.address, event.block.timestamp)
-    const amount = toDecimal(event.params.amount, 18)
-    invVault.totalReserves = invVault.totalReserves.plus(amount)
-    invVault.save()
+    getOrCreateInvestmentVault(event.address, event.block.timestamp)
 }
 
 export function onTokenPricesSet(event: TokenPricesSet): void {

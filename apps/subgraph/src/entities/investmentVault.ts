@@ -94,6 +94,8 @@ export function updateInvestmentVault(investmentVault: InvestmentVault, timestam
   investmentVault.apr = apr
   investmentVault.apy = getAPY(apr)
 
+  const totalReserves = toDecimal(ISContract.totalReserves(), 18)
+  investmentVault.totalReserves = totalReserves
   const totalSupply = toDecimal(ISContract.totalSupply(), 18)
   investmentVault.totalSupply = totalSupply
   investmentVault.reservesPerShare = investmentVault.totalReserves.div(totalSupply)
@@ -127,7 +129,7 @@ function getAPY(apr: BigDecimal): BigDecimal {
   if (apr > BIG_DECIMAL_0 && apr.lt(maxValidApr)) {
     const lhs = BIG_DECIMAL_1.plus(apr.div(BIG_DECIMAL_100).div(BIG_DECIMAL_365))
     const apy = ipow(lhs, 365).minus(BIG_DECIMAL_1)
-    return apy.times(BIG_DECIMAL_100)
+    return apy.times(BIG_DECIMAL_100).truncate(2)
   }
 
   return BIG_DECIMAL_0

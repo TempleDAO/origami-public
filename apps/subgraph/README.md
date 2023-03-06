@@ -7,5 +7,5 @@
 3) Run `yarn prepare:mainnet` to prepare the subgraph manifest.
 4) Run `yarn codegen` to build the GraphQL schema.
 5) Run `yarn build` to compile the AssemblyScript code.
-6) Run `yarn deploy` to deploy the subgraph.
+6) Run `yarn deploy:mainnet` to deploy the subgraph.
 7) Run `yarn lfg:mainnet` to execute steps 3-6 automatically.

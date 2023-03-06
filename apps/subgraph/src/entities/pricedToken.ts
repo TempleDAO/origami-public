@@ -70,7 +70,9 @@ export function getPricedTokenPrice(pricedToken: PricedToken): BigDecimal {
   const tokenPrices = TokenPrices.bind(Address.fromBytes(pricedToken.tokenPrices))
   const price = tokenPrices.tokenPrice(Address.fromString(pricedToken.id))
 
-  return toDecimal(price, pricedToken.decimals)
+  // tokenPrices returns prices to 30 decimal places
+  const tokenPricesDecimals = 30
+  return toDecimal(price, tokenPricesDecimals)
 }
 
 export function updatePricedTokenPrice(address: string, timestamp: BigInt): void {
