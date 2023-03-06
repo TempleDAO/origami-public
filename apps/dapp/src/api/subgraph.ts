@@ -22,7 +22,7 @@ export function queryInvestmentVaultMetrics(
     investmentVault(id:"${investmentId}") {
       timestamp
       apy
-      tvl
+      tvlUSD
     }
   }
   `;
@@ -37,7 +37,7 @@ const InvestmentVaultMetricsResp = z.object({
   investmentVault: z.optional(
     z.object({
       apy: z.string(),
-      tvl: z.string(),
+      tvlUSD: z.string(),
     })
   ),
 });
@@ -64,7 +64,7 @@ export function queryInvestmentVaultHourlySnapshots(
       timeframe
       timestamp
       apy
-      tvl
+      tvlUSD
     }
   }
   `;
@@ -82,7 +82,7 @@ const InvestmentVaultHourlySnapshotsResp = z.object({
       timeframe: z.string(),
       timestamp: z.string(),
       apy: z.string(),
-      tvl: z.string(),
+      tvlUSD: z.string(),
     })
   ),
 });
@@ -109,7 +109,7 @@ export function queryInvestmentVaultDailySnapshots(
       timeframe
       timestamp
       apy
-      tvl
+      tvlUSD
     }
   }
   `;
@@ -127,7 +127,7 @@ const InvestmentVaultDailySnapshotsResp = z.object({
       timeframe: z.string(),
       timestamp: z.string(),
       apy: z.string(),
-      tvl: z.string(),
+      tvlUSD: z.string(),
     })
   ),
 });

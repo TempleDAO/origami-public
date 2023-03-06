@@ -249,7 +249,7 @@ class ProviderApiImpl implements ProviderApi {
         throw new Error('No metrics returned');
       }
       return {
-        tvl: parseFloat(result.investmentVault.tvl),
+        tvl: parseFloat(result.investmentVault.tvlUSD),
         apy: parseFloat(result.investmentVault.apy) / 100,
       };
     };
@@ -451,7 +451,7 @@ class ProviderApiImpl implements ProviderApi {
           v:
             req.metric == 'apy'
               ? percentFromSubgraph(p.apy)
-              : parseFloat(p.tvl),
+              : parseFloat(p.tvlUSD),
         };
       });
     } else {
@@ -466,7 +466,7 @@ class ProviderApiImpl implements ProviderApi {
           v:
             req.metric == 'apy'
               ? percentFromSubgraph(p.apy)
-              : parseFloat(p.tvl),
+              : parseFloat(p.tvlUSD),
         };
       });
     }
