@@ -75,7 +75,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
             {stage === 'invest' && 'Investing'}
           </ActionLabel>
         </FlexDown>
-        {stage === 'approve' && <Icon iconName="wallet" />}
+        {stage === 'approve' && <Spinner size="small" />}
         {stage === 'invest' && <Spinner size="small" />}
       </FlexRightSpaced>
       {!result && (

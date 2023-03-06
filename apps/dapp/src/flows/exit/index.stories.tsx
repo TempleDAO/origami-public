@@ -99,7 +99,7 @@ export const FlowRunOnChain2 = () => {
     </Main>
   );
 };
-FlowRunOnChain2.storyName = '03 Run on chain (invest)';
+FlowRunOnChain2.storyName = '03 Run on chain (exit)';
 
 export const FlowRunOnChain3 = () => {
   const { papi, sapi } = useTestApis();
