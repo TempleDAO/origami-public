@@ -25,6 +25,8 @@ type MetricDailySnapshot @entity {
 type InvestmentVault @entity {
   id: ID!
   timestamp: BigInt!
+  name: String!
+  symbol: String!
   tvl: BigDecimal!
   tvlUSD: BigDecimal!
   volume: BigDecimal!
@@ -52,6 +54,8 @@ type InvestmentVaultDailySnapshot @entity {
   timestamp: BigInt!
   timeframe: BigInt!
   investmentVault: InvestmentVault!
+  name: String!
+  symbol: String!
   tvl: BigDecimal!
   tvlUSD: BigDecimal!
   volume: BigDecimal!
@@ -70,6 +74,8 @@ type InvestmentVaultHourlySnapshot @entity {
   timestamp: BigInt!
   timeframe: BigInt!
   investmentVault: InvestmentVault!
+  name: String!
+  symbol: String!
   tvl: BigDecimal!
   tvlUSD: BigDecimal!
   volume: BigDecimal!

@@ -11,11 +11,16 @@ import { getMetric, updateMetric } from './metric'
 import { getOrCreatePricedToken } from './pricedToken'
 
 
+const MAX_VALID_APR = BigDecimal.fromString('1000')
+
+
 function createInvestmentVault(address: Address, timestamp: BigInt): InvestmentVault {
   const investmentVault = new InvestmentVault(address.toHexString())
   investmentVault.timestamp = timestamp
 
   const investmentVaultContract = InvestmentVaultContract.bind(address)
+  investmentVault.name = investmentVaultContract.name()
+  investmentVault.symbol = investmentVaultContract.symbol()
 
   const acceptedInvTokens = investmentVaultContract.acceptedInvestTokens()
   let investTokens = new Array<Bytes>(acceptedInvTokens.length)
@@ -89,14 +94,14 @@ export function getInvestmentVault(address: Address): InvestmentVault | null {
 export function updateInvestmentVault(investmentVault: InvestmentVault, timestamp: BigInt): void {
   investmentVault.timestamp = timestamp
 
-  const ISContract = InvestmentVaultContract.bind(Address.fromString(investmentVault.id))
-  const apr = getAPR(ISContract)
+  const IVContract = InvestmentVaultContract.bind(Address.fromString(investmentVault.id))
+  const apr = getAPR(IVContract)
   investmentVault.apr = apr
   investmentVault.apy = getAPY(apr)
 
-  const totalReserves = toDecimal(ISContract.totalReserves(), 18)
+  const totalReserves = toDecimal(IVContract.totalReserves(), 18)
   investmentVault.totalReserves = totalReserves
-  const totalSupply = toDecimal(ISContract.totalSupply(), 18)
+  const totalSupply = toDecimal(IVContract.totalSupply(), 18)
   investmentVault.totalSupply = totalSupply
   investmentVault.reservesPerShare = investmentVault.totalReserves.div(totalSupply)
 
@@ -117,16 +122,18 @@ export function updateInvestmentVaults(timestamp: BigInt): void {
 function getAPR(investmentVaultContract: InvestmentVaultContract): BigDecimal {
   const aprBpsCall = investmentVaultContract.try_apr()
   if (!aprBpsCall.reverted) {
-    return aprBpsCall.value.toBigDecimal().div(BIG_DECIMAL_100)
+    const apr = aprBpsCall.value.toBigDecimal().div(BIG_DECIMAL_100)
+    // 1,000% as an upper bound on APR such that the APY calc doesn't overflow
+    if (apr < MAX_VALID_APR) {
+      return apr
+    }
   }
 
   return BIG_DECIMAL_0
 }
 
 function getAPY(apr: BigDecimal): BigDecimal {
-  // 10,000% as an upper bound on APR such that the APY calc doesn't overflow
-  const maxValidApr = BigDecimal.fromString("10000")
-  if (apr > BIG_DECIMAL_0 && apr.lt(maxValidApr)) {
+  if (apr > BIG_DECIMAL_0) {
     const lhs = BIG_DECIMAL_1.plus(apr.div(BIG_DECIMAL_100).div(BIG_DECIMAL_365))
     const apy = ipow(lhs, 365).minus(BIG_DECIMAL_1)
     return apy.times(BIG_DECIMAL_100).truncate(2)
@@ -147,6 +154,8 @@ export function updateOrCreateDayData(investmentVault: InvestmentVault, timestam
 
   dayData.investmentVault = investmentVault.id
   dayData.timestamp = timestamp
+  dayData.name = investmentVault.name
+  dayData.symbol = investmentVault.symbol
   dayData.tvl = investmentVault.tvl
   dayData.tvlUSD = investmentVault.tvlUSD
   dayData.volume = investmentVault.volume
@@ -173,6 +182,8 @@ export function updateOrCreateHourData(investmentVault: InvestmentVault, timesta
 
   hourData.investmentVault = investmentVault.id
   hourData.timestamp = timestamp
+  hourData.name = investmentVault.name
+  hourData.symbol = investmentVault.symbol
   hourData.tvl = investmentVault.tvl
   hourData.tvlUSD = investmentVault.tvlUSD
   hourData.volume = investmentVault.volume
