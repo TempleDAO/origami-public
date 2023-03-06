@@ -89,7 +89,22 @@ export function tokenKey(t: Token): string {
 export function contractAddressKey(ca: ContractAddress): string {
   return ca.address + '/' + ca.chainId;
 }
+
 /// unique string key for an investment
 export function investmentKey(i: Investment): string {
   return i.contractAddress.address + '/' + i.contractAddress.chainId;
+}
+
+/// unique string key for an investment, where sorting by chain name and investment
+/// name is important
+export function investmentKeyByName(i: Investment): string {
+  return (
+    i.chain.name +
+    '/' +
+    i.chain.id +
+    '/' +
+    i.name +
+    '/' +
+    i.contractAddress.address
+  );
 }

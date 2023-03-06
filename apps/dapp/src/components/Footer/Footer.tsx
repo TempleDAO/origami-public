@@ -13,8 +13,12 @@ const socials = [
   { iconName: 'medium', href: 'https://origamifinance.medium.com/' },
 ];
 
-const Footer = () => (
-  <FooterContainer>
+type FooterProps = {
+  className?: string;
+};
+
+const Footer: FC<FooterProps> = ({ className }) => (
+  <FooterContainer className={className}>
     <CopyrightContainer>
       <img src="/header-logo.svg" alt="Origami" height={40} />
       <TextContainer>

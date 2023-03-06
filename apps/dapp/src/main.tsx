@@ -1,10 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import {
-  createBrowserRouter,
-  Navigate,
-  RouterProvider,
-} from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Buffer } from 'buffer';
 import { ThemeContext } from 'styled-components';
 
@@ -13,6 +9,7 @@ import { theme } from './styles/theme';
 import { Page as InvestPage } from './pages/invest';
 import { Page as ManagePage } from './pages/manage';
 import { Page as DisclaimerPage } from './pages/disclaimer';
+import { Page as LandingPage } from './pages/landing';
 
 import './styles/fonts.css';
 import { ApiManagerProvider } from './hooks/use-api-manager';
@@ -27,7 +24,7 @@ if (!window.Buffer) {
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/invest" replace />,
+    element: <LandingPage />,
   },
   {
     path: '/invest',

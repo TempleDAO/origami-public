@@ -41,7 +41,9 @@ const InvestmentVaultMetricsResp = z.object({
     })
   ),
 });
-type InvestmentVaultMetricsResp = z.infer<typeof InvestmentVaultMetricsResp>;
+export type InvestmentVaultMetricsResp = z.infer<
+  typeof InvestmentVaultMetricsResp
+>;
 
 //----------------------------------------------------------------------------------------------------
 
@@ -84,7 +86,7 @@ const InvestmentVaultHourlySnapshotsResp = z.object({
     })
   ),
 });
-type InvestmentVaultHourlySnapshotsResp = z.infer<
+export type InvestmentVaultHourlySnapshotsResp = z.infer<
   typeof InvestmentVaultHourlySnapshotsResp
 >;
 
@@ -129,7 +131,7 @@ const InvestmentVaultDailySnapshotsResp = z.object({
     })
   ),
 });
-type InvestmentVaultDailySnapshotsResp = z.infer<
+export type InvestmentVaultDailySnapshotsResp = z.infer<
   typeof InvestmentVaultDailySnapshotsResp
 >;
 
@@ -172,7 +174,7 @@ const PricedTokenHourlySnapshotsResp = z.object({
     })
   ),
 });
-type PricedTokenHourlySnapshotsResp = z.infer<
+export type PricedTokenHourlySnapshotsResp = z.infer<
   typeof PricedTokenHourlySnapshotsResp
 >;
 
@@ -215,7 +217,7 @@ const PricedTokenDailySnapshotsResp = z.object({
     })
   ),
 });
-type PricedTokenDailySnapshotsResp = z.infer<
+export type PricedTokenDailySnapshotsResp = z.infer<
   typeof PricedTokenDailySnapshotsResp
 >;
 

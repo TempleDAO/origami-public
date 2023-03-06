@@ -11,7 +11,7 @@ export default {
 
 export const Default = () => (
   <Container>
-    <NetHoldings currentNetApr={ready(0.186)} currentNetValue={ready(156000)} />
+    <NetHoldings currentNetApy={ready(0.186)} currentNetValue={ready(156000)} />
   </Container>
 );
 

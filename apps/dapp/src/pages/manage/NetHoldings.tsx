@@ -9,7 +9,7 @@ import { formatNumber, formatPercent } from '@/utils/formatNumber';
 import { textH2, textH3 } from '@/styles/mixins/text-styles';
 
 type NetHoldings = {
-  currentNetApr: Loading<number>;
+  currentNetApy: Loading<number>;
   currentNetValue: Loading<number>;
 };
 
@@ -18,13 +18,13 @@ export type FetchHistoryCb = (
 ) => Promise<HistoryPoint[]>;
 
 export const NetHoldings: FC<NetHoldings> = ({
-  currentNetApr,
+  currentNetApy,
   currentNetValue,
 }) => {
   return (
     <VerticalFlex>
       <Heading
-        currentNetApr={currentNetApr}
+        currentNetApy={currentNetApy}
         currentNetValue={currentNetValue}
       />
     </VerticalFlex>
@@ -32,16 +32,16 @@ export const NetHoldings: FC<NetHoldings> = ({
 };
 
 const Heading: FC<{
-  currentNetApr: Loading<number>;
+  currentNetApy: Loading<number>;
   currentNetValue: Loading<number>;
-}> = ({ currentNetApr, currentNetValue }) => {
+}> = ({ currentNetApy, currentNetValue }) => {
   return (
     <HeadingContainer>
       <Title>YOUR NET HOLDINGS</Title>
       <TogglerRow>
         <SeriesToggler
           text={'NET APY'}
-          value={lmap(currentNetApr, formatPercent)}
+          value={lmap(currentNetApy, formatPercent)}
           suffix={' %'}
         />
         <SeriesToggler

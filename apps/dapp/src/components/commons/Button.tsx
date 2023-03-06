@@ -65,7 +65,10 @@ export const AsyncButton: FC<AsyncButtonProps> = ({ onClick, ...props }) => {
   );
 };
 
-const StyledButton = styled.button<{ wide?: boolean; secondary?: boolean }>`
+export const StyledButton = styled.button<{
+  wide?: boolean;
+  secondary?: boolean;
+}>`
   display: flex;
   align-items: center;
   justify-content: center;

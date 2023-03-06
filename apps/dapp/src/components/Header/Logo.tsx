@@ -1,10 +1,21 @@
+import type { FC } from 'react';
+
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { theme } from '@/styles/theme';
 
-export const Logo = () => {
+type LogoProps = {
+  className?: string;
+};
+
+export const Logo: FC<LogoProps> = ({ className }) => {
   const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
 
   return (
-    <img src="/header-logo.svg" alt="Origami" height={isDesktop ? 60 : 50} />
+    <img
+      className={className}
+      src="/header-logo.svg"
+      alt="Origami"
+      height={isDesktop ? 60 : 50}
+    />
   );
 };

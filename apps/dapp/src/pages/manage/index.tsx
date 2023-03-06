@@ -116,7 +116,7 @@ export function PageContent(props: PageContentProps) {
         <>
           <GraphRewardsSection>
             <NetHoldings
-              currentNetApr={lmap(metrics, (m) => m.apy)}
+              currentNetApy={lmap(metrics, (m) => m.apy)}
               currentNetValue={lmap(metrics, (m) => m.tvl)}
             />
           </GraphRewardsSection>
