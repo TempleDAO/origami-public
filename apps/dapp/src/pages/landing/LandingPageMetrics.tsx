@@ -8,7 +8,7 @@ import { LoadingText } from '@/components/commons/LoadingText';
 import { LoadingComponent } from '@/components/commons/LoadingComponent';
 import { Icon } from '@/components/commons/Icon';
 import { lmap } from '@/utils/loading-value';
-import { formatPercent } from '@/utils/formatNumber';
+import { formatNumber, formatPercent } from '@/utils/formatNumber';
 import { investmentKeyByName } from '@/utils/api-utils';
 
 import breakpoints from '@/styles/responsive-breakpoints';
@@ -74,7 +74,7 @@ export const LandingPageMetrics: FC<{ cache: ApiCache }> = ({ cache }) => {
               <p>
                 $
                 <LoadingText
-                  value={lmap(metrics.metrics, (v) => formatPercent(v.tvl))}
+                  value={lmap(metrics.metrics, (v) => formatNumber(v.tvl))}
                 />{' '}
                 <MetricSubtext>USD</MetricSubtext>
               </p>

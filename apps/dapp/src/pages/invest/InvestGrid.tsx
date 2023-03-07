@@ -135,7 +135,7 @@ function ItemFragment({
         >
           <LoadingText
             value={lmap(item.tvl, formatNumber)}
-            suffix={<SuffixSpan>{!isDesktop && '  TVL'}</SuffixSpan>}
+            suffix={<SuffixSpan> USD {!isDesktop && ' TVL'}</SuffixSpan>}
           />
         </GridValue>
         <GridValue subdued>{item.chain.toUpperCase()}</GridValue>
