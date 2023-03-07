@@ -8,7 +8,7 @@ import { dayFromTimestamp, hourFromTimestamp } from '../utils/dates'
 import { ipow, toDecimal } from '../utils/decimals'
 import { getOrCreateInvestment } from './investment'
 import { getMetric, updateMetric } from './metric'
-import { getOrCreatePricedToken } from './pricedToken'
+import { getOrCreatePricedToken, getPricedToken } from './pricedToken'
 
 
 const MAX_VALID_APR = BigDecimal.fromString('1000')
@@ -105,6 +105,9 @@ export function updateInvestmentVault(investmentVault: InvestmentVault, timestam
   investmentVault.totalSupply = totalSupply
   investmentVault.reservesPerShare = investmentVault.totalReserves.div(totalSupply)
 
+  const vaultToken = getPricedToken(investmentVault.id, timestamp)
+  investmentVault.tvlUSD = investmentVault.tvl.times(vaultToken.price)
+  
   investmentVault.save()
 
   updateOrCreateHourData(investmentVault, timestamp)
