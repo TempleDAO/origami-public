@@ -22,7 +22,7 @@ async function main() {
     {token: GMX_DEPLOYED_CONTRACTS.GMX.TOKENS.GMX_TOKEN, amount: ethers.utils.parseEther("500"), mintType: 0,},
     {token: GMX_DEPLOYED_CONTRACTS.GMX.STAKING.STAKED_GLP, amount: ethers.utils.parseEther("20000"), mintType: 1,},
   ];
-  console.log(pairs);
+  console.log([pairs, 86400]);
   const minter: OrigamiTestnetMinter = await deployAndMine(
     'GMX Testnet Minter', factory, factory.deploy,
     pairs,

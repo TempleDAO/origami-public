@@ -38,7 +38,7 @@ const CONFIG: HarvestGlpConfig = {
     WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS: 100, // 1%
 
     // What percentage of the total oGLP on hand does the aggregator actually add as reserves into ovGLP
-    DAILY_ADD_TO_RESERVE_BPS: 1_000, // 10%
+    DAILY_ADD_TO_RESERVE_BPS: 10_000, // 100%
 };
 
 export async function handler(event: AutotaskEvent): Promise<AutotaskResult> {

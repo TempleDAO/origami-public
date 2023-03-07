@@ -38,8 +38,15 @@ import {getDeployedContracts} from './contract-addresses';
 import { ZERO_ADDRESS } from '../../../../test/helpers';
 
 // GMX Reward rates
-const ethPerSecond = BigNumber.from("41335970000000"); // 0.00004133597 ETH per second
-const esGmxPerSecond = BigNumber.from("20667989410000000"); // 0.02066798941 esGmx per second
+// 4000 * $2000 = 8MM (19% APR of the seeded $43.14MM GLP liquidity)
+const gmxEthPerSecond = ethers.utils.parseEther("4000").div(365*86400);
+// 114,557 * $43.14 = 4.942MM (11% of the seeded $43.14MM GLP liquidity)
+const gmxEsGmxPerSecond = ethers.utils.parseEther("114557").div(365*86400);
+
+// 5000 * $2000 = 10MM (22% APR of the seeded $45MM GLP liquidity)
+const glpEthPerSecond = ethers.utils.parseEther("5000").div(365*86400);
+// 81,131 * $43.14 = 3.5MM (7.7% of the seeded $45MM GLP liquidity)
+const glpEsGmxPerSecond = ethers.utils.parseEther("81131").div(365*86400);
 
 function bigNumberify(n: number) {
     return BigNumber.from(n);
@@ -157,14 +164,14 @@ async function setEthDistribution(
     feeGmxDistributor: GMX_RewardDistributor,
     feeGlpDistributor: GMX_RewardDistributor,
     wethToken: GMX_NamedToken,
-    ethPerSecond: BigNumber
+    gmxEthPerSecond: BigNumber,
+    glpEthPerSecond: BigNumber
 ) {
-    // const ethGmxDistributorAddr = await feeGmxTracker.distributor();
-    await mine(wethToken.mint(feeGmxDistributor.address, ethers.utils.parseEther("1000")));
-    await mine(feeGmxDistributor.setTokensPerInterval(ethPerSecond));
+    await mine(wethToken.mint(feeGmxDistributor.address, ethers.utils.parseEther("10000000")));
+    await mine(feeGmxDistributor.setTokensPerInterval(gmxEthPerSecond));
 
-    await mine(wethToken.mint(feeGlpDistributor.address, ethers.utils.parseEther("1000")));
-    await mine(feeGlpDistributor.setTokensPerInterval(ethPerSecond));
+    await mine(wethToken.mint(feeGlpDistributor.address, ethers.utils.parseEther("10000000")));
+    await mine(feeGlpDistributor.setTokensPerInterval(glpEthPerSecond));
 }
 
 // Setup the GLP pool with roughtly equal liquidity across BNB/DAI/BTC
@@ -482,15 +489,15 @@ async function main() {
     // mint esGmx for distributors
     await mine(esGmx.setMinter(await owner.getAddress(), true));
     await mine(esGmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
-    await mine(esGmx.mint(stakedGmxDistributor.address, expandDecimals(50000, 18)));
-    await mine(stakedGmxDistributor.setTokensPerInterval(esGmxPerSecond)); //"20667989410000000"); // 0.02066798941 esGmx per second
-    await mine(esGmx.mint(stakedGlpDistributor.address, expandDecimals(50000, 18)));
-    await mine(stakedGlpDistributor.setTokensPerInterval(esGmxPerSecond)); //"20667989410000000"); // 0.02066798941 esGmx per second
+    await mine(esGmx.mint(stakedGmxDistributor.address, expandDecimals(10000000, 18)));
+    await mine(stakedGmxDistributor.setTokensPerInterval(gmxEsGmxPerSecond));
+    await mine(esGmx.mint(stakedGlpDistributor.address, expandDecimals(10000000, 18)));
+    await mine(stakedGlpDistributor.setTokensPerInterval(glpEsGmxPerSecond));
 
     // mint bnGmx for distributor
     await mine(bnGmx.setMinter(await owner.getAddress(), true));
     await mine(bnGmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
-    await mine(bnGmx.mint(bonusGmxDistributor.address, expandDecimals(1500, 18)));
+    await mine(bnGmx.mint(bonusGmxDistributor.address, expandDecimals(10000000, 18)));
 
     await mine(esGmx.setHandler(await owner.getAddress(), true));
     await mine(esGmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
@@ -528,8 +535,8 @@ async function main() {
     // Mint GMX to the vester contracts 
     await mine(gmx.setMinter(await owner.getAddress(), true));
     await mine(gmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
-    await mine(gmx.mint(gmxVester.address, expandDecimals(10000, 18)));
-    await mine(gmx.mint(glpVester.address, expandDecimals(10000, 18)));
+    await mine(gmx.mint(gmxVester.address, expandDecimals(10000000, 18)));
+    await mine(gmx.mint(glpVester.address, expandDecimals(10000000, 18)));
 
     await mine(glpManager.setGov(timelock.address));
     await mine(stakedGmxTracker.setGov(timelock.address));
@@ -544,7 +551,7 @@ async function main() {
     await mine(gmxVester.setGov(timelock.address));
     await mine(glpVester.setGov(timelock.address));
 
-    await setEthDistribution(feeGmxDistributor, feeGlpDistributor, weth, ethPerSecond);
+    await setEthDistribution(feeGmxDistributor, feeGlpDistributor, weth, gmxEthPerSecond, glpEthPerSecond);
 
     // Setup the fees in the glp vault
     await mine(vault.setFees(

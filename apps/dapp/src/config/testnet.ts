@@ -40,13 +40,13 @@ const MUMBAI: Chain = {
 };
 
 const MUMBAI_PRICE_CONTRACT: PriceContractConfig = {
-  address: '0xF98C73Ce6eA51514E928A8c56eBAb3dC583A4994',
+  address: '0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8',
   chainId: MUMBAI.id,
 };
 
 const GMX_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x43686bbe40E3b4EcB8A08D521D9C084da050bF51',
+    address: '0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e',
     chainId: MUMBAI.id,
   },
   icon: 'gmx',
@@ -58,12 +58,12 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
   The price of ovGMX increases as rewards from staked GMX are harvested and auto-compounded. Yield is further boosted from staking derived esGMX and multiplier point rewards.
   `,
   moreInfoUrl:
-    'https://mumbai.polygonscan.com/address/0x43686bbe40E3b4EcB8A08D521D9C084da050bF51',
+    'https://mumbai.polygonscan.com/address/0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e',
 };
 
 const GLP_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x28E1e74661B6f354fcd11D3d01EDa798DcfaD894',
+    address: '0x7a8108A11949aa9F6395476F160304269A5EE48b',
     chainId: MUMBAI.id,
   },
   icon: 'glp',
@@ -75,7 +75,7 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   The price of ovGLP increases as rewards from staked GLP are harvested and auto-compounded. 
   `,
   moreInfoUrl:
-    'https://mumbai.polygonscan.com/address/0x28E1e74661B6f354fcd11D3d01EDa798DcfaD894',
+    'https://mumbai.polygonscan.com/address/0x7a8108A11949aa9F6395476F160304269A5EE48b',
 };
 
 const OVGLP_TOKEN: ExtendedTokenConfig = {
@@ -95,7 +95,7 @@ const OVGMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const GMX_TOKEN: ExtendedTokenConfig = {
-  address: '0x3be80dD1aC2533d91330C82aae89Fe4D2E540146',
+  address: '0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948',
   chainId: MUMBAI.id,
   iconName: 'gmx',
   symbol: 'GMX',
@@ -103,7 +103,7 @@ const GMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGMX_TOKEN: ExtendedTokenConfig = {
-  address: '0x58893971408b4ce2c3cc326A8697Eec4471a5615',
+  address: '0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45',
   chainId: MUMBAI.id,
   iconName: 'gmx',
   symbol: 'oGMX',
@@ -111,7 +111,7 @@ const OGMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const SGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0x9d4Da39fB7971Eb27e951E26eC820fC137E71475',
+  address: '0x9f9d9e1f64618695142664280b6241442432e45b',
   chainId: MUMBAI.id,
   iconName: 'glp',
   symbol: 'sGLP',
@@ -119,7 +119,7 @@ const SGLP_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0x6444Fa91C18C96eBeDaB94Ef04F735B453aabcad',
+  address: '0xacfee3A66337067F75151637D0DefEd09E880914',
   chainId: MUMBAI.id,
   iconName: 'glp',
   symbol: 'oGLP',
@@ -127,7 +127,7 @@ const OGLP_TOKEN: ExtendedTokenConfig = {
 };
 
 const BTC_TOKEN: ExtendedTokenConfig = {
-  address: '0x6C97233BBC1e8197688511586D46Ea7f98cBe775',
+  address: '0x436F79C41b477C28A292808523b3eb0E22202B7F',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'BTC',
@@ -135,7 +135,7 @@ const BTC_TOKEN: ExtendedTokenConfig = {
 };
 
 const BNB_TOKEN: ExtendedTokenConfig = {
-  address: '0x6352dEabF5AC3A6f14d7A1e19092fBddcda89625',
+  address: '0xD80A1171E8E3400868051e7ced31550638660575',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'BNB',
@@ -143,7 +143,7 @@ const BNB_TOKEN: ExtendedTokenConfig = {
 };
 
 const DAI_TOKEN: ExtendedTokenConfig = {
-  address: '0x5B0eeE1336cD3f5136D3DaF6970236365b9E9cd7',
+  address: '0x5da15e1fC595ff5991dD92447DB94Cfde78A08B8',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'DAI',
@@ -151,7 +151,7 @@ const DAI_TOKEN: ExtendedTokenConfig = {
 };
 
 const WETH_TOKEN: ExtendedTokenConfig = {
-  address: '0x7Edb6ea1A90318E9D2B3Ae03e5617A5AAFd7b249',
+  address: '0xee8405FBBa52312cE8783a09A646992D2E209C8a',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'WETH',

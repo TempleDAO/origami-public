@@ -196,6 +196,8 @@ async function main() {
     // Allow the OpenZeppelin Defender Bot to harvest rewards.
     await mine(contracts.gmxRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
     await mine(contracts.glpRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.gmxRewardsAggregator.addOperator(owner.getAddress()));
+    await mine(contracts.glpRewardsAggregator.addOperator(owner.getAddress()));
 
     // Allow the OpenZeppelin Defender Bot to harvest secondary rewards.
     await mine(contracts.gmxManager.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
@@ -239,8 +241,8 @@ async function main() {
     await mine(contracts.oGLP.addMinter(owner.getAddress()));
 
     // testnet only - load the dummy dex up with a tonne of GMX and weth for swaps
-    await mine(contracts.gmxToken.mint(DEPLOYED.ZERO_EX_PROXY, ethers.utils.parseEther("100000")));
-    await mine(contracts.wethToken.mint(DEPLOYED.ZERO_EX_PROXY,  ethers.utils.parseEther("100000")));
+    await mine(contracts.gmxToken.mint(DEPLOYED.ZERO_EX_PROXY, ethers.utils.parseEther("10000000")));
+    await mine(contracts.wethToken.mint(DEPLOYED.ZERO_EX_PROXY,  ethers.utils.parseEther("10000000")));
   }
   
   // We recommend this pattern to be able to use async/await everywhere

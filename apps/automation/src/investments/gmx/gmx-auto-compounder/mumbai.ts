@@ -16,10 +16,10 @@ const COMMON_CONFIG: CommonConfig = {
 };
 
 const CONFIG: HarvestGmxConfig = {
-    GMX_ADDRESS: "0x3be80dD1aC2533d91330C82aae89Fe4D2E540146",
-    OGMX_ADDRESS: "0x58893971408b4ce2c3cc326A8697Eec4471a5615",
-    GMX_REWARD_AGGREGATOR_ADDRESS: "0xD642e164563Bd4ba8c1bB433CAfC8d4916A2A390",
-    ZERO_EX_PROXY_ADDRESS: "0xb0Ab9A067EFBbAA8aa9c259131C07AfB8012B58B",
+    GMX_ADDRESS: "0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948",
+    OGMX_ADDRESS: "0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45",
+    GMX_REWARD_AGGREGATOR_ADDRESS: "0x48165A1Ba49584eDF7038497d6D65A4756e43e55",
+    ZERO_EX_PROXY_ADDRESS: "0x5923eD1131Bf82C7e89716fd797687fE9174a86b",
 
     // The min frequency that the harvester can actually run
     MIN_HARVEST_INTERVAL_SECS: 15*60, // 15 mins
@@ -31,7 +31,7 @@ const CONFIG: HarvestGmxConfig = {
     WETH_TO_GMX_SLIPPAGE_BPS: 100, // 1%
 
     // What percentage of the total oGMX on hand does the aggregator actually add as reserves into ovGMX
-    DAILY_ADD_TO_RESERVE_BPS: 1_000, // 10%
+    DAILY_ADD_TO_RESERVE_BPS: 10_000, // 100%
 };
 
 export async function handler(event: AutotaskEvent): Promise<AutotaskResult> {

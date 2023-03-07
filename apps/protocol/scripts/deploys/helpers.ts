@@ -49,7 +49,15 @@ export async function deployAndMine<T extends BaseContract, D extends (...args: 
       throw new Error(`Empty arg in position ${i}`);
   });
 
-  const renderedArgs: string = args.map(a => a.toString()).join(' ');
+  const renderedArgs: string = args.map(
+    a => {
+        let asString: string = a.toString();
+        if (asString.includes(" ")) {
+            asString = `"${asString}"`;
+        }
+        return asString;
+    }
+  ).join(' ');
 
   console.log(`*******Deploying ${name} on ${network.name} with args ${renderedArgs}`);
   const contract = await factory.deploy(...args) as T;

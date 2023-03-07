@@ -16,11 +16,11 @@ const COMMON_CONFIG: CommonConfig = {
 };
 
 const CONFIG: HarvestGlpConfig = {
-    GMX_ADDRESS: "0x3be80dD1aC2533d91330C82aae89Fe4D2E540146",
-    OGMX_ADDRESS: "0x58893971408b4ce2c3cc326A8697Eec4471a5615",
-    OGLP_ADDRESS: "0x6444Fa91C18C96eBeDaB94Ef04F735B453aabcad",
-    GLP_REWARD_AGGREGATOR_ADDRESS: "0xB940160Ae4eD349D0c67fC1750D5d909d3bb2c0c",
-    ZERO_EX_PROXY_ADDRESS: "0xb0Ab9A067EFBbAA8aa9c259131C07AfB8012B58B",
+    GMX_ADDRESS: "0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948",
+    OGMX_ADDRESS: "0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45",
+    OGLP_ADDRESS: "0xacfee3A66337067F75151637D0DefEd09E880914",
+    GLP_REWARD_AGGREGATOR_ADDRESS: "0x4276a5D4AAB00702Ac4b28ff8A0228e0e76E46d6",
+    ZERO_EX_PROXY_ADDRESS: "0x5923eD1131Bf82C7e89716fd797687fE9174a86b",
 
     // The min frequency that the harvester can actually run
     MIN_HARVEST_INTERVAL_SECS: 15*60, // 15 mins
@@ -38,7 +38,7 @@ const CONFIG: HarvestGlpConfig = {
     WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS: 100, // 1%
 
     // What percentage of the total oGLP on hand does the aggregator actually add as reserves into ovGLP
-    DAILY_ADD_TO_RESERVE_BPS: 1_000, // 10%
+    DAILY_ADD_TO_RESERVE_BPS: 10_000, // 100%
 };
 
 export async function handler(event: AutotaskEvent): Promise<AutotaskResult> {

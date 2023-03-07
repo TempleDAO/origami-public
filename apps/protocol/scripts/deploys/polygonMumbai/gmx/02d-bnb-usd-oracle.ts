@@ -19,7 +19,7 @@ async function main() {
     updatedAtLag: 1,
     answeredInRound: 5
   };
-  console.log(answer);
+  console.log([answer, 8]);
   await deployAndMine(
     'bnbUsdOracle', factory, factory.deploy,
     answer, 8

@@ -1,23 +1,23 @@
 {
     "network": "mumbai",
     "gmxInvestment": {
-        "address": "0x58893971408b4ce2c3cc326A8697Eec4471a5615",
-        "startBlock": "32603828"
+        "address": "0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45",
+        "startBlock": "32831823"
     },
     "glpInvestment": {
-        "address": "0x6444Fa91C18C96eBeDaB94Ef04F735B453aabcad",
-        "startBlock": "32603843"
+        "address": "0xacfee3A66337067F75151637D0DefEd09E880914",
+        "startBlock": "32831838"
     },
     "gmxInvestmentVault": {
-        "address": "0x43686bbe40E3b4EcB8A08D521D9C084da050bF51",
-        "startBlock": "32603978"
+        "address": "0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e",
+        "startBlock": "32831855"
     },
     "glpInvestmentVault": {
-        "address": "0x28E1e74661B6f354fcd11D3d01EDa798DcfaD894",
-        "startBlock": "32603993"
+        "address": "0x7a8108A11949aa9F6395476F160304269A5EE48b",
+        "startBlock": "32831978"
     },
     "hourlyScheduler": {
         "address": "0xB4cCB58dD3d35530E54B631AC0561F0c6D424D38",
-        "startBlock": "32603828"
+        "startBlock": "32831823"
     }
 }

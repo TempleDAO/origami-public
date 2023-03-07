@@ -12,6 +12,10 @@ import {
     DummyDex, DummyDex__factory, 
     OrigamiGmxManager,
     OrigamiGmxManager__factory,
+    GMX_GLP,
+    GMX_GLP__factory,
+    TokenPrices,
+    TokenPrices__factory,
 } from '../../../../typechain';
 import {
     encodeGlpHarvestParams,
@@ -34,6 +38,7 @@ interface ContractInstances {
     btc: GMX_NamedToken,
     stakedGlp: GMX_StakedGlp,
     gmx: GMX_GMX,
+    glp: GMX_GLP,
 
     oGMX: OrigamiGmxInvestment,
     oGLP: OrigamiGlpInvestment,
@@ -49,6 +54,7 @@ interface ContractInstances {
 
     dex: DummyDex,
     gmxManager: OrigamiGmxManager,
+    tokenPrices: TokenPrices,
 }
 
 function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAddress): ContractInstances {
@@ -59,6 +65,7 @@ function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAdd
         btc: GMX_NamedToken__factory.connect(DEPLOYED.GMX.LIQUIDITY_POOL.BTC_TOKEN, owner),
         stakedGlp: GMX_StakedGlp__factory.connect(DEPLOYED.GMX.STAKING.STAKED_GLP, owner),
         gmx: GMX_GMX__factory.connect(DEPLOYED.GMX.TOKENS.GMX_TOKEN, owner),
+        glp: GMX_GLP__factory.connect(DEPLOYED.GMX.TOKENS.GLP_TOKEN, owner),
 
         oGMX: OrigamiGmxInvestment__factory.connect(DEPLOYED.ORIGAMI.GMX.oGMX, owner),
         oGLP: OrigamiGlpInvestment__factory.connect(DEPLOYED.ORIGAMI.GMX.oGLP, owner),
@@ -73,6 +80,7 @@ function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAdd
 
         dex: DummyDex__factory.connect(DEPLOYED.ZERO_EX_PROXY, owner),
         gmxManager: OrigamiGmxManager__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_MANAGER, owner),
+        tokenPrices: TokenPrices__factory.connect(DEPLOYED.ORIGAMI.TOKEN_PRICES, owner),
     }
 }
 
@@ -204,6 +212,32 @@ const harvestGmx = async (contracts: ContractInstances, signer: Signer) => {
     console.log("\tovGMX Vested & Pending Before:", (await contracts.ovGMX.vestedReserves()).add(await contracts.ovGMX.pendingReserves()), "\n");
 }
 
+async function dumpPrices(contracts: ContractInstances) {
+    const prices = await contracts.tokenPrices.tokenPrices(
+        [
+          contracts.weth.address,
+          contracts.gmx.address,
+          contracts.oGMX.address,
+          contracts.ovGMX.address,
+          contracts.glp.address,
+          contracts.oGLP.address,
+          contracts.ovGLP.address,
+        ]
+      );
+      console.log("PRICES:");
+      console.log(
+        {
+            "weth": ethers.utils.formatUnits(prices[0], 30),
+            "gmx": ethers.utils.formatUnits(prices[1], 30),
+            "oGMX": ethers.utils.formatUnits(prices[2], 30),
+            "ovGMX": ethers.utils.formatUnits(prices[3], 30),
+            "glp": ethers.utils.formatUnits(prices[4], 30),
+            "oGLP": ethers.utils.formatUnits(prices[5], 30),
+            "ovGLP": ethers.utils.formatUnits(prices[6], 30),
+        }
+    );
+}
+
 function sleep(ms: number) {
     return new Promise( resolve => setTimeout(resolve, ms) );
 }
@@ -233,8 +267,8 @@ async function main() {
     {
         // Invest in $GMX
         {
-            const investAmount = ethers.utils.parseEther("100");
-            const quote = await contracts.ovGMX.investQuote(investAmount, contracts.gmx.address, 0, 0);
+            const investAmount = ethers.utils.parseEther("1100");
+            const quote = await contracts.ovGMX.investQuote(investAmount, contracts.gmx.address, 100, 0);
             await mine(contracts.ovGMX.investWithToken(quote.quoteData));
             console.log("Invested into ovGMX", ethers.utils.formatEther(quote.quoteData.expectedInvestmentAmount));
         }
@@ -287,37 +321,41 @@ async function main() {
             await mine(contracts.ovGLP.exitToToken(quote.quoteData, owner.getAddress()));
             console.log("Exited from ovGLP", ethers.utils.formatEther(quote.quoteData.expectedToTokenAmount));
         }
-
-        // Harvest
-        {
-            // Botstrap Origami with some GMX so it can harvest (need to convert oGMX -> GMX)
-            {
-                const seedAmount = ethers.utils.parseEther("5000");
-                await mine(contracts.gmx.mint(contracts.gmxManager.address, seedAmount));
-                await mine(contracts.gmxManager.addOperator(owner.getAddress()));
-                await mine(contracts.gmxManager.applyGmx(seedAmount));
-            }
-
-            await harvestGmx(contracts, owner);
-            await harvestGlp(contracts, owner);
-        }
-
-        // Add/Remove Reserves
-        {
-            const addAmount = ethers.utils.parseEther("10");
-            await mine(contracts.oGLP.mint(owner.getAddress(), addAmount));
-            await mine(contracts.oGLP.approve(contracts.ovGLP.address, addAmount));
-            console.log("ovGLP reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
-            await mine(contracts.ovGLP.addPendingReserves(addAmount));
-            console.log("ovGLP reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
-
-            await mine(contracts.oGMX.mint(owner.getAddress(), addAmount));
-            await mine(contracts.oGMX.approve(contracts.ovGMX.address, addAmount));
-            console.log("ovGMX reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
-            await mine(contracts.ovGMX.addPendingReserves(addAmount));
-            console.log("ovGMX reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
-        }
     }
+
+    // Harvest
+    {
+        // Botstrap Origami with some GMX so it can harvest (need to convert oGMX -> GMX)
+        {
+            const seedAmount = ethers.utils.parseEther("5000");
+            await mine(contracts.gmx.mint(contracts.gmxManager.address, seedAmount));
+            await mine(contracts.gmxManager.addOperator(owner.getAddress()));
+            await mine(contracts.gmxManager.applyGmx(seedAmount));
+        }
+
+        await harvestGmx(contracts, owner);
+        await harvestGlp(contracts, owner);
+    }
+
+    await dumpPrices(contracts);
+
+    // Add/Remove Reserves
+    {
+        const addAmount = ethers.utils.parseEther("10");
+        await mine(contracts.oGLP.mint(owner.getAddress(), addAmount));
+        await mine(contracts.oGLP.approve(contracts.ovGLP.address, addAmount));
+        console.log("ovGLP reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
+        await mine(contracts.ovGLP.addPendingReserves(addAmount));
+        console.log("ovGLP reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGLP.reservesPerShare()));
+
+        await mine(contracts.oGMX.mint(owner.getAddress(), addAmount));
+        await mine(contracts.oGMX.approve(contracts.ovGMX.address, addAmount));
+        console.log("ovGMX reservesPerShare before:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
+        await mine(contracts.ovGMX.addPendingReserves(addAmount));
+        console.log("ovGMX reservesPerShare after:", ethers.utils.formatEther(await contracts.ovGMX.reservesPerShare()));
+    }
+
+    await dumpPrices(contracts);
   }
   
   // We recommend this pattern to be able to use async/await everywhere

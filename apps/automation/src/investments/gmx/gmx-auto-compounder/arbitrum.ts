@@ -31,7 +31,7 @@ const CONFIG: HarvestGmxConfig = {
     WETH_TO_GMX_SLIPPAGE_BPS: 100, // 1%
 
     // What percentage of the total oGMX on hand does the aggregator actually add as reserves into ovGMX
-    DAILY_ADD_TO_RESERVE_BPS: 1_000, // 10%
+    DAILY_ADD_TO_RESERVE_BPS: 10_000, // 100%
 };
 
 export async function handler(event: AutotaskEvent): Promise<AutotaskResult> {
