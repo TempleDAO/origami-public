@@ -56,4 +56,9 @@ interface IRepricingToken is IERC20, IERC20Permit {
     /// @notice Checkpoint any pending reserves as long as the `reservesVestingDuration` period has completely passed.
     /// @dev No economic benefit, but may be useful for book keeping purposes.
     function checkpointReserves() external;
+
+    /// @notice Return the current estimated APR based on the pending reserves which are vesting per second
+    /// into the totalReserves.
+    /// @dev APR = annual reserve token rewards / total reserves
+    function apr() external view returns (uint256 aprBps);
 }

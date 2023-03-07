@@ -31,7 +31,7 @@ import { getSigners } from "../signers";
 
 // 0.001% max relative delta for time based reward checks - ie from BigNumber order of operations -> rounding
 const MAX_REL_DELTA = tolerance(0.001);
-const vestingDuration = 86400;
+const vestingDuration = 7 * 86400;
 
 describe("Origami Investment Vault", async () => {
     let owner: Signer;
@@ -160,6 +160,12 @@ describe("Origami Investment Vault", async () => {
         } = await loadFixture(setup));
     });
 
+    const addPendingReserves = async (extraReservesAmount: BigNumber) => {
+        await oToken.connect(operator).mint(operator.getAddress(), extraReservesAmount);
+        await oToken.connect(operator).approve(ovToken.address, extraReservesAmount);
+        await ovToken.connect(operator).addPendingReserves(extraReservesAmount);
+    }
+
     // Invest and add extra reserves to bump the price
     const bootstrapReserves = async (): Promise<BigNumber> => {
         // Mint to alan
@@ -173,11 +179,7 @@ describe("Origami Investment Vault", async () => {
 
         // Mint to operator
         const extraReservesAmount = ethers.utils.parseEther("1000");
-        await oToken.connect(operator).mint(operator.getAddress(), extraReservesAmount);
-        await oToken.connect(operator).approve(ovToken.address, extraReservesAmount);
-
-        // Add reserves for the other 10k, and let it all vest
-        await ovToken.connect(operator).addPendingReserves(extraReservesAmount);
+        await addPendingReserves(extraReservesAmount);
         await mineForwardSeconds(vestingDuration);
 
         const reservesPerShare = await ovToken.reservesPerShare();
@@ -1016,26 +1018,51 @@ describe("Origami Investment Vault", async () => {
         // When no shares issued, apr = 0
         expect(await ovToken.apr()).eq(0);
 
-        // Bootstrap some reserves so the ovToken price gives us a non-zero price
-        await bootstrapReserves();
+        const invest = async (amount: number) => {
+            // Mint to alan
+            const investAmount = ethers.utils.parseEther(amount.toString());
+            await oToken.connect(operator).mint(alan.getAddress(), investAmount);
+            await oToken.connect(alan).approve(ovToken.address, investAmount);
 
-        const expectedTotalRewardsInUsdPerYear = (
-            (
-                (2.5*30) + // rewardToken1
-                (1.5*50)   // rewardToken2
-            )
-             * 365  // 365 days
-             * 0.95 // 5% performance fee
-        );
-        const expectedTotalSharesInUsd = (
-            10_000 * // shares
-            15 * 1.1 // oToken price * reservesPerShare
-        );
-        const expectedApr = Math.floor(
-            expectedTotalRewardsInUsdPerYear / expectedTotalSharesInUsd * 10_000
-        );
+            // Alan invests 10k
+            const quote = await ovToken.investQuote(investAmount, oToken.address, 50, ZERO_DEADLINE);
+            await ovToken.connect(alan).investWithToken(quote.quoteData, {gasLimit:5000000});
+        }
 
-        const apr = await ovToken.apr();
-        expect(apr).eq(expectedApr).eq(3152); // 31.52%
+        const checkApr = async (weeklyDistribution: number, reserves: number) => {
+            const annualDistribution = weeklyDistribution * 365 / 7;
+            const expectedApr = Math.floor(10_000 * annualDistribution / reserves);
+            expect(await ovToken.apr()).eq(expectedApr);
+        }
+
+        // Bootstrap some base reserves - Alan invests 20k
+        const intitialReserves = 20_000;
+        await invest(intitialReserves);
+
+        // Add some pending reserves
+        const currentWeeklyDistribution = 150;
+        await addPendingReserves(ethers.utils.parseEther(currentWeeklyDistribution.toString()));
+        await checkApr(currentWeeklyDistribution, intitialReserves);
+        
+        // After moving forward a day but not adding any new pending reserves,
+        // the reserves per second remains the same.
+        await mineForwardSeconds(86400);
+        await checkApr(currentWeeklyDistribution, intitialReserves);
+
+        // Now add a new distribution of daily compounded rewards.
+        // This distribution gets added to the remaining 6 days of unvested pending rewards.
+        const newDailyDistribution = 35;
+        await addPendingReserves(ethers.utils.parseEther(newDailyDistribution.toString()));
+        await checkApr(currentWeeklyDistribution * 6/7 + newDailyDistribution, currentWeeklyDistribution * 1/7 + intitialReserves);
+
+        // A new investment decreases the APR
+        const extraInvestment = 5_000;
+        await invest(extraInvestment);
+        await checkApr(currentWeeklyDistribution * 6/7 + newDailyDistribution, currentWeeklyDistribution * 1/7 + intitialReserves + extraInvestment);
+
+        // Moving forward over a week with no new pending reserves => 0% APR
+        await mineForwardSeconds(7*86400);
+        await ovToken.checkpointReserves();
+        await checkApr(0, intitialReserves + currentWeeklyDistribution + newDailyDistribution);
     });
 });

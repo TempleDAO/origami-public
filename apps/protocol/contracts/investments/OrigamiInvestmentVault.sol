@@ -387,29 +387,4 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
 
         emit Exited(msg.sender, quoteData.investmentTokenAmount, address(0), nativeAmount, recipient);
     }
-
-    /**
-     * @notice Annual Percentage Rate (APR) in basis points for this investment,
-     * based on the projected reward rates as of now.
-     * @dev APR == [the total USD value of rewards (less fees) for one per year at current rates] / [USD value of the total shares supply]
-     */
-    function apr() external override view returns (uint256 aprBps) {
-        uint256[] memory projectedRewardRates = investmentManager.projectedRewardRates(true);  // 1e18 precision, remove performance fees
-        uint256[] memory rewardTokenPricesUsd = tokenPrices.tokenPrices(investmentManager.rewardTokensList()); // 1e30 precision
-
-        // Accumulate the USD value of rewards for the year, based on the current projected reward rates per second.
-        uint256 projectedRewardsUsdPerSec;
-        for (uint256 i; i < projectedRewardRates.length; ++i) {
-            projectedRewardsUsdPerSec += projectedRewardRates[i] * rewardTokenPricesUsd[i];
-        }
-        uint256 projectedRewardsUsdPerYear = projectedRewardsUsdPerSec * 365 days; // 1e48 precision
-
-        // Calculate the USD value of all shares
-        // 1e48 precision (18 + 30)
-        uint256 totalSharesUsd = 
-            totalSupply() *
-            tokenPrices.tokenPrice(address(this));
-
-        aprBps = (totalSharesUsd == 0) ? 0 : 10_000 * projectedRewardsUsdPerYear / totalSharesUsd;
-    }
 }

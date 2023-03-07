@@ -175,6 +175,22 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, Governable, Op
         _checkpointAndAddReserves(0);
     }
 
+    /// @notice Return the current estimated APR based on the pending reserves which are vesting per second
+    /// into the totalReserves.
+    /// @dev APR = annual reserve token rewards / total reserves
+    function apr() external view returns (uint256 aprBps) {
+        // Using the current pendingReserves which are being dripped in per second,
+        // calculate the total number of reserves which would be added for the entire year.
+        // The APR is then the total number of new rewards being added divided by
+        // the last snapshot of vested rewards.
+        uint256 _vestedReserves = vestedReserves;
+        aprBps = (_vestedReserves == 0) ? 0 : (
+            10_000 * // basis points
+            pendingReserves * 365 days / reservesVestingDuration / // reserve rewards per year
+            _vestedReserves // the last snapshot of vested rewards
+        );
+    }
+    
     function _issueSharesFromReserves(
         uint256 reserveTokenAmount, 
         address recipient, 
