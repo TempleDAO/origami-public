@@ -131,7 +131,7 @@ const BTC_TOKEN: ExtendedTokenConfig = {
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'BTC',
-  decimals: 18,
+  decimals: 8,
 };
 
 const BNB_TOKEN: ExtendedTokenConfig = {
