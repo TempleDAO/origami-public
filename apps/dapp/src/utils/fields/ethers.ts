@@ -48,15 +48,16 @@ export function tokenAmountField(decimals: number): FieldFns<BigNumber> {
 export function decimalBigNumberField(
   decimals: number
 ): FieldFns<DecimalBigNumber> {
-  const re = new RegExp('^([0-9]*[.])?[0-9]+$');
+  const re = new RegExp('^([0-9]*[.])?([0-9]+)$');
 
   return {
     toText(v: DecimalBigNumber) {
       return v.formatUnits(decimals);
     },
     validate(text: string) {
-      if (!text.match(re)) {
-        return 'must be a number';
+      const m = text.match(re);
+      if (!m || m[2].length > decimals) {
+        return `must be a number with max ${decimals} decimals`;
       } else {
         return null;
       }

@@ -11,8 +11,21 @@ export default {
   component: FieldDbn,
 };
 
-export const Basic = () => {
+export const Basic6 = () => {
   const decimals = 6;
+  const field = useTypedFieldState(decimalBigNumberField(decimals));
+  return (
+    <FieldDbn
+      decimals={decimals}
+      value={field.text}
+      onChange={field.setText}
+      max={ready(DecimalBigNumber.parseUnits('100', decimals))}
+    />
+  );
+};
+
+export const Basic10 = () => {
+  const decimals = 10;
   const field = useTypedFieldState(decimalBigNumberField(decimals));
   return (
     <FieldDbn
