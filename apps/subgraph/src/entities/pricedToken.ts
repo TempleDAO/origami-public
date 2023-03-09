@@ -38,7 +38,8 @@ export function getOrCreatePricedToken(address: Address, tokenPrices: Bytes, tim
 
   if (pricedToken === null) {
     pricedToken = createPricedToken(address, tokenPrices, timestamp)
-  } else if (pricedToken.timestamp.plus(CACHE_INTERVAL) < timestamp) {
+    updatePricedToken(pricedToken, timestamp, true)
+  } else {
     updatePricedToken(pricedToken, timestamp)
   }
 
@@ -47,47 +48,42 @@ export function getOrCreatePricedToken(address: Address, tokenPrices: Bytes, tim
 
 export function getPricedToken(address: string, timestamp: BigInt): PricedToken {
   let pricedToken = PricedToken.load(address) as PricedToken
-
-  if (pricedToken.timestamp.plus(CACHE_INTERVAL) < timestamp) {
-    updatePricedToken(pricedToken, timestamp)
-  }
+  updatePricedToken(pricedToken, timestamp)
 
   return pricedToken
 }
 
-function updatePricedToken(pricedToken: PricedToken, timestamp: BigInt): void {
+function updatePricedToken(pricedToken: PricedToken, timestamp: BigInt, force: boolean = false): void {
   pricedToken.timestamp = timestamp
   let price = getPricedTokenPrice(pricedToken)
   pricedToken.price = price
 
   pricedToken.save()
 
-  updateOrCreateHourData(pricedToken, timestamp)
-  updateOrCreateDayData(pricedToken, timestamp)
+  if (force || pricedToken.timestamp.plus(CACHE_INTERVAL) < timestamp) {
+    updateOrCreateHourData(pricedToken, timestamp)
+    updateOrCreateDayData(pricedToken, timestamp)
+  }
 }
 
 export function getPricedTokenPrice(pricedToken: PricedToken): BigDecimal {
   const tokenPrices = TokenPrices.bind(Address.fromBytes(pricedToken.tokenPrices))
-  const price = tokenPrices.tokenPrice(Address.fromString(pricedToken.id))
+  const price = tokenPrices.try_tokenPrice(Address.fromString(pricedToken.id))
+  if (price.reverted) {
+    return BIG_DECIMAL_0
+  }
 
   // tokenPrices returns prices to 30 decimal places
   const tokenPricesDecimals = 30
-  return toDecimal(price, tokenPricesDecimals)
-}
-
-export function updatePricedTokenPrice(address: string, timestamp: BigInt): void {
-  let pricedToken = PricedToken.load(address) as PricedToken
-
-  if (pricedToken.timestamp.plus(CACHE_INTERVAL) < timestamp) {
-    updatePricedToken(pricedToken, timestamp)
-  }
+  return toDecimal(price.value, tokenPricesDecimals)
 }
 
 export function updatePricedTokenPrices(timestamp: BigInt): void {
   const metric = getMetric()
   const pricedTokens = metric.pricedTokens
   for (let i = 0; i < pricedTokens.length; ++i) {
-      updatePricedTokenPrice(pricedTokens[i], timestamp)
+    const pricedToken = PricedToken.load(pricedTokens[i]) as PricedToken
+    updatePricedToken(pricedToken, timestamp, true)
   }
 }
 

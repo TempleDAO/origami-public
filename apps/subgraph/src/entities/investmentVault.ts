@@ -78,6 +78,7 @@ export function getOrCreateInvestmentVault(address: Address, timestamp: BigInt):
 
   if (investmentVault === null) {
     investmentVault = createInvestmentVault(address, timestamp)
+    updateInvestmentVault(investmentVault, timestamp)
   } else if (investmentVault.timestamp.plus(CACHE_INTERVAL) < timestamp) {
     updateInvestmentVault(investmentVault, timestamp)
   }
@@ -107,7 +108,7 @@ export function updateInvestmentVault(investmentVault: InvestmentVault, timestam
 
   const vaultToken = getPricedToken(investmentVault.id, timestamp)
   investmentVault.tvlUSD = investmentVault.tvl.times(vaultToken.price)
-  
+
   investmentVault.save()
 
   updateOrCreateHourData(investmentVault, timestamp)
