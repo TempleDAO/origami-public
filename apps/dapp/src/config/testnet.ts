@@ -24,8 +24,8 @@ export function getApiConfig(): ApiConfig {
 const MUMBAI: Chain = {
   name: 'Polygon Mumbai',
   id: 80001,
-  rpcUrl: 'https://polygon-testnet.public.blastapi.io',
-  walletRpcUrl: 'https://polygon-testnet.public.blastapi.io',
+  rpcUrl: 'https://rpc.ankr.com/polygon_mumbai',
+  walletRpcUrl: 'https://rpc.ankr.com/polygon_mumbai',
   nativeCurrency: {
     name: 'MATIC',
     symbol: 'MATIC',
