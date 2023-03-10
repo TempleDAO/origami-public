@@ -67,6 +67,7 @@ import {
 import { ITokenPrices__factory } from '@/typechain/factories/ITokenPrices__factory';
 import { ITokenPrices } from '@/typechain/ITokenPrices';
 import { first, matchEvents } from './utils';
+import { asyncNever } from '@/utils/noop';
 
 export interface ApiConfig {
   chains: Chain[];
@@ -662,30 +663,36 @@ class SignerApiImpl implements SignerApi {
     const feeData = await this.getFeeData();
     const maxFeePerGas = feeData.maxFeePerGas || undefined;
     const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || undefined;
-
-    let tx: ContractTransaction;
-    switch (req.quote.from.kind) {
-      case 'native': {
-        const amount = req.quote.amount.toBN(chain.nativeCurrency.decimals);
-        tx = await investmentContract.investWithNative(
-          req.quote.encodedQuote as IOrigamiInvestment.InvestQuoteDataStruct,
-          { value: amount }
-        );
-        break;
-      }
-      case 'token':
-        {
-          const quote = req.quote
-            .encodedQuote as IOrigamiInvestment.InvestQuoteDataStruct;
-          const overrides = {
-            maxFeePerGas,
-            maxPriorityFeePerGas,
-          };
-          tx = await investmentContract.investWithToken(quote, overrides);
+    const quote = req.quote
+      .encodedQuote as IOrigamiInvestment.InvestQuoteDataStruct;
+    const overrides: ethers.PayableOverrides = {
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    };
+    const receipt = await withTxError(
+      async () => {
+        let tx: ContractTransaction;
+        switch (req.quote.from.kind) {
+          case 'native': {
+            const amount = req.quote.amount.toBN(chain.nativeCurrency.decimals);
+            tx = await investmentContract.investWithNative(quote, {
+              ...overrides,
+              value: amount,
+            });
+            break;
+          }
+          case 'token': {
+            tx = await investmentContract.investWithToken(quote, overrides);
+            break;
+          }
         }
-        break;
-    }
-    const receipt = await tx.wait();
+        return tx.wait();
+      },
+      async (message, txhash) => {
+        req.onStage && req.onStage({ kind: 'txfail', message, txhash });
+      }
+    );
+
     const investEvent = first(
       matchEvents(
         receipt?.events || [],
@@ -732,22 +739,30 @@ class SignerApiImpl implements SignerApi {
 
     req.onStage && req.onStage({ kind: 'exit' });
 
-    let tx: ContractTransaction;
-    switch (req.quote.to.kind) {
-      case 'native':
-        tx = await investmentContract.exitToNative(
-          req.quote.encodedQuote as IOrigamiInvestment.ExitQuoteDataStruct,
-          this.signerAddress
-        );
-        break;
-      case 'token':
-        tx = await investmentContract.exitToToken(
-          req.quote.encodedQuote as IOrigamiInvestment.ExitQuoteDataStruct,
-          this.signerAddress
-        );
-        break;
-    }
-    const receipt = await tx.wait();
+    const receipt = await withTxError(
+      async () => {
+        let tx: ContractTransaction;
+        switch (req.quote.to.kind) {
+          case 'native':
+            tx = await investmentContract.exitToNative(
+              req.quote.encodedQuote as IOrigamiInvestment.ExitQuoteDataStruct,
+              this.signerAddress
+            );
+            break;
+          case 'token':
+            tx = await investmentContract.exitToToken(
+              req.quote.encodedQuote as IOrigamiInvestment.ExitQuoteDataStruct,
+              this.signerAddress
+            );
+            break;
+        }
+        return tx.wait();
+      },
+      async (message, txhash) => {
+        req.onStage && req.onStage({ kind: 'txfail', message, txhash });
+      }
+    );
+
     const exitEvent = first(
       matchEvents(
         receipt?.events || [],
@@ -812,6 +827,32 @@ class SignerApiImpl implements SignerApi {
     }
     return feeData;
   }
+}
+
+// Run the given action. If an exception is thrown, run the given
+// callback.
+async function withTxError<T>(
+  action: () => Promise<T>,
+  ecallback: (message: string, txHash?: string) => Promise<void>
+): Promise<T> {
+  try {
+    const v = await action();
+    return v;
+  } catch (e: unknown) {
+    let message = 'Something went wrong';
+    const txError = e as TxError;
+    if (txError.code && txError.reason) {
+      message = `${txError.code}; ${txError.reason}`;
+    }
+    await ecallback(message);
+    console.error('Exception during chain transactions', e);
+    return asyncNever();
+  }
+}
+
+interface TxError {
+  reason?: string;
+  code?: string;
 }
 
 export interface Notifier {

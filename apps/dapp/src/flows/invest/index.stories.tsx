@@ -120,7 +120,28 @@ export const FlowRunOnChain3 = () => {
     </Main>
   );
 };
-FlowRunOnChain3.storyName = '03 Run on chain (done)';
+FlowRunOnChain3.storyName = '04 Run on chain (done)';
+
+export const FlowRunOnChain4 = () => {
+  const { papi, sapi } = useTestApis();
+  const ctx = useTestContext(papi, sapi);
+  const stage: InvestStage = {
+    kind: 'txfail',
+    message: 'something went wrong',
+    txhash: '0x123451234567',
+  };
+
+  return (
+    <Main>
+      <Run
+        ctx={ctx}
+        state={runOnChainState(TEST_INVEST_REQ, stage)}
+        setState={noop}
+      />
+    </Main>
+  );
+};
+FlowRunOnChain4.storyName = '05 Run on chain (fail)';
 
 function useTestContext(papi: ProviderApi, sapi: SignerApi): Ctx {
   return useMemo(() => {
@@ -148,7 +169,7 @@ const TEST_INVEST_REQ: InvestReq = {
 
 const TEST_INVEST_RESP: InvestResp = {
   investTokenAmount: DecimalBigNumber.parseUnits('34.99', 2),
-  txHash: '0x12345',
+  txHash: '0x123451234567',
 };
 
 const Main = styled.main`

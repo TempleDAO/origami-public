@@ -1,16 +1,6 @@
 import type { FC } from 'react';
-import styled from 'styled-components';
 
 import { Button } from '@/components/commons/Button';
-import { Icon } from '@/components/commons/Icon';
-import { Spinner } from '@/components/commons/Spinner';
-import {
-  textP1,
-  textP2,
-  textH3,
-  textH1,
-  textH2,
-} from '@/styles/mixins/text-styles';
 import { formatDecimalBigNumber } from '@/utils/formatNumber';
 
 import { RunOnChainState, State, Ctx } from './types';
@@ -18,7 +8,18 @@ import { tokenOrNativeSymbol, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import { LoadingText } from '@/components/commons/LoadingText';
 import { lmap } from '@/utils/loading-value';
-import { truncateAddress } from '@/utils/truncate-address';
+import {
+  FlexDownSpaced,
+  FlexDown,
+  SpanH2,
+  SpanH3,
+  DivP1,
+  ActionArrow,
+  TxPending,
+  TxSucceeded,
+  TxFailed,
+} from '../common/components';
+import { Title } from './Form';
 
 type RunProps = {
   ctx: Ctx;
@@ -67,125 +68,50 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
           <LoadingText value={investUsdValue} /> USD
         </DivP1>
       </FlexDown>
-      <FlexRightSpaced>
-        <Icon iconName="flow-down" size={40} />
-        <FlexDown>
-          <ActionLabel active={stage !== 'done'}>
-            {stage === 'approve' && 'Awaiting wallet approval'}
-            {stage === 'invest' && 'Investing'}
-          </ActionLabel>
-        </FlexDown>
-        {stage === 'approve' && <Spinner size="small" />}
-        {stage === 'invest' && <Spinner size="small" />}
-      </FlexRightSpaced>
-      {!result && (
-        <FlexDown>
-          <div>
-            <SpanH2>{formatDecimalBigNumber(receivedAmount)}</SpanH2>{' '}
-            <SpanH3>{receivedAsset}</SpanH3>
-          </div>
-          <DivP1_>
-            <LoadingText value={receivedUsdValue} /> USD
-          </DivP1_>
-          <DivP2>(estimated)</DivP2>
-        </FlexDown>
-      )}
-      {result && (
+      {stage === 'approve' && (
         <>
-          <FlexDown>
-            <DivH3>
-              TRANSACTION SUCCESSFUL
-              <StyledAnchor
-                href={ctx.investment.chain.explorer.transactionUrl(
-                  result.txHash
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                ({truncateAddress(result.txHash)}
-                <Icon iconName="open-in-new" size={20} />)
-              </StyledAnchor>
-            </DivH3>
-            <DivP1_>You received:</DivP1_>
-            <div>
-              <SpanH2>{formatDecimalBigNumber(receivedAmount)}</SpanH2>{' '}
-              <SpanH3>{receivedAsset}</SpanH3>
-            </div>
-            <DivP1>
-              <LoadingText value={receivedUsdValue} /> USD
-            </DivP1>
-          </FlexDown>
+          <ActionArrow busytext="Awaiting wallet approval" />
+          <TxPending
+            receivedAmount={receivedAmount}
+            receivedAsset={receivedAsset}
+            receivedUsdValue={receivedUsdValue}
+          />
+        </>
+      )}
+      {stage === 'invest' && (
+        <>
+          <ActionArrow busytext="Investing" />
+          <TxPending
+            receivedAmount={receivedAmount}
+            receivedAsset={receivedAsset}
+            receivedUsdValue={receivedUsdValue}
+          />
+        </>
+      )}
+      {stage === 'done' && result && (
+        <>
+          <ActionArrow />
+          <TxSucceeded
+            receivedAmount={receivedAmount}
+            receivedAsset={receivedAsset}
+            receivedUsdValue={receivedUsdValue}
+            txHash={result.txHash}
+            transactionUrl={ctx.investment.chain.explorer.transactionUrl}
+          />
           <Button label="Done" onClick={ctx.onDone} />
+        </>
+      )}
+      {stage === 'txfail' && (
+        <>
+          <ActionArrow />
+          <TxFailed
+            message={state.stage.message}
+            txHash={state.stage.txhash}
+            transactionUrl={ctx.investment.chain.explorer.transactionUrl}
+          />
+          <Button label="OK" onClick={ctx.onDone} />
         </>
       )}
     </FlexDownSpaced>
   );
 };
-
-const FlexDownSpaced = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-const FlexDown = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const FlexRightSpaced = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 20px;
-`;
-
-export const Title = styled.div`
-  ${textH1}
-  color: ${(props) => props.theme.colors.white};
-`;
-
-const DivP1_ = styled.div`
-  ${textP1}
-`;
-
-const DivH3 = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  ${textH3};
-`;
-
-const SpanH2 = styled.span`
-  ${textH2}
-  color: ${(props) => props.theme.colors.white};
-`;
-
-const SpanH3 = styled.span`
-  ${textH3}
-  color: ${(props) => props.theme.colors.greyLight};
-`;
-
-const DivP1 = styled.div`
-  ${textP1}
-  color: ${(props) => props.theme.colors.greyLight};
-`;
-
-const DivP2 = styled.div`
-  ${textP2}
-`;
-
-const ActionLabel = styled.div<{ active: boolean }>`
-  ${textP1}
-  color: ${(props) =>
-    props.active ? props.theme.colors.white : props.theme.colors.greyLight};
-`;
-
-const StyledAnchor = styled.a`
-  display: flex;
-  ${textP2}
-  color: ${(props) => props.theme.colors.white};
-`;

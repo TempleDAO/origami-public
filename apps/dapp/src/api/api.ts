@@ -90,6 +90,7 @@ export interface InvestReq {
 export type InvestStage =
   | { kind: 'approve' }
   | { kind: 'invest' }
+  | { kind: 'txfail'; message: string; txhash?: string }
   | { kind: 'done'; result: InvestResp };
 
 export interface InvestResp {
@@ -120,6 +121,7 @@ export interface ExitReq {
 export type ExitStage =
   | { kind: 'approve' }
   | { kind: 'exit' }
+  | { kind: 'txfail'; message: string; txhash?: string }
   | { kind: 'done'; result: ExitResp };
 
 export interface ExitResp {
