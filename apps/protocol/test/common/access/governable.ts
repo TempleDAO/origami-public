@@ -62,7 +62,7 @@ describe("Governable", async () => {
         });
 
         it("Check modifiers", async () => {
-            await expect(governable.connect(owner).testOnlyGov())
+            await expect(governable.connect(owner).checkOnlyGov())
                 .to.revertedWithCustomError(governable, "NotGovernor");
 
             await expect(governable.connect(owner).proposeNewGov(alan.getAddress()))
@@ -91,7 +91,7 @@ describe("Governable", async () => {
 
             // Now updated
             expect(await governable.gov()).eq(await timelock2.getAddress());
-            expect(await governable.connect(timelock2).testOnlyGov()).eq(1);
+            expect(await governable.connect(timelock2).checkOnlyGov()).eq(1);
         });
     });
 
@@ -105,7 +105,7 @@ describe("Governable", async () => {
         });
 
         it("Check modifiers", async () => {
-            await expect(governableUpgradeable.connect(owner).testOnlyGov())
+            await expect(governableUpgradeable.connect(owner).checkOnlyGov())
                 .to.revertedWithCustomError(governableUpgradeable, "NotGovernor");
 
             await expect(governableUpgradeable.connect(alan).proposeNewGov(alan.getAddress()))
@@ -134,7 +134,7 @@ describe("Governable", async () => {
 
             // Now updated
             expect(await governableUpgradeable.gov()).eq(await timelock2.getAddress());
-            expect(await governableUpgradeable.connect(timelock2).testOnlyGov()).eq(1);
+            expect(await governableUpgradeable.connect(timelock2).checkOnlyGov()).eq(1);
         });
 
         it("should upgrade() - an existing var is the same", async () => {

@@ -35,7 +35,8 @@ import {
     mine,
     zeroExQuote,
 } from '../../helpers';
-import { GmxDeployedContracts, getDeployedContracts } from '../../arbitrum/gmx/contract-addresses';
+import { GmxDeployedContracts, getDeployedContracts as gmxDeployedContracts } from '../../arbitrum/gmx/contract-addresses';
+import { GovernanceDeployedContracts, getDeployedContracts as govDeployedContracts } from '../../arbitrum/governance/contract-addresses';
 
 interface ContractInstances {
     timelock: TimelockController,
@@ -58,27 +59,27 @@ interface ContractInstances {
     weth: IERC20,
 }
 
-function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: Signer): ContractInstances {
+function connectToContracts(GMX_DEPLOYED: GmxDeployedContracts, GOV_DEPLOYED: GovernanceDeployedContracts, owner: Signer): ContractInstances {
     return {
-        timelock: TimelockController__factory.connect(DEPLOYED.ORIGAMI.GOV_TIMELOCK, owner),
-        gmxEarnAccount: OrigamiGmxEarnAccount__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_EARN_ACCOUNT, owner),
-        glpPrimaryEarnAccount: OrigamiGmxEarnAccount__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_PRIMARY_EARN_ACCOUNT, owner),
-        glpSecondaryEarnAccount: OrigamiGmxEarnAccount__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_SECONDARY_EARN_ACCOUNT, owner),
-        gmxManager: OrigamiGmxManager__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_MANAGER, owner),
-        glpManager: OrigamiGmxManager__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_MANAGER, owner),
-        gmxRewardsAggregator: OrigamiGmxRewardsAggregator__factory.connect(DEPLOYED.ORIGAMI.GMX.GMX_REWARDS_AGGREGATOR, owner),
-        glpRewardsAggregator: OrigamiGmxRewardsAggregator__factory.connect(DEPLOYED.ORIGAMI.GMX.GLP_REWARDS_AGGREGATOR, owner),
-        oGMX: OrigamiGmxInvestment__factory.connect(DEPLOYED.ORIGAMI.GMX.oGMX, owner),
-        oGLP: OrigamiGlpInvestment__factory.connect(DEPLOYED.ORIGAMI.GMX.oGLP, owner),
-        ovGMX: OrigamiInvestmentVault__factory.connect(DEPLOYED.ORIGAMI.GMX.ovGMX, owner),
-        ovGLP: OrigamiInvestmentVault__factory.connect(DEPLOYED.ORIGAMI.GMX.ovGLP, owner),
+        timelock: TimelockController__factory.connect(GOV_DEPLOYED.ORIGAMI.GOV_TIMELOCK, owner),
+        gmxEarnAccount: OrigamiGmxEarnAccount__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GMX_EARN_ACCOUNT, owner),
+        glpPrimaryEarnAccount: OrigamiGmxEarnAccount__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GLP_PRIMARY_EARN_ACCOUNT, owner),
+        glpSecondaryEarnAccount: OrigamiGmxEarnAccount__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GLP_SECONDARY_EARN_ACCOUNT, owner),
+        gmxManager: OrigamiGmxManager__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GMX_MANAGER, owner),
+        glpManager: OrigamiGmxManager__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GLP_MANAGER, owner),
+        gmxRewardsAggregator: OrigamiGmxRewardsAggregator__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GMX_REWARDS_AGGREGATOR, owner),
+        glpRewardsAggregator: OrigamiGmxRewardsAggregator__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.GLP_REWARDS_AGGREGATOR, owner),
+        oGMX: OrigamiGmxInvestment__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.oGMX, owner),
+        oGLP: OrigamiGlpInvestment__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.oGLP, owner),
+        ovGMX: OrigamiInvestmentVault__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.ovGMX, owner),
+        ovGLP: OrigamiInvestmentVault__factory.connect(GMX_DEPLOYED.ORIGAMI.GMX.ovGLP, owner),
 
-        gmxToken: GMX_GMX__factory.connect(DEPLOYED.GMX.TOKENS.GMX_TOKEN, owner),
-        gmxRewardRouter: GMX_RewardRouterV2__factory.connect(DEPLOYED.GMX.STAKING.GMX_REWARD_ROUTER, owner),
-        glpRewardRouter: GMX_RewardRouterV2__factory.connect(DEPLOYED.GMX.STAKING.GLP_REWARD_ROUTER, owner),
-        tokenPrices: TokenPrices__factory.connect(DEPLOYED.ORIGAMI.TOKEN_PRICES, owner),
+        gmxToken: GMX_GMX__factory.connect(GMX_DEPLOYED.GMX.TOKENS.GMX_TOKEN, owner),
+        gmxRewardRouter: GMX_RewardRouterV2__factory.connect(GMX_DEPLOYED.GMX.STAKING.GMX_REWARD_ROUTER, owner),
+        glpRewardRouter: GMX_RewardRouterV2__factory.connect(GMX_DEPLOYED.GMX.STAKING.GLP_REWARD_ROUTER, owner),
+        tokenPrices: TokenPrices__factory.connect(GMX_DEPLOYED.ORIGAMI.TOKEN_PRICES, owner),
 
-        weth: IERC20__factory.connect(DEPLOYED.GMX.LIQUIDITY_POOL.WETH_TOKEN, owner),
+        weth: IERC20__factory.connect(GMX_DEPLOYED.GMX.LIQUIDITY_POOL.WETH_TOKEN, owner),
     }
 }
 
@@ -475,13 +476,14 @@ async function main() {
     ensureExpectedEnvvars();
     const [owner, fred, joe, bob, feeCollector] = await ethers.getSigners();
 
-    const DEPLOYED: GmxDeployedContracts = getDeployedContracts();
+    const GMX_DEPLOYED = gmxDeployedContracts();
+    const GOV_DEPLOYED = govDeployedContracts();
     console.log("owner addr:", await owner.getAddress());
-    console.log("origami msig:", DEPLOYED.ORIGAMI.MULTISIG);
-    console.log("origami timelock gov:", DEPLOYED.ORIGAMI.GOV_TIMELOCK);
+    console.log("origami msig:", GOV_DEPLOYED.ORIGAMI.MULTISIG);
+    console.log("origami timelock gov:", GOV_DEPLOYED.ORIGAMI.GOV_TIMELOCK);
     
-    const origamiMultisig = await impersonateAndFund(owner, DEPLOYED.ORIGAMI.MULTISIG, 10);
-    const contracts = connectToContracts(DEPLOYED, origamiMultisig);
+    const origamiMultisig = await impersonateAndFund(owner, GOV_DEPLOYED.ORIGAMI.MULTISIG, 10);
+    const contracts = connectToContracts(GMX_DEPLOYED, GOV_DEPLOYED, origamiMultisig);
 
     await claimGov(contracts, origamiMultisig, contracts.gmxRewardsAggregator);
     await claimGov(contracts, origamiMultisig, contracts.glpRewardsAggregator);
@@ -489,7 +491,7 @@ async function main() {
     await claimGov(contracts, origamiMultisig, contracts.oGLP);
     
     await setUpstreamRewardRates(contracts, owner);
-    await updateOracleThreshold(DEPLOYED, contracts);
+    await updateOracleThreshold(GMX_DEPLOYED, contracts);
 
     // Check the token prices
     await dumpPrices(contracts);

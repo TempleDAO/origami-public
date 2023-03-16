@@ -95,12 +95,27 @@ module.exports = {
                 : [],
             gasPrice: parseInt(process.env.AVALANCHE_GAS_IN_GWEI || '0') * 1000000000,
         },
+        polygon: {
+            url: process.env.POLYGON_RPC_URL || '',
+            accounts: process.env.POLYGON_ADDRESS_PRIVATE_KEY
+                ? [process.env.POLYGON_ADDRESS_PRIVATE_KEY]
+                : [],
+            gasPrice: parseInt(process.env.POLYGON_GAS_IN_GWEI || '0') * 1000000000,
+        },
+        mainnet: {
+            url: process.env.MAINNET_RPC_URL || '',
+            accounts: process.env.MAINNET_ADDRESS_PRIVATE_KEY
+                ? [process.env.MAINNET_ADDRESS_PRIVATE_KEY]
+                : [],
+            gasPrice: parseInt(process.env.MAINNET_GAS_IN_GWEI || '0') * 1000000000,
+        },
     },
     etherscan: {
         // Your API key for Etherscan
         // Obtain one at https://etherscan.io/
         apiKey: {
-        polygonMumbai: process.env.POLYGONSCAN_API_KEY,
+            polygonMumbai: process.env.POLYGONSCAN_API_KEY,
+            polygon: process.env.POLYGONSCAN_API_KEY,
         },
     },
     mocha: {

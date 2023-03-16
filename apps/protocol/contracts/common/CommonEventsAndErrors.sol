@@ -12,6 +12,6 @@ library CommonEventsAndErrors {
     error ExpectedNonZero();
     error Slippage(uint256 minAmountExpected, uint256 acutalAmount);
     error IsPaused();
-    
+    error UnknownExecuteError(bytes returndata);
     event TokenRecovered(address indexed to, address indexed token, uint256 amount);
 }

@@ -34,8 +34,8 @@ import {
   ensureExpectedEnvvars,
   mine,
 } from '../../helpers';
-import {getDeployedContracts} from './contract-addresses';
-import { ZERO_ADDRESS } from '../../../../test/helpers';
+import { getDeployedContracts as govDeployedContracts } from '../governance/contract-addresses';
+import { ZERO_ADDRESS } from '../../helpers';
 
 // GMX Reward rates
 // 4000 * $2000 = 8MM (19% APR of the seeded $43.14MM GLP liquidity)
@@ -205,7 +205,7 @@ export async function addDefaultGlpLiquidity(
 async function main() {
     ensureExpectedEnvvars();
     const [owner] = await ethers.getSigners();
-    const DEPLOYED = getDeployedContracts();
+    const GOV_DEPLOYED = govDeployedContracts();
 
     const tokenFactory = new GMX_NamedToken__factory(owner);
     const bnb = await deployAndMine('bnb', tokenFactory, tokenFactory.deploy, "BNB", "BNB") as GMX_NamedToken;
@@ -250,10 +250,10 @@ async function main() {
 
     const timelockFactory = new GMX_Timelock__factory(owner);
     const timelock = await deployAndMine('timelock', timelockFactory, timelockFactory.deploy,
-        DEPLOYED.ORIGAMI.MULTISIG, // _admin
+        GOV_DEPLOYED.ORIGAMI.MULTISIG, // _admin
         10, // _buffer
-        DEPLOYED.ORIGAMI.MULTISIG, // _tokenManager
-        DEPLOYED.ORIGAMI.MULTISIG, // _mintReceiver
+        GOV_DEPLOYED.ORIGAMI.MULTISIG, // _tokenManager
+        GOV_DEPLOYED.ORIGAMI.MULTISIG, // _mintReceiver
         glpManager.address, // _glpManager
         gmxRewardRouter.address, // _rewardRouter
         expandDecimals(100000000, 18), // _maxTokenSupply
@@ -488,7 +488,7 @@ async function main() {
 
     // mint esGmx for distributors
     await mine(esGmx.setMinter(await owner.getAddress(), true));
-    await mine(esGmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(esGmx.setMinter(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
     await mine(esGmx.mint(stakedGmxDistributor.address, expandDecimals(10000000, 18)));
     await mine(stakedGmxDistributor.setTokensPerInterval(gmxEsGmxPerSecond));
     await mine(esGmx.mint(stakedGlpDistributor.address, expandDecimals(10000000, 18)));
@@ -496,13 +496,13 @@ async function main() {
 
     // mint bnGmx for distributor
     await mine(bnGmx.setMinter(await owner.getAddress(), true));
-    await mine(bnGmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(bnGmx.setMinter(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
     await mine(bnGmx.mint(bonusGmxDistributor.address, expandDecimals(10000000, 18)));
 
     await mine(esGmx.setHandler(await owner.getAddress(), true));
-    await mine(esGmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(esGmx.setMinter(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
     await mine(gmxVester.setHandler(await owner.getAddress(), true));
-    await mine(gmxVester.setHandler(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(gmxVester.setHandler(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
 
     await mine(esGmx.setHandler(gmxRewardRouter.address, true));
     await mine(esGmx.setHandler(stakedGmxDistributor.address, true));
@@ -534,7 +534,7 @@ async function main() {
 
     // Mint GMX to the vester contracts 
     await mine(gmx.setMinter(await owner.getAddress(), true));
-    await mine(gmx.setMinter(DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(gmx.setMinter(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
     await mine(gmx.mint(gmxVester.address, expandDecimals(10000000, 18)));
     await mine(gmx.mint(glpVester.address, expandDecimals(10000000, 18)));
 

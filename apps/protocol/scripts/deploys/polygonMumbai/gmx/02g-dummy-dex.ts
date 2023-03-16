@@ -6,7 +6,6 @@ import {
   ensureExpectedEnvvars,
 } from '../../helpers';
 import { getDeployedContracts } from './contract-addresses';
-import { BigNumber } from 'ethers';
 
 async function main() {
   ensureExpectedEnvvars();

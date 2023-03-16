@@ -66,8 +66,15 @@
     "local-fork:arbitrum": "hardhat node --fork https://arb-mainnet.g.alchemy.com/v2/Wpi5oKPY2NTrKdxCVlcqK3JrijSLHI7B --fork-block-number 60385740",
     "local-fork:deploy:gmx": "$PWD/scripts/deploys/localhost/gmx/deploy-localhost-fork.sh",
     "local-fork:test:gmx": "hardhat run --network localhost scripts/deploys/localhost/gmx/999-localhost-fork-test.ts",
+    "local-fork:polygon": "hardhat node --fork https://polygon-mainnet.g.alchemy.com/v2/EHK2L-8KL6I43x26es3otJ2he4HHxhWy --fork-block-number 39751154",
+    "local-fork:deploy:tetu": "$PWD/scripts/deploys/localhost/tetu/deploy-localhost-fork.sh",
+    "local-fork:test:tetu": "hardhat run --network localhost scripts/deploys/localhost/tetu/999-localhost-fork-test.ts",
+    "local-fork:mainnet": "hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/AorwfDdHDsEjIX4HPwS70zkVjWqjv5vZ --fork-block-number 16716889",
+    "local-fork:deploy:stakedao": "$PWD/scripts/deploys/localhost/stakedao/deploy-localhost-fork.sh",
+    "local-fork:test:stakedao": "hardhat run --network localhost scripts/deploys/localhost/stakedao/999-localhost-fork-test.ts",
     "forge-test": "forge test",
-    "forge-coverage": "forge coverage --report lcov && genhtml lcov.info -o report --branch-coverage --legend"
+    "forge-coverage": "forge coverage",
+    "forge-coverage-html": "forge coverage --report lcov && genhtml lcov.info -o report --branch-coverage --legend"
   },
   "engines": {
     "node": "16.x"

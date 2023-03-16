@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumberish } from 'ethers';
 import { ethers } from 'hardhat';
-import { ZERO_ADDRESS } from '../../../../test/helpers';
+import { ZERO_ADDRESS } from '../../helpers';
 import { 
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
@@ -17,7 +17,8 @@ import {
     ensureExpectedEnvvars,
     mine,
 } from '../../helpers';
-import { GmxDeployedContracts, getDeployedContracts } from './contract-addresses';
+import { GmxDeployedContracts, getDeployedContracts as gmxDeployedContracts } from './contract-addresses';
+import { getDeployedContracts as govDeployedContracts } from '../governance/contract-addresses';
 
 interface ContractInstances {
     gmxEarnAccount: OrigamiGmxEarnAccount,
@@ -140,8 +141,9 @@ async function main() {
     ensureExpectedEnvvars();
   
     const [owner] = await ethers.getSigners();
-    const DEPLOYED = getDeployedContracts();
-    const contracts = connectToContracts(DEPLOYED, owner);
+    const GMX_DEPLOYED = gmxDeployedContracts();
+    const GOV_DEPLOYED = govDeployedContracts();
+    const contracts = connectToContracts(GMX_DEPLOYED, owner);
 
     // The Investments are added as manager operators such that they can sell oGLP/oGMX
     await mine(contracts.gmxManager.addOperator(contracts.oGMX.address));
@@ -153,10 +155,10 @@ async function main() {
     await mine(contracts.glpManager.addOperator(contracts.glpRewardsAggregator.address));
 
     // Add the timelock and multisig as valid pausers
-    await mine(contracts.gmxManager.setPauser(DEPLOYED.ORIGAMI.MULTISIG, true));
-    await mine(contracts.gmxManager.setPauser(DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
-    await mine(contracts.glpManager.setPauser(DEPLOYED.ORIGAMI.MULTISIG, true));
-    await mine(contracts.glpManager.setPauser(DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
+    await mine(contracts.gmxManager.setPauser(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(contracts.gmxManager.setPauser(GOV_DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
+    await mine(contracts.glpManager.setPauser(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(contracts.glpManager.setPauser(GOV_DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
     await mine(contracts.gmxManager.setPauser(owner.getAddress(), true));
     await mine(contracts.glpManager.setPauser(owner.getAddress(), true));
 
@@ -168,10 +170,10 @@ async function main() {
     await mine(contracts.glpSecondaryEarnAccount.addOperator(contracts.glpManager.address));
 
     // Allow the multisig to perform operations on the earn accounts.
-    await mine(contracts.gmxEarnAccount.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpPrimaryEarnAccount.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpSecondaryEarnAccount.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpSecondaryEarnAccount.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.gmxEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpPrimaryEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpSecondaryEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpSecondaryEarnAccount.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
     
     // The Investments & managers mints/burns oGMXtokens.
     // The GLP manager also needs mint access on oGMX, for rewards.
@@ -188,20 +190,20 @@ async function main() {
 
     // Set the multisig as an operator on ovGMX/ovGLP, such that we can manually add reserves
     // to boost rewards if required.
-    await mine(contracts.ovGMX.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.ovGLP.addOperator(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.ovGMX.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.ovGLP.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.ovGMX.addOperator(owner.getAddress()));
     await mine(contracts.ovGLP.addOperator(owner.getAddress()));
 
     // Allow the OpenZeppelin Defender Bot to harvest rewards.
-    await mine(contracts.gmxRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
-    await mine(contracts.glpRewardsAggregator.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.gmxRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.glpRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
     await mine(contracts.gmxRewardsAggregator.addOperator(owner.getAddress()));
     await mine(contracts.glpRewardsAggregator.addOperator(owner.getAddress()));
 
     // Allow the OpenZeppelin Defender Bot to harvest secondary rewards.
-    await mine(contracts.gmxManager.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
-    await mine(contracts.glpManager.addOperator(DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.gmxManager.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    await mine(contracts.glpManager.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
     
     // Set the investment managers in both the GMX & GLP Manager
     await mine(contracts.gmxManager.setRewardsAggregators(
@@ -232,17 +234,17 @@ async function main() {
         // setEsGmxVestingRate left at 0%
     }
 
-    await setupPrices(contracts, DEPLOYED);
+    await setupPrices(contracts, GMX_DEPLOYED);
 
     // testnet only - add minting rights to the msig.
-    await mine(contracts.oGMX.addMinter(DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.oGLP.addMinter(DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.oGMX.addMinter(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.oGLP.addMinter(GOV_DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.oGMX.addMinter(owner.getAddress()));
     await mine(contracts.oGLP.addMinter(owner.getAddress()));
 
     // testnet only - load the dummy dex up with a tonne of GMX and weth for swaps
-    await mine(contracts.gmxToken.mint(DEPLOYED.ZERO_EX_PROXY, ethers.utils.parseEther("10000000")));
-    await mine(contracts.wethToken.mint(DEPLOYED.ZERO_EX_PROXY,  ethers.utils.parseEther("10000000")));
+    await mine(contracts.gmxToken.mint(GMX_DEPLOYED.ZERO_EX_PROXY, ethers.utils.parseEther("10000000")));
+    await mine(contracts.wethToken.mint(GMX_DEPLOYED.ZERO_EX_PROXY,  ethers.utils.parseEther("10000000")));
   }
   
   // We recommend this pattern to be able to use async/await everywhere

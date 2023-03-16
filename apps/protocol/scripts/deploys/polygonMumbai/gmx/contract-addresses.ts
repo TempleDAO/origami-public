@@ -2,8 +2,6 @@ import { network } from "hardhat";
 
 export interface GmxDeployedContracts {
     ORIGAMI: {
-        MULTISIG: string,
-        GOV_TIMELOCK: string,
         OZ_BOT_EOA: string,
 
         GMX: {
@@ -92,13 +90,7 @@ export interface GmxDeployedContracts {
 
 const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     polygonMumbai: {
-        ORIGAMI: {
-            // A hot wallet, Mumbai isn't in Gnosis - ask @frontier for the PK if required.
-            MULTISIG: '0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165',
-            
-            GOV_TIMELOCK: '0xFbC75D816E1B7DaAa0B5FF0b3e08299757ED2696',
-            // yarn hardhat verify --network polygonMumbai 0xFbC75D816E1B7DaAa0B5FF0b3e08299757ED2696 --constructor-args arguments.js
-
+        ORIGAMI: {            
             OZ_BOT_EOA: '0xc6ac5dda21252fa0847fbed04a6bf69873a117ac', // https://defender.openzeppelin.com/#/relay/e78b7ac1-09f3-457a-a0d7-61ca4c15feb4/settings
 
             TOKEN_PRICES: '0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8',

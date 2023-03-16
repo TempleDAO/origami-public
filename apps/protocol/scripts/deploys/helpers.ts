@@ -27,7 +27,9 @@ export async function mine(tx: Promise<ContractTransaction>) {
   console.log(`Mining transaction: ${(await tx).hash}`);
   await (await tx).wait();
 }
+
 const { AddressZero } = ethers.constants;
+export { AddressZero as ZERO_ADDRESS };
 
 /**
  * Typesafe helper that works on contract factories to create, deploy, wait till deploy completes
@@ -81,7 +83,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
   existingProxyAddress: string | undefined,
   name: string,
   kind: ProxyKindOption['kind'],
-  constructorArgs: unknown[],
+  constructorArgs: unknown[] | undefined,
   factory: ContractFactory,
   deploy: D,
   ...args: Parameters<T['initialize']>): Promise<T> {
@@ -96,7 +98,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
       throw new Error(`Empty arg in position ${i}`);
   });
 
-  const renderedConstructorArgs: string = constructorArgs.map(a => {
+  const renderedConstructorArgs: string = constructorArgs ? constructorArgs.map(a => {
     if (typeof a === 'string') {
         return a;
     } else if (typeof a === 'number') {
@@ -104,7 +106,7 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
     } else {
         throw new Error(`Unknown constructor arg type: ${typeof a}`);
     }
-  }).join(' ');
+  }).join(' ') : '';
   const renderedInitArgs: string = args.map(a => a.toString()).join(' ');
 
   let contract: T;
@@ -151,10 +153,6 @@ export function expectAddressWithPrivateKey() {
     throw new Error("Missing environment variable AVALANCHE_ADDRESS_PRIVATE_KEY. A mainnet avalanche address private key with eth is required to deploy/manage contracts");
   }
 
-  if (network.name == 'rinkeby' && !process.env.RINKEBY_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable RINKEBY_ADDRESS_PRIVATE_KEY. A rinkeby address private key with eth is required to deploy/manage contracts");
-  }
-
   if (network.name == 'goerli' && !process.env.GOERLI_ADDRESS_PRIVATE_KEY) {
     throw new Error("Missing environment variable GOERLI_ADDRESS_PRIVATE_KEY. A goerli address private key with eth is required to deploy/manage contracts");
   }
@@ -162,15 +160,19 @@ export function expectAddressWithPrivateKey() {
   if (network.name == 'polygonMumbai' && !process.env.MUMBAI_ADDRESS_PRIVATE_KEY) {
     throw new Error("Missing environment variable MUMBAI_ADDRESS_PRIVATE_KEY. A mumbai address private key with eth is required to deploy/manage contracts");
   }
+
+  if (network.name == 'polygon' && !process.env.POLYGON_ADDRESS_PRIVATE_KEY) {
+    throw new Error("Missing environment variable POLYGON_ADDRESS_PRIVATE_KEY. A mumbai address private key with eth is required to deploy/manage contracts");
+  }
 }
 
 const expectedEnvvars: { [key: string]: string[] } = {
   mainnet: ['MAINNET_ADDRESS_PRIVATE_KEY', 'MAINNET_RPC_URL', 'MAINNET_GAS_IN_GWEI'],
   arbitrum: ['ARBITRUM_ADDRESS_PRIVATE_KEY', 'ARBITRUM_RPC_URL', 'ARBITRUM_GAS_IN_GWEI'],
   avalanche: ['AVALANCHE_ADDRESS_PRIVATE_KEY', 'AVALANCHE_RPC_URL', 'AVALANCHE_GAS_IN_GWEI'],
-  rinkeby: ['RINKEBY_ADDRESS_PRIVATE_KEY', 'RINKEBY_RPC_URL'],
   goerli: ['GOERLI_ADDRESS_PRIVATE_KEY', 'GOERLI_RPC_URL'],
   polygonMumbai: ['MUMBAI_ADDRESS_PRIVATE_KEY', 'MUMBAI_RPC_URL'],
+  polygon: ['POLYGON_ADDRESS_PRIVATE_KEY', 'POLYGON_RPC_URL'],
   matic: ['MATIC_ADDRESS_PRIVATE_KEY', 'MATIC_RPC_URL'],
   localhost: [],
 }

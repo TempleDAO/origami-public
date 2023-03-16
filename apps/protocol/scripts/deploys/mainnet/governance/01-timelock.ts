@@ -1,24 +1,24 @@
 import '@nomiclabs/hardhat-ethers';
 import { ethers } from 'hardhat';
-import { TimelockController__factory } from '../../../typechain';
+import { TimelockController__factory } from '../../../../typechain';
 import {
   deployAndMine,
   ensureExpectedEnvvars,
-} from '../helpers';
-import { getDeployedContracts } from './gmx/contract-addresses';
-import { ZERO_ADDRESS } from '../../../test/helpers';
+} from '../../helpers';
+import { getDeployedContracts } from './contract-addresses';
+import { ZERO_ADDRESS } from '../../helpers';
 
 async function main() {
   ensureExpectedEnvvars();
   const [owner] = await ethers.getSigners();
-  const GMX_DEPLOYED_CONTRACTS = getDeployedContracts();
+  const GOV_DEPLOYED_CONTRACTS = getDeployedContracts();
 
   const factory = new TimelockController__factory(owner);
   await deployAndMine(
     'timelockController', factory, factory.deploy,
-    300, // 5 minutes for testnet
-    [await owner.getAddress(), GMX_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG],
-    [await owner.getAddress(), GMX_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG],
+    18*60*60, // 18 hours
+    [GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG],
+    [GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG],
     ZERO_ADDRESS,
   );
 }

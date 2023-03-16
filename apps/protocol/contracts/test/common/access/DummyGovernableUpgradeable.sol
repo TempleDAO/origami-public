@@ -32,7 +32,7 @@ contract DummyGovernableUpgradeable is Initializable, GovernableUpgradeable, UUP
         _init(initialGovernor);
     }
     
-    function testOnlyGov() external view onlyGov returns (uint256) {
+    function checkOnlyGov() external view onlyGov returns (uint256) {
         return 1;
     }
 
