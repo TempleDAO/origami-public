@@ -26,9 +26,9 @@ export const Spinner = (props: SpinnerProps) => {
       transition: {
         staggerChildren: 0.2,
         repeat: Infinity,
-        repeatDelay: 1,
+        repeatDelay: 0.5,
         duration: 2,
-        times: [0, 0.2, 0.4, 0.6, 0.8, 1],
+        times: [0, 0.5, 0.6, 0.7, 0.95, 1],
       },
     },
   };
@@ -52,8 +52,8 @@ export const Spinner = (props: SpinnerProps) => {
       transition: {
         duration: 2,
         repeat: Infinity,
-        repeatDelay: 1,
-        times: [0, 0.1, 0.4, 0.6, 0.5, 0.75],
+        repeatDelay: 0.5,
+        times: custom.times,
       },
     }),
   };
@@ -102,6 +102,9 @@ export const Spinner = (props: SpinnerProps) => {
     }))
   );
 
+  // Include a small gap such that there's a small blank space between items
+  // to look like a fortune teller
+  const scaledItemSize = 0.95 * itemSize;
   return (
     // @ts-ignore
     <LoaderContainer
@@ -113,8 +116,23 @@ export const Spinner = (props: SpinnerProps) => {
       <LoaderItem
         custom={{
           rotate: 270,
-          x: [0, itemSize, itemSize, itemSize, itemSize, 0],
-          y: [0, itemSize, itemSize, itemSize, itemSize, 0],
+          x: [
+            0,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            0,
+          ],
+          y: [
+            0,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            0,
+          ],
+          times: [0.0, 0.1, 0.15, 0.85, 0.9, 1],
         }}
         className={'topLeft'}
         variants={item}
@@ -122,8 +140,23 @@ export const Spinner = (props: SpinnerProps) => {
       <LoaderItem
         custom={{
           rotate: 0,
-          x: [0, -itemSize, -itemSize, -itemSize, -itemSize, 0],
-          y: [0, itemSize, itemSize, itemSize, itemSize, 0],
+          x: [
+            0,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            0,
+          ],
+          y: [
+            0,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            0,
+          ],
+          times: [0.0, 0.1, 0.15, 0.75, 0.8, 0.9],
         }}
         className={'topRight'}
         variants={item}
@@ -131,8 +164,23 @@ export const Spinner = (props: SpinnerProps) => {
       <LoaderItem
         custom={{
           rotate: 90,
-          x: [0, -itemSize, -itemSize, -itemSize, -itemSize, 0],
-          y: [0, -itemSize, -itemSize, -itemSize, -itemSize, 0],
+          x: [
+            0,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            0,
+          ],
+          y: [
+            0,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            0,
+          ],
+          times: [0.0, 0.1, 0.15, 0.65, 0.7, 0.8],
         }}
         className={'bottomRight'}
         variants={item}
@@ -140,8 +188,23 @@ export const Spinner = (props: SpinnerProps) => {
       <LoaderItem
         custom={{
           rotate: 180,
-          x: [0, itemSize, itemSize, itemSize, itemSize, 0],
-          y: [0, -itemSize, -itemSize, -itemSize, -itemSize, 0],
+          x: [
+            0,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            scaledItemSize,
+            0,
+          ],
+          y: [
+            0,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            -scaledItemSize,
+            0,
+          ],
+          times: [0.0, 0.1, 0.15, 0.55, 0.6, 0.7],
         }}
         className={'bottomLeft'}
         variants={item}
