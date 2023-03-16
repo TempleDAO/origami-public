@@ -37,7 +37,7 @@ export const ConnectWalletButton = () => {
   if (inProgress) {
     return (
       <ButtonBox>
-        <Spinner size="small" />
+        <Spinner size="medium" />
       </ButtonBox>
     );
   }
