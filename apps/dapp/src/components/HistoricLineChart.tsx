@@ -75,11 +75,15 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
                 value: formatDate(x, 'd LLL'),
               };
             }}
-            itemsFormat={([{ y }]: ChartDataPoint[]) => {
+            itemsFormat={([cdp]: ChartDataPoint[]) => {
               return [
                 {
+                  title: 'Time',
+                  value: formatDate(cdp.x, 'p'),
+                },
+                {
                   title: 'Value',
-                  value: props.yTickFormat(y),
+                  value: props.yTickFormat(cdp.y),
                 },
               ];
             }}
