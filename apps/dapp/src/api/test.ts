@@ -34,6 +34,7 @@ import { sleep } from '@/utils/sleep';
 import { VMap } from '@/utils/vmap';
 import { createMemoizedAsyncValue } from '@/utils/memoized';
 import { ApiCache, useCache } from '@/api/cache';
+import { assertNever } from '@/utils/assert';
 
 interface TestApi {
   sleepMs: number;
@@ -461,9 +462,23 @@ const PRICE_DATA = [
 
 export async function getHistory(
   period: HistoricPeriod,
-  series: Metric
+  series: Metric | 'price'
 ): Promise<HistoryPoint[]> {
-  return getHistory1(period, series == 'apy' ? APY_DATA : TVL_DATA);
+  let result: HistoryPoint[];
+  switch (series) {
+    case 'apy':
+      result = APY_DATA;
+      break;
+    case 'tvl':
+      result = TVL_DATA;
+      break;
+    case 'price':
+      result = PRICE_DATA;
+      break;
+    default:
+      assertNever(series);
+  }
+  return getHistory1(period, result);
 }
 
 export async function getHistory1(

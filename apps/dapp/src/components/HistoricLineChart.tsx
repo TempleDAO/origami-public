@@ -20,6 +20,7 @@ import { isReady } from '@/utils/loading-value';
 import { theme } from '@/styles/theme';
 
 import 'react-vis/dist/style.css';
+import { assertNever } from '@/utils/assert';
 
 export type ChartDataPoint = {
   x: number;
@@ -41,8 +42,11 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
     return <StyledLoader />;
   }
 
-  const chartData =
+  const rawChartData =
     ldata.value.length === 1 ? padSingleDataPoint(ldata.value) : ldata.value;
+  const chartData = stepDataPoints(rawChartData);
+
+  const axisStyle = { text: { stroke: theme.colors.greyLight } };
 
   return (
     <>
@@ -53,8 +57,13 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
           onMouseLeave={onMouseLeave}
         >
           <HorizontalGridLines style={{ stroke: '#3A3E44' }} />
-          <XAxis hideLine tickSize={0} tickTotal={8} />
-          <YAxis hideLine tickSize={0} tickFormat={props.yTickFormat} />
+          <XAxis hideLine tickSize={0} tickTotal={8} style={axisStyle} />
+          <YAxis
+            hideLine
+            tickSize={0}
+            tickFormat={props.yTickFormat}
+            style={axisStyle}
+          />
           <LineSeries
             color={theme.colors.chartLine}
             data={chartData}
@@ -147,6 +156,27 @@ function padSingleDataPoint(chartData: ChartDataPoint[]): ChartDataPoint[] {
   return [singleDataPoint, { x: Date.now(), y: singleDataPoint.y }];
 }
 
+// Add extra points so that horizontal line intervals are shown between actual
+// data points.
+function stepDataPoints(chartData: ChartDataPoint[]): ChartDataPoint[] {
+  const result: ChartDataPoint[] = [];
+  let prev: ChartDataPoint | undefined = undefined;
+
+  for (const p of chartData) {
+    if (prev) {
+      result.push({ x: p.x, y: prev.y });
+    }
+    result.push(p);
+    prev = p;
+  }
+
+  return result;
+}
+
+export function tickPrice(v: number): string {
+  return format('.3f')(v);
+}
+
 export function tickValue(v: number): string {
   return format(Math.abs(v) < 1000 ? '.3' : '.3s')(v);
 }
@@ -155,6 +185,21 @@ export function tickPercent(v: number): string {
   const percentage = v * 100;
 
   return `${format(Math.abs(percentage) < 1000 ? '.3' : '.1s')(percentage)}%`;
+}
+
+export function tickSeries(
+  series: 'tvl' | 'apy' | 'price'
+): (v: number) => string {
+  switch (series) {
+    case 'apy':
+      return tickPercent;
+    case 'tvl':
+      return tickValue;
+    case 'price':
+      return tickPrice;
+    default:
+      return assertNever(series);
+  }
 }
 
 export function convertHistoryPoint(p: HistoryPoint): ChartDataPoint {

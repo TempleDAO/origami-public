@@ -7,6 +7,7 @@ import { Chain, InvestmentConfig } from '@/api/types';
 import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
+import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 export function Page() {
   const am = useApiManager();
@@ -55,10 +56,12 @@ export const PageContent = (props: PageContentProps) => {
 
   const gridItems = investments.map((investment) => {
     const metrics = newLoading(props.cache.metrics.get(investment));
+    const tokenPrice = newLoading(props.cache.tokenPrices.get(investment));
     return makeInvestGridItem(
       papi,
       investment,
       metrics,
+      tokenPrice,
       props.walletAddress ? () => onInvest(investment) : undefined
     );
   });
@@ -83,6 +86,7 @@ function makeInvestGridItem(
   papi: ProviderApi,
   ic: InvestmentConfig,
   metrics: Loading<MetricsResp>,
+  tokenPrice: Loading<DecimalBigNumber>,
   onInvest?: () => Promise<void>
 ): InvestGridItem {
   const chain = papi.chains.get(ic.contractAddress.chainId)?.name || '??';
@@ -90,14 +94,25 @@ function makeInvestGridItem(
     icon: ic.icon,
     name: ic.name,
     description: ic.description,
+    tokenPrice: tokenPrice,
     apy: lmap(metrics, (m) => m.apy),
     tvl: lmap(metrics, (m) => m.tvl),
     chain,
     info: ic.info,
     moreInfoUrl: ic.moreInfoUrl,
-    getHistory: async (period, metric) => {
+    getHistory: async (period, metricOrPrice) => {
       const investment = await papi.getInvestment(ic);
-      return investment.getHistoricMetric({ period, metric });
+      if (metricOrPrice == 'price') {
+        return papi.getHistoricTokenUsdPrice({
+          token: investment.receiptToken,
+          period,
+        });
+      } else {
+        return investment.getHistoricMetric({
+          period,
+          metric: metricOrPrice,
+        });
+      }
     },
     onInvest,
   };

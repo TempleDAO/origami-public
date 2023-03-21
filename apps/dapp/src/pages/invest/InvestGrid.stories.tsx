@@ -7,6 +7,7 @@ import { InvestGrid } from './InvestGrid';
 import { noop } from '@/utils/noop';
 import { ready } from '@/utils/loading-value';
 import { getHistory } from '@/api/test';
+import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 export default {
   title: 'Components/Content/InvestGrid',
@@ -28,7 +29,7 @@ function gmx(): InvestGridItem {
     description: 'Utility token for the GMX protocol',
     apy: ready(0.121),
     tvl: ready(4860000),
-    peg: ready(0.996),
+    tokenPrice: ready(DecimalBigNumber.parseUnits('1.67', 2)),
     chain: 'ARBITRUM',
     info: poolInfo('GMX'),
     getHistory,
@@ -45,7 +46,7 @@ function glp(): InvestGridItem {
     description: 'Liqudity token for the GMX protocol',
     apy: ready(0.067),
     tvl: ready(84800000),
-    peg: ready(0.992),
+    tokenPrice: ready(DecimalBigNumber.parseUnits('1.23', 2)),
     chain: 'ARBITRUM',
     info: poolInfo('GMX'),
     getHistory,

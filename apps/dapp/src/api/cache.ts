@@ -18,10 +18,14 @@ export interface ApiCache {
 
   // The metrics of each investment
   metrics: MetricsVMap;
+
+  // The token price of each investment
+  tokenPrices: TokenPricesVMap;
 }
 
 export type BalanceMap = VMap<Investment, DecimalBigNumber>;
 export type MetricsVMap = VMap<Investment, MetricsResp>;
+export type TokenPricesVMap = VMap<Investment, DecimalBigNumber>;
 
 export function useCache(
   papi: ProviderApi,
@@ -40,18 +44,28 @@ export function useCache(
     () => new VMap(investmentKey)
   );
 
+  const [tokenPrices, setTokenPrices] = useState<TokenPricesVMap>(
+    () => new VMap(investmentKey)
+  );
+
   useEffect(() => {
     async function loadMetrics(investment: Investment) {
       const metrics = await investment.getMetrics();
       setMetrics((mmap) => mmap.withPut(investment, metrics));
     }
 
+    async function loadTokenPrices(investment: Investment) {
+      const price = await papi.getTokenUsdPrice(investment.receiptToken);
+      setTokenPrices((pmap) => pmap.withPut(investment, price));
+    }
+
     if (isReady(investments)) {
       for (const investment of investments.value) {
         loadMetrics(investment);
+        loadTokenPrices(investment);
       }
     }
-  }, [investments]);
+  }, [investments, papi]);
 
   const cache = useMemo(
     () => ({
@@ -59,8 +73,9 @@ export function useCache(
       balances,
       refreshBalances,
       metrics,
+      tokenPrices,
     }),
-    [investments, balances, refreshBalances, metrics]
+    [investments, balances, refreshBalances, metrics, tokenPrices]
   );
 
   return cache;

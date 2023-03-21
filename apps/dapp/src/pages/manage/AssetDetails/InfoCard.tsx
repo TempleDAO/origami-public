@@ -17,8 +17,7 @@ import { Tooltip } from '@/components/commons/Tooltip';
 import {
   convertHistoryPoint,
   HistoricLineChart,
-  tickPercent,
-  tickValue,
+  tickSeries,
 } from '@/components/HistoricLineChart';
 import { Text } from '@/components/commons/Text';
 import { useAsyncLoad } from '@/hooks/use-async-result';
@@ -78,12 +77,9 @@ export const InfoCard: FC<InfoCardProps> = ({
           values={values}
           histPeriod={histPeriod}
           setHistPeriod={setHistPeriod}
-          yTickFormat={
-            histSeries.kind == 'investment-metric' &&
-            histSeries.metric === 'apy'
-              ? tickPercent
-              : tickValue
-          }
+          yTickFormat={tickSeries(
+            histSeries.kind == 'investment-metric' ? histSeries.metric : 'price'
+          )}
         />
       </ChartContainer>
     </Container>

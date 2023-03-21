@@ -8,15 +8,18 @@ import { LoadingText } from '@/components/commons/LoadingText';
 import {
   convertHistoryPoint,
   HistoricLineChart,
-  tickPercent,
-  tickValue,
+  tickSeries,
 } from '@/components/HistoricLineChart';
 import { AsyncButton } from '@/components/commons/Button';
 
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
-import { formatNumber, formatPercent } from '@/utils/formatNumber';
+import {
+  formatDecimalBigNumber,
+  formatNumber,
+  formatPercent,
+} from '@/utils/formatNumber';
 import { lmap, Loading } from '@/utils/loading-value';
 
 import { theme } from '@/styles/theme';
@@ -24,18 +27,23 @@ import { textH3, textH5, textP1 } from '@/styles/mixins/text-styles';
 import { tabActiveGradientStyles } from '@/styles/mixins/tab-styles';
 import breakpoints from '@/styles/responsive-breakpoints';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
+import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 export interface InvestGridItem {
   icon: string;
   name: string;
   description: string;
+  tokenPrice: Loading<DecimalBigNumber>;
   apy: Loading<number>;
   tvl: Loading<number>;
   peg?: Loading<number>;
   chain: string;
   info: string;
   moreInfoUrl?: string;
-  getHistory(period: HistoricPeriod, series: Metric): Promise<HistoryPoint[]>;
+  getHistory(
+    period: HistoricPeriod,
+    series: MetricOrPrice
+  ): Promise<HistoryPoint[]>;
   onInvest?(): Promise<void>;
 }
 
@@ -48,14 +56,15 @@ export function InvestGrid(props: InvestGridProps): JSX.Element {
   const [iexpanded, setIExpanded] = useState<number | undefined>(
     props.expanded
   );
-  const [histSeries, setHistSeries] = useState<Metric>('apy');
+  const [histSeries, setHistSeries] = useState<MetricOrPrice>('apy');
   const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('day');
 
   const headings = (
     <HeadingGrid>
-      <Heading col={2}>APY</Heading>
-      <Heading col={3}>TVL</Heading>
-      <Heading col={4}>CHAIN</Heading>
+      <Heading col={2}>PRICE</Heading>
+      <Heading col={3}>APY</Heading>
+      <Heading col={4}>TVL</Heading>
+      <Heading col={5}>CHAIN</Heading>
     </HeadingGrid>
   );
 
@@ -88,8 +97,8 @@ interface ItemFragmentProps {
   onExpand: () => void;
   histPeriod: HistoricPeriod;
   setHistPeriod(p: HistoricPeriod): void;
-  histSeries: Metric;
-  setHistSeries(s: Metric): void;
+  histSeries: MetricOrPrice;
+  setHistSeries(s: MetricOrPrice): void;
 }
 
 function ItemFragment({
@@ -114,6 +123,18 @@ function ItemFragment({
           </NameHolder>
         </IconNameHolder>
 
+        <GridValue
+          active={isExpanded && histSeries === 'price'}
+          onClick={() => {
+            isExpanded || onExpand();
+            setHistSeries('price');
+          }}
+        >
+          <LoadingText
+            value={lmap(item.tokenPrice, formatDecimalBigNumber)}
+            suffix={<SuffixSpan> USD {!isDesktop && ' PRICE'}</SuffixSpan>}
+          />
+        </GridValue>
         <GridValue
           active={isExpanded && histSeries === 'apy'}
           onClick={() => {
@@ -162,9 +183,11 @@ function ItemFragment({
   );
 }
 
+type MetricOrPrice = Metric | 'price';
+
 interface ExpandedItemFragmentProps {
   item: InvestGridItem;
-  histSeries: Metric;
+  histSeries: MetricOrPrice;
   setHistPeriod(s: HistoricPeriod): void;
   histPeriod: HistoricPeriod;
 }
@@ -189,7 +212,7 @@ function ExpandedItemFragment({
           values={values}
           histPeriod={histPeriod}
           setHistPeriod={setHistPeriod}
-          yTickFormat={histSeries === 'apy' ? tickPercent : tickValue}
+          yTickFormat={tickSeries(histSeries)}
         />
       </Graph>
       <InfoBox>
@@ -225,7 +248,7 @@ const CardColumn = styled.section`
 const HeadingGrid = styled.div`
   width: 100%;
   display: none;
-  grid-template-columns: 6fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 6fr 1fr 1fr 1fr 1fr 1fr;
   ${breakpoints.md(`
     display: grid;
   `)}
@@ -251,9 +274,9 @@ const Card = styled.div`
 const CardContent = styled.div`
   display: grid;
   row-gap: 1rem;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   ${breakpoints.md(`
-    grid-template-columns: 6fr 1fr 1fr 1fr 1fr;
+    grid-template-columns: 6fr 1fr 1fr 1fr 1fr 1fr;
   `)}
 `;
 
@@ -325,7 +348,7 @@ const ButtonHolder = styled.div`
 
   ${breakpoints.md(`
     margin-bottom: 0;
-    grid-column: 5;
+    grid-column: 6;
     button {
     min-width: initial;
   }
@@ -348,7 +371,7 @@ const Graph = styled.div`
     margin-bottom: 0;
   }
   ${breakpoints.md(`
-    grid-column: 1/4;
+    grid-column: 1/5;
   `)}
 `;
 
@@ -362,7 +385,7 @@ export const InfoBox = styled.div`
   }
   grid-column: 1/-1;
   ${breakpoints.md(`
-      grid-column: 4 / span 2;
+      grid-column: 5 / span 2;
       margin: 0 1rem;
     `)}
 `;
