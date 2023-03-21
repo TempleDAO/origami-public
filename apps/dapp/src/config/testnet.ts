@@ -37,6 +37,7 @@ const MUMBAI: Chain = {
     transactionUrl: (hash) => `https://mumbai.polygonscan.com/tx/${hash}`,
     tokenUrl: (hash) => `https://mumbai.polygonscan.com/token/${hash}`,
   },
+  iconName: 'arbitrum',
 };
 
 const MUMBAI_PRICE_CONTRACT: PriceContractConfig = {

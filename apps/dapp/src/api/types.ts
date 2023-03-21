@@ -17,6 +17,7 @@ export interface Chain {
   rpcUrl: string;
   walletRpcUrl: string;
   subgraphUrl: string;
+  iconName: string;
 }
 
 export interface ChainExplorer {

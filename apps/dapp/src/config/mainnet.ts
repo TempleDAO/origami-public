@@ -20,6 +20,7 @@ const _ARBITRUM: Chain = {
     transactionUrl: (hash) => `https://arbiscan.io/tx/${hash}`,
     tokenUrl: (hash) => `https://arbiscan.io/token/${hash}`,
   },
+  iconName: 'arbitrum',
 };
 
 const _AVALANCHE: Chain = {
@@ -37,4 +38,5 @@ const _AVALANCHE: Chain = {
     transactionUrl: (hash) => `https://snowtrace.io/tx/${hash}`,
     tokenUrl: (hash) => `https://snowtrace.io/token${hash}`,
   },
+  iconName: 'error', // TODO: create icon
 };

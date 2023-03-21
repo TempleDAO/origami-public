@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { InvestGrid, InvestGridItem } from './InvestGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
-import { Chain, InvestmentConfig } from '@/api/types';
+import { Chain, Investment, InvestmentConfig } from '@/api/types';
 import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
@@ -84,12 +84,11 @@ export const PageContent = (props: PageContentProps) => {
 
 function makeInvestGridItem(
   papi: ProviderApi,
-  ic: InvestmentConfig,
+  ic: Investment,
   metrics: Loading<MetricsResp>,
   tokenPrice: Loading<DecimalBigNumber>,
   onInvest?: () => Promise<void>
 ): InvestGridItem {
-  const chain = papi.chains.get(ic.contractAddress.chainId)?.name || '??';
   return {
     icon: ic.icon,
     name: ic.name,
@@ -97,7 +96,7 @@ function makeInvestGridItem(
     tokenPrice: tokenPrice,
     apy: lmap(metrics, (m) => m.apy),
     tvl: lmap(metrics, (m) => m.tvl),
-    chain,
+    chain: ic.chain,
     info: ic.info,
     moreInfoUrl: ic.moreInfoUrl,
     getHistory: async (period, metricOrPrice) => {

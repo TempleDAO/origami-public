@@ -87,15 +87,7 @@ class TestProviderApiImpl implements TestProviderApi {
 
   constructor() {
     const a = arbitrum();
-    this.chains.put(a.id, {
-      name: a.name,
-      id: a.id,
-      nativeCurrency: a.nativeCurrency,
-      rpcUrl: 'http://something',
-      walletRpcUrl: 'http://something',
-      subgraphUrl: 'http://something',
-      explorer: dummyExplorer(),
-    });
+    this.chains.put(a.id, a);
   }
 
   async getToken(config: TokenConfig): Promise<Token> {
@@ -250,6 +242,7 @@ export function arbitrum(): Chain {
     rpcUrl: 'http://somewhere',
     walletRpcUrl: 'http://somewhere',
     subgraphUrl: 'http://somewhere',
+    iconName: 'arbitrum',
   };
 }
 

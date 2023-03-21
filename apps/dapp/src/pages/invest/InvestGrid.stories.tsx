@@ -6,7 +6,7 @@ import { action } from '@storybook/addon-actions';
 import { InvestGrid } from './InvestGrid';
 import { noop } from '@/utils/noop';
 import { ready } from '@/utils/loading-value';
-import { getHistory } from '@/api/test';
+import { arbitrum, getHistory } from '@/api/test';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 export default {
@@ -30,7 +30,7 @@ function gmx(): InvestGridItem {
     apy: ready(0.121),
     tvl: ready(4860000),
     tokenPrice: ready(DecimalBigNumber.parseUnits('1.67', 2)),
-    chain: 'ARBITRUM',
+    chain: arbitrum(),
     info: poolInfo('GMX'),
     getHistory,
     moreInfoUrl:
@@ -47,7 +47,7 @@ function glp(): InvestGridItem {
     apy: ready(0.067),
     tvl: ready(84800000),
     tokenPrice: ready(DecimalBigNumber.parseUnits('1.23', 2)),
-    chain: 'ARBITRUM',
+    chain: arbitrum(),
     info: poolInfo('GMX'),
     getHistory,
     moreInfoUrl:

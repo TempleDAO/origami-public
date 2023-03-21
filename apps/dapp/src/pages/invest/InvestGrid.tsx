@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 
-import type { HistoricPeriod, Metric, HistoryPoint } from '@/api/types';
+import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
 
 import { Icon } from '@/components/commons/Icon';
 import { LoadingText } from '@/components/commons/LoadingText';
@@ -28,6 +28,7 @@ import { tabActiveGradientStyles } from '@/styles/mixins/tab-styles';
 import breakpoints from '@/styles/responsive-breakpoints';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
+import { Tooltip } from '@/components/commons/Tooltip';
 
 export interface InvestGridItem {
   icon: string;
@@ -37,7 +38,7 @@ export interface InvestGridItem {
   apy: Loading<number>;
   tvl: Loading<number>;
   peg?: Loading<number>;
-  chain: string;
+  chain: Chain;
   info: string;
   moreInfoUrl?: string;
   getHistory(
@@ -60,12 +61,14 @@ export function InvestGrid(props: InvestGridProps): JSX.Element {
   const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('day');
 
   const headings = (
-    <HeadingGrid>
-      <Heading col={2}>PRICE</Heading>
-      <Heading col={3}>APY</Heading>
-      <Heading col={4}>TVL</Heading>
-      <Heading col={5}>CHAIN</Heading>
-    </HeadingGrid>
+    <HeadingHolder>
+      <HeadingGrid>
+        <Heading col={2}>PRICE</Heading>
+        <Heading col={3}>APY</Heading>
+        <Heading col={4}>TVL</Heading>
+        <Heading col={5}>CHAIN</Heading>
+      </HeadingGrid>
+    </HeadingHolder>
   );
 
   const items = props.items.map((item: InvestGridItem, i: number) => {
@@ -159,7 +162,13 @@ function ItemFragment({
             suffix={<SuffixSpan> USD {!isDesktop && ' TVL'}</SuffixSpan>}
           />
         </GridValue>
-        <GridValue subdued>{item.chain.toUpperCase()}</GridValue>
+        <GridValue subdued>
+          <Tooltip content={item.chain.name}>
+            <ChainIconHolder>
+              <Icon iconName={item.chain.iconName} />
+            </ChainIconHolder>
+          </Tooltip>
+        </GridValue>
         {isDesktop && (
           <ButtonHolder>
             <AsyncButton
@@ -245,6 +254,12 @@ const CardColumn = styled.section`
   gap: 0.5rem;
 `;
 
+const HeadingHolder = styled.div`
+  display: grid;
+  padding-left: 1rem;
+  padding-right: 1rem;
+`;
+
 const HeadingGrid = styled.div`
   width: 100%;
   display: none;
@@ -265,6 +280,7 @@ const Heading = styled.div<{ col: number }>`
 `;
 
 const Card = styled.div`
+  display: grid;
   padding: 1rem;
   border-radius: 2.5rem;
   background-color: ${({ theme }) => theme.colors.bgMid};
@@ -403,4 +419,8 @@ export const Link = styled.a`
 const SuffixSpan = styled.span`
   ${textH5};
   color: ${({ theme }) => theme.colors.greyLight};
+`;
+
+const ChainIconHolder = styled.div`
+  display: flex;
 `;
