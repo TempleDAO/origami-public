@@ -1,8 +1,8 @@
-import type { HistoricPeriod, HistoryPoint } from '@/api/types';
+import type { HistoryPoint } from '@/api/types';
 import type { Loading } from '@/utils/loading-value';
 
 import { useState, useCallback } from 'react';
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 import { format } from 'd3-format';
 import { format as formatDate } from 'date-fns';
 import {
@@ -29,8 +29,6 @@ export type ChartDataPoint = {
 
 export type HistoricLineChartProps = {
   values: Loading<ChartDataPoint[]>;
-  histPeriod: HistoricPeriod;
-  setHistPeriod: (p: HistoricPeriod) => void;
   yTickFormat: RVTickFormat;
 };
 
@@ -102,34 +100,6 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
       {ldata.value.length === 0 ? (
         <NoResults>No results for this period</NoResults>
       ) : null}
-      {ldata.value.length > 0 && (
-        <GraphDurations>
-          <GraphDuration
-            active={props.histPeriod == 'day'}
-            onClick={() => props.setHistPeriod('day')}
-          >
-            1D
-          </GraphDuration>
-          <GraphDuration
-            active={props.histPeriod == 'week'}
-            onClick={() => props.setHistPeriod('week')}
-          >
-            1W
-          </GraphDuration>
-          <GraphDuration
-            active={props.histPeriod == 'month'}
-            onClick={() => props.setHistPeriod('month')}
-          >
-            1M
-          </GraphDuration>
-          <GraphDuration
-            active={props.histPeriod == 'all'}
-            onClick={() => props.setHistPeriod('all')}
-          >
-            All
-          </GraphDuration>
-        </GraphDurations>
-      )}
     </>
   );
 }
@@ -188,7 +158,7 @@ export function tickPercent(v: number): string {
 }
 
 export function tickSeries(
-  series: 'tvl' | 'apy' | 'price'
+  series: 'tvl' | 'apy' | 'price' | 'reservesPerShare'
 ): (v: number) => string {
   switch (series) {
     case 'apy':
@@ -196,6 +166,8 @@ export function tickSeries(
     case 'tvl':
       return tickValue;
     case 'price':
+      return tickPrice;
+    case 'reservesPerShare':
       return tickPrice;
     default:
       return assertNever(series);
@@ -219,32 +191,8 @@ const ChartWrapper = styled.div`
 `;
 const StyledLoader = styled(LoadingComponent)`
   height: 16.25rem;
-  margin-bottom: 2rem;
-  width: 98%;
-`;
-
-const GraphDurations = styled.div`
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-`;
-
-const GraphDuration = styled.div<{ active?: boolean }>`
-  margin: 0 1em 1em;
-  color: ${({ theme }) => theme.colors.greyLight};
-  cursor: pointer;
-  transition: 300ms ease color;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.white};
-  }
-
-  ${({ active }) =>
-    active &&
-    css`
-      text-decoration-line: underline;
-      color: ${({ theme }) => theme.colors.white};
-    `}
+  height: 100%;
+  width: 100%;
 `;
 
 const NoResults = styled.div`

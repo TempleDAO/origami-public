@@ -29,12 +29,19 @@ import breakpoints from '@/styles/responsive-breakpoints';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { Tooltip } from '@/components/commons/Tooltip';
+import {
+  ChartDurations,
+  ChartFooter,
+  ChartPriceSeries,
+} from '@/components/ChartControls';
 
 export interface InvestGridItem {
   icon: string;
   name: string;
   description: string;
   tokenPrice: Loading<DecimalBigNumber>;
+  receiptToken: string;
+  reserveToken: string;
   apy: Loading<number>;
   tvl: Loading<number>;
   peg?: Loading<number>;
@@ -63,8 +70,8 @@ export function InvestGrid(props: InvestGridProps): JSX.Element {
   const headings = (
     <HeadingHolder>
       <HeadingGrid>
-        <Heading col={2}>PRICE</Heading>
-        <Heading col={3}>APY</Heading>
+        <Heading col={2}>APY</Heading>
+        <Heading col={3}>PRICE</Heading>
         <Heading col={4}>TVL</Heading>
         <Heading col={5}>CHAIN</Heading>
       </HeadingGrid>
@@ -125,19 +132,6 @@ function ItemFragment({
             <LPDescription>{item.description}</LPDescription>
           </NameHolder>
         </IconNameHolder>
-
-        <GridValue
-          active={isExpanded && histSeries === 'price'}
-          onClick={() => {
-            isExpanded || onExpand();
-            setHistSeries('price');
-          }}
-        >
-          <LoadingText
-            value={lmap(item.tokenPrice, formatDecimalBigNumber)}
-            suffix={<SuffixSpan> USD {!isDesktop && ' PRICE'}</SuffixSpan>}
-          />
-        </GridValue>
         <GridValue
           active={isExpanded && histSeries === 'apy'}
           onClick={() => {
@@ -148,6 +142,18 @@ function ItemFragment({
           <LoadingText
             value={lmap(item.apy, formatPercent)}
             suffix={<SuffixSpan> % {!isDesktop && ' APY'}</SuffixSpan>}
+          />
+        </GridValue>
+        <GridValue
+          active={isExpanded && histSeries === 'price'}
+          onClick={() => {
+            isExpanded || onExpand();
+            setHistSeries('price');
+          }}
+        >
+          <LoadingText
+            value={lmap(item.tokenPrice, formatDecimalBigNumber)}
+            suffix={<SuffixSpan> USD {!isDesktop && ' PRICE'}</SuffixSpan>}
           />
         </GridValue>
         <GridValue
@@ -182,6 +188,7 @@ function ItemFragment({
         {isExpanded && (
           <ExpandedItemFragment
             item={item}
+            setHistSeries={setHistSeries}
             histSeries={histSeries}
             setHistPeriod={setHistPeriod}
             histPeriod={histPeriod}
@@ -197,12 +204,14 @@ type MetricOrPrice = Metric | 'price';
 interface ExpandedItemFragmentProps {
   item: InvestGridItem;
   histSeries: MetricOrPrice;
+  setHistSeries(s: MetricOrPrice): void;
   setHistPeriod(s: HistoricPeriod): void;
   histPeriod: HistoricPeriod;
 }
 
 function ExpandedItemFragment({
   item,
+  setHistSeries,
   histSeries,
   setHistPeriod,
   histPeriod,
@@ -219,10 +228,19 @@ function ExpandedItemFragment({
       <Graph>
         <HistoricLineChart
           values={values}
-          histPeriod={histPeriod}
-          setHistPeriod={setHistPeriod}
           yTickFormat={tickSeries(histSeries)}
         />
+        <ChartFooter>
+          <ChartDurations value={histPeriod} onChange={setHistPeriod} />
+          {(histSeries === 'price' || histSeries === 'reservesPerShare') && (
+            <ChartPriceSeries
+              receiptToken={item.receiptToken}
+              reserveToken={item.reserveToken}
+              value={histSeries}
+              onChange={(v) => setHistSeries(v)}
+            />
+          )}
+        </ChartFooter>
       </Graph>
       <InfoBox>
         <p>{item.info}</p>
@@ -380,7 +398,7 @@ const Graph = styled.div`
   height: 18.75rem;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   justify-content: center;
   grid-column: 1/-1;
   div {

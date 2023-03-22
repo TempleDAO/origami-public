@@ -2,7 +2,7 @@ import {
   IERC20Metadata,
   IERC20Metadata__factory,
   IOrigamiInvestment,
-  IOrigamiInvestment__factory,
+  IOrigamiInvestmentVault__factory,
 } from '@/typechain';
 import {
   chainIdKey,
@@ -68,6 +68,7 @@ import { ITokenPrices__factory } from '@/typechain/factories/ITokenPrices__facto
 import { ITokenPrices } from '@/typechain/ITokenPrices';
 import { first, matchEvents } from './utils';
 import { asyncNever } from '@/utils/noop';
+import { assertNever } from '@/utils/assert';
 
 export interface ApiConfig {
   chains: Chain[];
@@ -219,7 +220,7 @@ class ProviderApiImpl implements ProviderApi {
     const chainId = ic.contractAddress.chainId;
     const chain = this.getChain(chainId);
     const provider = this.getProvider(chainId);
-    const contract = IOrigamiInvestment__factory.connect(
+    const contract = IOrigamiInvestmentVault__factory.connect(
       ic.contractAddress.address,
       provider
     );
@@ -230,6 +231,9 @@ class ProviderApiImpl implements ProviderApi {
       address: receiptTokenAddr,
       chainId,
     });
+
+    const address = await contract.reserveToken();
+    const reserveToken = await this.getToken({ address, chainId: chain.id });
 
     const acceptedInvestTokens = createMemoizedAsyncValue(async () => {
       return this.getAcceptedTokens(
@@ -273,6 +277,7 @@ class ProviderApiImpl implements ProviderApi {
       ...ic,
       chain,
       receiptToken,
+      reserveToken,
       acceptedInvestTokens,
       acceptedExitTokens,
       getMetrics,
@@ -447,13 +452,22 @@ class ProviderApiImpl implements ProviderApi {
       );
       const result = await subgraphQuery(url, query);
       return result.investmentVaultHourlySnapshots.map((p) => {
-        return {
-          t: dateFromTimestamp(p.timeframe),
-          v:
-            req.metric == 'apy'
-              ? percentFromSubgraph(p.apy)
-              : parseFloat(p.tvlUSD),
-        };
+        const t = dateFromTimestamp(p.timeframe);
+        let v: number;
+        switch (req.metric) {
+          case 'apy':
+            v = percentFromSubgraph(p.apy);
+            break;
+          case 'tvl':
+            v = parseFloat(p.tvlUSD);
+            break;
+          case 'reservesPerShare':
+            v = parseFloat(p.reservesPerShare);
+            break;
+          default:
+            assertNever(req.metric);
+        }
+        return { t, v };
       });
     } else {
       const query = queryInvestmentVaultDailySnapshots(
@@ -462,13 +476,22 @@ class ProviderApiImpl implements ProviderApi {
       );
       const result = await subgraphQuery(url, query);
       return result.investmentVaultDailySnapshots.map((p) => {
-        return {
-          t: dateFromTimestamp(p.timeframe),
-          v:
-            req.metric == 'apy'
-              ? percentFromSubgraph(p.apy)
-              : parseFloat(p.tvlUSD),
-        };
+        const t = dateFromTimestamp(p.timeframe);
+        let v: number;
+        switch (req.metric) {
+          case 'apy':
+            v = percentFromSubgraph(p.apy);
+            break;
+          case 'tvl':
+            v = parseFloat(p.tvlUSD);
+            break;
+          case 'reservesPerShare':
+            v = parseFloat(p.reservesPerShare);
+            break;
+          default:
+            assertNever(req.metric);
+        }
+        return { t, v };
       });
     }
   }
@@ -510,7 +533,7 @@ class ProviderApiImpl implements ProviderApi {
 
   private async investQuote_(req: InvestQuoteReq): Promise<InvestQuoteResp> {
     const provider = this.getProvider(req.investment.chain.id);
-    const contract = IOrigamiInvestment__factory.connect(
+    const contract = IOrigamiInvestmentVault__factory.connect(
       req.investment.contractAddress.address,
       provider
     );
@@ -551,7 +574,7 @@ class ProviderApiImpl implements ProviderApi {
 
   private async exitQuote_(req: ExitQuoteReq): Promise<ExitQuoteResp> {
     const provider = this.getProvider(req.investment.chain.id);
-    const contract = IOrigamiInvestment__factory.connect(
+    const contract = IOrigamiInvestmentVault__factory.connect(
       req.investment.contractAddress.address,
       provider
     );
@@ -635,7 +658,7 @@ class SignerApiImpl implements SignerApi {
     }
     const chain = this.getChain(chainId);
 
-    const investmentContract = IOrigamiInvestment__factory.connect(
+    const investmentContract = IOrigamiInvestmentVault__factory.connect(
       req.quote.investment.contractAddress.address,
       this.signer
     );
@@ -732,7 +755,7 @@ class SignerApiImpl implements SignerApi {
     }
     const toAmountDecimals = tokenOrNativeAmountDecimals(req.quote.to);
 
-    const investmentContract = IOrigamiInvestment__factory.connect(
+    const investmentContract = IOrigamiInvestmentVault__factory.connect(
       req.quote.investment.contractAddress.address,
       this.signer
     );

@@ -313,6 +313,7 @@ export function gmxInvestment(): Investment {
     description: 'Origami investment in the GMX utility token',
     supportedAssetsDescription: 'GMX',
     receiptToken: ovGmx(),
+    reserveToken: gmx(),
     acceptedInvestTokens: acceptedTokens.get,
     acceptedExitTokens: acceptedTokens.get,
     getMetrics,
@@ -358,6 +359,7 @@ export function glpInvestment(): Investment {
     supportedAssetsDescription:
       'staked GLP or one of the underlying GLP assets',
     receiptToken: ovGlp(),
+    reserveToken: glp(),
     acceptedInvestTokens: acceptedTokens.get,
     acceptedExitTokens: acceptedTokens.get,
     getMetrics,
@@ -466,6 +468,9 @@ export async function getHistory(
       result = TVL_DATA;
       break;
     case 'price':
+      result = PRICE_DATA;
+      break;
+    case 'reservesPerShare':
       result = PRICE_DATA;
       break;
     default:

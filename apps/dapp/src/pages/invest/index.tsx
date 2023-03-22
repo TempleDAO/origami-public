@@ -99,6 +99,8 @@ function makeInvestGridItem(
     chain: ic.chain,
     info: ic.info,
     moreInfoUrl: ic.moreInfoUrl,
+    receiptToken: ic.receiptToken.symbol,
+    reserveToken: ic.reserveToken.symbol,
     getHistory: async (period, metricOrPrice) => {
       const investment = await papi.getInvestment(ic);
       if (metricOrPrice == 'price') {
@@ -125,6 +127,8 @@ export const InfoBox = styled.div`
 const FlexDown = styled.div`
   display: flex;
   flex-direction: column;
+  padding: 1rem 0;
+  width: 100%;
 `;
 
 const Title = styled.div`

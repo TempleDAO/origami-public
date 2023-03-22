@@ -32,6 +32,8 @@ function gmx(): InvestGridItem {
     tokenPrice: ready(DecimalBigNumber.parseUnits('1.67', 2)),
     chain: arbitrum(),
     info: poolInfo('GMX'),
+    receiptToken: 'ovGMX',
+    reserveToken: 'oGMX',
     getHistory,
     moreInfoUrl:
       'https://arbiscan.io/token/0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
@@ -48,7 +50,9 @@ function glp(): InvestGridItem {
     tvl: ready(84800000),
     tokenPrice: ready(DecimalBigNumber.parseUnits('1.23', 2)),
     chain: arbitrum(),
-    info: poolInfo('GMX'),
+    info: poolInfo('GLP'),
+    receiptToken: 'ovGLP',
+    reserveToken: 'oGLP',
     getHistory,
     moreInfoUrl:
       'https://arbiscan.io/token/0x4277f8f2c384827b5273592ff7cebd9f2c1ac258',

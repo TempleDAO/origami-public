@@ -23,6 +23,7 @@ export function queryInvestmentVaultMetrics(
       timestamp
       apy
       tvlUSD
+      reservesPerShare
     }
   }
   `;
@@ -65,6 +66,7 @@ export function queryInvestmentVaultHourlySnapshots(
       timestamp
       apy
       tvlUSD
+      reservesPerShare
     }
   }
   `;
@@ -83,6 +85,7 @@ const InvestmentVaultHourlySnapshotsResp = z.object({
       timestamp: z.string(),
       apy: z.string(),
       tvlUSD: z.string(),
+      reservesPerShare: z.string(),
     })
   ),
 });
@@ -110,6 +113,7 @@ export function queryInvestmentVaultDailySnapshots(
       timestamp
       apy
       tvlUSD
+      reservesPerShare
     }
   }
   `;
@@ -128,6 +132,7 @@ const InvestmentVaultDailySnapshotsResp = z.object({
       timestamp: z.string(),
       apy: z.string(),
       tvlUSD: z.string(),
+      reservesPerShare: z.string(),
     })
   ),
 });

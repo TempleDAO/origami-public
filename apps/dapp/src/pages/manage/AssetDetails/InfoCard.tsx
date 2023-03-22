@@ -24,6 +24,11 @@ import { useAsyncLoad } from '@/hooks/use-async-result';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
 import { textH2, textH3 } from '@/styles/mixins/text-styles';
 import { tabActiveGradientStyles } from '@/styles/mixins/tab-styles';
+import {
+  ChartDurations,
+  ChartFooter,
+  ChartPriceSeries,
+} from '@/components/ChartControls';
 
 export type HistoricSeries =
   | { kind: 'investment-metric'; investment: Investment; metric: Metric }
@@ -41,6 +46,8 @@ type InfoCardProps = {
     receiptToken: Loading<string>;
   };
 };
+
+type MetricOrPrice = Metric | 'price';
 
 export const InfoCard: FC<InfoCardProps> = ({
   apy,
@@ -61,6 +68,19 @@ export const InfoCard: FC<InfoCardProps> = ({
     [histPeriod, histSeries]
   );
 
+  const metricOrPrice =
+    histSeries.kind == 'investment-metric' ? histSeries.metric : 'price';
+  function setMetricOrPrice(m: MetricOrPrice) {
+    switch (m) {
+      case 'price':
+        setHistSeries({ kind: 'token-price', token: investment.receiptToken });
+        break;
+      default:
+        setHistSeries({ kind: 'investment-metric', investment, metric: m });
+        break;
+    }
+  }
+
   return (
     <Container>
       <Header investment={investment} />
@@ -75,12 +95,22 @@ export const InfoCard: FC<InfoCardProps> = ({
       <ChartContainer>
         <HistoricLineChart
           values={values}
-          histPeriod={histPeriod}
-          setHistPeriod={setHistPeriod}
           yTickFormat={tickSeries(
             histSeries.kind == 'investment-metric' ? histSeries.metric : 'price'
           )}
         />
+        <ChartFooter>
+          <ChartDurations value={histPeriod} onChange={setHistPeriod} />
+          {(metricOrPrice === 'price' ||
+            metricOrPrice === 'reservesPerShare') && (
+            <ChartPriceSeries
+              receiptToken={investment.receiptToken.symbol}
+              reserveToken={investment.reserveToken.symbol}
+              value={metricOrPrice}
+              onChange={(v) => setMetricOrPrice(v)}
+            />
+          )}
+        </ChartFooter>
       </ChartContainer>
     </Container>
   );

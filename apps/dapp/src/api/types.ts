@@ -66,6 +66,7 @@ export interface Investment extends InvestmentConfig {
   chain: Chain;
 
   receiptToken: Token;
+  reserveToken: Token;
   acceptedInvestTokens(): Promise<TokenOrNative[]>;
   acceptedExitTokens(): Promise<TokenOrNative[]>;
   getMetrics(): Promise<MetricsResp>;
@@ -83,4 +84,4 @@ export interface HistoryPoint {
   v: number;
 }
 
-export type Metric = 'tvl' | 'apy';
+export type Metric = 'tvl' | 'apy' | 'reservesPerShare';
