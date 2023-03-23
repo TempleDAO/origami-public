@@ -75,7 +75,11 @@ const AnimationContainer = styled.div`
 const HeroLogo = styled(Logo)`
   padding: ${HERO_PADDING_PX}px;
   padding-bottom: 0;
-  height: 100px;
+  height: 70px;
+
+  ${breakpoints.sm(`
+    height: 100px;
+  `)}
 `;
 
 const Container = styled.div`

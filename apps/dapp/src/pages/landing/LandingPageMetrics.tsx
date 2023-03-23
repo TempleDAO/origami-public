@@ -172,7 +172,7 @@ const LoadingIcon = styled(LoadingComponent)`
 const MetricHeader = styled.div`
   display: flex;
   flex-direction: column;
-  width: 15rem;
+  width: 10rem;
 
   h2 {
     margin: 0;
@@ -182,6 +182,10 @@ const MetricHeader = styled.div`
     margin: 0;
     ${textH1}
   }
+
+  ${breakpoints.sm(`
+    width: 15rem;
+  `)}
 `;
 
 const Metric = styled.div`
