@@ -16,6 +16,7 @@ import {
   RVTickFormat,
 } from 'react-vis';
 import { LoadingComponent } from './commons/LoadingComponent';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { isReady } from '@/utils/loading-value';
 import { theme } from '@/styles/theme';
 
@@ -36,6 +37,9 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
   const ldata = props.values;
   const { onMouseLeave, onNearestX, crosshairValues } = useCrosshairs();
 
+  const isMediumScreen = useMediaQuery(theme.responsiveBreakpoints.md);
+  const tickTotalX = isMediumScreen ? 8 : 4;
+
   if (!isReady(ldata)) {
     return <StyledLoader />;
   }
@@ -55,7 +59,12 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
           onMouseLeave={onMouseLeave}
         >
           <HorizontalGridLines style={{ stroke: '#3A3E44' }} />
-          <XAxis hideLine tickSize={0} tickTotal={8} style={axisStyle} />
+          <XAxis
+            hideLine
+            tickSize={0}
+            tickTotal={tickTotalX}
+            style={axisStyle}
+          />
           <YAxis
             hideLine
             tickSize={0}
