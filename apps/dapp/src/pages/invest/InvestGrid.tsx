@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 
 import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
 
@@ -123,7 +123,7 @@ function ItemFragment({
   const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
 
   return (
-    <Card>
+    <Card isExpanded={isExpanded}>
       <CardContent>
         <IconNameHolder onClick={onExpand}>
           <Icon iconName={item.icon} hasBackground />
@@ -265,6 +265,20 @@ function ExpandedItemFragment({
   );
 }
 
+const expandingKeyframes = keyframes`
+  0% {
+    height: 0;
+    transition: height 0.5s;
+    overflow: hidden;
+  }
+
+  100% {
+    height: 367px;
+    transition: height 0.5s;
+    overflow: hidden;
+  }
+`;
+
 const CardColumn = styled.section`
   margin: 1rem 0;
   display: flex;
@@ -297,12 +311,18 @@ const Heading = styled.div<{ col: number }>`
   `)}
 `;
 
-const Card = styled.div`
+const Card = styled.div<{ isExpanded: boolean }>`
   display: grid;
   padding: 1rem;
   border-radius: 2.5rem;
   background-color: ${({ theme }) => theme.colors.bgMid};
   ${sunkenStyles};
+
+  ${({ isExpanded }) =>
+    isExpanded &&
+    css`
+      animation: ${expandingKeyframes} 0.2s linear;
+    `}
 `;
 
 const CardContent = styled.div`
