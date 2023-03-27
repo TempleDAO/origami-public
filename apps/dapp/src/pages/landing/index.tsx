@@ -38,7 +38,7 @@ export const PageContent: FC<PageContentProps> = ({ cache }) => {
           <Feature
             imgSrc="/no-locking.svg"
             title="No Locking"
-            text="Fully liquid staking means you can withdraw GMX or GLP from our vault at anytime without vesting"
+            text="Fully liquid staking means you can withdraw GMX or GLP from our vault at anytime without&nbsp;vesting"
           />
         </Features>
         <EnterDapp>
@@ -80,13 +80,15 @@ const Feature: FC<FeatureProps> = ({ imgSrc, title, text }) => (
 const Features = styled.div`
   display: flex;
   justify-content: center;
+  align-items: center;
   flex-direction: column;
   flex-wrap: wrap;
-  align-items: center;
   gap: 40px;
 
   ${breakpoints.sm(`
     flex-direction: row;
+    align-items: start;
+    justify-content: space-evenly;
   `)}
 `;
 
