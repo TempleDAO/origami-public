@@ -123,12 +123,4 @@ export const StyledButton = styled.button<{
   ${breakpoints.md(`
     font-size: 1rem;
   `)}
-
-  ${breakpoints.max(
-    450,
-    `
-    min-width: unset;
-    flex-basis: 9.375rem;
-    `
-  )}
 `;
