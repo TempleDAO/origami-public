@@ -15,7 +15,7 @@ export function createUserInvestment(event: InvestedVault): UserInvestment {
 
   const investmentVault = getOrCreateInvestmentVault(event.address, timestamp)
   const user = getOrCreateUser(event.params.user, timestamp)
-  const userBalance = getOrCreateUserBalance(user, investmentVault.id, timestamp)
+  const userBalance = getOrCreateUserBalance(user, investmentVault, timestamp)
 
   const fromToken = getOrCreateToken(event.params.fromToken, timestamp)
   const fromTokenAmount = toDecimal(event.params.fromTokenAmount, fromToken.decimals)
@@ -45,8 +45,9 @@ export function createUserInvestment(event: InvestedVault): UserInvestment {
   investmentVault.volumeUSD = investmentVault.volumeUSD.plus(toTokenAmount.times(toToken.price))
   updateInvestmentVault(investmentVault, timestamp)
 
-  userBalance.investment = investmentVault.id
-  userBalance.investAmount = userBalance.investAmount.plus(toTokenAmount)
+  const investAmount = userBalance.investAmount.plus(toTokenAmount)
+  userBalance.investAmount = investAmount
+  userBalance.investAmountUSD = investAmount.times(toToken.price)
   userBalance.investVolume = userBalance.investVolume.plus(toTokenAmount)
   userBalance.investCount += 1
   updateUserBalance(userBalance, timestamp)

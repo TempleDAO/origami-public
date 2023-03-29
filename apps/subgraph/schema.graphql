@@ -112,10 +112,10 @@ type UserBalance @entity {
   id: ID!
   timestamp: BigInt!
   user: User!
-  investment: Investment
-  investmentVault: InvestmentVault
+  investmentVault: InvestmentVault!
   enterInvestTimestamp: BigInt!
   investAmount: BigDecimal!
+  investAmountUSD: BigDecimal!
   investVolume: BigDecimal!
   investCount: Int!
   exitCount: Int!
@@ -129,10 +129,10 @@ type UserBalanceSnapshot @entity(immutable: true) {
   timestamp: BigInt!
   userBalance: UserBalance!
   user: User!
-  investment: Investment
-  investmentVault: InvestmentVault
+  investmentVault: InvestmentVault!
   enterInvestTimestamp: BigInt!
   investAmount: BigDecimal!
+  investAmountUSD: BigDecimal!
   investVolume: BigDecimal!
   investCount: Int!
   exitCount: Int!

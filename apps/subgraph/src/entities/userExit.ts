@@ -15,7 +15,7 @@ export function createUserExit(event: ExitedVault): UserExit {
 
   const investmentVault = getOrCreateInvestmentVault(event.address, timestamp)
   const user = getOrCreateUser(event.params.user, timestamp)
-  const userBalance = getOrCreateUserBalance(user, investmentVault.id, timestamp)
+  const userBalance = getOrCreateUserBalance(user, investmentVault, timestamp)
 
   const fromToken = getPricedToken(investmentVault.id, timestamp)
   const fromTokenAmount = toDecimal(event.params.investmentAmount, fromToken.decimals)
@@ -39,6 +39,7 @@ export function createUserExit(event: ExitedVault): UserExit {
   if (investAmount <= BIG_DECIMAL_0) {
     investmentVault.userCount -= 1
     userBalance.enterInvestTimestamp = BIG_INT_0
+    userBalance.investAmountUSD = BIG_DECIMAL_0
   }
 
   investmentVault.tvl = investmentVault.tvl.minus(fromTokenAmount)
@@ -47,8 +48,8 @@ export function createUserExit(event: ExitedVault): UserExit {
   investmentVault.volumeUSD = investmentVault.volumeUSD.plus(fromTokenAmount.times(fromToken.price))
   updateInvestmentVault(investmentVault, timestamp)
 
-  userBalance.investment = investmentVault.id
   userBalance.investAmount = investAmount
+  userBalance.investAmountUSD = investAmount.times(fromToken.price)
   userBalance.investVolume = userBalance.investVolume.plus(fromTokenAmount)
   userBalance.exitCount += 1
   updateUserBalance(userBalance, timestamp)
