@@ -9,7 +9,7 @@ import { Button } from '@/components/commons/Button';
 import { Select } from '@/components/commons/Select';
 import { Icon } from '@/components/commons/Icon';
 import { LoadingText } from '@/components/commons/LoadingText';
-import { isReady, lmap, loading, ready } from '@/utils/loading-value';
+import { isReady, lmap, lmap2, loading, ready } from '@/utils/loading-value';
 import { useAsyncLoad, useAsyncResult } from '@/hooks/use-async-result';
 import { runExit } from './types';
 
@@ -69,11 +69,6 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
   const [exitUsdPrice] = useAsyncLoad(async () => {
     return tokenOrNativeUsdPrice(papi, exitTo);
   }, [papi, investment.chain, exitTo]);
-
-  const exitUsdValue = lmap(
-    exitUsdPrice,
-    (price) => debouncedExitAmount && debouncedExitAmount.mul(price)
-  );
 
   const [quote] = useAsyncResult(
     loading<ExitQuoteResp>(),
@@ -182,8 +177,8 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
         <div>
           {exitAmountState.isModified() ? (
             <LoadingText
-              value={lmap(exitUsdValue, (v) =>
-                v ? formatDecimalBigNumber(v) : ''
+              value={lmap2([quote, exitUsdPrice], (q, p) =>
+                formatDecimalBigNumber(q.expectedToAmount.mul(p))
               )}
             />
           ) : (
