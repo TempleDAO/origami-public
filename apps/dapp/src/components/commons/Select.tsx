@@ -1,6 +1,17 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import ReactSelect from 'react-select';
 import { textH2 } from '@/styles/mixins/text-styles';
+
+const openingKeyframes = keyframes`
+  0% {
+    opacity: 0;
+    transform: translateY(-1rem);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
 
 export const Select = styled(ReactSelect).attrs({
   classNamePrefix: 'react-select',
@@ -60,6 +71,7 @@ export const Select = styled(ReactSelect).attrs({
     background-color: ${({ theme }) => theme.colors.bgDark};
     margin: 0;
     top: 80%;
+    animation: ${openingKeyframes} 0.2s ease-in-out;
   }
 
   .react-select__option {
