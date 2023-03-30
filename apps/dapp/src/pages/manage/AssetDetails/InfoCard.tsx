@@ -26,7 +26,7 @@ import { textH2, textH3 } from '@/styles/mixins/text-styles';
 import { tabActiveGradientStyles } from '@/styles/mixins/tab-styles';
 import {
   ChartDurations,
-  ChartFooter,
+  ChartHeader,
   ChartPriceSeries,
 } from '@/components/ChartControls';
 
@@ -93,13 +93,7 @@ export const InfoCard: FC<InfoCardProps> = ({
         setHistSeries={setHistSeries}
       />
       <ChartContainer>
-        <HistoricLineChart
-          values={values}
-          yTickFormat={tickSeries(
-            histSeries.kind == 'investment-metric' ? histSeries.metric : 'price'
-          )}
-        />
-        <ChartFooter>
+        <ChartHeader>
           <ChartDurations value={histPeriod} onChange={setHistPeriod} />
           {(metricOrPrice === 'price' ||
             metricOrPrice === 'reservesPerShare') && (
@@ -110,7 +104,13 @@ export const InfoCard: FC<InfoCardProps> = ({
               onChange={(v) => setMetricOrPrice(v)}
             />
           )}
-        </ChartFooter>
+        </ChartHeader>
+        <HistoricLineChart
+          values={values}
+          yTickFormat={tickSeries(
+            histSeries.kind == 'investment-metric' ? histSeries.metric : 'price'
+          )}
+        />
       </ChartContainer>
     </Container>
   );

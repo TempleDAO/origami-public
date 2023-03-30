@@ -33,7 +33,7 @@ import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { Tooltip } from '@/components/commons/Tooltip';
 import {
   ChartDurations,
-  ChartFooter,
+  ChartHeader,
   ChartPriceSeries,
 } from '@/components/ChartControls';
 
@@ -147,7 +147,10 @@ function ItemFragment({
           />
         </GridValue>
         <GridValue
-          active={isExpanded && histSeries === 'price'}
+          active={
+            isExpanded &&
+            (histSeries === 'price' || histSeries === 'reservesPerShare')
+          }
           onClick={() => {
             isExpanded || onExpand();
             setHistSeries('price');
@@ -228,11 +231,7 @@ function ExpandedItemFragment({
   return (
     <>
       <Graph>
-        <HistoricLineChart
-          values={values}
-          yTickFormat={tickSeries(histSeries)}
-        />
-        <ChartFooter>
+        <ChartHeader>
           <ChartDurations value={histPeriod} onChange={setHistPeriod} />
           {(histSeries === 'price' || histSeries === 'reservesPerShare') && (
             <ChartPriceSeries
@@ -242,7 +241,11 @@ function ExpandedItemFragment({
               onChange={(v) => setHistSeries(v)}
             />
           )}
-        </ChartFooter>
+        </ChartHeader>
+        <HistoricLineChart
+          values={values}
+          yTickFormat={tickSeries(histSeries)}
+        />
       </Graph>
       <InfoBox>
         <p>

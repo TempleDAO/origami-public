@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from 'styled-components';
 
 /**
@@ -51,13 +50,18 @@ const Selection = styled.span`
 `;
 
 const CheckedOption = styled.span`
-  text-decoration: underline;
+  background: ${({ theme }) => theme.colors.gradients.primary};
   color: ${({ theme }) => theme.colors.white};
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  border-bottom: 1px solid transparent;
+  border-image: ${({ theme }) => theme.colors.gradients.primary};
+  border-image-slice: 1;
 `;
 
 const UncheckedOption = styled.span`
   transition: 300ms ease color;
   &:hover {
-    color: ${({ theme }) => theme.colors.white};
+    color: ${({ theme }) => theme.colors.greyLight};
   }
 `;

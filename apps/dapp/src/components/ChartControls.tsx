@@ -46,8 +46,9 @@ export function ChartPriceSeries(props: ChartPriceSeriesProps) {
   );
 }
 
-export const ChartFooter = styled.div`
+export const ChartHeader = styled.div`
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-between;
+  padding-bottom: 0.5rem;
 `;
