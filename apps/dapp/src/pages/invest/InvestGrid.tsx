@@ -67,7 +67,7 @@ export function InvestGrid(props: InvestGridProps): JSX.Element {
     props.expanded
   );
   const [histSeries, setHistSeries] = useState<MetricOrPrice>('apy');
-  const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('day');
+  const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('week');
 
   const headings = (
     <HeadingHolder>
