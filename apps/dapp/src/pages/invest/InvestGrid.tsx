@@ -1,7 +1,8 @@
+import type { FC } from 'react';
+import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
+
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
-
-import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
 
 import { Icon } from '@/components/commons/Icon';
 import { LoadingText } from '@/components/commons/LoadingText';
@@ -21,6 +22,7 @@ import {
   formatPercent,
 } from '@/utils/formatNumber';
 import { lmap, Loading } from '@/utils/loading-value';
+import { extractStringLinks } from '@/utils/extract-string-links';
 
 import { theme } from '@/styles/theme';
 import { textH3, textH5, textP1 } from '@/styles/mixins/text-styles';
@@ -243,7 +245,9 @@ function ExpandedItemFragment({
         </ChartFooter>
       </Graph>
       <InfoBox>
-        <p>{item.info}</p>
+        <p>
+          <ItemInfo info={item.info} />
+        </p>
         {item.moreInfoUrl && (
           <p>
             <Link
@@ -264,6 +268,36 @@ function ExpandedItemFragment({
     </>
   );
 }
+
+type ItemInfoProps = {
+  info: string;
+};
+
+const ItemInfo: FC<ItemInfoProps> = ({ info }) => {
+  const { substrings, links } = extractStringLinks(info);
+
+  return (
+    <>
+      {substrings.map((substring, i) => {
+        return (
+          <>
+            <span key={`substring-${i}`}>{substring}</span>
+            {links[i] ? (
+              <Link
+                key={`link-${i}`}
+                href={links[i].url}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {links[i].text}
+              </Link>
+            ) : null}
+          </>
+        );
+      })}
+    </>
+  );
+};
 
 const expandingKeyframes = keyframes`
   0% {

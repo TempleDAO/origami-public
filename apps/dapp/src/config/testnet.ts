@@ -72,7 +72,7 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   description: "GMX's liquidity provider token ($GLP)",
   supportedAssetsDescription: 'staked GLP or one of the underlying GLP assets',
   info: `
-  Investors deposit their existing staked GLP, or one of the underlying GLP assets (https://app.gmx.io/#/buy_glp) and are issued shares in the ovGLP vault.
+  Investors deposit their existing staked GLP, or one of the [underlying GLP assets](https://app.gmx.io/#/buy_glp) and are issued shares in the ovGLP vault.
   The price of ovGLP increases as rewards from staked GLP are harvested and auto-compounded. 
   `,
   moreInfoUrl:
