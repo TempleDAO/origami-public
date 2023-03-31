@@ -69,13 +69,13 @@ export const PageContent = (props: PageContentProps) => {
   return (
     <FlexDown>
       <Title>INVESTMENT VAULTS</Title>
-      <InfoBox>
+      <HeaderText>
         Origami provides auto-compounding investment vaults on a carefully
         selected set of protocols. No staking or locking required.
         <br />
         Your assets are put to work in the most optimal way, and you can exit at
         any time.
-      </InfoBox>
+      </HeaderText>
       <InvestGrid items={gridItems} expanded={0} />
       {activeFlow}
     </FlexDown>
@@ -98,7 +98,6 @@ function makeInvestGridItem(
     tvl: lmap(metrics, (m) => m.tvl),
     chain: ic.chain,
     info: ic.info,
-    moreInfoUrl: ic.moreInfoUrl,
     receiptToken: ic.receiptToken.symbol,
     reserveToken: ic.reserveToken.symbol,
     getHistory: async (period, metricOrPrice) => {
@@ -119,7 +118,7 @@ function makeInvestGridItem(
   };
 }
 
-export const InfoBox = styled.div`
+export const HeaderText = styled.div`
   color: ${({ theme }) => theme.colors.greyLight};
   align-self: stretch;
 `;

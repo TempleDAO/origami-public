@@ -1,4 +1,3 @@
-import type { FC } from 'react';
 import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
 
 import { useState } from 'react';
@@ -22,7 +21,6 @@ import {
   formatPercent,
 } from '@/utils/formatNumber';
 import { lmap, Loading } from '@/utils/loading-value';
-import { extractStringLinks } from '@/utils/extract-string-links';
 
 import { theme } from '@/styles/theme';
 import { textH3, textH5, textP1 } from '@/styles/mixins/text-styles';
@@ -36,6 +34,7 @@ import {
   ChartHeader,
   ChartPriceSeries,
 } from '@/components/ChartControls';
+import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
 
 export interface InvestGridItem {
   icon: string;
@@ -49,7 +48,6 @@ export interface InvestGridItem {
   peg?: Loading<number>;
   chain: Chain;
   info: string;
-  moreInfoUrl?: string;
   getHistory(
     period: HistoricPeriod,
     series: MetricOrPrice
@@ -247,22 +245,7 @@ function ExpandedItemFragment({
           yTickFormat={tickSeries(histSeries)}
         />
       </Graph>
-      <InfoBox>
-        <p>
-          <ItemInfo info={item.info} />
-        </p>
-        {item.moreInfoUrl && (
-          <p>
-            <Link
-              href={item.moreInfoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              More info
-            </Link>
-          </p>
-        )}
-      </InfoBox>
+      <InvestmentInfoForGrid>{item.info}</InvestmentInfoForGrid>
       {!isDesktop && (
         <ButtonHolder>
           <AsyncButton label="INVEST" secondary wide onClick={item.onInvest} />
@@ -272,35 +255,14 @@ function ExpandedItemFragment({
   );
 }
 
-type ItemInfoProps = {
-  info: string;
-};
+const InvestmentInfoForGrid = styled(InvestmentInfo)`
+  grid-column: 1 / -1;
 
-const ItemInfo: FC<ItemInfoProps> = ({ info }) => {
-  const { substrings, links } = extractStringLinks(info);
-
-  return (
-    <>
-      {substrings.map((substring, i) => {
-        return (
-          <>
-            <span key={`substring-${i}`}>{substring}</span>
-            {links[i] ? (
-              <Link
-                key={`link-${i}`}
-                href={links[i].url}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {links[i].text}
-              </Link>
-            ) : null}
-          </>
-        );
-      })}
-    </>
-  );
-};
+  ${breakpoints.md(`
+    grid-column: 5 / span 2;
+    margin: 0 1rem;
+  `)}
+`;
 
 const expandingKeyframes = keyframes`
   0% {
@@ -464,21 +426,6 @@ const Graph = styled.div`
   ${breakpoints.md(`
     grid-column: 1/5;
   `)}
-`;
-
-export const InfoBox = styled.div`
-  color: ${({ theme }) => theme.colors.greyLight};
-  align-self: stretch;
-  margin: 0;
-
-  p {
-    margin: 0;
-  }
-  grid-column: 1/-1;
-  ${breakpoints.md(`
-      grid-column: 5 / span 2;
-      margin: 0 1rem;
-    `)}
 `;
 
 export const Link = styled.a`

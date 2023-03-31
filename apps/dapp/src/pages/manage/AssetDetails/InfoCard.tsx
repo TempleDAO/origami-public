@@ -19,7 +19,6 @@ import {
   HistoricLineChart,
   tickSeries,
 } from '@/components/HistoricLineChart';
-import { Text } from '@/components/commons/Text';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
 import { textH2, textH3 } from '@/styles/mixins/text-styles';
@@ -29,6 +28,7 @@ import {
   ChartHeader,
   ChartPriceSeries,
 } from '@/components/ChartControls';
+import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
 
 export type HistoricSeries =
   | { kind: 'investment-metric'; investment: Investment; metric: Metric }
@@ -129,7 +129,7 @@ const Header: FC<{ investment: Investment }> = ({ investment }) => (
         <Subtitle>{investment.description.toUpperCase()}</Subtitle>
       </VerticalFlex>
     </HeaderContainer>
-    <InfoText>{investment.info}</InfoText>
+    <InvestmentInfo>{investment.info}</InvestmentInfo>
   </>
 );
 
@@ -218,17 +218,13 @@ const Container = styled(VerticalFlex)`
   background-color: ${({ theme }) => theme.colors.bgMid};
   ${sunkenStyles}
   padding: 1rem;
+  width: 100%;
 `;
 
 const ChartContainer = styled.div`
   height: 260px;
   margin-bottom: 40px;
   width: 100%;
-`;
-
-const InfoText = styled(Text)`
-  display: inline-block;
-  color: ${({ theme }) => theme.colors.greyLight};
 `;
 
 const HeaderContainer = styled.div`

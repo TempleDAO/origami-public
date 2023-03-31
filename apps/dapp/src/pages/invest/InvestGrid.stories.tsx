@@ -35,8 +35,6 @@ function gmx(): InvestGridItem {
     receiptToken: 'ovGMX',
     reserveToken: 'oGMX',
     getHistory,
-    moreInfoUrl:
-      'https://arbiscan.io/token/0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
     onInvest: async () => action('onInvest gmx')(),
   };
 }
@@ -54,8 +52,6 @@ function glp(): InvestGridItem {
     receiptToken: 'ovGLP',
     reserveToken: 'oGLP',
     getHistory,
-    moreInfoUrl:
-      'https://arbiscan.io/token/0x4277f8f2c384827b5273592ff7cebd9f2c1ac258',
     onInvest: async () => action('onInvest glp')(),
   };
 }

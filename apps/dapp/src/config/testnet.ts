@@ -56,10 +56,13 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
   supportedAssetsDescription: 'GMX',
   info: `
   Investors deposit GMX and are issued shares in the ovGMX vault.
-  The price of ovGMX increases as rewards from staked GMX are harvested and auto-compounded. Yield is further boosted from staking derived esGMX and multiplier point rewards.
+  \n
+  The price of ovGMX increases as rewards from staked GMX are harvested and auto-compounded.
+  \n
+  Yield is further boosted from staking derived esGMX and multiplier point rewards.
+  \n
+  [More info](https://mumbai.polygonscan.com/address/0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e)
   `,
-  moreInfoUrl:
-    'https://mumbai.polygonscan.com/address/0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e',
 };
 
 const GLP_ON_MUMBAI: InvestmentConfig = {
@@ -73,10 +76,11 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   supportedAssetsDescription: 'staked GLP or one of the underlying GLP assets',
   info: `
   Investors deposit their existing staked GLP, or one of the [underlying GLP assets](https://app.gmx.io/#/buy_glp) and are issued shares in the ovGLP vault.
+  \n
   The price of ovGLP increases as rewards from staked GLP are harvested and auto-compounded. 
+  \n
+  [More info](https://mumbai.polygonscan.com/address/0x7a8108A11949aa9F6395476F160304269A5EE48b)
   `,
-  moreInfoUrl:
-    'https://mumbai.polygonscan.com/address/0x7a8108A11949aa9F6395476F160304269A5EE48b',
 };
 
 const OVGLP_TOKEN: ExtendedTokenConfig = {

@@ -57,7 +57,6 @@ export interface InvestmentConfig {
   description: string;
   supportedAssetsDescription: string;
   info: string;
-  moreInfoUrl?: string;
 }
 
 export type PriceContractConfig = ContractAddress;

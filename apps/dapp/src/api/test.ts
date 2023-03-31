@@ -320,8 +320,6 @@ export function gmxInvestment(): Investment {
     getHistoricMetric,
     chain: arbitrum(),
     info: investInfo('GMX'),
-    moreInfoUrl:
-      'https://arbiscan.io/token/0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
   };
 }
 
@@ -366,8 +364,6 @@ export function glpInvestment(): Investment {
     getHistoricMetric,
     chain: arbitrum(),
     info: investInfo('GMX LP'),
-    moreInfoUrl:
-      'https://arbiscan.io/token/0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a',
   };
 }
 
