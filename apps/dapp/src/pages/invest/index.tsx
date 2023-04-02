@@ -70,11 +70,8 @@ export const PageContent = (props: PageContentProps) => {
     <FlexDown>
       <Title>INVESTMENT VAULTS</Title>
       <HeaderText>
-        Origami provides auto-compounding investment vaults on a carefully
-        selected set of protocols. No staking or locking required.
-        <br />
-        Your assets are put to work in the most optimal way, and you can exit at
-        any time.
+        Origami provides auto-compounding investment vaults for supported protocols to maximize your yield.<br />
+        Your assets are put to work in the most optimal way with no locking or staking. Exit at any time!
       </HeaderText>
       <InvestGrid items={gridItems} expanded={0} />
       {activeFlow}
