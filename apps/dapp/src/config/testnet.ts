@@ -75,7 +75,8 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   description: "GMX's liquidity provider token ($GLP)",
   supportedAssetsDescription: 'staked GLP or one of the underlying GLP assets',
   info: `
-  Users deposit existing GLP and receive proportional ovGLP vault shares in the GLP vault. Alternatively users may deposit one of [underlying GLP assets](https://app.gmx.io/#/buy_glp) and receive the corresponding ovGLP.
+  Users deposit existing GLP and receive proportional ovGLP vault shares in the GLP vault. 
+  \n Alternatively users may acquire new GLP for deposit into Origami by providing one of [underlying GLP assets](https://app.gmx.io/#/buy_glp) to mint GLP.
   \n
   The price of ovGLP in terms of GLP will rise as GLP staking rewards are harvested and auto-compounded into vault reserves. 
   \n
