@@ -1,4 +1,5 @@
 import { Chain } from '@/api/types';
+import { ENABLE_API_LOGS } from '@/config';
 import { ethers } from 'ethers';
 import { AppWallet, WalletState } from './types';
 
@@ -17,11 +18,15 @@ export async function createMetaMaskWallet(): Promise<AppWallet> {
 
   async function connect(toChain: Chain): Promise<void> {
     if (state.connection && state.connection.chainId === toChain.id) {
-      console.log(`already connected to ${toChain.name} (id ${toChain.id})`);
+      if (ENABLE_API_LOGS) {
+        console.log(`already connected to ${toChain.name} (id ${toChain.id})`);
+      }
       return;
     }
 
-    console.log(`switching to ${toChain.name} (id ${toChain.id})`);
+    if (ENABLE_API_LOGS) {
+      console.log(`switching to ${toChain.name} (id ${toChain.id})`);
+    }
     const chainIdStr = '0x' + toChain.id.toString(16);
     try {
       await ethereum.request({

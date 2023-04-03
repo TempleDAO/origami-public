@@ -1,7 +1,6 @@
+import { ENABLE_SUBGRAPH_LOGS } from '@/config';
 import { z } from 'zod';
 import { ContractAddress, Token } from './types';
-
-const ENABLE_SUBGRAPH_LOGS = false;
 
 /** A typed query to subgraph  */
 interface SubGraphQuery<T> {

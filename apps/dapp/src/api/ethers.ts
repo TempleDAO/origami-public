@@ -69,6 +69,7 @@ import { ITokenPrices } from '@/typechain/ITokenPrices';
 import { first, matchEvents } from './utils';
 import { asyncNever } from '@/utils/noop';
 import { assertNever } from '@/utils/assert';
+import { ENABLE_API_LOGS } from '@/config';
 
 export interface ApiConfig {
   chains: Chain[];
@@ -105,7 +106,6 @@ class ProviderApiImpl implements ProviderApi {
   subgraphUrls: VMap<ChainId, string>;
 
   constructor(readonly config: ApiConfig) {
-    console.log('api: new ProviderApiImpl');
     this.investments = config.investments;
     this.chains = new VMap((c) => c.toString());
     for (const c of config.chains) {
@@ -143,9 +143,11 @@ class ProviderApiImpl implements ProviderApi {
       if (chain === undefined) {
         throw new Error('No chain configured for chain id ' + chainId);
       }
-      console.log(
-        'api: new provider for chain ' + chainId + ' via ' + chain.rpcUrl
-      );
+      if (ENABLE_API_LOGS) {
+        console.log(
+          'api: new provider for chain ' + chainId + ' via ' + chain.rpcUrl
+        );
+      }
       provider = ethers.getDefaultProvider(chain.rpcUrl);
       this.providers.put(chainId, provider);
     }
@@ -896,8 +898,6 @@ export const SILENT_NOTIFIER: Notifier = {
     return (await tx).wait();
   },
 };
-
-const ENABLE_API_LOGS = true;
 
 // log an async request, along with it's response
 export async function logged<T>(

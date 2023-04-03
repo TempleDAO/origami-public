@@ -17,3 +17,6 @@ export function getApiConfig(): ApiConfig {
     return getMainnetApiConfig();
   }
 }
+
+export const ENABLE_API_LOGS = MODE == 'development';
+export const ENABLE_SUBGRAPH_LOGS = false;
