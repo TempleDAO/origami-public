@@ -49,6 +49,7 @@ const iconList = [
   'gmx',
   'glp',
   'open-in-new',
+  'gitbook',
 ];
 
 export const Icons = () => (
