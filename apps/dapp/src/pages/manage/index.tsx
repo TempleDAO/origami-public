@@ -36,7 +36,10 @@ export function Page() {
     investment: Investment | undefined
   ): Promise<void> {
     if (investment) {
-      await am.walletConnect(investment.chain);
+      const sapi = await am.walletConnect(investment.chain);
+      if (!sapi) {
+        return;
+      }
     }
     _setSelectedInvestment(investment);
   }

@@ -25,7 +25,7 @@ interface PageContentProps {
   papi: ProviderApi;
   walletAddress: string | undefined;
   cache: ApiCache;
-  walletConnect(chain: Chain): Promise<SignerApi>;
+  walletConnect(chain: Chain): Promise<SignerApi | undefined>;
 }
 
 export const PageContent = (props: PageContentProps) => {
@@ -40,6 +40,9 @@ export const PageContent = (props: PageContentProps) => {
   async function onInvest(ic: InvestmentConfig) {
     const investment = await papi.getInvestment(ic);
     const sapi = await walletConnect(investment.chain);
+    if (!sapi) {
+      return;
+    }
     const acceptedTokens = await investment.acceptedInvestTokens();
     const flow = (
       <FlowOverlay

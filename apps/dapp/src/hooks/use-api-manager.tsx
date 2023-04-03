@@ -16,7 +16,7 @@ interface ApiManager {
   cache: ApiCache;
 
   walletInitialize(walletKind: SupportedWallet): Promise<void>;
-  walletConnect(chain: Chain): Promise<SignerApi>;
+  walletConnect(chain: Chain): Promise<SignerApi | undefined>;
   walletDisconnect(): Promise<void>;
 }
 
@@ -42,7 +42,7 @@ export function ApiManagerProvider(props: {
     localStorage.setItem(LOCALSTORE_WALLET_STATE, walletKind);
   }
 
-  async function walletConnect(chain: Chain): Promise<SignerApi> {
+  async function walletConnect(chain: Chain): Promise<SignerApi | undefined> {
     if (!appWallet) {
       throw new Error('no wallet initialized');
     }
@@ -52,6 +52,19 @@ export function ApiManagerProvider(props: {
     if (!connection) {
       throw new Error('Failed to connect');
     }
+
+    const termsKey = `origami.tos.${walletState.address}`;
+    if (localStorage.getItem(termsKey) === null) {
+      const termsMessage = `I agree to the Origami Terms & Conditions at:\n\nhttps://origami.finance/disclaimer`;
+      try {
+        const signedMessage = await connection.signer.signMessage(termsMessage);
+        localStorage.setItem(termsKey, signedMessage);
+      } catch (e) {
+        console.error('failed to sign terms and conditions', e);
+        return;
+      }
+    }
+
     setWalletState(walletState);
     const sapi = createSignerApi(
       props.apiConfig,
@@ -59,6 +72,7 @@ export function ApiManagerProvider(props: {
       connection.chainId,
       connection.signer
     );
+
     setSApi(sapi);
     return sapi;
   }
