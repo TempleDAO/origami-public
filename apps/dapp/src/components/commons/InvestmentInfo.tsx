@@ -2,7 +2,17 @@ import styled from 'styled-components';
 import breakpoints from '@/styles/responsive-breakpoints';
 import ReactMarkdown from 'react-markdown';
 
-export const InvestmentInfo = styled(ReactMarkdown)`
+const NewTabLinkRenderer = (
+  props: React.AnchorHTMLAttributes<HTMLAnchorElement>
+) => (
+  <a href={props.href} target="_blank" rel="noopener noreferrer">
+    {props.children}
+  </a>
+);
+
+export const InvestmentInfo = styled(ReactMarkdown).attrs({
+  components: { a: NewTabLinkRenderer },
+})`
   color: ${({ theme }) => theme.colors.greyLight};
   font-size: 0.875rem;
 

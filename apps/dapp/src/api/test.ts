@@ -369,7 +369,13 @@ export function glpInvestment(): Investment {
 
 function investInfo(s: string) {
   return `
-  Info on the ${s} investment. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+  Info on the ${s} investment. 
+  
+  Lorem Ipsum is simply dummy text of the printing and typesetting industry. 
+  
+  Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.
+
+  [More info](https://mumbai.polygonscan.com/address/0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e)
   `;
 }
 
