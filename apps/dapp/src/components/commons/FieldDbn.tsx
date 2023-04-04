@@ -64,16 +64,6 @@ export const FieldDbn: FC<FiledDbnProps> = ({
 
   return (
     <InputBox className={className} error={error}>
-      <InputContainer>
-        <StyledInput
-          autoFocus={autoFocus}
-          onChange={handleInput}
-          placeholder="0.00"
-          value={value}
-          onKeyPress={numbersOnly}
-          disabled={disabled}
-        />
-      </InputContainer>
       {!maxStr || !max ? null : (
         <MaxButton
           onClick={() => {
@@ -84,6 +74,14 @@ export const FieldDbn: FC<FiledDbnProps> = ({
           <LoadingText value={maxStr} />
         </MaxButton>
       )}
+      <StyledInput
+        autoFocus={autoFocus}
+        onChange={handleInput}
+        placeholder="0.00"
+        value={value}
+        onKeyPress={numbersOnly}
+        disabled={disabled}
+      />
     </InputBox>
   );
 };
@@ -91,7 +89,7 @@ export const FieldDbn: FC<FiledDbnProps> = ({
 const InputBox = styled.div<{ error?: boolean }>`
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
   width: 100%;
   max-width: 75rem;
   min-width: 15rem;
@@ -117,12 +115,6 @@ const InputBox = styled.div<{ error?: boolean }>`
     `}
 `;
 
-const InputContainer = styled.div`
-  display: flex;
-  align-items: center;
-  width: 100%;
-`;
-
 const StyledInput = styled.input.attrs(() => ({
   type: 'text',
   inputmode: 'numeric',
@@ -134,6 +126,9 @@ const StyledInput = styled.input.attrs(() => ({
   color: ${({ theme }) => theme.colors.white};
   background-color: ${({ theme }) => theme.colors.bgMid};
   width: 100%;
+  text-align: right;
+  flex-grow: 1;
+  overflow: hidden;
   border: none;
   outline: none;
 `;
@@ -141,17 +136,15 @@ const StyledInput = styled.input.attrs(() => ({
 const Description = styled.p`
   margin: 0;
   display: inline;
-  font-size: 1.125rem;
   font-weight: 700;
-  margin-right: 1rem;
-  padding-left: 0.3rem;
+  margin-right: 0.5rem;
   text-decoration: underline;
   color: ${({ theme }) => theme.colors.white};
 `;
 
 const MaxButton = styled.div`
   display: flex;
-  align-items: end;
+  align-items: center;
   cursor: pointer;
   font-size: 0.8rem;
   min-width: max-content;

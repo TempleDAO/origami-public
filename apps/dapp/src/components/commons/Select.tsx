@@ -63,7 +63,9 @@ export const Select = styled(ReactSelect).attrs({
   //input placeholder/selected value
   .react-select__single-value {
     ${textH2}
-    color: ${({ theme }) => theme.colors.greyLight};
+    background: ${({ theme }) => theme.colors.gradients.primary};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
   .react-select__menu {

@@ -138,24 +138,21 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
       <FlexDown>
         <Label>Amount to deposit:</Label>
         <FlexRightSpaced>
+          <InvestTokenSelect
+            id={selectId}
+            instanceId={selectId}
+            options={investFromOptions}
+            value={investOption(investFrom)}
+            onChange={(newOption) =>
+              newOption && setInvestFrom((newOption as InvestOption).value)
+            }
+          />
           <FieldDbn
             autoFocus
             value={investAmountState.text}
             onChange={investAmountState.setText}
             max={availableBalance}
-            maxLabel="MAX"
           />
-          <div>
-            <InvestTokenSelect
-              id={selectId}
-              instanceId={selectId}
-              options={investFromOptions}
-              value={investOption(investFrom)}
-              onChange={(newOption) =>
-                newOption && setInvestFrom((newOption as InvestOption).value)
-              }
-            />
-          </div>
         </FlexRightSpaced>
       </FlexDown>
 
@@ -227,11 +224,11 @@ const FlexRightSpaced = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 `;
 
 const InvestTokenSelect = styled(Select)`
-  width: 110px;
+  min-width: max-content;
 `;
 
 export const Title = styled.div`

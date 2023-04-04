@@ -124,7 +124,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
 
       <FlexDown>
         <FlexRightSpaced>
-          <Label>Token to receive:</Label>
+          <Label noBottomMargin>Token to receive:</Label>
           <Select
             id={selectId}
             instanceId={selectId}
@@ -144,7 +144,6 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
             value={exitAmountState.text}
             onChange={exitAmountState.setText}
             max={availableBalance}
-            maxLabel="MAX"
           />
         </FlexRightSpaced>
       </FlexDown>
@@ -225,10 +224,14 @@ export const Title = styled.div`
   color: ${(props) => props.theme.colors.white};
 `;
 
-const Label = styled.div`
+const Label = styled.div<{ noBottomMargin?: boolean }>`
   ${textP1}
   color: ${({ theme }) => theme.colors.white};
-  margin-bottom: 0.5rem;
+  ${({ noBottomMargin }) =>
+    !noBottomMargin &&
+    `
+      margin-bottom: 0.5rem;
+    `}
 `;
 
 const SpanH2 = styled.span`

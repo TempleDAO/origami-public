@@ -49,7 +49,10 @@ const Selection = styled.span`
   cursor: pointer;
 `;
 
-const CheckedOption = styled.span`
+const CheckedOption = styled.p`
+  margin: 0;
+  display: inline;
+  line-height: 100%;
   background: ${({ theme }) => theme.colors.gradients.primary};
   color: ${({ theme }) => theme.colors.white};
   -webkit-background-clip: text;
@@ -59,7 +62,10 @@ const CheckedOption = styled.span`
   border-image-slice: 1;
 `;
 
-const UncheckedOption = styled.span`
+const UncheckedOption = styled.p`
+  margin: 0;
+  display: inline;
+  line-height: 100%;
   transition: 300ms ease color;
   &:hover {
     color: ${({ theme }) => theme.colors.greyLight};
