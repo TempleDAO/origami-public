@@ -77,9 +77,9 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   info: `
   Users deposit existing GLP and receive proportional ovGLP vault shares in the GLP vault. 
   \n Alternatively users may acquire new GLP for deposit into Origami by providing one of [underlying GLP assets](https://app.gmx.io/#/buy_glp) to mint GLP.
-  \n
-  The price of ovGLP in terms of GLP will rise as GLP staking rewards are harvested and auto-compounded into vault reserves. 
-  \n
+  \n Origami will mint 1 oGLP for each GLP that it receives from users. 
+  \n The price of ovGLP in terms of GLP will rise as GLP staking rewards are harvested and auto-compounded into vault reserves. 
+  \n You may exit oGLP into one of [underlying GLP assets](https://app.gmx.io/#/buy_glp#redeem) or into staked GLP (also known as fsGLP) for use on gmx.io. 
   [More info](https://mumbai.polygonscan.com/address/0x7a8108A11949aa9F6395476F160304269A5EE48b)
   `,
 };
