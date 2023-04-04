@@ -42,7 +42,7 @@ export const PageContent: FC<PageContentProps> = ({ cache }) => {
           />
         </Features>
         <EnterDapp>
-          <ButtonLink as={'a'} href={'/invest'}>
+          <ButtonLink as={'a'} href={'/deposit'}>
             Enter dapp
           </ButtonLink>
         </EnterDapp>

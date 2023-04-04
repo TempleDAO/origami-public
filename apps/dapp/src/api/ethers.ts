@@ -656,7 +656,7 @@ class SignerApiImpl implements SignerApi {
   private async invest_(req: InvestReq): Promise<InvestResp> {
     const chainId = req.quote.investment.chain.id;
     if (chainId != this.chainId) {
-      throw new Error("Signer and investment chain ids don't match");
+      throw new Error("Signer and vault chain ids don't match");
     }
     const chain = this.getChain(chainId);
 
@@ -807,7 +807,7 @@ class SignerApiImpl implements SignerApi {
       req.onStage && req.onStage({ kind: 'done', result });
       return result;
     } else {
-      throw new Error('investment succeeded, but enable to parse event logs');
+      throw new Error('exit succeeded, but enable to parse event logs');
     }
   }
 

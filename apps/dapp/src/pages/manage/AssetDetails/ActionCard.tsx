@@ -92,9 +92,9 @@ export const ActionCard: FC<ActionCardProps> = ({
       </TokenBalances>
       <VerticalFlex>
         <ActionRow>
-          <AsyncButton secondary label="Invest" onClick={showInvestFlow} />
+          <AsyncButton secondary label="Deposit" onClick={showInvestFlow} />
           <InfoText small>
-            Invest with{' '}
+            Deposit with{' '}
             <Highlight>{investment.supportedAssetsDescription}</Highlight> and
             receive <Highlight>{receiptToken}</Highlight>.
           </InfoText>

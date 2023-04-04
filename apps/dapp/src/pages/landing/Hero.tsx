@@ -32,7 +32,7 @@ export const Hero: FC<HeroProps> = ({ cache }) => {
       <Content>
         <HeroText>/o.ri&apos;ga.mi/ the folding protocol for defi</HeroText>
         <HeroCarousel items={carouselStrings} />
-        <ButtonLink as={'a'} href={'/invest'}>
+        <ButtonLink as={'a'} href={'/deposit'}>
           Enter dapp
         </ButtonLink>
       </Content>

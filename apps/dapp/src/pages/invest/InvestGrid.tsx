@@ -181,7 +181,7 @@ function ItemFragment({
         {isDesktop && (
           <ButtonHolder>
             <AsyncButton
-              label="INVEST"
+              label="DEPOSIT"
               secondary
               wide
               onClick={item.onInvest}
@@ -248,7 +248,7 @@ function ExpandedItemFragment({
       <InvestmentInfoForGrid>{item.info}</InvestmentInfoForGrid>
       {!isDesktop && (
         <ButtonHolder>
-          <AsyncButton label="INVEST" secondary wide onClick={item.onInvest} />
+          <AsyncButton label="DEPOSIT" secondary wide onClick={item.onInvest} />
         </ButtonHolder>
       )}
     </>

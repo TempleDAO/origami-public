@@ -115,15 +115,15 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
 
   return (
     <FlexDownSpaced>
-      <Title>INVEST</Title>
+      <Title>DEPOSIT</Title>
 
       <P>
-        Invest with <EM>{investment.supportedAssetsDescription}</EM> and receive{' '}
-        <EM>{receiptToken.symbol}</EM>.
+        Deposit with <EM>{investment.supportedAssetsDescription}</EM> and
+        receive <EM>{receiptToken.symbol}</EM>.
       </P>
 
       <FlexDown>
-        <Label>Investing in:</Label>
+        <Label>Deposit in:</Label>
         <FlexRightSpaced>
           <Icon iconName={investment.icon} hasBackground />
           <FlexDown>
@@ -136,7 +136,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
       </FlexDown>
 
       <FlexDown>
-        <Label>Amount to invest:</Label>
+        <Label>Amount to deposit:</Label>
         <FlexRightSpaced>
           <FieldDbn
             autoFocus

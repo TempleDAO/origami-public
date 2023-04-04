@@ -92,8 +92,8 @@ export function PageContent(props: PageContentProps) {
   if (userHoldings.state === 'ready' && userHoldings.value.length === 0) {
     return (
       <EmptyStateWrapper>
-        <p>You Currently have no investments in Origami</p>
-        <Link removedecoration href="/invest">
+        <p>You Currently have no deposits in Origami</p>
+        <Link removedecoration href="/deposit">
           <Button wide label="VIEW OPPORTUNITIES" />
         </Link>
       </EmptyStateWrapper>

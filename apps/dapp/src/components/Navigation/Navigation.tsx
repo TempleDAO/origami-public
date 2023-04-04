@@ -11,9 +11,9 @@ import { NavLink } from './NavLink';
 
 const navLinkProps = [
   {
-    label: 'INVEST',
-    href: '/invest',
-    routes: ['/invest'],
+    label: 'DEPOSIT',
+    href: '/deposit',
+    routes: ['/deposit'],
   },
   { label: 'MANAGE', href: '/manage', routes: ['/manage'] },
 ];

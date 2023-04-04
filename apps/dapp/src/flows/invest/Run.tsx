@@ -58,7 +58,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
 
   return (
     <FlexDownSpaced>
-      <Title>INVEST</Title>
+      <Title>DEPOSIT</Title>
       <FlexDown>
         <div>
           <SpanH2>{formatDecimalBigNumber(investAmount)}</SpanH2>{' '}
@@ -80,7 +80,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
       )}
       {stage === 'invest' && (
         <>
-          <ActionArrow busytext="Investing" />
+          <ActionArrow busytext="Depositing" />
           <TxPending
             receivedAmount={receivedAmount}
             receivedAsset={receivedAsset}

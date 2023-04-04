@@ -27,7 +27,7 @@ const router = createBrowserRouter([
     element: <LandingPage />,
   },
   {
-    path: '/invest',
+    path: '/deposit',
     element: (
       <AppLayout>
         <InvestPage />
