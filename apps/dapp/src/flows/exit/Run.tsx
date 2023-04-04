@@ -4,7 +4,7 @@ import { Button } from '@/components/commons/Button';
 import { formatDecimalBigNumber } from '@/utils/formatNumber';
 
 import { RunOnChainState, State, Ctx } from './types';
-import { tokenOrNativeSymbol, tokenOrNativeUsdPrice } from '@/utils/api-utils';
+import { tokenOrNativeLabel, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import { LoadingText } from '@/components/commons/LoadingText';
 import { lmap } from '@/utils/loading-value';
@@ -40,10 +40,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
     receiptTokenAmount.mul(p)
   );
 
-  const exitToAsset = tokenOrNativeSymbol(
-    state.req.quote.investment.chain,
-    state.req.quote.to
-  );
+  const exitToAsset = tokenOrNativeLabel(state.req.quote.to);
   const exitToAmount = result
     ? result.amountOut
     : state.req.quote.expectedToAmount;

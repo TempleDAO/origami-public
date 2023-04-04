@@ -26,11 +26,11 @@ import {
   textP1,
   textP2,
 } from '@/styles/mixins/text-styles';
-import { Chain, TokenOrNative } from '@/api/types';
+import { TokenOrNative } from '@/api/types';
 import { decimalBigNumberField } from '@/utils/fields/ethers';
 import { useTypedFieldState } from '@/utils/fields/hooks';
 import { FieldDbn } from '@/components/commons/FieldDbn';
-import { tokenOrNativeUsdPrice } from '@/utils/api-utils';
+import { tokenOrNativeLabel, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { cmpDecimalBigNumber, cmpU, equals } from '@/utils/compare';
 
 type FormProps = {
@@ -70,7 +70,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
   });
 
   const investFromOptions = ctx.acceptedTokens.map((token) =>
-    investOption(investment.chain, token)
+    investOption(token)
   );
 
   const [investUsdPrice] = useAsyncLoad(async () => {
@@ -150,7 +150,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
               id={selectId}
               instanceId={selectId}
               options={investFromOptions}
-              value={investOption(investment.chain, investFrom)}
+              value={investOption(investFrom)}
               onChange={(newOption) =>
                 newOption && setInvestFrom((newOption as InvestOption).value)
               }
@@ -203,9 +203,8 @@ interface InvestOption {
   value: TokenOrNative;
 }
 
-function investOption(chain: Chain, value: TokenOrNative): InvestOption {
-  const label =
-    value.kind == 'native' ? chain.nativeCurrency.symbol : value.token.symbol;
+function investOption(value: TokenOrNative): InvestOption {
+  const label = tokenOrNativeLabel(value);
   return { label, value };
 }
 

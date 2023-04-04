@@ -26,11 +26,11 @@ import {
   textP1,
   textP2,
 } from '@/styles/mixins/text-styles';
-import { Chain, TokenOrNative } from '@/api/types';
+import { TokenOrNative } from '@/api/types';
 import { decimalBigNumberField } from '@/utils/fields/ethers';
 import { useTypedFieldState } from '@/utils/fields/hooks';
 import { FieldDbn } from '@/components/commons/FieldDbn';
-import { tokenOrNativeUsdPrice } from '@/utils/api-utils';
+import { tokenOrNativeLabel, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { cmpDecimalBigNumber, cmpU, equals } from '@/utils/compare';
 
 type FormProps = {
@@ -62,9 +62,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
     equalityFn: equals(cmpU(cmpDecimalBigNumber)),
   });
 
-  const exitToOptions = ctx.acceptedTokens.map((token) =>
-    exitOption(investment.chain, token)
-  );
+  const exitToOptions = ctx.acceptedTokens.map((token) => exitOption(token));
 
   const [exitUsdPrice] = useAsyncLoad(async () => {
     return tokenOrNativeUsdPrice(papi, exitTo);
@@ -100,10 +98,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
     }
   }
 
-  const exitToStr =
-    exitTo.kind == 'token'
-      ? exitTo.token.symbol
-      : investment.chain.nativeCurrency.name;
+  const exitToStr = tokenOrNativeLabel(exitTo);
 
   return (
     <FlexDownSpaced>
@@ -134,7 +129,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
             id={selectId}
             instanceId={selectId}
             options={exitToOptions}
-            value={exitOption(investment.chain, exitTo)}
+            value={exitOption(exitTo)}
             onChange={(newOption) =>
               newOption && setExitTo((newOption as InvestOption).value)
             }
@@ -143,7 +138,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
       </FlexDown>
 
       <FlexDown>
-        <Label>Amount to swap:</Label>
+        <Label>Amount to exit:</Label>
         <FlexRightSpaced>
           <FieldDbn
             value={exitAmountState.text}
@@ -198,9 +193,8 @@ interface InvestOption {
   value: TokenOrNative;
 }
 
-function exitOption(chain: Chain, value: TokenOrNative): InvestOption {
-  const label =
-    value.kind == 'native' ? chain.nativeCurrency.symbol : value.token.symbol;
+function exitOption(value: TokenOrNative): InvestOption {
+  const label = tokenOrNativeLabel(value);
   return { label, value };
 }
 

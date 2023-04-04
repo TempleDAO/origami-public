@@ -4,7 +4,7 @@ import { Button } from '@/components/commons/Button';
 import { formatDecimalBigNumber } from '@/utils/formatNumber';
 
 import { RunOnChainState, State, Ctx } from './types';
-import { tokenOrNativeSymbol, tokenOrNativeUsdPrice } from '@/utils/api-utils';
+import { tokenOrNativeLabel, tokenOrNativeUsdPrice } from '@/utils/api-utils';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import { LoadingText } from '@/components/commons/LoadingText';
 import { lmap } from '@/utils/loading-value';
@@ -40,10 +40,7 @@ export const Run: FC<RunProps> = ({ ctx, state }) => {
   );
 
   const investAmount = state.req.quote.amount;
-  const investAsset = tokenOrNativeSymbol(
-    state.req.quote.investment.chain,
-    state.req.quote.from
-  );
+  const investAsset = tokenOrNativeLabel(state.req.quote.from);
   const investUsdValue = lmap(investUsdPrice, (price) =>
     formatDecimalBigNumber(price.mul(investAmount))
   );

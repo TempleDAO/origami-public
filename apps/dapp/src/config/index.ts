@@ -20,3 +20,4 @@ export function getApiConfig(): ApiConfig {
 
 export const ENABLE_API_LOGS = MODE == 'development';
 export const ENABLE_SUBGRAPH_LOGS = false;
+export { tokenLabelMap } from './tokenLabelMap';

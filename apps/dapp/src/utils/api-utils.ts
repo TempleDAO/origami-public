@@ -1,6 +1,5 @@
 import { ProviderApi } from '@/api/api';
 import {
-  Chain,
   ChainId,
   ContractAddress,
   Investment,
@@ -11,6 +10,7 @@ import {
 import { BigNumber } from 'ethers';
 import { DecimalBigNumber } from './decimal-big-number';
 import { formatDecimalBigNumber } from './formatNumber';
+import { tokenLabelMap } from '@/config';
 
 export function newToken(
   symbol: string,
@@ -31,17 +31,19 @@ export function newToken(
   };
 }
 
-export function tokenOrNativeSymbol(
-  chain: Chain,
-  ofAsset: TokenOrNative
-): string {
+export function tokenOrNativeSymbol(ofAsset: TokenOrNative): string {
   switch (ofAsset.kind) {
     case 'native':
-      return chain.nativeCurrency.symbol;
+      return ofAsset.chain.nativeCurrency.symbol;
     case 'token': {
       return ofAsset.token.symbol;
     }
   }
+}
+
+export function tokenOrNativeLabel(ofAsset: TokenOrNative): string {
+  const symbol = tokenOrNativeSymbol(ofAsset);
+  return tokenLabelMap[symbol] || symbol;
 }
 
 export async function tokenOrNativeUsdPrice(
