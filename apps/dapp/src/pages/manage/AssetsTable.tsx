@@ -16,6 +16,7 @@ import { MetricsResp } from '@/api/api';
 import breakpoints from '@/styles/responsive-breakpoints';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { theme } from '@/styles/theme';
+import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
 
 export type AssetHolding = {
   investment: Investment;
@@ -82,10 +83,13 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
       <Item0 col={1}>
         <AssetInfo>
           <Icon iconName={token.iconName} size={ICON_SIZE} hasBackground />
-          <VerticalFlex>
-            <Primary>{investment.receiptToken.symbol}</Primary>
-            <Subtext>{investment.description}</Subtext>
-          </VerticalFlex>
+          <InvestmentNameAndDescription
+            name={investment.receiptToken.symbol}
+            description={investment.description}
+            tokenExplorerUrl={investment.chain.explorer.tokenUrl(
+              investment.contractAddress.address
+            )}
+          />
         </AssetInfo>
       </Item0>
       <Item col={2}>

@@ -16,7 +16,7 @@ The price of ovGMX increases as rewards from staked GMX are harvested and auto-c
 \n
 Yield is further boosted from staking derived esGMX and multiplier point rewards.
 \n
-[More info](https://mumbai.polygonscan.com/address/0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e)
+[More info](https://www.google.com)
 `;
 
 export const WithMarkdown = () => <InvestmentInfo>{info}</InvestmentInfo>;

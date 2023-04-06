@@ -29,6 +29,7 @@ import {
   ChartPriceSeries,
 } from '@/components/ChartControls';
 import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
+import { LinkBox } from '@/components/commons/InvestmentNameAndDescription';
 
 export type HistoricSeries =
   | { kind: 'investment-metric'; investment: Investment; metric: Metric }
@@ -116,6 +117,11 @@ export const InfoCard: FC<InfoCardProps> = ({
   );
 };
 
+const StyledAnchor = styled.a`
+  margin-bottom: 4px;
+  display: flex;
+`;
+
 const Header: FC<{ investment: Investment }> = ({ investment }) => (
   <>
     <HeaderContainer>
@@ -125,7 +131,18 @@ const Header: FC<{ investment: Investment }> = ({ investment }) => (
         hasBackground
       />
       <VerticalFlex>
-        <Title>{investment.receiptToken.symbol}</Title>
+        <LinkBox>
+          <Title>{investment.receiptToken.symbol}</Title>
+          <StyledAnchor
+            href={investment.chain.explorer.tokenUrl(
+              investment.contractAddress.address
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon iconName={'open-in-new'} size={18} />
+          </StyledAnchor>
+        </LinkBox>
         <Subtitle>{investment.description.toUpperCase()}</Subtitle>
       </VerticalFlex>
     </HeaderContainer>

@@ -123,6 +123,11 @@ export const FlexRightSpaced = styled.div`
   gap: 20px;
 `;
 
+export const FlexRight = styled.div`
+  display: flex;
+  flex-direction: row;
+`;
+
 export const Title = styled.div`
   ${textH1}
   color: ${(props) => props.theme.colors.white};

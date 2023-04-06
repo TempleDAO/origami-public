@@ -23,7 +23,7 @@ import {
 import { lmap, Loading } from '@/utils/loading-value';
 
 import { theme } from '@/styles/theme';
-import { textH3, textH5, textP1 } from '@/styles/mixins/text-styles';
+import { textH3, textH5 } from '@/styles/mixins/text-styles';
 import { tabActiveGradientStyles } from '@/styles/mixins/tab-styles';
 import breakpoints from '@/styles/responsive-breakpoints';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
@@ -35,6 +35,8 @@ import {
   ChartPriceSeries,
 } from '@/components/ChartControls';
 import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
+import { FlexRight } from '@/flows/common/components';
+import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
 
 export interface InvestGridItem {
   icon: string;
@@ -48,6 +50,7 @@ export interface InvestGridItem {
   peg?: Loading<number>;
   chain: Chain;
   info: string;
+  tokenAddr: string;
   getHistory(
     period: HistoricPeriod,
     series: MetricOrPrice
@@ -120,17 +123,18 @@ function ItemFragment({
   histSeries,
   setHistSeries,
 }: ItemFragmentProps): JSX.Element {
-  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.lg);
 
   return (
     <Card isExpanded={isExpanded}>
       <CardContent>
         <IconNameHolder onClick={onExpand}>
           <Icon iconName={item.icon} hasBackground />
-          <NameHolder row={0}>
-            <LPName>{item.name}</LPName>
-            <LPDescription>{item.description}</LPDescription>
-          </NameHolder>
+          <InvestmentNameAndDescription
+            name={item.name}
+            description={item.description}
+            tokenExplorerUrl={item.chain.explorer.tokenUrl(item.tokenAddr)}
+          />
         </IconNameHolder>
         <GridValue
           active={isExpanded && histSeries === 'apy'}
@@ -224,7 +228,7 @@ function ExpandedItemFragment({
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),
     [histPeriod, histSeries]
   );
-  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.lg);
 
   return (
     <>
@@ -245,7 +249,9 @@ function ExpandedItemFragment({
           yTickFormat={tickSeries(histSeries)}
         />
       </Graph>
-      <InvestmentInfoForGrid>{item.info}</InvestmentInfoForGrid>
+      <InvestmentInfoForGrid>
+        <InvestmentInfo>{item.info}</InvestmentInfo>
+      </InvestmentInfoForGrid>
       {!isDesktop && (
         <ButtonHolder>
           <AsyncButton label="DEPOSIT" secondary wide onClick={item.onInvest} />
@@ -255,11 +261,11 @@ function ExpandedItemFragment({
   );
 }
 
-const InvestmentInfoForGrid = styled(InvestmentInfo)`
+const InvestmentInfoForGrid = styled(FlexRight)`
   grid-column: 1 / -1;
 
-  ${breakpoints.md(`
-    grid-column: 5 / span 2;
+  ${breakpoints.lg(`
+    grid-column: 5 / span 3;
     margin: 0 1rem;
   `)}
 `;
@@ -294,8 +300,8 @@ const HeadingHolder = styled.div`
 const HeadingGrid = styled.div`
   width: 100%;
   display: none;
-  grid-template-columns: 6fr 1fr 1fr 1fr 1fr 1fr;
-  ${breakpoints.md(`
+  grid-template-columns: 6fr 1fr 1fr 1fr 1fr 2fr;
+  ${breakpoints.lg(`
     display: grid;
   `)}
 `;
@@ -305,7 +311,7 @@ const Heading = styled.div<{ col: number }>`
   color: ${({ theme }) => theme.colors.greyLight};
   grid-column: ${({ col }) => col};
   display: none;
-  ${breakpoints.md(`
+  ${breakpoints.lg(`
     display: inline-block;
   `)}
 `;
@@ -328,8 +334,8 @@ const CardContent = styled.div`
   display: grid;
   row-gap: 1rem;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  ${breakpoints.md(`
-    grid-template-columns: 6fr 1fr 1fr 1fr 1fr 1fr;
+  ${breakpoints.lg(`
+    grid-template-columns: 6fr 1fr 1fr 1fr 1fr 2fr;
   `)}
 `;
 
@@ -338,7 +344,7 @@ const IconNameHolder = styled.div`
   display: flex;
   gap: 1rem;
   grid-column: 1/-1;
-  ${breakpoints.md(`
+  ${breakpoints.lg(`
     grid-column: 1;
   `)}
 `;
@@ -360,28 +366,12 @@ const GridValue = styled.div<{
   cursor: ${({ onClick }) => onClick && 'pointer'};
 
   min-height: 2rem;
-  ${breakpoints.md(`
+  ${breakpoints.lg(`
     min-height: unset;
   `)}
 
   &:hover {
     color: ${({ theme }) => theme.colors.greyLight};
-  }
-`;
-
-const LPName = styled.div`
-  ${textH3}
-  color: ${({ theme }) => theme.colors.white};
-  transition: 300ms color ease;
-`;
-
-const NameHolder = styled.div<{ row: number }>`
-  display: flex;
-  flex-direction: column;
-  &:hover {
-    ${LPName} {
-      color: ${({ theme }) => theme.colors.greyLight};
-    }
   }
 `;
 
@@ -399,18 +389,13 @@ const ButtonHolder = styled.div`
     min-width: 100%;
   }
 
-  ${breakpoints.md(`
+  ${breakpoints.lg(`
     margin-bottom: 0;
     grid-column: 6;
     button {
     min-width: initial;
   }
   `)}
-`;
-
-const LPDescription = styled.div`
-  ${textP1}
-  color: ${({ theme }) => theme.colors.greyLight};
 `;
 
 const Graph = styled.div`
@@ -423,7 +408,7 @@ const Graph = styled.div`
   div {
     margin-bottom: 0;
   }
-  ${breakpoints.md(`
+  ${breakpoints.lg(`
     grid-column: 1/5;
   `)}
 `;

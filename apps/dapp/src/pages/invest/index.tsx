@@ -73,8 +73,11 @@ export const PageContent = (props: PageContentProps) => {
     <FlexDown>
       <Title>ORIGAMI VAULTS</Title>
       <HeaderText>
-        Origami provides auto-compounding vaults to maximize yield for supported protocols.<br />
-        Your assets are put to work in the most optimal way with no locking. Exit at any time!
+        Origami provides auto-compounding vaults to maximize yield for supported
+        protocols.
+        <br />
+        Your assets are put to work in the most optimal way with no locking.
+        Exit at any time!
       </HeaderText>
       <InvestGrid items={gridItems} expanded={0} />
       {activeFlow}
@@ -98,6 +101,7 @@ function makeInvestGridItem(
     tvl: lmap(metrics, (m) => m.tvl),
     chain: ic.chain,
     info: ic.info,
+    tokenAddr: ic.receiptToken.config.address,
     receiptToken: ic.receiptToken.symbol,
     reserveToken: ic.reserveToken.symbol,
     getHistory: async (period, metricOrPrice) => {
