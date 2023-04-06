@@ -30,7 +30,7 @@ export const Hero: FC<HeroProps> = ({ cache }) => {
         <Lottie id="lottie" animationData={heroAnimationMd} loop={true} />
       </AnimationContainer>
       <Content>
-        <HeroText>/o.ri&apos;ga.mi/ the folding protocol for defi</HeroText>
+        <HeroText>The folding protocol for DeFi</HeroText>
         <HeroCarousel items={carouselStrings} />
         <ButtonLink as={'a'} href={'/deposit'}>
           Enter dapp
