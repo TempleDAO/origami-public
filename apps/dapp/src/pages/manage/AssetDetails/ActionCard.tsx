@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import type { Investment } from '@/api/types';
+import type { Chain, Investment } from '@/api/types';
 import type { Loading } from '@/utils/loading-value';
 
 import styled from 'styled-components';
@@ -16,7 +16,7 @@ import breakpoints from '@/styles/responsive-breakpoints';
 
 type ActionCardProps = {
   papi: ProviderApi;
-  sapi: SignerApi;
+  sapi(chain: Chain): Promise<SignerApi | undefined>;
   cache: ApiCache;
   investment: Investment;
   apy: Loading<string>;
@@ -27,7 +27,7 @@ type ActionCardProps = {
 
 export const ActionCard: FC<ActionCardProps> = ({
   papi,
-  sapi,
+  sapi: getSapi,
   cache,
   investment,
   apy,
@@ -42,6 +42,10 @@ export const ActionCard: FC<ActionCardProps> = ({
   const receiptToken = investment.receiptToken.symbol;
 
   async function showInvestFlow() {
+    const sapi = await getSapi(investment.chain);
+    if (!sapi) {
+      return;
+    }
     const acceptedTokens = await investment.acceptedInvestTokens();
     setActiveFlow(
       <InvestOverlay
@@ -56,6 +60,10 @@ export const ActionCard: FC<ActionCardProps> = ({
   }
 
   async function showExitFlow() {
+    const sapi = await getSapi(investment.chain);
+    if (!sapi) {
+      return;
+    }
     const acceptedTokens = await investment.acceptedExitTokens();
     setActiveFlow(
       <ExitOverlay

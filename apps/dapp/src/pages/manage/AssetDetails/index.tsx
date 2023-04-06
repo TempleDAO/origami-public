@@ -12,14 +12,14 @@ import {
   formatPercent,
 } from '@/utils/formatNumber';
 import { SignerApi, ProviderApi } from '@/api/api';
-import { HistoricPeriod, Investment } from '@/api/types';
+import { Chain, HistoricPeriod, Investment } from '@/api/types';
 import { ApiCache } from '@/api/cache';
 import { DBN_ZERO } from '@/utils/decimal-big-number';
 import breakpoints from '@/styles/responsive-breakpoints';
 
 export type AssetDetailsProps = {
   papi: ProviderApi;
-  sapi: SignerApi;
+  sapi(chain: Chain): Promise<SignerApi | undefined>;
   cache: ApiCache;
   investment: Investment;
 };

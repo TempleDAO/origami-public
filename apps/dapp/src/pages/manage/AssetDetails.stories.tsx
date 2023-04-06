@@ -14,7 +14,7 @@ export const Default = () => {
   return (
     <AssetDetails
       papi={papi}
-      sapi={sapi}
+      sapi={async () => sapi}
       investment={investment}
       cache={cache}
     />
@@ -28,7 +28,7 @@ export const Loading = () => {
   return (
     <AssetDetails
       papi={papi}
-      sapi={sapi}
+      sapi={async () => sapi}
       investment={investment}
       cache={cache}
     />

@@ -1,5 +1,5 @@
 import { ProviderApi, SignerApi } from '@/api/api';
-import { Investment } from '@/api/types';
+import { Chain, Investment } from '@/api/types';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache, BalanceMap, MetricsVMap } from '@/api/cache';
 import { useMemo, useState } from 'react';
@@ -29,25 +29,13 @@ import { asyncNever } from '@/utils/noop';
 
 export function Page() {
   const am = useApiManager();
-  const [selectedInvestment, _setSelectedInvestment] =
+  const [selectedInvestment, setSelectedInvestment] =
     useState<Investment | undefined>();
-
-  async function setSelectedInvestment(
-    investment: Investment | undefined
-  ): Promise<void> {
-    if (investment) {
-      const sapi = await am.walletConnect(investment.chain);
-      if (!sapi) {
-        return;
-      }
-    }
-    _setSelectedInvestment(investment);
-  }
 
   return (
     <PageContent
       papi={am.papi}
-      sapi={am.sapi}
+      sapi={am.walletConnect}
       walletAddress={am.wallet?.address}
       cache={am.cache}
       selectedInvestment={selectedInvestment}
@@ -57,7 +45,7 @@ export function Page() {
 }
 interface PageContentProps {
   papi: ProviderApi;
-  sapi?: SignerApi;
+  sapi(chain: Chain): Promise<SignerApi | undefined>;
   walletAddress: string | undefined;
   cache: ApiCache;
   selectedInvestment: Investment | undefined;
@@ -102,7 +90,7 @@ export function PageContent(props: PageContentProps) {
 
   return (
     <VerticalFlex css="width: 100%;">
-      {props.selectedInvestment && props.sapi ? (
+      {props.selectedInvestment ? (
         <>
           <BackButton onClick={() => props.setSelectedInvestment(undefined)}>
             <BackIcon size={16} />
