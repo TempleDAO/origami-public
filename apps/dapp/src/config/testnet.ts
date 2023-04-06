@@ -52,7 +52,7 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
   },
   icon: 'gmx',
   name: 'ovGMX',
-  description: "GMX's utility and governance token ($GMX)",
+  description: "GMX's utility and governance token (GMX)",
   supportedAssetsDescription: 'GMX',
   info: `
   Users deposit GMX and receive proportional ovGMX vault shares in the GMX vault.
@@ -70,7 +70,7 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   },
   icon: 'glp',
   name: 'ovGLP',
-  description: "GMX's liquidity provider token ($GLP)",
+  description: "GMX's liquidity pool token (GLP)",
   supportedAssetsDescription: 'staked GLP or one of the underlying GLP assets',
   info: `
   Users deposit existing GLP and receive proportional ovGLP vault shares in the GLP vault. 

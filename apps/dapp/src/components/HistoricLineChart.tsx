@@ -1,4 +1,4 @@
-import type { HistoryPoint } from '@/api/types';
+import type { HistoricPeriod, HistoryPoint } from '@/api/types';
 import type { Loading } from '@/utils/loading-value';
 
 import { useState, useCallback } from 'react';
@@ -16,7 +16,6 @@ import {
   RVTickFormat,
 } from 'react-vis';
 import { LoadingComponent } from './commons/LoadingComponent';
-import { useMediaQuery } from '@/hooks/use-media-query';
 import { isReady } from '@/utils/loading-value';
 import { theme } from '@/styles/theme';
 
@@ -30,15 +29,14 @@ export type ChartDataPoint = {
 
 export type HistoricLineChartProps = {
   values: Loading<ChartDataPoint[]>;
+  xTickFormat: RVTickFormat;
+  xTotalTick: number;
   yTickFormat: RVTickFormat;
 };
 
 export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
   const ldata = props.values;
   const { onMouseLeave, onNearestX, crosshairValues } = useCrosshairs();
-
-  const isMediumScreen = useMediaQuery(theme.responsiveBreakpoints.md);
-  const tickTotalX = isMediumScreen ? 8 : 4;
 
   if (!isReady(ldata)) {
     return <StyledLoader />;
@@ -62,7 +60,8 @@ export function HistoricLineChart(props: HistoricLineChartProps): JSX.Element {
           <XAxis
             hideLine
             tickSize={0}
-            tickTotal={tickTotalX}
+            tickTotal={props.xTotalTick}
+            tickFormat={props.xTickFormat}
             style={axisStyle}
           />
           <YAxis
@@ -164,6 +163,46 @@ export function tickPercent(v: number): string {
   const percentage = v * 100;
 
   return `${format(Math.abs(percentage) < 1000 ? '.3' : '.1s')(percentage)}%`;
+}
+
+export function totalTickPoints(
+  period: HistoricPeriod,
+  isLarge: boolean,
+  isMedium: boolean
+): number {
+  // Note - this is buggy in react-vis. It doesn't strictly obey the number of items to display.
+  // We need to migrate to a non-deprecated graph lib.
+  if (isLarge) {
+    return 8;
+  } else if (isMedium) {
+    return 4;
+  } else {
+    // Small. Need at least 3 otherwise the graph only shows 1 element...
+    return 3;
+  }
+}
+
+export function timeTickFormatter(
+  period: HistoricPeriod,
+  isGteMedium: boolean
+): (timestamp: number) => string {
+  const getFormatStr = (period: HistoricPeriod) => {
+    // On smaller screens, make the date format slightly smaller to avoid clashes
+    switch (period) {
+      case 'day':
+        return 'h aaa';
+      case 'week':
+        return isGteMedium ? 'eee d LLL' : 'd MMM';
+      case 'month':
+        return isGteMedium ? 'MMM do' : 'd MMM';
+      case 'all':
+        return isGteMedium ? 'MMM do y' : 'd MMM y';
+      default:
+        return assertNever(period);
+    }
+  };
+
+  return (ts) => formatDate(ts, getFormatStr(period));
 }
 
 export function tickSeries(

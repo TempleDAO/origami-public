@@ -9,6 +9,8 @@ import {
   convertHistoryPoint,
   HistoricLineChart,
   tickSeries,
+  timeTickFormatter,
+  totalTickPoints,
 } from '@/components/HistoricLineChart';
 import { AsyncButton } from '@/components/commons/Button';
 
@@ -228,7 +230,9 @@ function ExpandedItemFragment({
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),
     [histPeriod, histSeries]
   );
-  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.lg);
+  const isMedium = useMediaQuery(theme.responsiveBreakpoints.md);
+  const isLarge = useMediaQuery(theme.responsiveBreakpoints.lg);
+  const xTotalTick = totalTickPoints(histPeriod, isLarge, isLarge);
 
   return (
     <>
@@ -246,13 +250,15 @@ function ExpandedItemFragment({
         </ChartHeader>
         <HistoricLineChart
           values={values}
+          xTickFormat={timeTickFormatter(histPeriod, isMedium)}
+          xTotalTick={xTotalTick}
           yTickFormat={tickSeries(histSeries)}
         />
       </Graph>
       <InvestmentInfoForGrid>
         <InvestmentInfo>{item.info}</InvestmentInfo>
       </InvestmentInfoForGrid>
-      {!isDesktop && (
+      {!isLarge && (
         <ButtonHolder>
           <AsyncButton label="DEPOSIT" secondary wide onClick={item.onInvest} />
         </ButtonHolder>

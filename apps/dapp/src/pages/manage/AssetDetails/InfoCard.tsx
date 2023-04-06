@@ -18,6 +18,8 @@ import {
   convertHistoryPoint,
   HistoricLineChart,
   tickSeries,
+  timeTickFormatter,
+  totalTickPoints,
 } from '@/components/HistoricLineChart';
 import { useAsyncLoad } from '@/hooks/use-async-result';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
@@ -30,6 +32,8 @@ import {
 } from '@/components/ChartControls';
 import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
 import { LinkBox } from '@/components/commons/InvestmentNameAndDescription';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { theme } from '@/styles/theme';
 
 export type HistoricSeries =
   | { kind: 'investment-metric'; investment: Investment; metric: Metric }
@@ -82,6 +86,10 @@ export const InfoCard: FC<InfoCardProps> = ({
     }
   }
 
+  const isMedium = useMediaQuery(theme.responsiveBreakpoints.md);
+  const isLarge = useMediaQuery(theme.responsiveBreakpoints.lg);
+  const xTotalTick = totalTickPoints(histPeriod, isLarge, isMedium);
+
   return (
     <Container>
       <Header investment={investment} />
@@ -108,6 +116,8 @@ export const InfoCard: FC<InfoCardProps> = ({
         </ChartHeader>
         <HistoricLineChart
           values={values}
+          xTickFormat={timeTickFormatter(histPeriod, isMedium)}
+          xTotalTick={xTotalTick}
           yTickFormat={tickSeries(
             histSeries.kind == 'investment-metric' ? histSeries.metric : 'price'
           )}
