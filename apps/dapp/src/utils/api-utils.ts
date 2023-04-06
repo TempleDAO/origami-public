@@ -87,6 +87,10 @@ export function tokenKey(t: Token): string {
   return contractAddressKey(t.config);
 }
 
+export function isReserveToken(i: Investment, t: TokenOrNative): boolean {
+  return t.kind == 'token' && tokenKey(t.token) == tokenKey(i.reserveToken);
+}
+
 /// unique string key for a token
 export function contractAddressKey(ca: ContractAddress): string {
   return ca.address + '/' + ca.chainId;

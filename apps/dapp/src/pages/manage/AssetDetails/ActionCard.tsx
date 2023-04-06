@@ -13,6 +13,7 @@ import { textH1 } from '@/styles/mixins/text-styles';
 import { ProviderApi, SignerApi } from '@/api/api';
 import { ApiCache } from '@/api/cache';
 import breakpoints from '@/styles/responsive-breakpoints';
+import { isReserveToken } from '@/utils/api-utils';
 
 type ActionCardProps = {
   papi: ProviderApi;
@@ -46,7 +47,13 @@ export const ActionCard: FC<ActionCardProps> = ({
     if (!sapi) {
       return;
     }
-    const acceptedTokens = await investment.acceptedInvestTokens();
+
+    // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
+    const allAcceptedTokens = await investment.acceptedInvestTokens();
+    const acceptedTokens = allAcceptedTokens.filter(
+      (value) => !isReserveToken(investment, value)
+    );
+
     setActiveFlow(
       <InvestOverlay
         papi={papi}
@@ -64,7 +71,13 @@ export const ActionCard: FC<ActionCardProps> = ({
     if (!sapi) {
       return;
     }
-    const acceptedTokens = await investment.acceptedExitTokens();
+
+    // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
+    const allAcceptedTokens = await investment.acceptedExitTokens();
+    const acceptedTokens = allAcceptedTokens.filter(
+      (value) => !isReserveToken(investment, value)
+    );
+
     setActiveFlow(
       <ExitOverlay
         papi={papi}

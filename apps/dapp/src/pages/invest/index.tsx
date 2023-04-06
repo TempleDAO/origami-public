@@ -8,6 +8,7 @@ import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
+import { isReserveToken } from '@/utils/api-utils';
 
 export function Page() {
   const am = useApiManager();
@@ -43,7 +44,13 @@ export const PageContent = (props: PageContentProps) => {
     if (!sapi) {
       return;
     }
-    const acceptedTokens = await investment.acceptedInvestTokens();
+
+    // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
+    const allAcceptedTokens = await investment.acceptedInvestTokens();
+    const acceptedTokens = allAcceptedTokens.filter(
+      (value) => !isReserveToken(investment, value)
+    );
+
     const flow = (
       <FlowOverlay
         papi={papi}
