@@ -1,3 +1,4 @@
+import { MotionProps } from 'framer-motion';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 
@@ -57,55 +58,10 @@ export const Spinner = (props: SpinnerProps) => {
     }),
   };
 
-  const LoaderContainer = motion(
-    styled('ul')(({ theme }) => ({
-      borderColor: `${theme.colors.white} transparent`,
-      position: 'relative',
-      padding: 0,
-      width: `${itemSize * 2}px`,
-      height: `${itemSize * 2}px`,
-      margin: 0,
-      listStyle: 'none',
-    }))
-  );
-
-  const LoaderItem = motion(
-    styled('li')(({ theme }) => ({
-      position: 'absolute',
-      width: 0,
-      height: 0,
-      borderStyle: 'solid',
-      borderWidth: `0 ${itemSize}px ${itemSize}px 0`,
-
-      '&.topLeft': {
-        top: `-${itemSize}px`,
-        left: `-${itemSize}px`,
-        borderColor: `${theme.colors.white} transparent`,
-      },
-
-      '&.topRight': {
-        top: `-${itemSize}px`,
-        right: `-${itemSize}px`,
-        borderColor: `${theme.colors.white} transparent`,
-      },
-      '&.bottomRight': {
-        bottom: `-${itemSize}px`,
-        right: `-${itemSize}px`,
-        borderColor: `${theme.colors.white} transparent`,
-      },
-      '&.bottomLeft': {
-        bottom: `-${itemSize}px`,
-        left: `-${itemSize}px`,
-        borderColor: `${theme.colors.white} transparent`,
-      },
-    }))
-  );
-
   // Include a small gap such that there's a small blank space between items
   // to look like a fortune teller
   const scaledItemSize = 0.95 * itemSize;
   return (
-    // @ts-ignore
     <LoaderContainer
       variants={container}
       initial="hidden"
@@ -134,6 +90,7 @@ export const Spinner = (props: SpinnerProps) => {
           times: [0.0, 0.1, 0.15, 0.85, 0.9, 1],
         }}
         className={'topLeft'}
+        itemSize={itemSize}
         variants={item}
       />
       <LoaderItem
@@ -158,6 +115,7 @@ export const Spinner = (props: SpinnerProps) => {
           times: [0.0, 0.1, 0.15, 0.75, 0.8, 0.9],
         }}
         className={'topRight'}
+        itemSize={itemSize}
         variants={item}
       />
       <LoaderItem
@@ -182,6 +140,7 @@ export const Spinner = (props: SpinnerProps) => {
           times: [0.0, 0.1, 0.15, 0.65, 0.7, 0.8],
         }}
         className={'bottomRight'}
+        itemSize={itemSize}
         variants={item}
       />
       <LoaderItem
@@ -206,8 +165,62 @@ export const Spinner = (props: SpinnerProps) => {
           times: [0.0, 0.1, 0.15, 0.55, 0.6, 0.7],
         }}
         className={'bottomLeft'}
+        itemSize={itemSize}
         variants={item}
       />
     </LoaderContainer>
   );
 };
+
+interface LoaderContainerProps extends MotionProps {
+  itemSize: number;
+}
+
+export const LoaderContainer = motion(
+  styled('ul')<LoaderContainerProps>(({ theme, itemSize }) => ({
+    borderColor: `${theme.colors.white} transparent`,
+    position: 'relative',
+    padding: 0,
+    width: `${itemSize * 2}px`,
+    height: `${itemSize * 2}px`,
+    margin: 0,
+    listStyle: 'none',
+  }))
+);
+
+interface LoaderItemProps extends MotionProps {
+  itemSize: number;
+  className: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
+}
+
+const LoaderItem = motion(
+  styled('li')<LoaderItemProps>(({ theme, itemSize }) => ({
+    position: 'absolute',
+    width: 0,
+    height: 0,
+    borderStyle: 'solid',
+    borderWidth: `0 ${itemSize}px ${itemSize}px 0`,
+
+    '&.topLeft': {
+      top: `-${itemSize}px`,
+      left: `-${itemSize}px`,
+      borderColor: `${theme.colors.white} transparent`,
+    },
+
+    '&.topRight': {
+      top: `-${itemSize}px`,
+      right: `-${itemSize}px`,
+      borderColor: `${theme.colors.white} transparent`,
+    },
+    '&.bottomRight': {
+      bottom: `-${itemSize}px`,
+      right: `-${itemSize}px`,
+      borderColor: `${theme.colors.white} transparent`,
+    },
+    '&.bottomLeft': {
+      bottom: `-${itemSize}px`,
+      left: `-${itemSize}px`,
+      borderColor: `${theme.colors.white} transparent`,
+    },
+  }))
+);
