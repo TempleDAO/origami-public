@@ -32,6 +32,10 @@ contract DummyOrigamiInvestment is OrigamiInvestment {
         exitToken = _exitToken;
     }
 
+    function baseToken() external view returns (address) {
+        return investToken;
+    }
+
     function acceptedInvestTokens() external override view returns (address[] memory tokens) {
         tokens = new address[](1);
         tokens[0] = investToken;

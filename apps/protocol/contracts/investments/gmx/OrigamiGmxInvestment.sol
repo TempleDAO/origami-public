@@ -32,6 +32,14 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     }
 
     /**
+     * @notice The underlying token this investment wraps. 
+     * In this case, it's the $GMX token
+     */
+    function baseToken() external view returns (address) {
+        return address(origamiGmxManager.gmxToken());
+    }
+
+    /**
      * @notice The set of accepted tokens which can be used to invest.
      */
     function acceptedInvestTokens() external override view returns (address[] memory tokens) {

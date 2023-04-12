@@ -186,8 +186,99 @@ describe("Origami Investment Vault", async () => {
         return reservesPerShare;
     }
 
+    it("entry and exit", async () => {
+        const investAmount = ethers.utils.parseEther("10000");
+        await oToken.connect(operator).mint(alan.getAddress(), investAmount);
+        await oToken.connect(alan).approve(ovToken.address, investAmount);
+        await oToken.connect(operator).mint(bob.getAddress(), investAmount);
+        await oToken.connect(bob).approve(ovToken.address, investAmount);
+
+        // Alan invests - check 
+        let investQuote = await ovToken.investQuote(investAmount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+        await ovToken.connect(alan).investWithToken(investQuote.quoteData);
+
+        let alanBal = await ovToken.balanceOf(alan.getAddress());
+        let shares = await ovToken.sharesToReserves(alanBal);
+        expect(alanBal).eq(investAmount);
+        expect(shares).eq(investAmount);
+        expect(await ovToken.reservesToShares(shares)).eq(investAmount);
+
+        let totalSupply = await ovToken.totalSupply();
+        shares = await ovToken.sharesToReserves(totalSupply);
+        expect(totalSupply).eq(investAmount);
+        expect(shares).eq(investAmount);
+        expect(await ovToken.reservesToShares(shares)).eq(investAmount);
+
+        // Bob invests
+        investQuote = await ovToken.investQuote(investAmount, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+        await ovToken.connect(bob).investWithToken(investQuote.quoteData);
+
+        let bobBal = await ovToken.balanceOf(bob.getAddress());
+        shares = await ovToken.sharesToReserves(bobBal);
+        expect(bobBal).eq(investAmount);
+        expect(shares).eq(investAmount);
+        expect(await ovToken.reservesToShares(shares)).eq(investAmount);
+
+        totalSupply = await ovToken.totalSupply();
+        shares = await ovToken.sharesToReserves(totalSupply);
+        expect(totalSupply).eq(investAmount.mul(2));
+        expect(shares).eq(investAmount.mul(2));
+        expect(await ovToken.reservesToShares(shares)).eq(investAmount.mul(2));
+
+        // Add reserves
+        const reservesAmt = investAmount.mul(1).div(100);
+        await oToken.connect(operator).mint(operator.getAddress(), reservesAmt);
+        await oToken.connect(operator).approve(ovToken.address, reservesAmt);
+        await ovToken.connect(operator).addPendingReserves(reservesAmt);
+        await mineForwardSeconds(vestingDuration);
+
+        // The final drips of the extra reserves that were added in aren't available until
+        // a checkpoint is done.
+        // This world ordinarily happen daily anyway, and only impacts the very last chunk
+        await ovToken.checkpointReserves();
+
+        totalSupply = await ovToken.totalSupply();
+        shares = await ovToken.sharesToReserves(totalSupply);
+        expect(totalSupply).eq(investAmount.mul(2));
+        expect(shares).eq(investAmount.mul(2).add(reservesAmt));
+        expect(await ovToken.reservesToShares(shares)).eq(investAmount.mul(2));
+
+        // Alan exits
+        let exitQuote = await ovToken.exitQuote(alanBal, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+        await ovToken.connect(alan).exitToToken(exitQuote.quoteData, alan.getAddress());
+
+        alanBal = await ovToken.balanceOf(alan.getAddress());
+        shares = await ovToken.sharesToReserves(alanBal);
+        expect(alanBal).eq(0);
+        expect(shares).eq(0);
+        expect(await ovToken.reservesToShares(shares)).eq(0);
+
+        totalSupply = await ovToken.totalSupply();
+        shares = await ovToken.sharesToReserves(totalSupply);
+        expect(totalSupply).eq(investAmount);
+        expect(shares).eq(investAmount.add(reservesAmt.div(2)));
+        expect(await ovToken.reservesToShares(shares)).eq(investAmount);
+
+        // Bob exits
+        exitQuote = await ovToken.exitQuote(bobBal, oToken.address, ZERO_SLIPPAGE, ZERO_DEADLINE);
+        await ovToken.connect(bob).exitToToken(exitQuote.quoteData, bob.getAddress());
+
+        bobBal = await ovToken.balanceOf(bob.getAddress());
+        shares = await ovToken.sharesToReserves(bobBal);
+        expect(bobBal).eq(0);
+        expect(shares).eq(0);
+        expect(await ovToken.reservesToShares(shares)).eq(0);
+
+        totalSupply = await ovToken.totalSupply();
+        shares = await ovToken.sharesToReserves(totalSupply);
+        expect(totalSupply).eq(0);
+        expect(shares).eq(0);
+        expect(await ovToken.reservesToShares(shares)).eq(0);
+    });
+
     it("constructor", async () => {
         expect(await ovToken.reserveToken()).eq(oToken.address);
+        expect(await ovToken.baseToken()).eq(oToken.address);
         expect(await ovToken.tokenPrices()).eq(tokenPrices.address);
         const [numerator, denominator] = await ovToken.performanceFee();
         expect(numerator.toNumber()).to.eq(5);

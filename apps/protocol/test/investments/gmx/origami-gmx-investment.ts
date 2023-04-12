@@ -104,6 +104,7 @@ describe("Origami GMX Investment", async () => {
 
     it("constructor", async () => {
         expect(await oGMX.origamiGmxManager()).eq(origamiGmxManager.address);
+        expect(await oGMX.baseToken()).eq(gmxContracts.gmxToken.address);
         expect(await oGMX.apiVersion()).eq("0.1.0");
     });
 

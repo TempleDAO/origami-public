@@ -48,6 +48,14 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     }
 
     /**
+     * @notice The underlying token this investment wraps. 
+     * In this case, it's the $GLP token
+     */
+    function baseToken() external view returns (address) {
+        return address(origamiGlpManager.glpToken());
+    }
+
+    /**
      * @notice The set of accepted tokens which can be used to buy oGLP
      * @dev This is the same list as when investing in GLP at GMX.io
      * With the addition of 0x0 for native ETH/AVAX, and also existing user purchased & staked GLP
