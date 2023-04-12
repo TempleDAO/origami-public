@@ -12,6 +12,7 @@ export const Default = () => {
   return (
     <PageContent
       papi={papi}
+      walletInitialize={async () => undefined}
       walletAddress={sapi.signerAddress}
       walletConnect={async () => sapi}
       cache={cache}
@@ -26,6 +27,7 @@ export const Loading = () => {
     <PageContent
       papi={papi}
       walletAddress={sapi.signerAddress}
+      walletInitialize={async () => undefined}
       walletConnect={async () => sapi}
       cache={cache}
     />

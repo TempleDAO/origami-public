@@ -1,7 +1,8 @@
 import React from 'react';
 import { action } from '@storybook/addon-actions';
 
-import { Button } from './Button';
+import { AsyncButton, Button } from './Button';
+import { sleep } from '@/utils/sleep';
 
 export default {
   title: 'Components/Commons/Button',
@@ -20,4 +21,18 @@ export const Spinner = () => (
 
 export const Secondary = () => (
   <Button secondary onClick={action('pressed')} label="Secondary" />
+);
+
+export const WideLabel = () => (
+  <Button onClick={action('pressed')} label="With a very wide label" wide />
+);
+
+export const Async = () => (
+  <AsyncButton
+    onClick={async () => {
+      await sleep(1000);
+      action('pressed');
+    }}
+    label="Press me"
+  />
 );

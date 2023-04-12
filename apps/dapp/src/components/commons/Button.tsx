@@ -40,7 +40,16 @@ export const Button: FC<ButtonProps> = ({
     wide={wide}
     secondary={secondary}
   >
-    {showSpinner ? <Spinner size={'small'} /> : label.toUpperCase()}
+    {showSpinner ? (
+      <Spinner1>
+        <Spinner2>
+          <Spinner size={'small'} />
+        </Spinner2>
+        <Spinner3>{label.toUpperCase()}</Spinner3>
+      </Spinner1>
+    ) : (
+      label.toUpperCase()
+    )}
   </StyledButton>
 );
 
@@ -123,4 +132,20 @@ export const StyledButton = styled.button<{
   ${breakpoints.md(`
     font-size: 1rem;
   `)}
+`;
+
+const Spinner1 = styled.div`
+  display: grid;
+  justify-items: center;
+`;
+
+const Spinner2 = styled.div`
+  grid-column: 1;
+  grid-row: 1;
+`;
+
+const Spinner3 = styled.div`
+  grid-column: 1;
+  grid-row: 1;
+  opacity: 0;
 `;

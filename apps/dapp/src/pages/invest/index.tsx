@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { InvestGrid, InvestGridItem } from './InvestGrid';
 import { FlowOverlay } from '@/flows/invest';
@@ -9,14 +9,17 @@ import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { isReserveToken } from '@/utils/api-utils';
+import { useConnectModal } from '@/components/commons/ConnectModal';
 
 export function Page() {
   const am = useApiManager();
+  const modal = useConnectModal();
   return (
     <PageContent
       papi={am.papi}
       walletAddress={am.wallet?.address}
       cache={am.cache}
+      walletInitialize={modal.walletInitialize}
       walletConnect={am.walletConnect}
     />
   );
@@ -26,6 +29,7 @@ interface PageContentProps {
   papi: ProviderApi;
   walletAddress: string | undefined;
   cache: ApiCache;
+  walletInitialize(): Promise<void>;
   walletConnect(chain: Chain): Promise<SignerApi | undefined>;
 }
 
@@ -33,12 +37,25 @@ export const PageContent = (props: PageContentProps) => {
   const { papi, walletConnect } = props;
   const [activeFlow, setActiveFlow] = useState<JSX.Element | undefined>();
   const investments = getValue(props.cache.investments) || [];
+  const [pending, setPending] = useState<InvestmentConfig | undefined>();
 
   function hidePanel() {
     setActiveFlow(undefined);
   }
 
   async function onInvest(ic: InvestmentConfig) {
+    if (props.walletAddress) {
+      onInvestImpl(ic);
+      return;
+    }
+
+    // We are not connected to a wallet yet. So initialize the
+    // wallet now, then schedule the invest flow via an effect
+    await props.walletInitialize();
+    setPending(ic);
+  }
+
+  async function onInvestImpl(ic: InvestmentConfig) {
     const investment = await papi.getInvestment(ic);
     const sapi = await walletConnect(investment.chain);
     if (!sapi) {
@@ -67,14 +84,20 @@ export const PageContent = (props: PageContentProps) => {
   const gridItems = investments.map((investment) => {
     const metrics = newLoading(props.cache.metrics.get(investment));
     const tokenPrice = newLoading(props.cache.tokenPrices.get(investment));
-    return makeInvestGridItem(
-      papi,
-      investment,
-      metrics,
-      tokenPrice,
-      props.walletAddress ? () => onInvest(investment) : undefined
+    return makeInvestGridItem(papi, investment, metrics, tokenPrice, () =>
+      onInvest(investment)
     );
   });
+
+  useEffect(() => {
+    async function delayedInvest() {
+      if (props.walletAddress && pending) {
+        await onInvestImpl(pending);
+        setPending(undefined);
+      }
+    }
+    delayedInvest();
+  }, [props.walletAddress, pending]); // eslint-disable-line
 
   return (
     <FlexDown>

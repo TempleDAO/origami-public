@@ -15,6 +15,7 @@ import './styles/fonts.css';
 import { ApiManagerProvider } from './hooks/use-api-manager';
 import { getApiConfig } from './config';
 import { AppLayout } from './components/Layouts/AppLayout';
+import { ConnectModalProvider } from './components/commons/ConnectModal';
 
 // polyfill Buffer required for WalletConnect
 if (!window.Buffer) {
@@ -61,7 +62,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
       <ThemeContext.Provider value={theme}>
         <GlobalStyle />
-        <RouterProvider router={router} />
+        <ConnectModalProvider>
+          <RouterProvider router={router} />
+        </ConnectModalProvider>
       </ThemeContext.Provider>
     </React.StrictMode>
   </ApiManagerProvider>
