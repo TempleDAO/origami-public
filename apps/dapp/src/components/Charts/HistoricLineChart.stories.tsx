@@ -2,7 +2,6 @@ import type { HistoricPeriod } from '@/api/types';
 
 import React, { useState } from 'react';
 
-import LineChart from './LineChart';
 import {
   ChartDurations,
   ChartHeader,
@@ -21,8 +20,8 @@ import { action } from '@storybook/addon-actions';
 import { ChartDataPoint } from './HistoricLineChart';
 
 export default {
-  title: 'Components/Charts/LineChart',
-  component: LineChart,
+  title: 'Components/Charts/HistoricLineChart',
+  component: HistoricLineChart,
 };
 
 const dayTestValues = ready([
