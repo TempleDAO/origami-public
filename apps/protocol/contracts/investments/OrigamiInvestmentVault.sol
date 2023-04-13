@@ -65,6 +65,14 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Reen
     }
 
     /**
+     * @notice The underlying token this investment wraps. 
+     * @dev For an investment vault, this is the underyling reserve token
+     */
+    function baseToken() external view returns (address) {
+        return reserveToken;
+    }
+
+    /**
      * @notice Whether new investments are paused.
      */
     function areInvestmentsPaused() external override view returns (bool) {

@@ -9,10 +9,6 @@ export function onAnswerUpdated(event: AnswerUpdated): void {
     // Update priced token prices
     updatePricedTokenPrices(event.block.timestamp)
 
-    // Update investments
+    // Update investments & metrics
     updateInvestmentVaults(event.block.timestamp)
-
-    // Update metrics
-    const metric = getMetric()
-    updateMetric(metric, event.block.timestamp)
 }

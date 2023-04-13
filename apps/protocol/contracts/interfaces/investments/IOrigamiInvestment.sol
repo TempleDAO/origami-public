@@ -17,6 +17,14 @@ interface IOrigamiInvestment is IERC20, IERC20Permit {
      */
     function apiVersion() external pure returns (string memory);
 
+    /**
+     * @notice The underlying token this investment wraps. 
+     * @dev For informational purposes only, eg integrations/FE
+     * If the investment wraps a protocol without an ERC20 (eg a non-liquid staked position)
+     * then this may be 0x0
+     */
+    function baseToken() external view returns (address);
+
     /** 
      * @notice Emitted when a user makes a new investment
      * @param user The user who made the investment

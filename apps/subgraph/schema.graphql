@@ -3,12 +3,15 @@ type Metric @entity {
   timestamp: BigInt!
   investments: [Investment!]!
   investmentCount: Int!
+  investmentsTvlUSD: BigDecimal!
   investmentVaults: [InvestmentVault!]!
   investmentVaultCount: Int!
+  investmentVaultsTvlUSD: BigDecimal!
   pricedTokens: [PricedToken!]!
   pricedTokenCount: Int!
   userCount: Int!
   metricDailySnapshots: [MetricDailySnapshot!]! @derivedFrom(field: "metric")
+  metricHourlySnapshots: [MetricHourlySnapshot!]! @derivedFrom(field: "metric")
 }
 
 type MetricDailySnapshot @entity {
@@ -17,7 +20,22 @@ type MetricDailySnapshot @entity {
   timeframe: BigInt!
   metric: Metric!
   investmentCount: Int!
+  investmentsTvlUSD: BigDecimal!
   investmentVaultCount: Int!
+  investmentVaultsTvlUSD: BigDecimal!
+  pricedTokenCount: Int!
+  userCount: Int!
+}
+
+type MetricHourlySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  metric: Metric!
+  investmentCount: Int!
+  investmentsTvlUSD: BigDecimal!
+  investmentVaultCount: Int!
+  investmentVaultsTvlUSD: BigDecimal!
   pricedTokenCount: Int!
   userCount: Int!
 }

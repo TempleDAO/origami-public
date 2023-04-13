@@ -90,7 +90,7 @@ const BackButton = styled(Icon)`
 `;
 
 const WindowOverlay = styled.div<{ slideIn: boolean }>`
-  z-index: 9999;
+  z-index: 80;
   position: fixed;
   display: flex;
   width: 100%;
@@ -107,7 +107,7 @@ const ContentPanel = styled.div<{
   widthPercent: number;
   maxWidthRem?: number;
 }>`
-  z-index: 9999;
+  z-index: 80;
   position: fixed;
   display: flex;
   overflow-y: auto;

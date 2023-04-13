@@ -2,7 +2,8 @@ import { Signer } from "ethers";
 import { expect } from "chai";
 import { 
     DummyOrigamiInvestment, DummyOrigamiInvestment__factory, 
-    DummyMintableToken__factory, 
+    DummyMintableToken__factory,
+    DummyMintableToken, 
 } from "../../typechain";
 import { 
     expectBalancesChangeBy, 
@@ -15,6 +16,7 @@ describe("Origami Investment Base Class", async () => {
     let oToken: DummyOrigamiInvestment;
     let gov: Signer;
     let govAddr: string;
+    let underlyingInvestToken: DummyMintableToken;
     
     before( async () => {
         [alan, gov] = await getSigners();
@@ -22,7 +24,7 @@ describe("Origami Investment Base Class", async () => {
     });
 
     async function setup() {
-        const underlyingInvestToken = await new DummyMintableToken__factory(gov).deploy(govAddr, "investToken", "investToken");
+        underlyingInvestToken = await new DummyMintableToken__factory(gov).deploy(govAddr, "investToken", "investToken");
 
         oToken = await new DummyOrigamiInvestment__factory(gov).deploy(
             govAddr,
@@ -33,17 +35,20 @@ describe("Origami Investment Base Class", async () => {
         await oToken.addMinter(gov.getAddress());
         return {
             oToken,
+            underlyingInvestToken,
         };
     }
 
     beforeEach(async () => {
         ({
             oToken,
+            underlyingInvestToken,
         } = await loadFixture(setup));
     });
 
     it("constructor", async () => {
         expect(await oToken.apiVersion()).eq("0.1.0");
+        expect(await oToken.baseToken()).eq(underlyingInvestToken.address);
     });
 
     it("can mint receipt token", async () => {

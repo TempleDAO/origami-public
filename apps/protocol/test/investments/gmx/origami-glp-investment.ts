@@ -141,6 +141,7 @@ describe("Origami GLP Investment", async () => {
 
     it("constructor", async () => {
         expect(await oGLP.origamiGlpManager()).eq(origamiGlpManager.address);
+        expect(await oGLP.baseToken()).eq(gmxContracts.glpToken.address);
         expect(await oGLP.wrappedNativeToken()).eq(gmxContracts.wrappedNativeToken.address);
         expect(await oGLP.apiVersion()).eq("0.1.0");
     });

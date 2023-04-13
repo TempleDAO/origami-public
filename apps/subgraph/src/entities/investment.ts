@@ -5,6 +5,7 @@ import { Investment } from '../../generated/schema'
 
 import { getMetric, updateMetric } from './metric'
 import { BIG_DECIMAL_0 } from '../utils/constants'
+import { getPricedToken } from './pricedToken'
 
 
 function createInvestment(address: Address, timestamp: BigInt): Investment {
@@ -63,5 +64,9 @@ export function getInvestment(address: Address): Investment {
 
 export function updateInvestment(investment: Investment, timestamp: BigInt): void {
   investment.timestamp = timestamp
+
+  const investmentToken = getPricedToken(investment.id, timestamp)
+  investment.tvlUSD = investment.tvl.times(investmentToken.price)
+
   investment.save()
 }

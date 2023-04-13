@@ -2,11 +2,11 @@ import { Address, BigDecimal, BigInt, Bytes } from '@graphprotocol/graph-ts'
 
 import { OrigamiInvestmentVault as InvestmentVaultContract } from '../../generated/GmxInvestment/OrigamiInvestmentVault'
 
-import { InvestmentVault, InvestmentVaultDailySnapshot, InvestmentVaultHourlySnapshot } from '../../generated/schema'
+import { Investment, InvestmentVault, InvestmentVaultDailySnapshot, InvestmentVaultHourlySnapshot } from '../../generated/schema'
 import { BIG_DECIMAL_0, BIG_DECIMAL_1, BIG_DECIMAL_100, BIG_DECIMAL_365, CACHE_INTERVAL } from '../utils/constants'
 import { dayFromTimestamp, hourFromTimestamp } from '../utils/dates'
 import { ipow, toDecimal } from '../utils/decimals'
-import { getOrCreateInvestment } from './investment'
+import { getOrCreateInvestment, updateInvestment } from './investment'
 import { getMetric, updateMetric } from './metric'
 import { getOrCreatePricedToken, getPricedToken } from './pricedToken'
 
@@ -116,11 +116,25 @@ export function updateInvestmentVault(investmentVault: InvestmentVault, timestam
 }
 
 export function updateInvestmentVaults(timestamp: BigInt): void {
-  const investmentVaults = getMetric().investmentVaults
+  const metric = getMetric()
+  let investmentVaultsTvlUSD = BIG_DECIMAL_0
+  let investmentsTvlUSD = BIG_DECIMAL_0
+
+  const investmentVaults = metric.investmentVaults
+  const investments = metric.investments
   for (let i = 0; i < investmentVaults.length; ++i) {
     const investmentVault = InvestmentVault.load(investmentVaults[i]) as InvestmentVault
     updateInvestmentVault(investmentVault, timestamp)
+    investmentVaultsTvlUSD = investmentVaultsTvlUSD.plus(investmentVault.tvlUSD)
+
+    const investment = Investment.load(investments[i]) as Investment
+    updateInvestment(investment, timestamp)
+    investmentsTvlUSD = investmentsTvlUSD.plus(investment.tvlUSD)
   }
+
+  metric.investmentVaultsTvlUSD = investmentVaultsTvlUSD
+  metric.investmentsTvlUSD = investmentsTvlUSD
+  updateMetric(metric, timestamp)
 }
 
 function getAPR(investmentVaultContract: InvestmentVaultContract): BigDecimal {
