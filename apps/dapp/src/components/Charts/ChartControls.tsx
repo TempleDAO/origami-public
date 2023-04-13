@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import type { HistoricPeriod } from '@/api/types';
-import { LabelledValue, SmallSelection } from './commons/SmallSelection';
+import { LabelledValue, SmallSelection } from '../commons/SmallSelection';
 
 export type ChartDurationProps = {
   value: HistoricPeriod;
