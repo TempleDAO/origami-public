@@ -1,4 +1,4 @@
-import type { HistoricPeriod } from '@/api/types';
+import type { HistoricPeriod, MetricOrPrice } from '@/api/types';
 
 import React, { useState } from 'react';
 
@@ -8,11 +8,7 @@ import {
   ChartPriceSeries,
   HistoricLineChart,
 } from '.';
-import {
-  Graph,
-  InvestGridItem,
-  MetricOrPrice,
-} from '@/pages/invest/InvestGrid';
+import { Graph, InvestGridItem } from '@/pages/invest/InvestGrid';
 import { loading, ready } from '@/utils/loading-value';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { arbitrum, getHistory } from '@/api/test';
@@ -1110,6 +1106,7 @@ export const Default = () => {
       <HistoricLineChart
         chartData={values}
         selectedInterval={histPeriod}
+        histSeries={histSeries}
         legendFormatter={() => `${gmx().name} % APY`}
       />
     </Graph>
