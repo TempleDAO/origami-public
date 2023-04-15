@@ -39,19 +39,14 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
   };
 
   const tooltipLabelFormatters: Record<HistoricPeriod, XAxisTickFormatter> = {
-    ...tickFormatters,
-    day: (timestamp) => formatDate(timestamp, 'MMM do, h aaa'),
+    day: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do, h aaa')}`,
+    week: (timestamp) => `Date: ${formatDate(timestamp, 'eee d LLL')}`,
+    month: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do')}`,
+    all: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do y')}`,
   };
 
-  const formatNumberFixedDecimals = (
-    n: number | string,
-    decimals = 2
-  ): number => {
-    if (typeof n === 'string') n = Number(n);
-    return +Number(n).toFixed(decimals);
-  };
   const tooltipValuesFormatter = (value: number, name: string) => [
-    formatNumberFixedDecimals(value, 4).toString(),
+    tickSeries(histSeries)(value),
     name,
   ];
 
