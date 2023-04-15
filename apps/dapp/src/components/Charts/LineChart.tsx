@@ -14,6 +14,7 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  CartesianGrid,
 } from 'recharts';
 
 type LineChartProps<T> = {
@@ -21,6 +22,7 @@ type LineChartProps<T> = {
   xDataKey: DataKey<keyof T>;
   lines: { series: DataKey<keyof T>; color: string }[];
   xTickFormatter?: (xValue: number, index: number) => string;
+  yTickFormatter?: (xValue: number, index: number) => string;
   tooltipLabelFormatter?: (value: number) => string;
   tooltipValuesFormatter?: (value: number, name: string) => string[];
   legendFormatter?: (value: string) => string;
@@ -35,6 +37,7 @@ export default function LineChart<T>(
     xDataKey,
     lines,
     xTickFormatter,
+    yTickFormatter,
     tooltipLabelFormatter,
     tooltipValuesFormatter,
     legendFormatter,
@@ -43,12 +46,13 @@ export default function LineChart<T>(
 
   const theme = useTheme();
   return (
-    <ResponsiveContainer minHeight={200} minWidth={320} height={350}>
+    <ResponsiveContainer minHeight={150} minWidth={320} height={250}>
       <RechartsLineChart data={chartData}>
+        <CartesianGrid vertical={false} stroke={theme.colors.greyDark} />
         {lines.map((line) => (
           <Line
             key={line.series.toString()}
-            type="monotone"
+            type="stepAfter"
             dataKey={line.series}
             stroke={line.color}
             strokeWidth={2}
@@ -60,19 +64,19 @@ export default function LineChart<T>(
           tickFormatter={xTickFormatter}
           tick={{ stroke: theme.colors.greyLight }}
           fontSize={11}
-          //   interval="preserveStart"
-          interval={'equidistantPreserveStart' as AxisInterval}
-          minTickGap={10}
+          interval={'preserveEnd' as AxisInterval} // 'equidistantPreserveStart'as AxisInterval works even though not in types
+          minTickGap={20}
           tickMargin={10}
+          stroke="none"
         />
         <YAxis
-          //   tickFormatter={(value) => formatNumberAbbreviated(value).string}
-          tickFormatter={(value) => value}
+          tickFormatter={yTickFormatter}
           tick={{ stroke: theme.colors.greyLight }}
           fontSize={11}
-          interval="preserveStart"
+          interval="preserveEnd"
           domain={yDomain}
           tickMargin={10}
+          stroke="none"
         />
         <Tooltip
           wrapperStyle={{ outline: 'none' }}

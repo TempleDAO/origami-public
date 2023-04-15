@@ -1,4 +1,9 @@
-import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
+import type {
+  HistoricPeriod,
+  HistoryPoint,
+  Chain,
+  MetricOrPrice,
+} from '@/api/types';
 
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
@@ -203,8 +208,6 @@ function ItemFragment({
   );
 }
 
-export type MetricOrPrice = Metric | 'price';
-
 interface ExpandedItemFragmentProps {
   item: InvestGridItem;
   histSeries: MetricOrPrice;
@@ -243,7 +246,11 @@ function ExpandedItemFragment({
             />
           )}
         </ChartHeader>
-        <HistoricLineChart chartData={values} selectedInterval={histPeriod} />
+        <HistoricLineChart
+          chartData={values}
+          selectedInterval={histPeriod}
+          histSeries={histSeries}
+        />
       </Graph>
       <InvestmentInfoForGrid>
         <InvestmentInfo>{item.info}</InvestmentInfo>

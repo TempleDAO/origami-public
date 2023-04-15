@@ -1,13 +1,15 @@
-import type { HistoricPeriod, HistoryPoint } from '@/api/types';
+import type { HistoricPeriod, HistoryPoint, MetricOrPrice } from '@/api/types';
 
 import LineChart from './LineChart';
 import { theme } from '@/styles/theme';
 import { format as formatDate } from 'date-fns';
+import { format } from 'd3-format';
 
 import { isReady } from '@/utils/loading-value';
 import type { Loading } from '@/utils/loading-value';
 import styled from 'styled-components';
 import { LoadingComponent } from '../commons/LoadingComponent';
+import { assertNever } from '@/utils/assert';
 
 type XAxisTickFormatter = (timestamp: number) => string;
 
@@ -19,10 +21,11 @@ export type ChartDataPoint = {
 interface HistoricLineChartProps {
   chartData: Loading<ChartDataPoint[]>;
   selectedInterval: HistoricPeriod;
+  histSeries: MetricOrPrice;
   legendFormatter?: (value: string) => string;
 }
 export default function HistoricLineChart(props: HistoricLineChartProps) {
-  const { chartData, selectedInterval, legendFormatter } = props;
+  const { chartData, selectedInterval, histSeries, legendFormatter } = props;
 
   if (!isReady(chartData)) {
     return <StyledLoader />;
@@ -34,8 +37,6 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
     month: (timestamp) => formatDate(timestamp, 'MMM do'),
     all: (timestamp) => formatDate(timestamp, 'MMM do y'),
   };
-
-  // const yDomain: AxisDomain = ([dataMin, dataMax]) => [dataMin - dataMin * 0.1, dataMax + dataMax * 0.1];
 
   const tooltipLabelFormatters: Record<HistoricPeriod, XAxisTickFormatter> = {
     ...tickFormatters,
@@ -65,8 +66,9 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
       xDataKey="x"
       lines={[{ series: 'y', color: theme.colors.chartLine }]}
       xTickFormatter={tickFormatters[selectedInterval]}
+      yTickFormatter={tickSeries(histSeries)}
       tooltipLabelFormatter={tooltipLabelFormatters[selectedInterval]}
-      // yDomain={yDomain}
+      yDomain={['auto', 'auto']}
       legendFormatter={legendFormatter}
       tooltipValuesFormatter={(value, _) =>
         tooltipValuesFormatter(value, 'Value')
@@ -77,6 +79,35 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
 
 export function convertHistoryPoint(p: HistoryPoint): ChartDataPoint {
   return { x: p.t.getTime(), y: p.v };
+}
+
+export function tickSeries(series: MetricOrPrice): (v: number) => string {
+  switch (series) {
+    case 'apy':
+      return tickPercent;
+    case 'tvl':
+      return tickValue;
+    case 'price':
+      return tickPrice;
+    case 'reservesPerShare':
+      return tickPrice;
+    default:
+      return assertNever(series);
+  }
+}
+
+export function tickPrice(v: number): string {
+  return format('.3f')(v);
+}
+
+export function tickValue(v: number): string {
+  return format(Math.abs(v) < 1000 ? '.3' : '.3s')(v);
+}
+
+export function tickPercent(v: number): string {
+  const percentage = v * 100;
+
+  return `${format(Math.abs(percentage) < 1000 ? '.3' : '.1s')(percentage)}%`;
 }
 
 const StyledLoader = styled(LoadingComponent)`

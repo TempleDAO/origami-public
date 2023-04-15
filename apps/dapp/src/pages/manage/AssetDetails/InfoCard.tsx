@@ -103,7 +103,13 @@ export const InfoCard: FC<InfoCardProps> = ({
             />
           )}
         </ChartHeader>
-        <HistoricLineChart chartData={values} selectedInterval={histPeriod} />
+        <HistoricLineChart
+          chartData={values}
+          selectedInterval={histPeriod}
+          histSeries={
+            histSeries.kind === 'token-price' ? 'price' : histSeries.metric
+          }
+        />
       </ChartContainer>
     </Container>
   );

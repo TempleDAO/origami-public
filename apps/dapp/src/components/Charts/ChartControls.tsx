@@ -52,4 +52,5 @@ export const ChartHeader = styled.div`
   justify-content: space-between;
   padding-bottom: 0.5rem;
   padding-top: 0.25rem;
+  margin-bottom: 0.5rem;
 `;

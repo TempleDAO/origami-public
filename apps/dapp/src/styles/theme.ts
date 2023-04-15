@@ -11,7 +11,7 @@ export const theme: DefaultTheme = {
     white: '#ffffff',
     success: '#2DF6A7',
     error: '#FF3459',
-    chartLine: '#2DF6A7',
+    chartLine: '#327A5E',
     gradients: {
       primary: 'linear-gradient(270deg, #29B8ED 0%, #2DF6A7 100%)',
       primaryDark:
