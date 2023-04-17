@@ -1,4 +1,9 @@
-import type { HistoricPeriod, Metric, HistoryPoint, Chain } from '@/api/types';
+import type {
+  HistoricPeriod,
+  HistoryPoint,
+  Chain,
+  MetricOrPrice,
+} from '@/api/types';
 
 import { useState } from 'react';
 import styled, { css, keyframes } from 'styled-components';
@@ -6,12 +11,12 @@ import styled, { css, keyframes } from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import { LoadingText } from '@/components/commons/LoadingText';
 import {
-  convertHistoryPoint,
   HistoricLineChart,
-  tickSeries,
-  timeTickFormatter,
-  totalTickPoints,
-} from '@/components/HistoricLineChart';
+  convertHistoryPoint,
+  ChartDurations,
+  ChartHeader,
+  ChartPriceSeries,
+} from '@/components/Charts';
 import { AsyncButton } from '@/components/commons/Button';
 
 import { useAsyncLoad } from '@/hooks/use-async-result';
@@ -31,11 +36,6 @@ import breakpoints from '@/styles/responsive-breakpoints';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { Tooltip } from '@/components/commons/Tooltip';
-import {
-  ChartDurations,
-  ChartHeader,
-  ChartPriceSeries,
-} from '@/components/ChartControls';
 import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
 import { FlexRight } from '@/flows/common/components';
 import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
@@ -208,8 +208,6 @@ function ItemFragment({
   );
 }
 
-type MetricOrPrice = Metric | 'price';
-
 interface ExpandedItemFragmentProps {
   item: InvestGridItem;
   histSeries: MetricOrPrice;
@@ -230,9 +228,7 @@ function ExpandedItemFragment({
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),
     [histPeriod, histSeries]
   );
-  const isMedium = useMediaQuery(theme.responsiveBreakpoints.md);
   const isLarge = useMediaQuery(theme.responsiveBreakpoints.lg);
-  const xTotalTick = totalTickPoints(histPeriod, isLarge, isLarge);
 
   return (
     <>
@@ -249,10 +245,9 @@ function ExpandedItemFragment({
           )}
         </ChartHeader>
         <HistoricLineChart
-          values={values}
-          xTickFormat={timeTickFormatter(histPeriod, isMedium)}
-          xTotalTick={xTotalTick}
-          yTickFormat={tickSeries(histSeries)}
+          chartData={values}
+          selectedInterval={histPeriod}
+          histSeries={histSeries}
         />
       </Graph>
       <InvestmentInfoForGrid>
@@ -405,7 +400,6 @@ const ButtonHolder = styled.div`
 `;
 
 const Graph = styled.div`
-  height: 18.75rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;

@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import type { HistoricPeriod } from '@/api/types';
-import { LabelledValue, SmallSelection } from './commons/SmallSelection';
+import { LabelledValue, SmallSelection } from '../commons/SmallSelection';
 
 export type ChartDurationProps = {
   value: HistoricPeriod;
@@ -52,4 +52,5 @@ export const ChartHeader = styled.div`
   justify-content: space-between;
   padding-bottom: 0.5rem;
   padding-top: 0.25rem;
+  margin-bottom: 0.5rem;
 `;
