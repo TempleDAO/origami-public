@@ -13,7 +13,7 @@ function main() {
 
   runner.addPeriodicTask({
     id: 'gmx-auto-compounder',
-    cronSchedule: '0 22 * * *',
+    cronSchedule: '30 22 * * *',
     action: async (ctx) => harvestGmxRewards(ctx, config.harvestGmx),
   });
 
@@ -24,7 +24,7 @@ function main() {
 
   runner.addPeriodicTask({
     id: 'glp-auto-compounder',
-    cronSchedule: '0 22 * * *',
+    cronSchedule: '30 22 * * *',
     action: async (ctx) => harvestGlpRewards(ctx, config.harvestGlp),
   });
 
@@ -35,7 +35,7 @@ function main() {
 
   runner.addPeriodicTask({ 
     id: 'transfer-staked-glp',
-    cronSchedule: '0 23 * * *',
+    cronSchedule: '0 22 * * *',
     action: async (ctx) => transferStakedGlp(ctx, config.transferStakedGlp),
   });
 
