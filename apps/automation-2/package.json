@@ -1,0 +1,33 @@
+{
+  "name": "origami-tasks",
+  "version": "1.0.0",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "prepare": "yarn typechain",
+    "typechain": "typechain --target=ethers-v5 --out-dir src/typechain abi/*.json",
+    "clean": "rm -rf dist",
+    "build": "yarn clean && tsc && tsc-alias -p tsconfig.json",
+    "build:image": "docker build --tag origami-tasks ."
+  },
+  "dependencies": {
+    "@mountainpath9/overlord": "0.0.4",
+    "axios": "^0.21.2",
+    "discord.js": "^14.9.0",
+    "qs": "^6.11.0"
+  },
+  "devDependencies": {
+    "@typechain/ethers-v5": "^10.1.1",
+    "typechain": "^8.1.1",
+    "typescript": "^4.9.3",
+    "tsc-alias": "^1.8.3"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "prettier --write",
+      "eslint --cache --fix"
+    ],
+    "*.{html,css}": [
+      "prettier --write"
+    ]
+  }
+}

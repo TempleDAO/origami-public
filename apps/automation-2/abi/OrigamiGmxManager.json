@@ -1,0 +1,1587 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_initialGov",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_gmxRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_glpRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_oGmxTokenAddr",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_oGlpTokenAddr",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_feeCollectorAddr",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_primaryEarnAccount",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_secondaryEarnAccount",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "ExpectedNonZero",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "addr",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidAddress",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidParam",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "InvalidToken",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "IsPaused",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotGovernor",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "OnlyOperators",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "AddedOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "numerator",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "denominator",
+        "type": "uint128"
+      }
+    ],
+    "name": "EsGmxVestingRateSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "feeCollector",
+        "type": "address"
+      }
+    ],
+    "name": "FeeCollectorSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousGov",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newGov",
+        "type": "address"
+      }
+    ],
+    "name": "NewGovernorAccepted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousGov",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousProposedGov",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newProposedGov",
+        "type": "address"
+      }
+    ],
+    "name": "NewGovernorProposed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "numerator",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "denominator",
+        "type": "uint128"
+      }
+    ],
+    "name": "OGmxRewardsFeeRateSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "glpInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "glpExitsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxExitsPaused",
+            "type": "bool"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct IOrigamiGmxManager.Paused",
+        "name": "paused",
+        "type": "tuple"
+      }
+    ],
+    "name": "PausedSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "canPause",
+        "type": "bool"
+      }
+    ],
+    "name": "PauserSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "PrimaryEarnAccountSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "RemovedOperator",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "gmxRewardsAggregator",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "glpRewardsAggregator",
+        "type": "address"
+      }
+    ],
+    "name": "RewardsAggregatorsSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "SecondaryEarnAccountSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "numerator",
+        "type": "uint128"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint128",
+        "name": "denominator",
+        "type": "uint128"
+      }
+    ],
+    "name": "SellFeeRateSet",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "acceptGov",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "acceptedGlpTokens",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "acceptedOGmxTokens",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_address",
+        "type": "address"
+      }
+    ],
+    "name": "addOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "applyGmx",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "esGmxVestingRate",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "numerator",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "denominator",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "toToken",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "investmentTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "toToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.ExitQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "exitOGlp",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "toTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "toBurnAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "investmentTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "toToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "exitOGlpQuote",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "investmentTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "toToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.ExitQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "exitFeeBps",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "investmentTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "toToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.ExitQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "exitOGmx",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "toTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "toBurnAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "investmentTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "toToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "exitOGmxQuote",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "investmentTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "toToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minToTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.ExitQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "exitFeeBps",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeCollector",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpManager",
+    "outputs": [
+      {
+        "internalType": "contract IGlpManager",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpRewardsAggregator",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "glpToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gmxRewardsAggregator",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gmxToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gmxVault",
+    "outputs": [
+      {
+        "internalType": "contract IGmxVault",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gov",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "harvestRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "harvestSecondaryRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IOrigamiGmxEarnAccount.VaultType",
+        "name": "vaultType",
+        "type": "uint8"
+      }
+    ],
+    "name": "harvestableRewards",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "amounts",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IOrigamiGmxEarnAccount.VaultType",
+        "name": "vaultType",
+        "type": "uint8"
+      }
+    ],
+    "name": "harvestableSecondaryRewards",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "amounts",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gmxRewardRouter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_glpRewardRouter",
+        "type": "address"
+      }
+    ],
+    "name": "initGmxContracts",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "fromToken",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "fromToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fromTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.InvestQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      }
+    ],
+    "name": "investOGlp",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "investmentAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "fromTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "fromToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "investOGlpQuote",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "fromToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fromTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.InvestQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "investFeeBps",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "fromToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fromTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.InvestQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      }
+    ],
+    "name": "investOGmx",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "investmentAmount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "fromTokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "fromToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxSlippageBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "investOGmxQuote",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "fromToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fromTokenAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxSlippageBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deadline",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "expectedInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minInvestmentAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "underlyingInvestmentQuoteData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct IOrigamiInvestment.InvestQuoteData",
+        "name": "quoteData",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "investFeeBps",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "oGlpToken",
+    "outputs": [
+      {
+        "internalType": "contract IMintableToken",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "oGmxRewardsFeeRate",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "numerator",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "denominator",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "oGmxToken",
+    "outputs": [
+      {
+        "internalType": "contract IMintableToken",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_account",
+        "type": "address"
+      }
+    ],
+    "name": "operators",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "glpInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "glpExitsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxExitsPaused",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxManager.Paused",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "pausers",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "primaryEarnAccount",
+    "outputs": [
+      {
+        "internalType": "contract IOrigamiGmxEarnAccount",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IOrigamiGmxEarnAccount.VaultType",
+        "name": "vaultType",
+        "type": "uint8"
+      }
+    ],
+    "name": "projectedRewardRates",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "amounts",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newProposedGov",
+        "type": "address"
+      }
+    ],
+    "name": "proposeNewGov",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "recoverToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_address",
+        "type": "address"
+      }
+    ],
+    "name": "removeOperator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "rewardTokens",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "rewardTokensList",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "tokens",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "secondaryEarnAccount",
+    "outputs": [
+      {
+        "internalType": "contract IOrigamiGmxEarnAccount",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "sellFeeRate",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "numerator",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "denominator",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint128",
+        "name": "_numerator",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "_denominator",
+        "type": "uint128"
+      }
+    ],
+    "name": "setEsGmxVestingRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_feeCollector",
+        "type": "address"
+      }
+    ],
+    "name": "setFeeCollector",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint128",
+        "name": "_numerator",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "_denominator",
+        "type": "uint128"
+      }
+    ],
+    "name": "setOGmxRewardsFeeRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "glpInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxInvestmentsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "glpExitsPaused",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "gmxExitsPaused",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct IOrigamiGmxManager.Paused",
+        "name": "updatedPaused",
+        "type": "tuple"
+      }
+    ],
+    "name": "setPaused",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "canPause",
+        "type": "bool"
+      }
+    ],
+    "name": "setPauser",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_primaryEarnAccount",
+        "type": "address"
+      }
+    ],
+    "name": "setPrimaryEarnAccount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gmxRewardsAggregator",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_glpRewardsAggregator",
+        "type": "address"
+      }
+    ],
+    "name": "setRewardsAggregators",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_secondaryEarnAccount",
+        "type": "address"
+      }
+    ],
+    "name": "setSecondaryEarnAccount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint128",
+        "name": "_numerator",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "_denominator",
+        "type": "uint128"
+      }
+    ],
+    "name": "setSellFeeRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "wrappedNativeToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
