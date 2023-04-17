@@ -106,7 +106,6 @@ export function tickPercent(v: number): string {
 }
 
 const StyledLoader = styled(LoadingComponent)`
-  height: 16.25rem;
-  height: 100%;
+  height: 15.625rem;
   width: 100%;
 `;

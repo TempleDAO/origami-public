@@ -1,8 +1,4 @@
-import type {
-  DataKey,
-  AxisDomain,
-  AxisInterval,
-} from 'recharts/types/util/types';
+import type { DataKey, AxisDomain } from 'recharts/types/util/types';
 
 import React from 'react';
 import { useTheme } from 'styled-components';
@@ -57,6 +53,7 @@ export default function LineChart<T>(
             stroke={line.color}
             strokeWidth={2}
             dot={false}
+            isAnimationActive={false}
           />
         ))}
         <XAxis
@@ -64,7 +61,7 @@ export default function LineChart<T>(
           tickFormatter={xTickFormatter}
           tick={{ stroke: theme.colors.greyLight }}
           fontSize={11}
-          interval={'preserveEnd' as AxisInterval} // 'equidistantPreserveStart'as AxisInterval works even though not in types
+          interval={'preserveEnd'}
           minTickGap={20}
           tickMargin={10}
           stroke="none"

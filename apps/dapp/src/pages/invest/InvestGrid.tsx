@@ -228,9 +228,7 @@ function ExpandedItemFragment({
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),
     [histPeriod, histSeries]
   );
-  // const isMedium = useMediaQuery(theme.responsiveBreakpoints.md);
   const isLarge = useMediaQuery(theme.responsiveBreakpoints.lg);
-  // const xTotalTick = totalTickPoints(histPeriod, isLarge, isLarge);
 
   return (
     <>
@@ -401,7 +399,7 @@ const ButtonHolder = styled.div`
   `)}
 `;
 
-export const Graph = styled.div`
+const Graph = styled.div`
   display: flex;
   flex-direction: column;
   align-items: stretch;

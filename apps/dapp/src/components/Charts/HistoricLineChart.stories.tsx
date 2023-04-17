@@ -1,19 +1,9 @@
-import type { HistoricPeriod, MetricOrPrice } from '@/api/types';
-
-import React, { useState } from 'react';
-
-import {
-  ChartDurations,
-  ChartHeader,
-  ChartPriceSeries,
-  HistoricLineChart,
-} from '.';
-import { Graph, InvestGridItem } from '@/pages/invest/InvestGrid';
-import { loading, ready } from '@/utils/loading-value';
+import { HistoricLineChart } from '.';
+import { InvestGridItem } from '@/pages/invest/InvestGrid';
+import { ready } from '@/utils/loading-value';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { arbitrum, getHistory } from '@/api/test';
 import { action } from '@storybook/addon-actions';
-import { ChartDataPoint } from './HistoricLineChart';
 
 export default {
   title: 'Components/Charts/HistoricLineChart',
@@ -1070,46 +1060,46 @@ const allTestValues = ready([
 ]);
 
 export const Default = () => {
-  const [histSeries, setHistSeries] = useState<MetricOrPrice>('apy');
-  const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('week');
-
-  let values = loading<ChartDataPoint[]>();
-
-  switch (histPeriod) {
-    case 'day':
-      values = dayTestValues;
-      break;
-    case 'week':
-      values = weekTestValues;
-      break;
-    case 'month':
-      values = monthTestValues;
-      break;
-    case 'all':
-      values = allTestValues;
-      break;
-  }
-
   return (
-    <Graph>
-      <ChartHeader>
-        <ChartDurations value={histPeriod} onChange={setHistPeriod} />
-        {(histSeries === 'price' || histSeries === 'reservesPerShare') && (
-          <ChartPriceSeries
-            receiptToken={gmx().receiptToken}
-            reserveToken={gmx().reserveToken}
-            value={histSeries}
-            onChange={(v) => setHistSeries(v)}
-          />
-        )}
-      </ChartHeader>
-      <HistoricLineChart
-        chartData={values}
-        selectedInterval={histPeriod}
-        histSeries={histSeries}
-        legendFormatter={() => `${gmx().name} % APY`}
-      />
-    </Graph>
+    <HistoricLineChart
+      chartData={dayTestValues}
+      selectedInterval={'day'}
+      histSeries={'apy'}
+      legendFormatter={() => `${gmx().name} % APY day`}
+    />
+  );
+};
+
+export const Week = () => {
+  return (
+    <HistoricLineChart
+      chartData={weekTestValues}
+      selectedInterval={'week'}
+      histSeries={'apy'}
+      legendFormatter={() => `${gmx().name} % APY week`}
+    />
+  );
+};
+
+export const Month = () => {
+  return (
+    <HistoricLineChart
+      chartData={monthTestValues}
+      selectedInterval={'month'}
+      histSeries={'apy'}
+      legendFormatter={() => `${gmx().name} % APY month`}
+    />
+  );
+};
+
+export const All = () => {
+  return (
+    <HistoricLineChart
+      chartData={allTestValues}
+      selectedInterval={'all'}
+      histSeries={'apy'}
+      legendFormatter={() => `${gmx().name} % APY all`}
+    />
   );
 };
 
