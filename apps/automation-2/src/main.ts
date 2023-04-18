@@ -4,8 +4,7 @@ import { harvestGmxRewards } from "./investments/gmx/gmx-auto-compounder";
 import { harvestGlpRewards } from "./investments/gmx/glp-auto-compounder";
 import { transferStakedGlp } from "./investments/gmx/transfer-staked-glp";
 import { getConfig } from "./config";
-import { connectDiscord } from "./common/discord";
-import { EmbedBuilder } from "discord.js";
+
 
 function main() {
   const runner = createTaskRunner("origami");

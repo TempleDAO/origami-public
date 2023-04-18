@@ -6,9 +6,10 @@ import {
 import { getBlockTimestamp } from '@/common/utils';
 import { TaskContext, Logger } from "@mountainpath9/overlord";
 import { tryUntilTimeout } from "@/common/utils";
-import { TransactionReceipt } from "@ethersproject/abstract-provider";
+import { Provider } from "@ethersproject/abstract-provider";
 import { DiscordMesage, connectDiscord, urlEmbed } from "@/common/discord";
-import { EmbedBuilder } from "discord.js";
+import * as ethers from "ethers";
+import { formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown } from "./utils";
 
 export const TRANSACTION_NAME = 'transfer-staked-glp';
 
@@ -113,35 +114,44 @@ export async function transferStakedGlp(
     );
 
     // Execute the transactions
-    const populatedTx = await secondaryEarnAccount.populateTransaction.transferStakedGlpOrPause(stakedGlpToTransfer, primaryEarnAccount.address);
-    const tx = await signer.sendTransaction(populatedTx);
+    const submittedAt = new Date();
+    const tx = await secondaryEarnAccount.transferStakedGlpOrPause(stakedGlpToTransfer, primaryEarnAccount.address);
     const txReceipt = await tx.wait();
 
+    const filter = secondaryEarnAccount.filters.SetGlpInvestmentsPaused();
+
+    // Grab the events of interest
+    const events: string[] = [];
+    for(const ev of txReceipt?.events || []) {
+        const paused = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.SetGlpInvestmentsPaused(), ev);
+        if (paused) {
+            events.push(`SetGlpInvestmentsPausedEventObject(pause=${paused.pause})`)
+        }
+        const transferred = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.StakedGlpTransferred(), ev);
+        if (transferred) {
+            events.push(`StakedGlpTransferred(receiver=${transferred.receiver}, amount=${formatBigNumber(transferred.amount, 18, 4)})`)
+        }
+    }
+
     // Send notification
-    const message = buildDiscordMessage(txReceipt);
+    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, events);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }
 
-function buildDiscordMessage(txReceipt: TransactionReceipt): DiscordMesage {
-    // What:                                StakedGlpTransferred(receiver=0xA8E4c1Ce9B980734e814FBE979632e7fB6913096, amount=24,688.8733)
-    // From:                                0x9dc9d0a95100c72bf6fcd66ef0a6a878bb83c858
-    // To:                                      0xA8E4c1Ce9B980734e814FBE979632e7fB6913096
-    // Amount:                           24,688.8733
-    
-    // Gas Price (GWEI):          30.0000
-    // Gas Used:                        426,814
-    // Total Fee (MATIC):         0.01280442
-    // Mined At (Local):           4 April 2023 08:00
-    // Mined At Unix:               1680559237
-    // Submitted At Unix:       1680559232.092
-    // Seconds To Mine:          4.908
-    
-    // TODO - extra code that extracts useful info, as per the above
+async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, events: string[]): Promise<DiscordMesage> {
+
+    const content = [
+        `**Transfer staked GLP**`,
+        ``,
+        ...events.map(ev => `_event_: ${ev})`),
+        ``,
+        ...await txReceiptMarkdown(provider, submittedAt, txReceipt),
+    ];
 
     return {
-        content: "Transfer staked GLP",
+        content: content.join('\n'),
         embeds: [
             urlEmbed(`https://mumbai.polygonscan.com/tx/${txReceipt.transactionHash}`),
         ]

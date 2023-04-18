@@ -6,12 +6,11 @@ import { zeroExQuote, ZeroExQuoteParams } from "./zero-ex";
 import { 
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,   
     IOrigamiInvestment, IOrigamiInvestment__factory,
-    DummyDex, DummyDex__factory, IERC20, IERC20__factory,
+    DummyDex, DummyDex__factory, IERC20, IERC20__factory, RepricingToken, RepricingToken__factory,
 } from "@/typechain";
-import { TransactionReceipt } from "@ethersproject/providers";
+import { Provider } from "@ethersproject/providers";
 import { BigNumber, ethers } from "ethers";
-import { encodeGmxHarvestParams, wasHarvestedRecently } from "./utils";
-import { EmbedBuilder } from "discord.js";
+import { encodeGmxHarvestParams, formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown, wasHarvestedRecently } from "./utils";
 
 
 export const TRANSACTION_NAME = 'gmx-auto-compounder';
@@ -110,6 +109,10 @@ export async function harvestGmxRewards(
         config.OGMX_ADDRESS,
         signer
     );
+    const oGmxRp: RepricingToken = RepricingToken__factory.connect(
+        config.OGMX_ADDRESS, 
+        signer
+    );
     const gmx: IERC20 = IERC20__factory.connect(
         config.GMX_ADDRESS,
         signer
@@ -164,35 +167,40 @@ export async function harvestGmxRewards(
     };
     ctx.logger.info("Harvest Params:", harvestParams);
 
+    const submittedAt = new Date();
     const encodedParams = encodeGmxHarvestParams(rewardAggregator, harvestParams);
     ctx.logger.info("harvestRewards encoded params:", encodedParams);
-    const populatedTx = await rewardAggregator.populateTransaction['harvestRewards'](encodedParams);
-    const tx = await signer.sendTransaction(populatedTx);
+    const tx = await rewardAggregator.harvestRewards(encodedParams);
     const txReceipt = await tx.wait();
 
+    // Grab the events
+    const events: string[] = [];
+    for(const ev of txReceipt?.events || []) {
+        const addedEv = matchAndDecodeEvent(oGmxRp, oGmxRp.filters.PendingReservesAdded(), ev);
+        if (addedEv) {
+            events.push(`PendingReservesAdded(amount=${formatBigNumber(addedEv.amount, 18, 4)})`)
+        }
+    }
+
     // Send notification
-    const message = buildDiscordMessage(txReceipt);
+    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, events);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }
 
-function buildDiscordMessage(txReceipt: TransactionReceipt): DiscordMesage {
-    // What:                                PendingReservesAdded(amount=0.2489)
-    // From:                                0x500244edee4afca6a1be7e28010719d9bcb3cb3e
-    // Reserves Added:           0.2489
-    
-    // Gas Price (GWEI):          30.0000
-    // Gas Used:                        1,256,154
-    // Total Fee (MATIC):         0.03768462
-    // Mined At (Local):           4 April 2023 08:30
-    // Mined At Unix:               1680561037
-    // Submitted At Unix:       1680561031.961
-    // Seconds To Mine:          5.039
-    
-    // TODO - extra code that extracts useful info, as per the above
+async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, events: string[]): Promise<DiscordMesage> {
+
+    const content = [
+        `**Harvest GMX Rewards**`,
+        ``,
+        ...events.map(ev => `_event_: ${ev}`),
+        ``,
+        ...await txReceiptMarkdown(provider, submittedAt, txReceipt),
+    ];
+
     return {
-        content: "**Harvest GMX Rewards**",
+        content: content.join('\n'),
         embeds: [
             urlEmbed(`https://mumbai.polygonscan.com/tx/${txReceipt.transactionHash}`),
         ]

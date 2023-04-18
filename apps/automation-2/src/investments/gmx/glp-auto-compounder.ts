@@ -2,16 +2,15 @@
 import { 
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,   
     IOrigamiInvestment, IOrigamiInvestment__factory,
-    DummyDex, DummyDex__factory,
+    DummyDex, DummyDex__factory, RepricingToken, RepricingToken__factory,
 } from "@/typechain";
 import { zeroExQuote, ZeroExQuoteParams } from './zero-ex'
 import { bpsToFraction } from "@/common/utils";
 import { BigNumber, ethers} from "ethers";
-import { encodeGlpHarvestParams, wasHarvestedRecently } from "./utils";
+import { encodeGlpHarvestParams, formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown, wasHarvestedRecently } from "./utils";
 import { TaskContext } from "@mountainpath9/overlord";
-import { TransactionReceipt } from "@ethersproject/providers";
+import { Provider } from "@ethersproject/providers";
 import { DiscordMesage, connectDiscord, urlEmbed } from "@/common/discord";
-import { EmbedBuilder } from "discord.js";
 
 export const TRANSACTION_NAME = 'glp-auto-compounder';
 
@@ -114,6 +113,10 @@ export async function harvestGlpRewards(
         config.OGLP_ADDRESS,
         signer
     );
+    const oGlpRp: RepricingToken = RepricingToken__factory.connect(
+        config.OGLP_ADDRESS, 
+        signer
+    );
 
     if (await wasHarvestedRecently(ctx.logger, config.MIN_HARVEST_INTERVAL_SECS, rewardAggregator)) {
         return;
@@ -173,36 +176,40 @@ export async function harvestGlpRewards(
     };
     ctx.logger.info("Harvest Params:", harvestParams);
 
+    const submittedAt = new Date();
     const encodedParams = encodeGlpHarvestParams(rewardAggregator, harvestParams);
     ctx.logger.info("harvestRewards encoded params:", encodedParams);
-    const populatedTx = await rewardAggregator.populateTransaction['harvestRewards'](encodedParams);
-    const tx = await signer.sendTransaction(populatedTx);
+    const tx = await rewardAggregator.harvestRewards(encodedParams);
     const txReceipt = await tx.wait();    
 
+    // Grab the events
+    const events: string[] = [];
+    for(const ev of txReceipt?.events || []) {
+        const addedEv = matchAndDecodeEvent(oGlpRp, oGlpRp.filters.PendingReservesAdded(), ev);
+        if (addedEv) {
+            events.push(`PendingReservesAdded(amount=${formatBigNumber(addedEv.amount, 18, 4)})`)
+        }
+    }
+
     // Send notification
-    const message = buildDiscordMessage(txReceipt);
+    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, events);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }
 
-function buildDiscordMessage(txReceipt: TransactionReceipt): DiscordMesage {
-    // What:                                PendingReservesAdded(amount=18.7166)
-    // From:                                0x7a8108a11949aa9f6395476f160304269a5ee48b
-    // Reserves Added:           18.7166
+async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, events: string[]): Promise<DiscordMesage> {
 
-    // Gas Price (GWEI):          30.0000
-    // Gas Used:                        2,093,368
-    // Total Fee (MATIC):         0.06280104
-    // Mined At (Local):           4 April 2023 08:30
-    // Mined At Unix:               1680561037
-    // Submitted At Unix:       1680561031.926
-    // Seconds To Mine:          5.074
-
-    // TODO - extra code that extracts useful info, as per the above
+    const content = [
+        `**Harvest GLP Rewards**`,
+        ``,
+        ...events.map(ev => `_event_: ${ev}`),
+        ``,
+        ...await txReceiptMarkdown(provider, submittedAt, txReceipt),
+    ];
 
     return {
-        content: "**Harvest GLP Rewards**",
+        content: content.join('\n'),
         embeds: [
             urlEmbed(`https://mumbai.polygonscan.com/tx/${txReceipt.transactionHash}`),
         ]
