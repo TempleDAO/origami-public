@@ -165,11 +165,11 @@ export async function harvestGmxRewards(
         oGmxInvestQuoteData: gmxToOgmxInvestQuote.quoteData,
         addToReserveAmountPct: config.DAILY_ADD_TO_RESERVE_BPS,
     };
-    ctx.logger.info("Harvest Params:", harvestParams);
+    ctx.logger.info(`Harvest Params: ${JSON.stringify(harvestParams)}`);
 
     const submittedAt = new Date();
     const encodedParams = encodeGmxHarvestParams(rewardAggregator, harvestParams);
-    ctx.logger.info("harvestRewards encoded params:", encodedParams);
+    ctx.logger.info(`harvestRewards encoded params: ${encodedParams}`);
     const tx = await rewardAggregator.harvestRewards(encodedParams);
     const txReceipt = await tx.wait();
 
