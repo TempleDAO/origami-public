@@ -7,7 +7,7 @@ on:
   push:
     paths:
       - "apps/protocol/**"
-      - ".github/workflows/slither.yaml"
+      - ".github/workflows/contracts-slither.yaml"
 jobs:
   analyze:
     runs-on: ubuntu-latest

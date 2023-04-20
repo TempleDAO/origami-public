@@ -1,0 +1,22 @@
+name: Tasks Build
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - .github/workflows/tasks-build.yaml
+      - 'apps/automation-2/**'
+
+jobs:
+  build:
+    name: Tasks Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'yarn'
+          cache-dependency-path: 'apps/automation-2/yarn.lock'
+
+      - run: (cd apps/automation-2; yarn install)
+      - run: (cd apps/automation-2; yarn build)
