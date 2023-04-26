@@ -6,7 +6,7 @@ import { ThemeContext } from 'styled-components';
 
 import { GlobalStyle } from './styles/GlobalStyle';
 import { theme } from './styles/theme';
-import { Page as InvestPage } from './pages/invest';
+import { Page as InvestPage } from './pages/deposit';
 import { Page as ManagePage } from './pages/manage';
 import { Page as DisclaimerPage } from './pages/disclaimer';
 import { Page as LandingPage } from './pages/landing';

@@ -227,6 +227,112 @@ export type PricedTokenDailySnapshotsResp = z.infer<
 
 //----------------------------------------------------------------------------------------------------
 
+export function queryPlatformMetrics(): SubGraphQuery<PlatformMetricsResp> {
+  const label = 'queryPlatformMetrics';
+  const request = `{
+    metrics {
+      investmentVaultsTvlUSD
+    }
+  }
+  `;
+  return {
+    label,
+    request,
+    parse: PlatformMetricsResp.parse,
+  };
+}
+
+const PlatformMetricsResp = z.object({
+  metrics: z.array(
+    z.object({
+      investmentVaultsTvlUSD: z.string(),
+    })
+  ),
+});
+export type PlatformMetricsResp = z.infer<typeof PlatformMetricsResp>;
+
+//----------------------------------------------------------------------------------------------------
+
+export function queryPlatformMetricHourlySnapshots(
+  first: number
+): SubGraphQuery<PlatformMetricHourlySnapshotsResp> {
+  const label = 'queryPlatformMetricHourlySnapshots';
+  const request = `
+  {
+    metricHourlySnapshots(
+      orderDirection: desc,
+      first: ${first},
+      orderBy: timestamp
+    ) {
+      timeframe
+      timestamp
+      investmentVaultsTvlUSD
+    }
+  }
+  `;
+
+  return {
+    label,
+    request,
+    parse: PlatformMetricHourlySnapshotsResp.parse,
+  };
+}
+
+const PlatformMetricHourlySnapshotsResp = z.object({
+  metricHourlySnapshots: z.array(
+    z.object({
+      timeframe: z.string(),
+      timestamp: z.string(),
+      investmentVaultsTvlUSD: z.string(),
+    })
+  ),
+});
+export type PlatformMetricHourlySnapshotsResp = z.infer<
+  typeof PlatformMetricHourlySnapshotsResp
+>;
+
+//----------------------------------------------------------------------------------------------------
+
+export function queryPlatformMetricDailySnapshots(
+  first: number
+): SubGraphQuery<PlatformMetricDailySnapshotsResp> {
+  const label = 'queryPlatformMetricDailySnapshots';
+  const request = `
+  {
+    metricDailySnapshots(
+      orderDirection: desc, 
+      first: ${first},
+      orderBy: timestamp
+    ) {
+      timeframe
+      timestamp
+      investmentVaultsTvlUSD
+    }
+  }
+  `;
+
+  return {
+    label,
+    request,
+    parse: PlatformMetricDailySnapshotsResp.parse,
+  };
+}
+
+const PlatformMetricDailySnapshotsResp = z.object({
+  metricDailySnapshots: z.array(
+    z.object({
+      timeframe: z.string(),
+      timestamp: z.string(),
+      investmentVaultsTvlUSD: z.string(),
+    })
+  ),
+});
+export type PlatformMetricDailySnapshotsResp = z.infer<
+  typeof PlatformMetricDailySnapshotsResp
+>;
+
+//----------------------------------------------------------------------------------------------------
+
 export async function subgraphQuery<T>(
   url: string,
   query: SubGraphQuery<T>

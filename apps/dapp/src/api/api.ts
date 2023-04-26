@@ -11,6 +11,7 @@ import {
   TokenConfig,
   InvestmentConfig,
   Chain,
+  PlatformMetrics,
 } from './types';
 
 /**
@@ -35,6 +36,11 @@ export interface ProviderApi {
 
   investQuote(req: InvestQuoteReq): Promise<InvestQuoteResp>;
   exitQuote(req: ExitQuoteReq): Promise<ExitQuoteResp>;
+
+  getPlatformMetrics(): Promise<PlatformMetricsResp>;
+  getHistoricPlatformMetric(
+    req: HistoricPlatformMetricReq
+  ): Promise<HistoryPoint[]>;
 }
 
 /**
@@ -65,6 +71,15 @@ export interface HistoricTokenUsdPriceReq {
 export interface HistoricMetricReq {
   metric: Metric;
   period: HistoricPeriod;
+}
+
+export interface HistoricPlatformMetricReq {
+  metric: PlatformMetrics;
+  period: HistoricPeriod;
+}
+
+export interface PlatformMetricsResp {
+  tvl: number;
 }
 
 export interface InvestQuoteReq {

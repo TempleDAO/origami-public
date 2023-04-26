@@ -2,7 +2,7 @@ import { useTestApis } from '@/api/test';
 import { PageContent } from './index';
 
 export default {
-  title: 'Pages/Invest',
+  title: 'Pages/Deposit',
   component: PageContent,
 };
 

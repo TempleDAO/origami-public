@@ -4,12 +4,14 @@ import {
   ExitReq,
   ExitResp,
   HistoricMetricReq,
+  HistoricPlatformMetricReq,
   HistoricTokenUsdPriceReq,
   InvestQuoteReq,
   InvestQuoteResp,
   InvestReq,
   InvestResp,
   MetricsResp,
+  PlatformMetricsResp,
   ProviderApi,
   SignerApi,
 } from '@/api/api';
@@ -188,6 +190,19 @@ class TestProviderApiImpl implements TestProviderApi {
       minToAmount: applySlippage(toAmount, req.slippageBps),
       encodedQuote: '',
     };
+  }
+
+  async getPlatformMetrics(): Promise<PlatformMetricsResp> {
+    return {
+      tvl: 1000,
+    };
+  }
+
+  async getHistoricPlatformMetric(
+    req: HistoricPlatformMetricReq
+  ): Promise<HistoryPoint[]> {
+    await sleep(this.sleepMs);
+    return getHistory1(req.period, PRICE_DATA);
   }
 }
 

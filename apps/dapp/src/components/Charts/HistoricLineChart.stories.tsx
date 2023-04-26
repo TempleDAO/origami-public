@@ -1,5 +1,5 @@
 import { HistoricLineChart } from '.';
-import { InvestGridItem } from '@/pages/invest/InvestGrid';
+import { DepositGridItem } from '@/pages/deposit/DepositGrid';
 import { ready } from '@/utils/loading-value';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { arbitrum, getHistory } from '@/api/test';
@@ -1103,7 +1103,7 @@ export const All = () => {
   );
 };
 
-function gmx(): InvestGridItem {
+function gmx(): DepositGridItem {
   return {
     icon: 'gmx',
     name: 'GMX',

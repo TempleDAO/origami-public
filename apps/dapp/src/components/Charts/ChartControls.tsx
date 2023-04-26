@@ -1,6 +1,7 @@
 import styled from 'styled-components';
-import type { HistoricPeriod } from '@/api/types';
+import type { HistoricPeriod, PlatformMetrics } from '@/api/types';
 import { LabelledValue, SmallSelection } from '../commons/SmallSelection';
+import { Dispatch, SetStateAction } from 'react';
 
 export type ChartDurationProps = {
   value: HistoricPeriod;
@@ -8,6 +9,7 @@ export type ChartDurationProps = {
 };
 
 export function ChartDurations(props: ChartDurationProps) {
+  const { value, onChange } = props;
   const values: LabelledValue<HistoricPeriod>[] = [
     ['1D', 'day'],
     ['1W', 'week'],
@@ -17,8 +19,8 @@ export function ChartDurations(props: ChartDurationProps) {
   return (
     <SmallSelection
       values={values}
-      value={props.value}
-      onChange={(v: HistoricPeriod) => props.onChange(v)}
+      value={value}
+      onChange={(v: HistoricPeriod) => onChange(v)}
     />
   );
 }
@@ -45,6 +47,13 @@ export function ChartPriceSeries(props: ChartPriceSeriesProps) {
     />
   );
 }
+
+export type ChartPlatformMetricSeriesProps = {
+  value: PlatformMetrics | undefined;
+  onChange: (p: PlatformMetrics) => void;
+  setWidgetExpanded?: Dispatch<SetStateAction<boolean>>;
+  labelledValues: LabelledValue<PlatformMetrics>[];
+};
 
 export const ChartHeader = styled.div`
   display: flex;

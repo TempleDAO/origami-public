@@ -23,6 +23,7 @@ type LineChartProps<T> = {
   tooltipValuesFormatter?: (value: number, name: string) => string[];
   legendFormatter?: (value: string) => string;
   yDomain?: AxisDomain;
+  overrideXAxisTicks?: string[] | number[];
 };
 
 export default function LineChart<T>(
@@ -38,6 +39,7 @@ export default function LineChart<T>(
     tooltipValuesFormatter,
     legendFormatter,
     yDomain,
+    overrideXAxisTicks,
   } = props;
 
   const theme = useTheme();
@@ -64,7 +66,9 @@ export default function LineChart<T>(
           interval={'preserveEnd'}
           minTickGap={20}
           tickMargin={10}
+          ticks={overrideXAxisTicks}
           stroke="none"
+          allowDuplicatedCategory={false}
         />
         <YAxis
           tickFormatter={yTickFormatter}

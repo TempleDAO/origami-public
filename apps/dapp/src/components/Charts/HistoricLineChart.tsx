@@ -55,8 +55,15 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
     return a.x - b.x;
   });
 
+  // Remove duplicate entries based on formatted x-axis labels
+  const cleanedXAxisLabels = getCleanXLabelData(
+    chartData.value,
+    tickFormatters[selectedInterval]
+  );
+
   return (
     <LineChart
+      overrideXAxisTicks={cleanedXAxisLabels}
       chartData={chartData.value}
       xDataKey="x"
       lines={[{ series: 'y', color: theme.colors.chartLine }]}
@@ -70,6 +77,24 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
       }
     />
   );
+}
+
+function getCleanXLabelData(
+  chartData: ChartDataPoint[],
+  tickFormatter: XAxisTickFormatter
+): number[] {
+  // Remove duplicates based on the formatted date.
+  let prevLabel: string | undefined = undefined;
+  let newLabel: string;
+  let isEqual: boolean;
+  return chartData
+    .filter((p) => {
+      newLabel = tickFormatter(p.x);
+      isEqual = newLabel === prevLabel;
+      prevLabel = newLabel;
+      return !isEqual;
+    })
+    .map((cd) => cd.x);
 }
 
 export function convertHistoryPoint(p: HistoryPoint): ChartDataPoint {

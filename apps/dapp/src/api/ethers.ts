@@ -40,6 +40,8 @@ import {
   MetricsResp,
   ProviderApi,
   SignerApi,
+  PlatformMetricsResp,
+  HistoricPlatformMetricReq,
 } from './api';
 import {
   Chain,
@@ -60,6 +62,9 @@ import {
   queryInvestmentVaultDailySnapshots as queryInvestmentVaultDailySnapshots,
   queryInvestmentVaultHourlySnapshots,
   queryInvestmentVaultMetrics,
+  queryPlatformMetricDailySnapshots,
+  queryPlatformMetricHourlySnapshots,
+  queryPlatformMetrics,
   queryPricedTokenDailySnapshots,
   queryPricedTokenHourlySnapshots,
   subgraphQuery,
@@ -619,6 +624,73 @@ class ProviderApiImpl implements ProviderApi {
     // Flush caches every 60 seconds
     this.tokenUsdPrices.clear();
     this.nativeUsdPrices.clear();
+  }
+
+  private async getPlatformMetrics_(): Promise<PlatformMetricsResp> {
+    // TODO: aggregate investments(platform metrics) from different chains
+    // for now this works as long as we have a single chain
+    // https://github.com/TempleDAO/origami/issues/209
+    const firstInvestment = await this.loadInvestment(this.investments[0]);
+    const url = this.getSubgraphUrl(firstInvestment.chain.id);
+    const query = queryPlatformMetrics();
+    const result = await subgraphQuery(url, query);
+
+    if (!result.metrics) {
+      throw new Error('No platform metrics returned');
+    }
+    return {
+      tvl: parseFloat(result.metrics[0].investmentVaultsTvlUSD),
+    };
+  }
+
+  async getPlatformMetrics(): Promise<PlatformMetricsResp> {
+    return logged(this.getPlatformMetrics_(), {
+      label: 'getPlatformMetrics',
+      resp: (v) => v,
+    });
+  }
+
+  async getHistoricPlatformMetric(
+    req: HistoricPlatformMetricReq
+  ): Promise<HistoryPoint[]> {
+    // TODO: aggregate investments(platform metrics) from different chains
+    // for now this works as long as we have a single chain
+    // https://github.com/TempleDAO/origami/issues/209
+    const firstInvestment = await this.loadInvestment(this.investments[0]);
+    const url = this.getSubgraphUrl(firstInvestment.chain.id);
+
+    const { first, qtype } = this.historicTimeParams(req.period);
+    if (qtype === 'hourly') {
+      const query = queryPlatformMetricHourlySnapshots(first);
+      const result = await subgraphQuery(url, query);
+      return result.metricHourlySnapshots.map((p) => {
+        const t = dateFromTimestamp(p.timeframe);
+        let v: number;
+        switch (req.metric) {
+          case 'tvl':
+            v = parseFloat(p.investmentVaultsTvlUSD);
+            break;
+          default:
+            assertNever(req.metric);
+        }
+        return { t, v };
+      });
+    } else {
+      const query = queryPlatformMetricDailySnapshots(first);
+      const result = await subgraphQuery(url, query);
+      return result.metricDailySnapshots.map((p) => {
+        const t = dateFromTimestamp(p.timeframe);
+        let v: number;
+        switch (req.metric) {
+          case 'tvl':
+            v = parseFloat(p.investmentVaultsTvlUSD);
+            break;
+          default:
+            assertNever(req.metric);
+        }
+        return { t, v };
+      });
+    }
   }
 }
 

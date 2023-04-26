@@ -86,3 +86,5 @@ export interface HistoryPoint {
 export type Metric = 'tvl' | 'apy' | 'reservesPerShare';
 
 export type MetricOrPrice = Metric | 'price';
+
+export type PlatformMetrics = 'tvl';

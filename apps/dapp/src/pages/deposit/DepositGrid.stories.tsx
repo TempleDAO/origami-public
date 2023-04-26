@@ -1,28 +1,48 @@
 import type { HistoricPeriod, Metric, HistoryPoint } from '@/api/types';
-import type { InvestGridItem } from './InvestGrid';
+import type { DepositGridItem } from './DepositGrid';
 
 import { action } from '@storybook/addon-actions';
 
-import { InvestGrid } from './InvestGrid';
+import { DepositGrid } from './DepositGrid';
 import { noop } from '@/utils/noop';
 import { ready } from '@/utils/loading-value';
 import { arbitrum, getHistory } from '@/api/test';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 
 export default {
-  title: 'Components/Content/InvestGrid',
-  component: InvestGrid,
+  title: 'Components/Content/DepositGrid',
+  component: DepositGrid,
 };
 
-export const Default = () => <InvestGrid items={testInvestItems()} />;
+export const Default = () => (
+  <DepositGrid
+    items={testInvestItems()}
+    vaultExpanded={0}
+    setVaultExpanded={action('set IExpand')}
+    platformMetricsExpanded={false}
+    setPlatformMetricsExpanded={action('setPlatformMetricsExpanded')}
+  />
+);
 export const Expanded = () => (
-  <InvestGrid items={testInvestItems()} expanded={0} />
+  <DepositGrid
+    items={testInvestItems()}
+    vaultExpanded={0}
+    setVaultExpanded={action('set IExpand')}
+    platformMetricsExpanded={false}
+    setPlatformMetricsExpanded={action('setPlatformMetricsExpanded')}
+  />
 );
 export const GraphLoading = () => (
-  <InvestGrid items={[templeWait()]} expanded={0} />
+  <DepositGrid
+    items={[templeWait()]}
+    vaultExpanded={0}
+    setVaultExpanded={action('set IExpand')}
+    platformMetricsExpanded={false}
+    setPlatformMetricsExpanded={action('setPlatformMetricsExpanded')}
+  />
 );
 
-function gmx(): InvestGridItem {
+function gmx(): DepositGridItem {
   return {
     icon: 'gmx',
     name: 'GMX',
@@ -40,7 +60,7 @@ function gmx(): InvestGridItem {
   };
 }
 
-function glp(): InvestGridItem {
+function glp(): DepositGridItem {
   return {
     icon: 'glp',
     name: 'GLP',
@@ -58,11 +78,11 @@ function glp(): InvestGridItem {
   };
 }
 
-function testInvestItems(): InvestGridItem[] {
+function testInvestItems(): DepositGridItem[] {
   return [gmx(), glp()];
 }
 
-function templeWait(): InvestGridItem {
+function templeWait(): DepositGridItem {
   return { ...gmx(), getHistory: loadForever };
 }
 

@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { InvestGrid, InvestGridItem } from './InvestGrid';
+import { DepositGrid, DepositGridItem } from './DepositGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
 import { Chain, Investment, InvestmentConfig } from '@/api/types';
-import { getValue, lmap, Loading, newLoading } from '@/utils/loading-value';
+import {
+  getValue,
+  isReady,
+  lmap,
+  loading,
+  Loading,
+  newLoading,
+  ready,
+} from '@/utils/loading-value';
 import { useApiManager } from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { isReserveToken } from '@/utils/api-utils';
 import { useConnectModal } from '@/components/commons/ConnectModal';
+import { PlatformMetricsWidget } from './PlatformMetricsWidget';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { theme } from '@/styles/theme';
 
 export function Page() {
   const am = useApiManager();
@@ -38,6 +49,11 @@ export const PageContent = (props: PageContentProps) => {
   const [activeFlow, setActiveFlow] = useState<JSX.Element | undefined>();
   const investments = getValue(props.cache.investments) || [];
   const [pending, setPending] = useState<InvestmentConfig | undefined>();
+  const [platformMetricsExpanded, setPlatformMetricsExpanded] = useState(false);
+  const [VaultExpanded, setVaultExpanded] =
+    useState<number | undefined>(undefined);
+  const [platformTvl, setPlatformTvl] = useState<Loading<number>>(loading());
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
 
   function hidePanel() {
     setActiveFlow(undefined);
@@ -84,7 +100,7 @@ export const PageContent = (props: PageContentProps) => {
   const gridItems = investments.map((investment) => {
     const metrics = newLoading(props.cache.metrics.get(investment));
     const tokenPrice = newLoading(props.cache.tokenPrices.get(investment));
-    return makeInvestGridItem(papi, investment, metrics, tokenPrice, () =>
+    return makeDepositGridItem(papi, investment, metrics, tokenPrice, () =>
       onInvest(investment)
     );
   });
@@ -99,29 +115,55 @@ export const PageContent = (props: PageContentProps) => {
     delayedInvest();
   }, [props.walletAddress, pending]); // eslint-disable-line
 
+  useEffect(() => {
+    if (!papi) return;
+    (async () => {
+      if (isReady(platformTvl)) return;
+      const pm = await papi.getPlatformMetrics();
+      setPlatformTvl(ready(pm.tvl));
+      if (isDesktop) setPlatformMetricsExpanded(true);
+    })();
+  }, [platformMetricsExpanded, papi, platformTvl, isDesktop]);
+
   return (
-    <FlexDown>
-      <Title>ORIGAMI VAULTS</Title>
-      <HeaderText>
-        Origami provides auto-compounding vaults to maximize yield for supported
-        protocols.
-        <br />
-        Your assets are put to work in the most optimal way with no locking.
-        Exit at any time!
-      </HeaderText>
-      <InvestGrid items={gridItems} expanded={0} />
-      {activeFlow}
-    </FlexDown>
+    <>
+      <FlexDown>
+        <PlatformMetricsWidget
+          platformMetricsExpanded={platformMetricsExpanded}
+          setPlatformMetricsExpanded={setPlatformMetricsExpanded}
+          setVaultExpanded={setVaultExpanded}
+          platformTvl={platformTvl}
+          papi={papi}
+        />
+      </FlexDown>
+      <FlexDown>
+        <HeaderText>
+          Origami provides auto-compounding vaults to maximize yield for
+          supported protocols.
+          <br />
+          Your assets are put to work in the most optimal way with no locking.
+          Exit at any time!
+        </HeaderText>
+        <DepositGrid
+          items={gridItems}
+          vaultExpanded={VaultExpanded}
+          setVaultExpanded={setVaultExpanded}
+          platformMetricsExpanded={platformMetricsExpanded}
+          setPlatformMetricsExpanded={setPlatformMetricsExpanded}
+        />
+        {activeFlow}
+      </FlexDown>
+    </>
   );
 };
 
-function makeInvestGridItem(
+function makeDepositGridItem(
   papi: ProviderApi,
   ic: Investment,
   metrics: Loading<MetricsResp>,
   tokenPrice: Loading<DecimalBigNumber>,
   onInvest?: () => Promise<void>
-): InvestGridItem {
+): DepositGridItem {
   return {
     icon: ic.icon,
     name: ic.name,
@@ -162,11 +204,4 @@ const FlexDown = styled.div`
   flex-direction: column;
   padding: 1rem 0;
   width: 100%;
-`;
-
-const Title = styled.div`
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-top: 20px;
-  margin-bottom: 1rem;
 `;
