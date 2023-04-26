@@ -36,13 +36,8 @@ import { Tooltip } from '@/components/commons/Tooltip';
 import { InvestmentInfo } from '@/components/commons/InvestmentInfo';
 import { FlexRight } from '@/flows/common/components';
 import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
-import {
-  Card,
-  CardColumn,
-  CardContent,
-  GridValue,
-  SuffixSpan,
-} from '@/components/Card';
+import { Card, CardColumn, GridValue, SuffixSpan } from '@/components/Card';
+import { makeGridHeadings } from '@/components/commons/GridHeadingHolder';
 
 export interface DepositGridItem {
   icon: string;
@@ -83,16 +78,14 @@ export function DepositGrid(props: DepositGridProps): JSX.Element {
   const [histSeries, setHistSeries] = useState<MetricOrPrice>('apy');
   const [histPeriod, setHistPeriod] = useState<HistoricPeriod>('week');
 
-  const headings = (
-    <HeadingHolder>
-      <HeadingGrid>
-        <Heading col={2}>APY</Heading>
-        <Heading col={3}>PRICE</Heading>
-        <Heading col={4}>TVL</Heading>
-        <Heading col={5}>CHAIN</Heading>
-      </HeadingGrid>
-    </HeadingHolder>
-  );
+  const headings = makeGridHeadings([
+    { name: '', widthWeight: 6 },
+    { name: 'APY', widthWeight: 1 },
+    { name: 'PRICE', widthWeight: 1 },
+    { name: 'PRICE', widthWeight: 1 },
+    { name: 'PRICE', widthWeight: 1 },
+    { name: '', widthWeight: 2 },
+  ]);
 
   const itemFragments = items.map((item: DepositGridItem, i: number) => {
     return (
@@ -237,6 +230,7 @@ function ExpandedItemFragment({
   setHistPeriod,
   histPeriod,
 }: ExpandedItemFragmentProps): JSX.Element {
+  console.log('ExpandedItemFragment:', histSeries, histPeriod);
   const [values] = useAsyncLoad(
     async () =>
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),
@@ -285,28 +279,12 @@ const InvestmentInfoForGrid = styled(FlexRight)`
   `)}
 `;
 
-const HeadingHolder = styled.div`
+const CardContent = styled.div`
   display: grid;
-  padding-left: 1rem;
-  padding-right: 1rem;
-`;
-
-const HeadingGrid = styled.div`
-  width: 100%;
-  display: none;
-  grid-template-columns: 6fr 1fr 1fr 1fr 1fr 2fr;
+  row-gap: 1rem;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   ${breakpoints.lg(`
-    display: grid;
-  `)}
-`;
-
-const Heading = styled.div<{ col: number }>`
-  justify-self: center;
-  color: ${({ theme }) => theme.colors.greyLight};
-  grid-column: ${({ col }) => col};
-  display: none;
-  ${breakpoints.lg(`
-    display: inline-block;
+    grid-template-columns: 6fr 1fr 1fr 1fr 1fr 2fr;
   `)}
 `;
 

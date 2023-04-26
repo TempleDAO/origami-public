@@ -19,15 +19,6 @@ export const Card = styled.div<{ isExpanded: boolean }>`
     `}
 `;
 
-export const CardContent = styled.div`
-  display: grid;
-  row-gap: 1rem;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  ${breakpoints.lg(`
-    grid-template-columns: 6fr 1fr 1fr 1fr 1fr 2fr;
-  `)}
-`;
-
 export const CardHeader = styled.div`
   display: flex;
   flex-direction: row;

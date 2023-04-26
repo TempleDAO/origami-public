@@ -44,7 +44,7 @@ export default function LineChart<T>(
 
   const theme = useTheme();
   return (
-    <ResponsiveContainer minHeight={150} minWidth={320} height={250}>
+    <ResponsiveContainer minHeight={150} height={250}>
       <RechartsLineChart data={chartData}>
         <CartesianGrid vertical={false} stroke={theme.colors.greyDark} />
         {lines.map((line) => (
