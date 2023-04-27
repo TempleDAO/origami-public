@@ -40,8 +40,8 @@ export default function HistoricLineChart(props: HistoricLineChartProps) {
 
   const tooltipLabelFormatters: Record<HistoricPeriod, XAxisTickFormatter> = {
     day: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do, h aaa')}`,
-    week: (timestamp) => `Date: ${formatDate(timestamp, 'eee d LLL')}`,
-    month: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do')}`,
+    week: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do, h aaa')}`,
+    month: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do y')}`,
     all: (timestamp) => `Date: ${formatDate(timestamp, 'MMM do y')}`,
   };
 
