@@ -119,9 +119,11 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
         </ValueContainer>
       </Item>
       <Item col={4}>
-        {isDesktop && (
-          <Secondary>{investment.chain.name.toUpperCase()}</Secondary>
-        )}
+        <Icon
+          iconName={investment.chain.iconName}
+          size={ICON_SIZE}
+          hasBackground
+        />
       </Item>
       <Balance col={5}>
         <ValueContainer>
@@ -134,11 +136,9 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
 };
 
 const EmptyAssetsTableRow = () => {
-  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
-
   return (
     <AssetRow>
-      <Item0 col={1}>
+      <Item0 col={1} style={{ width: 100, paddingBottom: 20 }}>
         <AssetInfo>
           <LoadingIcon width={50} height={50} />
           <VerticalFlex>
@@ -151,7 +151,7 @@ const EmptyAssetsTableRow = () => {
           </VerticalFlex>
         </AssetInfo>
       </Item0>
-      <Item col={2}>
+      <Item col={2} style={{ width: 100 }}>
         <ValueContainer>
           <Primary>
             <LoadingText
@@ -162,26 +162,24 @@ const EmptyAssetsTableRow = () => {
         </ValueContainer>
       </Item>
       <Item col={3}>
-        {isDesktop && (
-          <ValueContainer>
-            <Primary>
-              <LoadingText value={loading()} />
-            </Primary>
-          </ValueContainer>
-        )}
-      </Item>
-      <Item col={4}>
-        <Secondary>
-          <LoadingText value={loading()} />
-        </Secondary>
-      </Item>
-      <Item col={5}>
         <ValueContainer>
           <Primary>
             <LoadingText value={loading()} />
           </Primary>
         </ValueContainer>
       </Item>
+      <Item col={4}>
+        <Secondary>
+          <LoadingIcon width={50} height={50} />
+        </Secondary>
+      </Item>
+      <Balance col={5}>
+        <ValueContainer>
+          <Primary>
+            <LoadingText value={loading()} />
+          </Primary>
+        </ValueContainer>
+      </Balance>
     </AssetRow>
   );
 };
