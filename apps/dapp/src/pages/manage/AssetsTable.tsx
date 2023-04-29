@@ -23,6 +23,7 @@ export type AssetHolding = {
   token: Token;
   balance: DecimalBigNumber;
   metrics: Loading<MetricsResp>;
+  price: Loading<DecimalBigNumber>;
 };
 
 type AssetsTableProps = {
@@ -45,9 +46,12 @@ export const AssetsTable: FC<AssetsTableProps> = ({
             <Subtext>APY</Subtext>
           </Item>
           <Item col={3}>
-            <Subtext>CHAIN</Subtext>
+            <Subtext>PRICE</Subtext>
           </Item>
           <Item col={4}>
+            <Subtext>CHAIN</Subtext>
+          </Item>
+          <Item col={5}>
             <Subtext>BALANCE</Subtext>
           </Item>
         </Row>
@@ -105,9 +109,21 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
         </ValueContainer>
       </Item>
       <Item col={3}>
-        <Secondary>{investment.chain.name.toUpperCase()}</Secondary>
+        <ValueContainer>
+          <LoadingText
+            value={lmap(holding.price, (price) =>
+              formatDecimalBigNumber(price)
+            )}
+            suffix={<ValueSuffix>{!isDesktop && ' USD'}</ValueSuffix>}
+          />
+        </ValueContainer>
       </Item>
-      <Balance col={4}>
+      <Item col={4}>
+        {isDesktop && (
+          <Secondary>{investment.chain.name.toUpperCase()}</Secondary>
+        )}
+      </Item>
+      <Balance col={5}>
         <ValueContainer>
           {!isDesktop && <ValueSuffix>YOUR BALANCE: </ValueSuffix>}
           <Primary>{formatDecimalBigNumber(balance)}</Primary>
@@ -118,6 +134,8 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
 };
 
 const EmptyAssetsTableRow = () => {
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
+
   return (
     <AssetRow>
       <Item0 col={1}>
@@ -144,11 +162,20 @@ const EmptyAssetsTableRow = () => {
         </ValueContainer>
       </Item>
       <Item col={3}>
+        {isDesktop && (
+          <ValueContainer>
+            <Primary>
+              <LoadingText value={loading()} />
+            </Primary>
+          </ValueContainer>
+        )}
+      </Item>
+      <Item col={4}>
         <Secondary>
           <LoadingText value={loading()} />
         </Secondary>
       </Item>
-      <Item col={4}>
+      <Item col={5}>
         <ValueContainer>
           <Primary>
             <LoadingText value={loading()} />
@@ -185,7 +212,7 @@ const Row = styled.div`
   }
 
   ${breakpoints.md(`
-      grid-template-columns: 5.5fr 1fr 1fr 1fr;
+      grid-template-columns: 4.5fr 1fr 1fr 1fr 1fr;
 
   `)}
 `;
@@ -220,10 +247,12 @@ const Item0 = styled.div<{ col: number }>`
 const Balance = styled(Item)<{ col: number }>`
   grid-row: 3;
   grid-column: 1/-1;
-  ${breakpoints.md(`
+  ${({ col }) => css`
+    ${breakpoints.md(`
     grid-row: 1;
-    grid-column: 4;
+    grid-column: ${col};
   `)}
+  `}
 `;
 
 const Secondary = styled.span`
