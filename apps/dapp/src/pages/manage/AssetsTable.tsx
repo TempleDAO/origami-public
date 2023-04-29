@@ -136,9 +136,11 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
 };
 
 const EmptyAssetsTableRow = () => {
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
+
   return (
     <AssetRow>
-      <Item0 col={1} style={{ width: 100, paddingBottom: 20 }}>
+      <Item0 col={1} style={{ width: 100, paddingBottom: isDesktop ? 0 : 18 }}>
         <AssetInfo>
           <LoadingIcon width={50} height={50} />
           <VerticalFlex>
