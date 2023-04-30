@@ -103,7 +103,7 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
               value={lmap(holding.metrics, (metrics) =>
                 formatPercent(metrics.apy)
               )}
-              suffix={<ValueSuffix>{isDesktop ? '%' : '% APY'}</ValueSuffix>}
+              suffix={<ValueSuffix> % {!isDesktop && ' APY'}</ValueSuffix>}
             />
           </Primary>
         </ValueContainer>
@@ -114,16 +114,12 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
             value={lmap(holding.price, (price) =>
               formatDecimalBigNumber(price)
             )}
-            suffix={<ValueSuffix>{!isDesktop && ' USD'}</ValueSuffix>}
+            suffix={<ValueSuffix> USD {!isDesktop && ' PRICE'}</ValueSuffix>}
           />
         </ValueContainer>
       </Item>
       <Item col={4}>
-        <Icon
-          iconName={investment.chain.iconName}
-          size={ICON_SIZE}
-          hasBackground
-        />
+        <Icon iconName={investment.chain.iconName} size={ICON_SIZE} />
       </Item>
       <Balance col={5}>
         <ValueContainer>
@@ -140,9 +136,9 @@ const EmptyAssetsTableRow = () => {
 
   return (
     <AssetRow>
-      <Item0 col={1} style={{ width: 100, paddingBottom: isDesktop ? 0 : 18 }}>
+      <Item0 col={1}>
         <AssetInfo>
-          <LoadingIcon width={50} height={50} />
+          <LoadingIcon width={ICON_SIZE * 2} height={ICON_SIZE * 2} />
           <VerticalFlex>
             <Primary>
               <LoadingText value={loading()} />
@@ -150,10 +146,11 @@ const EmptyAssetsTableRow = () => {
             <Subtext>
               <LoadingText value={loading()} />
             </Subtext>
+            {!isDesktop && <EmptySpace />}
           </VerticalFlex>
         </AssetInfo>
       </Item0>
-      <Item col={2} style={{ width: 100 }}>
+      <Item col={2}>
         <ValueContainer>
           <Primary>
             <LoadingText
@@ -172,7 +169,7 @@ const EmptyAssetsTableRow = () => {
       </Item>
       <Item col={4}>
         <Secondary>
-          <LoadingIcon width={50} height={50} />
+          <LoadingIcon width={ICON_SIZE * 2} height={ICON_SIZE * 2} />
         </Secondary>
       </Item>
       <Balance col={5}>
@@ -202,7 +199,7 @@ const Primary = styled.span`
 `;
 
 const Row = styled.div`
-  padding-right: 0.9375rem;
+  padding: 0.7rem 0.9375rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   &:hover {
@@ -268,7 +265,6 @@ const Subtext = styled(Text)`
 
 const AssetRow = styled(Row)`
   ${sunkenStyles}
-  padding: 0.7rem 0.9375rem;
   border-radius: 2.5rem;
   ${({ theme }) => css`
     background: ${theme.colors.bgMid};
@@ -305,4 +301,8 @@ const LoadingIcon = styled(LoadingComponent)`
 const ValueSuffix = styled.span`
   ${textH5};
   color: ${({ theme }) => theme.colors.greyLight};
+`;
+
+const EmptySpace = styled.div`
+  padding: 0.7rem;
 `;
