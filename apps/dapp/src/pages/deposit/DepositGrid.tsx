@@ -82,8 +82,8 @@ export function DepositGrid(props: DepositGridProps): JSX.Element {
     { name: '', widthWeight: 6 },
     { name: 'APY', widthWeight: 1 },
     { name: 'PRICE', widthWeight: 1 },
-    { name: 'PRICE', widthWeight: 1 },
-    { name: 'PRICE', widthWeight: 1 },
+    { name: 'TVL', widthWeight: 1 },
+    { name: 'CHAIN', widthWeight: 1 },
     { name: '', widthWeight: 2 },
   ]);
 

@@ -23,6 +23,7 @@ export type AssetHolding = {
   token: Token;
   balance: DecimalBigNumber;
   metrics: Loading<MetricsResp>;
+  price: Loading<DecimalBigNumber>;
 };
 
 type AssetsTableProps = {
@@ -45,9 +46,12 @@ export const AssetsTable: FC<AssetsTableProps> = ({
             <Subtext>APY</Subtext>
           </Item>
           <Item col={3}>
-            <Subtext>CHAIN</Subtext>
+            <Subtext>PRICE</Subtext>
           </Item>
           <Item col={4}>
+            <Subtext>CHAIN</Subtext>
+          </Item>
+          <Item col={5}>
             <Subtext>BALANCE</Subtext>
           </Item>
         </Row>
@@ -99,15 +103,25 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
               value={lmap(holding.metrics, (metrics) =>
                 formatPercent(metrics.apy)
               )}
-              suffix={<ValueSuffix>{isDesktop ? '%' : '% APY'}</ValueSuffix>}
+              suffix={<ValueSuffix> % {!isDesktop && ' APY'}</ValueSuffix>}
             />
           </Primary>
         </ValueContainer>
       </Item>
       <Item col={3}>
-        <Secondary>{investment.chain.name.toUpperCase()}</Secondary>
+        <ValueContainer>
+          <LoadingText
+            value={lmap(holding.price, (price) =>
+              formatDecimalBigNumber(price)
+            )}
+            suffix={<ValueSuffix> USD {!isDesktop && ' PRICE'}</ValueSuffix>}
+          />
+        </ValueContainer>
       </Item>
-      <Balance col={4}>
+      <Item col={4}>
+        <Icon iconName={investment.chain.iconName} size={ICON_SIZE} />
+      </Item>
+      <Balance col={5}>
         <ValueContainer>
           {!isDesktop && <ValueSuffix>YOUR BALANCE: </ValueSuffix>}
           <Primary>{formatDecimalBigNumber(balance)}</Primary>
@@ -118,11 +132,13 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
 };
 
 const EmptyAssetsTableRow = () => {
+  const isDesktop = useMediaQuery(theme.responsiveBreakpoints.md);
+
   return (
     <AssetRow>
       <Item0 col={1}>
         <AssetInfo>
-          <LoadingIcon width={50} height={50} />
+          <LoadingIcon width={ICON_SIZE * 2} height={ICON_SIZE * 2} />
           <VerticalFlex>
             <Primary>
               <LoadingText value={loading()} />
@@ -130,6 +146,7 @@ const EmptyAssetsTableRow = () => {
             <Subtext>
               <LoadingText value={loading()} />
             </Subtext>
+            {!isDesktop && <EmptySpace />}
           </VerticalFlex>
         </AssetInfo>
       </Item0>
@@ -144,17 +161,24 @@ const EmptyAssetsTableRow = () => {
         </ValueContainer>
       </Item>
       <Item col={3}>
-        <Secondary>
-          <LoadingText value={loading()} />
-        </Secondary>
-      </Item>
-      <Item col={4}>
         <ValueContainer>
           <Primary>
             <LoadingText value={loading()} />
           </Primary>
         </ValueContainer>
       </Item>
+      <Item col={4}>
+        <Secondary>
+          <LoadingIcon width={ICON_SIZE * 2} height={ICON_SIZE * 2} />
+        </Secondary>
+      </Item>
+      <Balance col={5}>
+        <ValueContainer>
+          <Primary>
+            <LoadingText value={loading()} />
+          </Primary>
+        </ValueContainer>
+      </Balance>
     </AssetRow>
   );
 };
@@ -175,7 +199,7 @@ const Primary = styled.span`
 `;
 
 const Row = styled.div`
-  padding-right: 0.9375rem;
+  padding: 0.7rem 0.9375rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   &:hover {
@@ -185,7 +209,7 @@ const Row = styled.div`
   }
 
   ${breakpoints.md(`
-      grid-template-columns: 5.5fr 1fr 1fr 1fr;
+      grid-template-columns: 4.5fr 1fr 1fr 1fr 1fr;
 
   `)}
 `;
@@ -220,10 +244,12 @@ const Item0 = styled.div<{ col: number }>`
 const Balance = styled(Item)<{ col: number }>`
   grid-row: 3;
   grid-column: 1/-1;
-  ${breakpoints.md(`
+  ${({ col }) => css`
+    ${breakpoints.md(`
     grid-row: 1;
-    grid-column: 4;
+    grid-column: ${col};
   `)}
+  `}
 `;
 
 const Secondary = styled.span`
@@ -239,7 +265,6 @@ const Subtext = styled(Text)`
 
 const AssetRow = styled(Row)`
   ${sunkenStyles}
-  padding: 0.7rem 0.9375rem;
   border-radius: 2.5rem;
   ${({ theme }) => css`
     background: ${theme.colors.bgMid};
@@ -276,4 +301,8 @@ const LoadingIcon = styled(LoadingComponent)`
 const ValueSuffix = styled.span`
   ${textH5};
   color: ${({ theme }) => theme.colors.greyLight};
+`;
+
+const EmptySpace = styled.div`
+  padding: 0.7rem;
 `;

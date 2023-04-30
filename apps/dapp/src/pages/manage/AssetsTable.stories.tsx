@@ -4,7 +4,7 @@ import React from 'react';
 import { action } from '@storybook/addon-actions';
 import { AssetsTable } from './AssetsTable';
 import { ready, loading, newLoading } from '@/utils/loading-value';
-import { DBN_ONE_HUNDRED } from '@/utils/decimal-big-number';
+import { DBN_ONE_HUNDRED, DecimalBigNumber } from '@/utils/decimal-big-number';
 import { gmxInvestment, glpInvestment } from '@/api/test';
 
 export default {
@@ -42,6 +42,7 @@ const mockHoldings: AssetHolding[] = [
       apy: 0.25,
       tvl: 1000000,
     }),
+    price: newLoading(DecimalBigNumber.parseUnits('44.22', 2)),
   },
   {
     investment: GMXLP,
@@ -51,5 +52,6 @@ const mockHoldings: AssetHolding[] = [
       apy: 0.27,
       tvl: 2000000,
     }),
+    price: newLoading(DecimalBigNumber.parseUnits('1.12', 2)),
   },
 ];

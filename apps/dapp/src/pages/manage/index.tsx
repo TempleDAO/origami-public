@@ -1,7 +1,12 @@
 import { ProviderApi, SignerApi } from '@/api/api';
 import { Chain, Investment } from '@/api/types';
 import { useApiManager } from '@/hooks/use-api-manager';
-import { ApiCache, BalanceMap, MetricsVMap } from '@/api/cache';
+import {
+  ApiCache,
+  BalanceMap,
+  MetricsVMap,
+  TokenPricesVMap,
+} from '@/api/cache';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
@@ -58,9 +63,14 @@ export function PageContent(props: PageContentProps) {
   const userHoldings = useMemo(
     () =>
       lmap2([cache.investments, cache.balances], (investments, balances) =>
-        calcAssetHoldings(investments, balances, cache.metrics)
+        calcAssetHoldings(
+          investments,
+          balances,
+          cache.metrics,
+          cache.tokenPrices
+        )
       ),
-    [cache.investments, cache.balances, cache.metrics]
+    [cache.investments, cache.balances, cache.metrics, cache.tokenPrices]
   );
 
   const [metrics] = useAsyncLoad(
@@ -132,7 +142,8 @@ interface PortfolioMetrics {
 function calcAssetHoldings(
   investments: Investment[],
   balances: BalanceMap,
-  metricsMap: MetricsVMap
+  metricsMap: MetricsVMap,
+  pricesMap: TokenPricesVMap
 ): AssetHolding[] {
   const result: AssetHolding[] = [];
   for (const investment of investments) {
@@ -140,7 +151,8 @@ function calcAssetHoldings(
     if (balance && balance.gt(DBN_ZERO)) {
       const token = investment.receiptToken;
       const metrics = newLoading(metricsMap.get(investment));
-      result.push({ investment, token, balance, metrics });
+      const price = newLoading(pricesMap.get(investment));
+      result.push({ investment, token, balance, metrics, price });
     }
   }
   return result;
