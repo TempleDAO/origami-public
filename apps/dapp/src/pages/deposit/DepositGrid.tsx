@@ -230,7 +230,6 @@ function ExpandedItemFragment({
   setHistPeriod,
   histPeriod,
 }: ExpandedItemFragmentProps): JSX.Element {
-  console.log('ExpandedItemFragment:', histSeries, histPeriod);
   const [values] = useAsyncLoad(
     async () =>
       (await item.getHistory(histPeriod, histSeries)).map(convertHistoryPoint),

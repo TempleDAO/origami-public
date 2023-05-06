@@ -19,7 +19,7 @@ import { Loading, lmap } from '@/utils/loading-value';
 import { textH3 } from '@/styles/mixins/text-styles';
 import breakpoints from '@/styles/responsive-breakpoints';
 import { makeGridHeadings } from '@/components/commons/GridHeadingHolder';
-import { FlexDown } from '@/flows/common/components';
+import { FlexDown, FlexRightSpaced } from '@/flows/common/components';
 
 interface PlatformMetricsWidgetProps {
   platformMetricsExpanded: boolean;
@@ -73,15 +73,19 @@ export const PlatformMetricsWidget = (props: PlatformMetricsWidgetProps) => {
             <TitleHolder onClick={onCardClick}>
               <Title>PLATFORM METRICS</Title>
             </TitleHolder>
-            <GridValue
-              active={platformMetricsExpanded && histSeries === 'tvl'}
-              onClick={onCardClick}
+            <FlexRightSpaced
+              style={{ justifyContent: `${isDesktop ? 'center' : 'left'}` }}
             >
-              <LoadingText
-                value={lmap(platformTvl, formatNumber)}
-                suffix={<SuffixSpan> USD {!isDesktop && ' TVL'}</SuffixSpan>}
-              />
-            </GridValue>
+              <GridValue
+                active={platformMetricsExpanded && histSeries === 'tvl'}
+                onClick={onCardClick}
+              >
+                <LoadingText
+                  value={lmap(platformTvl, formatNumber)}
+                  suffix={<SuffixSpan> USD {!isDesktop && ' TVL'}</SuffixSpan>}
+                />
+              </GridValue>
+            </FlexRightSpaced>
             {platformMetricsExpanded && (
               <Graph>
                 <ChartHeader>
