@@ -178,7 +178,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, Governable, Operators {
     /// @dev Can only be called by allowed pausers or governance.
     function setPaused(Paused memory updatedPaused) external {
         if (pausers[msg.sender] == false) revert CommonEventsAndErrors.InvalidAddress(msg.sender);
-        emit PausedSet(_paused);
+        emit PausedSet(updatedPaused);
         _paused = updatedPaused;
     }
 

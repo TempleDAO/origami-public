@@ -331,9 +331,11 @@ describe("Origami GMX Manager", async () => {
                     gmxExitsPaused: true,
                 };
                 await expect(origamiGmxManager.setPaused(paused))
-                    .to.emit(origamiGmxManager, "PausedSet");
+                    .to.emit(origamiGmxManager, "PausedSet")
+                    .withArgs([true,true,true,true]);
                 await expect(origamiGlpManager.setPaused(paused))
-                    .to.emit(origamiGlpManager, "PausedSet");
+                    .to.emit(origamiGlpManager, "PausedSet")
+                    .withArgs([true,true,true,true]);
 
                 const checkPaused = (actual: IOrigamiGmxManager.PausedStructOutput, expected: IOrigamiGmxManager.PausedStruct) => {
                     expect(actual.glpInvestmentsPaused).eq(expected.glpInvestmentsPaused);
@@ -365,9 +367,11 @@ describe("Origami GMX Manager", async () => {
                     gmxExitsPaused: false,
                 };
                 await expect(origamiGmxManager.setPaused(unpaused))
-                    .to.emit(origamiGmxManager, "PausedSet");
+                    .to.emit(origamiGmxManager, "PausedSet")
+                    .withArgs([false,false,false,false]);
                 await expect(origamiGlpManager.setPaused(unpaused))
-                    .to.emit(origamiGlpManager, "PausedSet");
+                    .to.emit(origamiGlpManager, "PausedSet")
+                    .withArgs([false,false,false,false]);
                 checkPaused(await origamiGlpManager.paused(), unpaused);
                 checkPaused(await origamiGmxManager.paused(), unpaused);
 
