@@ -11,12 +11,13 @@ import {
 import { Provider } from "@ethersproject/providers";
 import { BigNumber, ethers } from "ethers";
 import { encodeGmxHarvestParams, formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown, wasHarvestedRecently } from "./utils";
+import { Chain } from "@/chains";
 
 
 export const TRANSACTION_NAME = 'gmx-auto-compounder';
 
 export interface HarvestGmxConfig  {
-    CHAIN_ID: number,
+    CHAIN: Chain,
     GMX_ADDRESS: string,
     OGMX_ADDRESS: string,
     GMX_REWARD_AGGREGATOR_ADDRESS: string,
@@ -43,7 +44,7 @@ async function mumbaiWethToGmxQuote(
 ) {
     ctx.logger.info(`MUMBAI: Selling [${sellAmount.toString()}] wETH for GMX`);
 
-    const signer = await ctx.getSigner(config.CHAIN_ID);
+    const signer = await ctx.getSigner(config.CHAIN.id);
     const dummyDex: DummyDex = DummyDex__factory.connect(
         config.ZERO_EX_PROXY_ADDRESS,
         signer,
@@ -77,7 +78,7 @@ async function arbitrumWethToGmxQuote(
         enableSlippageProtection: true,
     };
 
-    const quoteResp = await zeroExQuote(ctx.logger, config.CHAIN_ID, quoteParams);
+    const quoteResp = await zeroExQuote(ctx.logger, config.CHAIN.id, quoteParams);
 
     // eg "buyAmount": "336056751580968879966"
     const buyAmount = BigNumber.from(quoteResp.buyAmount);
@@ -99,7 +100,7 @@ export async function harvestGmxRewards(
 ): Promise<void> {
     const startUnixMilliSecs = (new Date()).getTime();
 
-    const signer = await ctx.getSigner(config.CHAIN_ID);
+    const signer = await ctx.getSigner(config.CHAIN.id);
 
     const rewardAggregator: OrigamiGmxRewardsAggregator = OrigamiGmxRewardsAggregator__factory.connect(
         config.GMX_REWARD_AGGREGATOR_ADDRESS,
@@ -130,7 +131,7 @@ export async function harvestGmxRewards(
     ctx.logger.info(`\tExisting GMX in aggregator: ${existingGmx.toString()}`);
 
     // Get a quote to swap $WETH -> $GMX
-    const {quoteData: wethToGmxQuoteData, minAmountExpected: minGmxExpected} = config.CHAIN_ID === 42161
+    const {quoteData: wethToGmxQuoteData, minAmountExpected: minGmxExpected} = config.CHAIN.id === 42161
         ? await arbitrumWethToGmxQuote(
             ctx,
             config, 
@@ -172,6 +173,7 @@ export async function harvestGmxRewards(
     ctx.logger.info(`harvestRewards encoded params: ${encodedParams}`);
     const tx = await rewardAggregator.harvestRewards(encodedParams);
     const txReceipt = await tx.wait();
+    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
 
     // Grab the events
     const events: string[] = [];
@@ -183,13 +185,13 @@ export async function harvestGmxRewards(
     }
 
     // Send notification
-    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, events);
+    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, txUrl, events);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }
 
-async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, events: string[]): Promise<DiscordMesage> {
+async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, txUrl: string, events: string[]): Promise<DiscordMesage> {
 
     const content = [
         `**Harvest GMX Rewards**`,
@@ -202,7 +204,7 @@ async function buildDiscordMessage(provider: Provider, submittedAt: Date, txRece
     return {
         content: content.join('\n'),
         embeds: [
-            urlEmbed(`https://mumbai.polygonscan.com/tx/${txReceipt.transactionHash}`),
+            urlEmbed(txUrl),
         ]
     }
 }

@@ -3,24 +3,29 @@
 import { HarvestGmxConfig } from "./investments/gmx/gmx-auto-compounder";
 import { HarvestGlpConfig } from "./investments/gmx/glp-auto-compounder";
 import { TransferStakedGlpConfig } from "./investments/gmx/transfer-staked-glp";
+import { AlertPausedStatusConfig } from "./investments/gmx/alert-paused-status";
+import { MUMBAI } from "./chains";
 
 export interface Config {
   harvestGmx: HarvestGmxConfig,
   harvestGlp: HarvestGlpConfig,
   transferStakedGlp: TransferStakedGlpConfig,
+  alertPausedStatus: AlertPausedStatusConfig,
 }
+
+
 
 export function getConfig() : Config {
   return {
     harvestGmx: HARVEST_GMX_CONFIG,
     harvestGlp: HARVEST_GLP_CONFIG,
     transferStakedGlp: TRANSFER_STAKED_GLP_CONFIG,
+    alertPausedStatus: ALERT_PAUSED_STATUS_CONFIG,
   }
 }
 
-
 const HARVEST_GMX_CONFIG : HarvestGmxConfig = {
-  CHAIN_ID: 80001,
+  CHAIN: MUMBAI,
   GMX_ADDRESS: "0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948",
   OGMX_ADDRESS: "0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45",
   GMX_REWARD_AGGREGATOR_ADDRESS: "0x48165A1Ba49584eDF7038497d6D65A4756e43e55",
@@ -40,7 +45,7 @@ const HARVEST_GMX_CONFIG : HarvestGmxConfig = {
 };
 
 const HARVEST_GLP_CONFIG: HarvestGlpConfig = {
-  CHAIN_ID: 80001,
+  CHAIN: MUMBAI,
   GMX_ADDRESS: "0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948",
   OGMX_ADDRESS: "0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45",
   OGLP_ADDRESS: "0xacfee3A66337067F75151637D0DefEd09E880914",
@@ -68,7 +73,13 @@ const HARVEST_GLP_CONFIG: HarvestGlpConfig = {
 
 
 const TRANSFER_STAKED_GLP_CONFIG: TransferStakedGlpConfig = {
-  CHAIN_ID: 80001,
+  CHAIN: MUMBAI,
   GLP_MANAGER: "0x1d8000368122bD16a1251B9b0fe2367C1cd247d1",
   MIN_TRANSFER_INTERVAL_SECS: 60*60, // 1 hour
+};
+
+const ALERT_PAUSED_STATUS_CONFIG: AlertPausedStatusConfig = {
+  CHAIN: MUMBAI,
+  GLP_MANAGER: "0x1d8000368122bD16a1251B9b0fe2367C1cd247d1",
+  GMX_MANAGER: "0x35696286529EBB88c5c53ADe87a4BdCF30b3c8d9",
 };

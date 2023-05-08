@@ -10,11 +10,12 @@ import { Provider } from "@ethersproject/abstract-provider";
 import { DiscordMesage, connectDiscord, urlEmbed } from "@/common/discord";
 import * as ethers from "ethers";
 import { formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown } from "./utils";
+import { Chain } from "@/chains";
 
 export const TRANSACTION_NAME = 'transfer-staked-glp';
 
 export interface TransferStakedGlpConfig {
-    CHAIN_ID: number,
+    CHAIN: Chain,
     GLP_MANAGER: string, // The address of Origami's GLP Manager contract
     MIN_TRANSFER_INTERVAL_SECS: number, // How frequently the transfer is allowed to occur.
 }
@@ -57,7 +58,7 @@ export async function transferStakedGlp(
 ): Promise<void> {
     const startUnixMilliSecs = (new Date()).getTime();
 
-    const signer = await ctx.getSigner(config.CHAIN_ID);
+    const signer = await ctx.getSigner(config.CHAIN.id);
 
     const glpManager = OrigamiGmxManager__factory.connect(
         config.GLP_MANAGER, 
@@ -117,6 +118,7 @@ export async function transferStakedGlp(
     const submittedAt = new Date();
     const tx = await secondaryEarnAccount.transferStakedGlpOrPause(stakedGlpToTransfer, primaryEarnAccount.address);
     const txReceipt = await tx.wait();
+    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);    
 
     const filter = secondaryEarnAccount.filters.SetGlpInvestmentsPaused();
 
@@ -134,13 +136,13 @@ export async function transferStakedGlp(
     }
 
     // Send notification
-    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, events);
+    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, txUrl, events);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }
 
-async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, events: string[]): Promise<DiscordMesage> {
+async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, txUrl: string, events: string[]): Promise<DiscordMesage> {
 
     const content = [
         `**Transfer staked GLP**`,
@@ -153,7 +155,7 @@ async function buildDiscordMessage(provider: Provider, submittedAt: Date, txRece
     return {
         content: content.join('\n'),
         embeds: [
-            urlEmbed(`https://mumbai.polygonscan.com/tx/${txReceipt.transactionHash}`),
+            urlEmbed(txUrl),
         ]
     }
 }

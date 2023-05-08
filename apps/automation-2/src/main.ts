@@ -3,10 +3,12 @@ import { createTaskRunner } from "@mountainpath9/overlord";
 import { harvestGmxRewards } from "./investments/gmx/gmx-auto-compounder";
 import { harvestGlpRewards } from "./investments/gmx/glp-auto-compounder";
 import { transferStakedGlp } from "./investments/gmx/transfer-staked-glp";
+import { createAlertPausedTask } from "./investments/gmx/alert-paused-status";
+
 import { getConfig } from "./config";
 
 
-function main() {
+async function main() {
   const runner = createTaskRunner("origami");
   const config = getConfig();
 
@@ -43,6 +45,11 @@ function main() {
     action: async (ctx) => transferStakedGlp(ctx, config.transferStakedGlp),
   });
   
+  const alertPausedTask = await createAlertPausedTask(runner, 'alert-paused-status', config.alertPausedStatus);
+  runner.addChainEventTask(
+    alertPausedTask
+  );
+
   runner.main();
 }
 
