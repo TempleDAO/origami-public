@@ -116,7 +116,9 @@ export async function transferStakedGlp(
 
     // Execute the transactions
     const submittedAt = new Date();
-    const tx = await secondaryEarnAccount.transferStakedGlpOrPause(stakedGlpToTransfer, primaryEarnAccount.address);
+    const tx = await secondaryEarnAccount.transferStakedGlpOrPause(stakedGlpToTransfer, primaryEarnAccount.address, {
+        gasLimit: 3_000_000,
+    });
     const txReceipt = await tx.wait();
     const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);    
 

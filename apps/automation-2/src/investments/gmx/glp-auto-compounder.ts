@@ -180,7 +180,9 @@ export async function harvestGlpRewards(
     const submittedAt = new Date();
     const encodedParams = encodeGlpHarvestParams(rewardAggregator, harvestParams);
     ctx.logger.info(`harvestRewards encoded params: ${encodedParams}`);
-    const tx = await rewardAggregator.harvestRewards(encodedParams);
+    const tx = await rewardAggregator.harvestRewards(encodedParams, {
+        gasLimit: 3_000_000,
+    });
     const txReceipt = await tx.wait();
     const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);    
 
