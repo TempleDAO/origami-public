@@ -410,10 +410,10 @@
     lodash "^4.17.16"
     uuid "^7.0.3"
 
-"@mountainpath9/overlord@0.0.13":
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/@mountainpath9/overlord/-/overlord-0.0.13.tgz#6eee60591ed32a14a8bad654c8a6662231891f31"
-  integrity sha512-xy4WzSuwJVFJj6s+eaty1UrjXKJ2+aStKpJfJ1zePDW4lEGwc783gZU3xUxbgQqbinvw1edY+ZdKhNX92M8iwg==
+"@mountainpath9/overlord@^0.0.18":
+  version "0.0.18"
+  resolved "https://registry.yarnpkg.com/@mountainpath9/overlord/-/overlord-0.0.18.tgz#9e04870bf535bfc714d51dcd902985a76d6f4a71"
+  integrity sha512-DWKHb0jfpI/IPZG2z3iUJPDrfOI4SoiZEiWOZz062wfFH+/f3E0DEYu6dHJy5vX2QbDiEDiH0pbeXV5kmc4IAw==
   dependencies:
     "@ethersproject/abi" "^5.7.0"
     "@ethersproject/abstract-provider" "^5.7.0"
@@ -428,6 +428,7 @@
     "@types/mocha" "^10.0.1"
     "@types/node" "^18.11.10"
     "@types/uuid" "^9.0.1"
+    async-mutex "^0.4.0"
     base64-js "^1.5.1"
     builtin-modules "^3.3.0"
     cron-parser "^4.7.1"
@@ -840,6 +841,13 @@ async-exit-hook@2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/async-exit-hook/-/async-exit-hook-2.0.1.tgz#8bd8b024b0ec9b1c01cccb9af9db29bd717dfaf3"
   integrity sha512-NW2cX8m1Q7KPA7a5M2ULQeZ2wR5qI5PAbw5L0UOMxdioVk9PMZ0h1TmyZEkPYrCvYjDlFICusOu1dlEKAAeXBw==
+
+async-mutex@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/async-mutex/-/async-mutex-0.4.0.tgz#ae8048cd4d04ace94347507504b3cf15e631c25f"
+  integrity sha512-eJFZ1YhRR8UN8eBLoNzcDPcy/jqjsg6I1AP+KvWQX80BqOSW1oJPJXDylPUEeMr2ZQvHgnQ//Lp6f3RQ1zI7HA==
+  dependencies:
+    tslib "^2.4.0"
 
 async@^3.2.3:
   version "3.2.4"
@@ -2084,6 +2092,11 @@ tsc-alias@^1.8.3:
     mylas "^2.1.9"
     normalize-path "^3.0.0"
     plimit-lit "^1.2.6"
+
+tslib@^2.4.0:
+  version "2.5.2"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.5.2.tgz#1b6f07185c881557b0ffa84b111a0106989e8338"
+  integrity sha512-5svOrSA2w3iGFDs1HibEVBGbDrAY82bFQ3HZ3ixB+88nsbsWQoKqDRb5UBYAUPEzbBn6dAp5gRNXglySbx1MlA==
 
 tslib@^2.5.0:
   version "2.5.0"

@@ -10,7 +10,7 @@
     "build:image": "docker build --tag origami-tasks ."
   },
   "dependencies": {
-    "@mountainpath9/overlord": "0.0.13",
+    "@mountainpath9/overlord": "^0.0.18",
     "axios": "^0.21.2",
     "discord.js": "^14.9.0",
     "qs": "^6.11.0"
