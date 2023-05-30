@@ -103,17 +103,26 @@ export async function transferStakedGlp(
     }
     let submittedAt = new Date();
     let startUnixMilliSecs = submittedAt.getTime();
-    await transferStakedGlpOrPause(ctx, config, signer, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount, submittedAt);
+    let txReceipt = await transferStakedGlpOrPause(ctx, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount);
+    await buildDiscordEventsAndSendAlert(ctx, config, txReceipt, signer, secondaryEarnAccount, submittedAt);
 
     // check if it's paused on chain, if so, run transferStakedGlpOrPause once again
-    const isPaused = await secondaryEarnAccount.glpInvestmentsPaused();
+    let isPaused = await secondaryEarnAccount.glpInvestmentsPaused();
     if (isPaused) {
         submittedAt = new Date();
         startUnixMilliSecs = submittedAt.getTime();
         if (!await waitUntilAfterCooldown(ctx.logger, startUnixMilliSecs, secondaryEarnAccount)) {
             throw (`Cooldown not yet expired`);
         }
-        await transferStakedGlpOrPause(ctx, config, signer, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount, submittedAt);
+        txReceipt = await transferStakedGlpOrPause(ctx, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount);
+        await buildDiscordEventsAndSendAlert(ctx, config, txReceipt, signer, secondaryEarnAccount, submittedAt);
+
+        // do another check after cooldown, if it still paused, send discord alert
+        isPaused = await secondaryEarnAccount.glpInvestmentsPaused();
+        if (isPaused) {
+            await buildDiscordEventsAndSendAlert(ctx, config, txReceipt, signer, secondaryEarnAccount, submittedAt);
+            throw (`Deposits are still paused`);
+        }
     }
 }
 
@@ -137,12 +146,9 @@ async function buildDiscordMessage(provider: Provider, submittedAt: Date, txRece
 
 async function transferStakedGlpOrPause(
     ctx: TaskContext,
-    config: TransferStakedGlpConfig,
-    signer: ethers.ethers.Signer,
     secondaryEarnAccount: OrigamiGmxEarnAccount,
     stakedGlpToTransfer: ethers.ethers.BigNumber,
     primaryEarnAccount: OrigamiGmxEarnAccount,
-    submittedAt: Date,
 ): Promise<ethers.ethers.ContractReceipt> {
 
     ctx.logger.info(
@@ -156,10 +162,21 @@ async function transferStakedGlpOrPause(
         gasLimit: 3_000_000,
     });
     const txReceipt = await tx.wait();
-    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
 
     const filter = secondaryEarnAccount.filters.SetGlpInvestmentsPaused();
 
+    return txReceipt;
+}
+
+async function buildDiscordEventsAndSendAlert(
+    ctx: TaskContext,
+    config: TransferStakedGlpConfig,
+    txReceipt: ethers.ethers.ContractReceipt,
+    signer: ethers.ethers.Signer,
+    secondaryEarnAccount: OrigamiGmxEarnAccount,
+    submittedAt: Date,
+) {
+    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
     // Grab the events of interest
     const events: string[] = [];
     for (const ev of txReceipt?.events || []) {
@@ -178,6 +195,4 @@ async function transferStakedGlpOrPause(
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
-
-    return txReceipt;
 }
