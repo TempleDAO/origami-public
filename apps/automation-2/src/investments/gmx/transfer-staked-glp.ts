@@ -48,7 +48,7 @@ async function waitUntilAfterCooldown(
 
 const TIMEOUT_CONFIG = {
     WAIT_SLEEP_SECS: 5,
-    TOTAL_TIMEOUT_SECS: 290,
+    TOTAL_TIMEOUT_SECS: 1200, // 20 min
 };
 
 
@@ -84,8 +84,7 @@ export async function transferStakedGlp(
 
     // No staked GLP position to transfer
     if (stakedGlpToTransfer.isZero()) {
-        ctx.logger.info(`No staked GLP to transfer`);
-        return;
+        throw (`No staked GLP to transfer`);
     }
 
     const currentBlockTime = await getBlockTimestamp(secondaryEarnAccount.provider);
@@ -104,13 +103,7 @@ export async function transferStakedGlp(
     }
     let submittedAt = new Date();
     let startUnixMilliSecs = submittedAt.getTime();
-    if (!await waitUntilAfterCooldown(ctx.logger, startUnixMilliSecs, secondaryEarnAccount)) {
-        ctx.logger.info(`Cooldown not yet expired`);
-        return;
-    }
-
-    let txReceipt = await transferStakedGlpOrPause(ctx, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount);
-    let txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
+    await transferStakedGlpOrPause(ctx, config, signer, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount, submittedAt);
 
     // check if it's paused on chain, if so, run transferStakedGlpOrPause once again
     const isPaused = await secondaryEarnAccount.glpInvestmentsPaused();
@@ -118,33 +111,10 @@ export async function transferStakedGlp(
         submittedAt = new Date();
         startUnixMilliSecs = submittedAt.getTime();
         if (!await waitUntilAfterCooldown(ctx.logger, startUnixMilliSecs, secondaryEarnAccount)) {
-            ctx.logger.info(`Cooldown not yet expired`);
-            return;
+            throw (`Cooldown not yet expired`);
         }
-        txReceipt = await transferStakedGlpOrPause(ctx, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount);
-        txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
+        await transferStakedGlpOrPause(ctx, config, signer, secondaryEarnAccount, stakedGlpToTransfer, primaryEarnAccount, submittedAt);
     }
-
-    const filter = secondaryEarnAccount.filters.SetGlpInvestmentsPaused();
-
-    // Grab the events of interest
-    const events: string[] = [];
-    for (const ev of txReceipt?.events || []) {
-        const paused = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.SetGlpInvestmentsPaused(), ev);
-        if (paused) {
-            events.push(`SetGlpInvestmentsPausedEventObject(pause=${paused.pause})`)
-        }
-        const transferred = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.StakedGlpTransferred(), ev);
-        if (transferred) {
-            events.push(`StakedGlpTransferred(receiver=${transferred.receiver}, amount=${formatBigNumber(transferred.amount, 18, 4)})`)
-        }
-    }
-
-    // Send notification
-    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, txUrl, events);
-    const webhookUrl = await ctx.getSecret('discord_webhook_url');
-    const discord = await connectDiscord(webhookUrl, ctx.logger);
-    await discord.postMessage(message);
 }
 
 async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, txUrl: string, events: string[]): Promise<DiscordMesage> {
@@ -167,9 +137,12 @@ async function buildDiscordMessage(provider: Provider, submittedAt: Date, txRece
 
 async function transferStakedGlpOrPause(
     ctx: TaskContext,
+    config: TransferStakedGlpConfig,
+    signer: ethers.ethers.Signer,
     secondaryEarnAccount: OrigamiGmxEarnAccount,
     stakedGlpToTransfer: ethers.ethers.BigNumber,
-    primaryEarnAccount: OrigamiGmxEarnAccount
+    primaryEarnAccount: OrigamiGmxEarnAccount,
+    submittedAt: Date,
 ): Promise<ethers.ethers.ContractReceipt> {
 
     ctx.logger.info(
@@ -182,5 +155,29 @@ async function transferStakedGlpOrPause(
     const tx = await secondaryEarnAccount.transferStakedGlpOrPause(stakedGlpToTransfer, primaryEarnAccount.address, {
         gasLimit: 3_000_000,
     });
-    return tx.wait();
+    const txReceipt = await tx.wait();
+    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
+
+    const filter = secondaryEarnAccount.filters.SetGlpInvestmentsPaused();
+
+    // Grab the events of interest
+    const events: string[] = [];
+    for (const ev of txReceipt?.events || []) {
+        const paused = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.SetGlpInvestmentsPaused(), ev);
+        if (paused) {
+            events.push(`SetGlpInvestmentsPausedEventObject(pause=${paused.pause})`)
+        }
+        const transferred = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.StakedGlpTransferred(), ev);
+        if (transferred) {
+            events.push(`StakedGlpTransferred(receiver=${transferred.receiver}, amount=${formatBigNumber(transferred.amount, 18, 4)})`)
+        }
+    }
+
+    // Send discord notification
+    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, txUrl, events);
+    const webhookUrl = await ctx.getSecret('discord_webhook_url');
+    const discord = await connectDiscord(webhookUrl, ctx.logger);
+    await discord.postMessage(message);
+
+    return txReceipt;
 }
