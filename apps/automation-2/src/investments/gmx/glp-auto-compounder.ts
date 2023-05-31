@@ -1,21 +1,28 @@
 
-import { 
-    OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,   
+import {
+    OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
     IOrigamiInvestment, IOrigamiInvestment__factory,
     DummyDex, DummyDex__factory, RepricingToken, RepricingToken__factory,
 } from "@/typechain";
 import { zeroExQuote, ZeroExQuoteParams } from './zero-ex'
 import { bpsToFraction } from "@/common/utils";
-import { BigNumber, ethers} from "ethers";
-import { encodeGlpHarvestParams, formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown, wasHarvestedRecently } from "./utils";
+import { BigNumber, ethers } from "ethers";
+import {
+    buildOrigamiTasksDiscordMessage,
+    encodeGlpHarvestParams,
+    formatBigNumber,
+    matchAndDecodeEvent,
+    OrigamiTaskDiscordEvent,
+    OrigamiTaskDiscordMetadata,
+    wasHarvestedRecently
+} from "./utils";
 import { TaskContext } from "@mountainpath9/overlord";
-import { Provider } from "@ethersproject/providers";
-import { DiscordMesage, connectDiscord, urlEmbed } from "@/common/discord";
+import { connectDiscord } from "@/common/discord";
 import { Chain } from "@/chains";
 
 export const TRANSACTION_NAME = 'glp-auto-compounder';
 
-export interface HarvestGlpConfig  {
+export interface HarvestGlpConfig {
     CHAIN: Chain,
     GMX_ADDRESS: string,
     OGMX_ADDRESS: string,
@@ -55,17 +62,17 @@ async function mumbaiGmxToWethQuote(
         .div(await dummyDex.wrappedNativePrice());
     ctx.logger.info(`\tExpected wETH Amount Bought: [${buyWethAmount.toString()}]`);
 
-    const minWethExpected = buyWethAmount.mul(10_000-config.GMX_TO_WETH_SLIPPAGE_BPS).div(10_000);
+    const minWethExpected = buyWethAmount.mul(10_000 - config.GMX_TO_WETH_SLIPPAGE_BPS).div(10_000);
     ctx.logger.info(`\tMin wETH Amount Bought: [${minWethExpected.toString()}]`);
     const gmxToWethQuoteData = dummyDex.interface.encodeFunctionData("swapToWrappedNative", [sellAmount]);
 
-    return {quoteData: gmxToWethQuoteData, minAmountExpected: minWethExpected};
+    return { quoteData: gmxToWethQuoteData, minAmountExpected: minWethExpected };
 }
 
 async function arbitrumGmxToWethQuote(
     ctx: TaskContext,
-    config: HarvestGlpConfig, 
-    wethAddress: string, 
+    config: HarvestGlpConfig,
+    wethAddress: string,
     sellAmount: BigNumber,
 ) {
     ctx.logger.info(`ARBITRUM: Selling [${sellAmount.toString()}] GMX for wETH`);
@@ -73,7 +80,7 @@ async function arbitrumGmxToWethQuote(
         sellToken: config.GMX_ADDRESS,
         buyToken: wethAddress,
         sellAmount: sellAmount.toString(),
-        priceImpactProtectionPercentage: bpsToFraction(config.GMX_TO_WETH_PRICE_IMPACT_BPS), 
+        priceImpactProtectionPercentage: bpsToFraction(config.GMX_TO_WETH_PRICE_IMPACT_BPS),
         slippagePercentage: bpsToFraction(config.GMX_TO_WETH_SLIPPAGE_BPS),
         enableSlippageProtection: true,
     };
@@ -91,14 +98,13 @@ async function arbitrumGmxToWethQuote(
     const minAmountExpected = sellAmount.mul(guaranteedPrice).div(ethers.utils.parseEther("1"));
     ctx.logger.info(`Min wETH Amount Bought: [${minAmountExpected.toString()}]`);
 
-    return {quoteData: quoteResp.data, minAmountExpected};
+    return { quoteData: quoteResp.data, minAmountExpected };
 }
 
 export async function harvestGlpRewards(
     ctx: TaskContext,
     config: HarvestGlpConfig,
 ): Promise<void> {
-    const startUnixMilliSecs = (new Date()).getTime();
 
     const signer = await ctx.getSigner(config.CHAIN.id);
 
@@ -115,7 +121,7 @@ export async function harvestGlpRewards(
         signer
     );
     const oGlpRp: RepricingToken = RepricingToken__factory.connect(
-        config.OGLP_ADDRESS, 
+        config.OGLP_ADDRESS,
         signer
     );
 
@@ -125,7 +131,7 @@ export async function harvestGlpRewards(
 
     const wethAddress = await rewardAggregator.wrappedNativeToken();
     const _harvestableRewards = await rewardAggregator.harvestableRewards();
-    const harvestableRewards = {weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2]};
+    const harvestableRewards = { weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2] };
     ctx.logger.info(`\tGLP Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
 
     // Get a quote to swap $oGMX rewards -> $GMX
@@ -134,16 +140,16 @@ export async function harvestGlpRewards(
     ctx.logger.info(`oGMX -> GMX Exit Quote: ${oGmxToGmxExitQuote}`);
 
     // Get a quote to swap $GMX -> $WETH
-    const {quoteData: gmxToWethQuoteData, minAmountExpected: minWethExpected} = config.CHAIN.id === 42161
+    const { quoteData: gmxToWethQuoteData, minAmountExpected: minWethExpected } = config.CHAIN.id === 42161
         ? await arbitrumGmxToWethQuote(
             ctx,
-            config, 
+            config,
             wethAddress,
             oGmxToGmxExitQuote.quoteData.minToTokenAmount
         )
         : await mumbaiGmxToWethQuote(
             ctx,
-            config, 
+            config,
             oGmxToGmxExitQuote.quoteData.minToTokenAmount
         );
 
@@ -184,38 +190,30 @@ export async function harvestGlpRewards(
         gasLimit: 3_000_000,
     });
     const txReceipt = await tx.wait();
-    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);    
+    const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
 
     // Grab the events
-    const events: string[] = [];
-    for(const ev of txReceipt?.events || []) {
+    const events: OrigamiTaskDiscordEvent[] = [];
+    for (const ev of txReceipt?.events || []) {
         const addedEv = matchAndDecodeEvent(oGlpRp, oGlpRp.filters.PendingReservesAdded(), ev);
         if (addedEv) {
-            events.push(`PendingReservesAdded(amount=${formatBigNumber(addedEv.amount, 18, 4)})`)
+            events.push({
+                what: "PendingReservesAdded",
+                details: [`amount = \`${formatBigNumber(addedEv.amount, 18, 4)}\``]
+            })
         }
     }
+    const metadata: OrigamiTaskDiscordMetadata = {
+        title: 'Harvest GLP Rewards',
+        events,
+        submittedAt,
+        txReceipt,
+        txUrl
+    };
 
     // Send notification
-    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, txUrl, events);
+    const message = await buildOrigamiTasksDiscordMessage(signer.provider!, config.CHAIN, metadata);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
-}
-
-async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, txUrl: string, events: string[]): Promise<DiscordMesage> {
-
-    const content = [
-        `**Harvest GLP Rewards**`,
-        ``,
-        ...events.map(ev => `_event_: ${ev}`),
-        ``,
-        ...await txReceiptMarkdown(provider, submittedAt, txReceipt),
-    ];
-
-    return {
-        content: content.join('\n'),
-        embeds: [
-            urlEmbed(txUrl),
-        ]
-    }
 }

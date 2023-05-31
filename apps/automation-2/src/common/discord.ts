@@ -1,5 +1,5 @@
 import { Logger } from "@mountainpath9/overlord";
-import { WebhookClient, MessageCreateOptions, EmbedBuilder } from "discord.js";
+import { WebhookClient, MessageCreateOptions } from "discord.js";
 
 
 interface DiscordChannel {
@@ -23,19 +23,12 @@ export async function connectDiscord(webhookUrl: string, logger: Logger): Promis
   }
 }
 
-export function decodeWebhookUrl(url: string): {id: string, token: string} {
+export function decodeWebhookUrl(url: string): { id: string, token: string } {
   const m = url.match(DISCORD_URL_RE);
   if (!m) {
     throw new Error("Unable to decode discord webhook url");
   }
-  return {id: m[1], token: m[2]};
-}
-
-export function urlEmbed(url: string): EmbedBuilder {
-  const embed = new EmbedBuilder();
-  embed.setTitle(url);
-  embed.setURL(url);
-  return embed;
+  return { id: m[1], token: m[2] };
 }
 
 const DISCORD_URL_RE = new RegExp('https://discord.com/api/webhooks/([^/]+)/(.+)$');
