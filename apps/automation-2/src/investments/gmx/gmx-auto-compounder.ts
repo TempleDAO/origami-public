@@ -14,8 +14,8 @@ import {
     encodeGmxHarvestParams,
     formatBigNumber,
     matchAndDecodeEvent,
-    OrigamyTaskDiscordEvent,
-    OrigamyTaskDiscordMetadata,
+    OrigamiTaskDiscordEvent,
+    OrigamiTaskDiscordMetadata,
     wasHarvestedRecently
 } from "./utils";
 import { Chain } from "@/chains";
@@ -184,7 +184,7 @@ export async function harvestGmxRewards(
     const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
 
     // Grab the events
-    const events: OrigamyTaskDiscordEvent[] = [];
+    const events: OrigamiTaskDiscordEvent[] = [];
     for (const ev of txReceipt?.events || []) {
         const addedEv = matchAndDecodeEvent(oGmxRp, oGmxRp.filters.PendingReservesAdded(), ev);
         if (addedEv) {
@@ -194,7 +194,7 @@ export async function harvestGmxRewards(
             })
         }
     }
-    const metadata: OrigamyTaskDiscordMetadata = {
+    const metadata: OrigamiTaskDiscordMetadata = {
         title: 'Harvest GMX Rewards',
         events,
         submittedAt,

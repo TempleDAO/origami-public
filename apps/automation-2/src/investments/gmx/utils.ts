@@ -45,14 +45,14 @@ export async function wasHarvestedRecently(
   return false;
 }
 
-export type OrigamyTaskDiscordEventType = 'SetGlpInvestmentsPausedEventObject' | 'StakedGlpTransferred' | 'PendingReservesAdded';
-export interface OrigamyTaskDiscordEvent {
-  what: OrigamyTaskDiscordEventType;
+export type OrigamiTaskDiscordEventType = 'SetGlpInvestmentsPaused' | 'StakedGlpTransferred' | 'PendingReservesAdded';
+export interface OrigamiTaskDiscordEvent {
+  what: OrigamiTaskDiscordEventType;
   details: string[];
 }
-export interface OrigamyTaskDiscordMetadata {
+export interface OrigamiTaskDiscordMetadata {
   title: string;
-  events: OrigamyTaskDiscordEvent[]
+  events: OrigamiTaskDiscordEvent[]
   submittedAt: Date;
   txReceipt: ethers.ContractReceipt;
   txUrl: string;
@@ -63,7 +63,7 @@ export interface OrigamyTaskDiscordMetadata {
  * Generate markdown for origami tasks discord  
  */
 
-export async function buildOrigamiTasksDiscordMessage(provider: Provider, chain: Chain, metadata: OrigamyTaskDiscordMetadata): Promise<DiscordMesage> {
+export async function buildOrigamiTasksDiscordMessage(provider: Provider, chain: Chain, metadata: OrigamiTaskDiscordMetadata): Promise<DiscordMesage> {
   const { title, submittedAt, txReceipt, txUrl, events } = metadata;
 
   const content = [

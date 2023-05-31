@@ -9,8 +9,8 @@ import { tryUntilTimeout } from "@/common/utils";
 import { connectDiscord } from "@/common/discord";
 import * as ethers from "ethers";
 import {
-    OrigamyTaskDiscordEvent,
-    OrigamyTaskDiscordMetadata,
+    OrigamiTaskDiscordEvent,
+    OrigamiTaskDiscordMetadata,
     buildOrigamiTasksDiscordMessage,
     formatBigNumber,
     matchAndDecodeEvent
@@ -164,12 +164,12 @@ async function buildDiscordEventsAndSendAlert(
 ) {
     const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
     // Grab the events of interest
-    const events: OrigamyTaskDiscordEvent[] = [];
+    const events: OrigamiTaskDiscordEvent[] = [];
     for (const ev of txReceipt?.events || []) {
         const paused = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.SetGlpInvestmentsPaused(), ev);
         if (paused) {
             events.push({
-                what: "SetGlpInvestmentsPausedEventObject",
+                what: "SetGlpInvestmentsPaused",
                 details: [`pause = \`${paused.pause}\``]
             })
         }
@@ -185,7 +185,7 @@ async function buildDiscordEventsAndSendAlert(
         }
     }
 
-    const metadata: OrigamyTaskDiscordMetadata = {
+    const metadata: OrigamiTaskDiscordMetadata = {
         title: 'Transfer Staked GLP',
         events,
         submittedAt,

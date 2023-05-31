@@ -12,8 +12,8 @@ import {
     encodeGlpHarvestParams,
     formatBigNumber,
     matchAndDecodeEvent,
-    OrigamyTaskDiscordEvent,
-    OrigamyTaskDiscordMetadata,
+    OrigamiTaskDiscordEvent,
+    OrigamiTaskDiscordMetadata,
     wasHarvestedRecently
 } from "./utils";
 import { TaskContext } from "@mountainpath9/overlord";
@@ -193,7 +193,7 @@ export async function harvestGlpRewards(
     const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
 
     // Grab the events
-    const events: OrigamyTaskDiscordEvent[] = [];
+    const events: OrigamiTaskDiscordEvent[] = [];
     for (const ev of txReceipt?.events || []) {
         const addedEv = matchAndDecodeEvent(oGlpRp, oGlpRp.filters.PendingReservesAdded(), ev);
         if (addedEv) {
@@ -203,7 +203,7 @@ export async function harvestGlpRewards(
             })
         }
     }
-    const metadata: OrigamyTaskDiscordMetadata = {
+    const metadata: OrigamiTaskDiscordMetadata = {
         title: 'Harvest GLP Rewards',
         events,
         submittedAt,
