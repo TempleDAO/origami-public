@@ -6,10 +6,15 @@ import {
 import { getBlockTimestamp } from '@/common/utils';
 import { TaskContext, Logger } from "@mountainpath9/overlord";
 import { tryUntilTimeout } from "@/common/utils";
-import { Provider } from "@ethersproject/abstract-provider";
-import { DiscordMesage, connectDiscord, urlEmbed } from "@/common/discord";
+import { connectDiscord } from "@/common/discord";
 import * as ethers from "ethers";
-import { formatBigNumber, matchAndDecodeEvent, txReceiptMarkdown } from "./utils";
+import {
+    OrigamyTaskDiscordEvent,
+    OrigamyTaskDiscordMetadata,
+    buildOrigamiTasksDiscordMessage,
+    formatBigNumber,
+    matchAndDecodeEvent
+} from "./utils";
 import { Chain } from "@/chains";
 
 export const TRANSACTION_NAME = 'transfer-staked-glp';
@@ -84,7 +89,8 @@ export async function transferStakedGlp(
 
     // No staked GLP position to transfer
     if (stakedGlpToTransfer.isZero()) {
-        throw (`No staked GLP to transfer`);
+        ctx.logger.info(`No staked GLP to transfer`);
+        return;
     }
 
     const currentBlockTime = await getBlockTimestamp(secondaryEarnAccount.provider);
@@ -126,24 +132,6 @@ export async function transferStakedGlp(
     }
 }
 
-async function buildDiscordMessage(provider: Provider, submittedAt: Date, txReceipt: ethers.ContractReceipt, txUrl: string, events: string[]): Promise<DiscordMesage> {
-
-    const content = [
-        `**Transfer staked GLP**`,
-        ``,
-        ...events.map(ev => `_event_: ${ev})`),
-        ``,
-        ...await txReceiptMarkdown(provider, submittedAt, txReceipt),
-    ];
-
-    return {
-        content: content.join('\n'),
-        embeds: [
-            urlEmbed(txUrl),
-        ]
-    }
-}
-
 async function transferStakedGlpOrPause(
     ctx: TaskContext,
     secondaryEarnAccount: OrigamiGmxEarnAccount,
@@ -163,8 +151,6 @@ async function transferStakedGlpOrPause(
     });
     const txReceipt = await tx.wait();
 
-    const filter = secondaryEarnAccount.filters.SetGlpInvestmentsPaused();
-
     return txReceipt;
 }
 
@@ -178,20 +164,37 @@ async function buildDiscordEventsAndSendAlert(
 ) {
     const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
     // Grab the events of interest
-    const events: string[] = [];
+    const events: OrigamyTaskDiscordEvent[] = [];
     for (const ev of txReceipt?.events || []) {
         const paused = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.SetGlpInvestmentsPaused(), ev);
         if (paused) {
-            events.push(`SetGlpInvestmentsPausedEventObject(pause=${paused.pause})`)
+            events.push({
+                what: "SetGlpInvestmentsPausedEventObject",
+                details: [`pause = \`${paused.pause}\``]
+            })
         }
         const transferred = matchAndDecodeEvent(secondaryEarnAccount, secondaryEarnAccount.filters.StakedGlpTransferred(), ev);
         if (transferred) {
-            events.push(`StakedGlpTransferred(receiver=${transferred.receiver}, amount=${formatBigNumber(transferred.amount, 18, 4)})`)
+            events.push({
+                what: "StakedGlpTransferred",
+                details: [
+                    `receiver = \`${transferred.receiver}\``,
+                    `amount = \`${formatBigNumber(transferred.amount, 18, 4)}\``
+                ]
+            })
         }
     }
 
+    const metadata: OrigamyTaskDiscordMetadata = {
+        title: 'Transfer Staked GLP',
+        events,
+        submittedAt,
+        txReceipt,
+        txUrl
+    };
+
     // Send discord notification
-    const message = await buildDiscordMessage(signer.provider!, submittedAt, txReceipt, txUrl, events);
+    const message = await buildOrigamiTasksDiscordMessage(signer.provider!, config.CHAIN, metadata);
     const webhookUrl = await ctx.getSecret('discord_webhook_url');
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
