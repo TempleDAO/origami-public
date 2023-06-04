@@ -417,10 +417,10 @@
     lodash "^4.17.16"
     uuid "^7.0.3"
 
-"@mountainpath9/overlord@^0.0.18":
-  version "0.0.18"
-  resolved "https://registry.yarnpkg.com/@mountainpath9/overlord/-/overlord-0.0.18.tgz#9e04870bf535bfc714d51dcd902985a76d6f4a71"
-  integrity sha512-DWKHb0jfpI/IPZG2z3iUJPDrfOI4SoiZEiWOZz062wfFH+/f3E0DEYu6dHJy5vX2QbDiEDiH0pbeXV5kmc4IAw==
+"@mountainpath9/overlord@^0.0.19":
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/@mountainpath9/overlord/-/overlord-0.0.19.tgz#072bfb29dfb444c9635879dd30fb89420860a81d"
+  integrity sha512-ymxegZSoVwDAHUAgfs7bQkQ7dYzuDzSmaONsHMakUBcvX3BVrq/AjTDANYWkWiszLl+Q4vM47JsZp36lFdGHDA==
   dependencies:
     "@ethersproject/abi" "^5.7.0"
     "@ethersproject/abstract-provider" "^5.7.0"
