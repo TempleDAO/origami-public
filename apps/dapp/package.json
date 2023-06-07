@@ -1,7 +1,7 @@
 {
   "name": "vite-bootstrap",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.27",
   "type": "commonjs",
   "scripts": {
     "prepare": "yarn typechain && cd ../.. && husky install apps/dapp/.husky",
