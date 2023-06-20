@@ -19,11 +19,13 @@ import {
 import { TaskContext } from "@mountainpath9/overlord";
 import { connectDiscord } from "@/common/discord";
 import { Chain } from "@/chains";
+import { DISCORD_WEBHOOK_URL_KEY } from "@/config";
 
 export const TRANSACTION_NAME = 'glp-auto-compounder';
 
 export interface HarvestGlpConfig {
     CHAIN: Chain,
+    WALLET_NAME: string,
     GMX_ADDRESS: string,
     OGMX_ADDRESS: string,
     OGLP_ADDRESS: string,
@@ -53,7 +55,8 @@ async function mumbaiGmxToWethQuote(
 ) {
     ctx.logger.info(`MUMBAI: Selling [${sellAmount.toString()}] GMX for wETH`);
 
-    const signer = await ctx.getSigner(config.CHAIN.id);
+    const provider = await ctx.getProvider(config.CHAIN.id);
+    const signer = await ctx.getSigner(provider, config.WALLET_NAME);
 
     const dummyDex: DummyDex = DummyDex__factory.connect(config.ZERO_EX_PROXY_ADDRESS, signer);
 
@@ -106,7 +109,8 @@ export async function harvestGlpRewards(
     config: HarvestGlpConfig,
 ): Promise<void> {
 
-    const signer = await ctx.getSigner(config.CHAIN.id);
+    const provider = await ctx.getProvider(config.CHAIN.id);
+    const signer = await ctx.getSigner(provider, config.WALLET_NAME);
 
     const rewardAggregator: OrigamiGmxRewardsAggregator = OrigamiGmxRewardsAggregator__factory.connect(
         config.GLP_REWARD_AGGREGATOR_ADDRESS,
@@ -213,7 +217,7 @@ export async function harvestGlpRewards(
 
     // Send notification
     const message = await buildOrigamiTasksDiscordMessage(signer.provider!, config.CHAIN, metadata);
-    const webhookUrl = await ctx.getSecret('discord_webhook_url');
+    const webhookUrl = await ctx.getSecret(DISCORD_WEBHOOK_URL_KEY);
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }

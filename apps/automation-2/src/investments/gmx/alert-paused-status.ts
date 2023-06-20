@@ -6,6 +6,7 @@ import { IOrigamiGmxManager } from "@/typechain/OrigamiGmxManager";
 import { TypedEvent, TypedEventFilter } from "@/typechain/common";
 import { ChainEventTask, TaskContext, TaskRunner } from "@mountainpath9/overlord";
 import { BaseContract, providers } from "ethers";
+import { DISCORD_WEBHOOK_URL_KEY } from "@/config";
 
 
 export interface AlertPausedStatusConfig {
@@ -47,7 +48,7 @@ export async function createAlertPausedTask(taskRunner: TaskRunner, id: string, 
 
     // Send notification
     const message = await buildDiscordMessage(log, contractLabel, txUrl, logArgs[0]);
-    const webhookUrl = await ctx.getSecret('discord_webhook_url');
+    const webhookUrl = await ctx.getSecret(DISCORD_WEBHOOK_URL_KEY);
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
   }

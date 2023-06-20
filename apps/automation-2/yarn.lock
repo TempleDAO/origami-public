@@ -417,10 +417,10 @@
     lodash "^4.17.16"
     uuid "^7.0.3"
 
-"@mountainpath9/overlord@^0.0.19":
-  version "0.0.19"
-  resolved "https://registry.yarnpkg.com/@mountainpath9/overlord/-/overlord-0.0.19.tgz#072bfb29dfb444c9635879dd30fb89420860a81d"
-  integrity sha512-ymxegZSoVwDAHUAgfs7bQkQ7dYzuDzSmaONsHMakUBcvX3BVrq/AjTDANYWkWiszLl+Q4vM47JsZp36lFdGHDA==
+"@mountainpath9/overlord@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@mountainpath9/overlord/-/overlord-0.2.0.tgz#cc6fd5c355cd1dda09331e868af84fbf3fa4b917"
+  integrity sha512-MEkV4UNCZcYPz/pIrNUmaLCcfD11edRMVYKQYUAysGZ5R0JzOvAuNu8qZ0hQzzO378wVfQsyAD8w7KfdS9qUig==
   dependencies:
     "@ethersproject/abi" "^5.7.0"
     "@ethersproject/abstract-provider" "^5.7.0"
@@ -440,6 +440,7 @@
     builtin-modules "^3.3.0"
     cron-parser "^4.7.1"
     ethers "5.7.2"
+    jwt-decode "^3.1.2"
     koa "^2.14.1"
     koa-logger "^3.2.1"
     koa-router "^12.0.0"
@@ -1558,6 +1559,11 @@ jsonfile@^4.0.0:
   integrity sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==
   optionalDependencies:
     graceful-fs "^4.1.6"
+
+jwt-decode@^3.1.2:
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-3.1.2.tgz#3fb319f3675a2df0c2895c8f5e9fa4b67b04ed59"
+  integrity sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==
 
 keygrip@~1.1.0:
   version "1.1.0"

@@ -16,11 +16,13 @@ import {
     matchAndDecodeEvent
 } from "./utils";
 import { Chain } from "@/chains";
+import { DISCORD_WEBHOOK_URL_KEY } from "@/config";
 
 export const TRANSACTION_NAME = 'transfer-staked-glp';
 
 export interface TransferStakedGlpConfig {
     CHAIN: Chain,
+    WALLET_NAME: string,
     GLP_MANAGER: string, // The address of Origami's GLP Manager contract
     MIN_TRANSFER_INTERVAL_SECS: number, // How frequently the transfer is allowed to occur.
 }
@@ -62,7 +64,8 @@ export async function transferStakedGlp(
     config: TransferStakedGlpConfig,
 ): Promise<void> {
 
-    const signer = await ctx.getSigner(config.CHAIN.id);
+    const provider = await ctx.getProvider(config.CHAIN.id);
+    const signer = await ctx.getSigner(provider, config.WALLET_NAME);
 
     const glpManager = OrigamiGmxManager__factory.connect(
         config.GLP_MANAGER,
@@ -195,7 +198,7 @@ async function buildDiscordEventsAndSendAlert(
 
     // Send discord notification
     const message = await buildOrigamiTasksDiscordMessage(signer.provider!, config.CHAIN, metadata);
-    const webhookUrl = await ctx.getSecret('discord_webhook_url');
+    const webhookUrl = await ctx.getSecret(DISCORD_WEBHOOK_URL_KEY);
     const discord = await connectDiscord(webhookUrl, ctx.logger);
     await discord.postMessage(message);
 }
