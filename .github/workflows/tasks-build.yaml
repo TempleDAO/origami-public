@@ -4,7 +4,7 @@ on:
     types: [opened, synchronize]
     paths:
       - .github/workflows/tasks-build.yaml
-      - 'apps/automation-2/**'
+      - 'apps/automation/**'
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '16'
           cache: 'yarn'
-          cache-dependency-path: 'apps/automation-2/yarn.lock'
+          cache-dependency-path: 'apps/automation/yarn.lock'
 
-      - run: (cd apps/automation-2; yarn install)
-      - run: (cd apps/automation-2; yarn build)
+      - run: (cd apps/automation; yarn install)
+      - run: (cd apps/automation; yarn build)

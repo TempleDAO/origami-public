@@ -1,8 +1,0 @@
-{
-    "extends": "./tsconfig.json",
-
-    // Rollup requires esnext
-    "compilerOptions": {
-      "module": "esnext",
-    }
-}

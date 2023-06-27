@@ -37,7 +37,7 @@ jobs:
       - name: Build the tasks docker image
         run: |
           VER=${{ steps.version.outputs.VER }}
-          cd apps/automation-2
+          cd apps/automation
           docker build --file Dockerfile --tag origami-tasks:$VER .
           docker build --file Dockerfile --tag origami-tasks:latest .
     
