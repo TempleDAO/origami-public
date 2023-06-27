@@ -41,13 +41,13 @@ const MUMBAI: Chain = {
 };
 
 const MUMBAI_PRICE_CONTRACT: PriceContractConfig = {
-  address: '0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8',
+  address: '0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f',
   chainId: MUMBAI.id,
 };
 
 const GMX_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e',
+    address: '0x084E1ceB358Fc9A78BB2799424A407419F28F3cf',
     chainId: MUMBAI.id,
   },
   icon: 'gmx',
@@ -65,7 +65,7 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
 
 const GLP_ON_MUMBAI: InvestmentConfig = {
   contractAddress: {
-    address: '0x7a8108A11949aa9F6395476F160304269A5EE48b',
+    address: '0xE781bF69e3dfaB3E7161B3f718897BcbDE17539a',
     chainId: MUMBAI.id,
   },
   icon: 'glp',
@@ -101,7 +101,7 @@ const OVGMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const GMX_TOKEN: ExtendedTokenConfig = {
-  address: '0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948',
+  address: '0x79264843745dD81127B42Cffe30584A11a08C8F5',
   chainId: MUMBAI.id,
   iconName: 'gmx',
   symbol: 'GMX',
@@ -109,7 +109,7 @@ const GMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGMX_TOKEN: ExtendedTokenConfig = {
-  address: '0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45',
+  address: '0x79Dd3E25E0ED4A8C375AEAE4813baAA145599e61',
   chainId: MUMBAI.id,
   iconName: 'gmx',
   symbol: 'oGMX',
@@ -117,7 +117,7 @@ const OGMX_TOKEN: ExtendedTokenConfig = {
 };
 
 const SGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0x9f9d9e1f64618695142664280b6241442432e45b',
+  address: '0x947d2B5ADc3882FA5D4E86E065f7340a5465Dd91',
   chainId: MUMBAI.id,
   iconName: 'glp',
   symbol: 'sGLP',
@@ -125,7 +125,7 @@ const SGLP_TOKEN: ExtendedTokenConfig = {
 };
 
 const OGLP_TOKEN: ExtendedTokenConfig = {
-  address: '0xacfee3A66337067F75151637D0DefEd09E880914',
+  address: '0xea5043b2C7cEA4720B9Ec622E96FD79C051B1Ded',
   chainId: MUMBAI.id,
   iconName: 'glp',
   symbol: 'oGLP',
@@ -133,7 +133,7 @@ const OGLP_TOKEN: ExtendedTokenConfig = {
 };
 
 const BTC_TOKEN: ExtendedTokenConfig = {
-  address: '0x436F79C41b477C28A292808523b3eb0E22202B7F',
+  address: '0xc8Daa4E13780E59B50150980beF3469B7E0Cff25',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'BTC',
@@ -141,7 +141,7 @@ const BTC_TOKEN: ExtendedTokenConfig = {
 };
 
 const BNB_TOKEN: ExtendedTokenConfig = {
-  address: '0xD80A1171E8E3400868051e7ced31550638660575',
+  address: '0xDAAe5236C1b4cE822ac5beDDb597e8a6E0604b4e',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'BNB',
@@ -149,7 +149,7 @@ const BNB_TOKEN: ExtendedTokenConfig = {
 };
 
 const DAI_TOKEN: ExtendedTokenConfig = {
-  address: '0x5da15e1fC595ff5991dD92447DB94Cfde78A08B8',
+  address: '0x133B3e03B9164d846204Bf1B7780F948c95A36Ea',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'DAI',
@@ -157,7 +157,7 @@ const DAI_TOKEN: ExtendedTokenConfig = {
 };
 
 const WETH_TOKEN: ExtendedTokenConfig = {
-  address: '0xee8405FBBa52312cE8783a09A646992D2E209C8a',
+  address: '0xaDA4020481b166219DE50884dD710b3aD18573e4',
   chainId: MUMBAI.id,
   iconName: 'error', // TODO: create icon when needed
   symbol: 'WETH',

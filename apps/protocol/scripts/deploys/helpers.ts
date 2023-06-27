@@ -5,6 +5,8 @@ import { isAddress } from "ethers/lib/utils";
 import axios from 'axios';
 import { stringify as qsStringify } from 'qs';
 import { OrigamiGmxRewardsAggregator } from "../../typechain";
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Current block timestamp
@@ -31,6 +33,24 @@ export async function mine(tx: Promise<ContractTransaction>) {
 const { AddressZero } = ethers.constants;
 export { AddressZero as ZERO_ADDRESS };
 
+// BigNumber json serialization override, dump as string
+Object.defineProperties(BigNumber.prototype, {
+    toJSON: {
+      value: function (this: BigNumber) {
+        return this.toString();
+      },
+    },
+});
+
+function ensureDirectoryExistence(filePath: string) {
+    var dirname = path.dirname(filePath);
+    if (fs.existsSync(dirname)) {
+      return true;
+    }
+    ensureDirectoryExistence(dirname);
+    fs.mkdirSync(dirname);
+}
+
 /**
  * Typesafe helper that works on contract factories to create, deploy, wait till deploy completes
  * and output useful commands to setup etherscan with contract code
@@ -51,15 +71,7 @@ export async function deployAndMine<T extends BaseContract, D extends (...args: 
       throw new Error(`Empty arg in position ${i}`);
   });
 
-  const renderedArgs: string = args.map(
-    a => {
-        let asString: string = a.toString();
-        if (asString.includes(" ")) {
-            asString = `"${asString}"`;
-        }
-        return asString;
-    }
-  ).join(' ');
+  const renderedArgs = JSON.stringify(args, null, 2);
 
   console.log(`*******Deploying ${name} on ${network.name} with args ${renderedArgs}`);
   const contract = await factory.deploy(...args) as T;
@@ -69,7 +81,16 @@ export async function deployAndMine<T extends BaseContract, D extends (...args: 
   console.log('Contract deployed');
   console.log(`${name}=${contract.address}`);
   console.log(`export ${name}=${contract.address}`);
-  console.log(`yarn hardhat verify --network ${network.name} ${contract.address} ${renderedArgs}`);
+
+  const argsPath = `scripts/deploys/${network.name}/deploymentArgs/${contract.address}.js`;
+  const verifyCommand = `yarn hardhat verify --network ${network.name} ${contract.address} --constructor-args ${argsPath}`;
+  ensureDirectoryExistence(argsPath);
+  let contents = `// ${network.name}: ${name}=${contract.address}`;
+  contents += `\n// ${verifyCommand}`;
+  contents += `\nmodule.exports = ${renderedArgs};`;
+  fs.writeFileSync(argsPath, contents);
+
+  console.log(verifyCommand);
   console.log('********************\n');
 
   return contract;

@@ -93,181 +93,182 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
         ORIGAMI: {            
             OZ_BOT_EOA: '0xc6ac5dda21252fa0847fbed04a6bf69873a117ac', // https://defender.openzeppelin.com/#/relay/e78b7ac1-09f3-457a-a0d7-61ca4c15feb4/settings
 
-            TOKEN_PRICES: '0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8',
-            // yarn hardhat verify --network polygonMumbai 0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8 30
+            TOKEN_PRICES: '0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f',
+            // yarn hardhat verify --network polygonMumbai 0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f 30
 
             GMX: {
-                oGMX: '0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45',
-                // yarn hardhat verify --network polygonMumbai 0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526
-                oGLP: '0xacfee3A66337067F75151637D0DefEd09E880914',
-                // yarn hardhat verify --network polygonMumbai 0xacfee3A66337067F75151637D0DefEd09E880914 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0xee8405FBBa52312cE8783a09A646992D2E209C8a
+                oGMX: '0x79Dd3E25E0ED4A8C375AEAE4813baAA145599e61',
+                // yarn hardhat verify --network polygonMumbai 0x79Dd3E25E0ED4A8C375AEAE4813baAA145599e61 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526
+                oGLP: '0xea5043b2C7cEA4720B9Ec622E96FD79C051B1Ded',
+                // yarn hardhat verify --network polygonMumbai 0xea5043b2C7cEA4720B9Ec622E96FD79C051B1Ded 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0xaDA4020481b166219DE50884dD710b3aD18573e4
 
-                ovGMX: '0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e',
-                // yarn hardhat verify --network polygonMumbai 0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 "Origami GMX Investment Vault" ovGMX 0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45 0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8 5 604800
-                ovGLP: '0x7a8108A11949aa9F6395476F160304269A5EE48b',
-                // yarn hardhat verify --network polygonMumbai 0x7a8108A11949aa9F6395476F160304269A5EE48b 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 "Origami GLP Investment Vault" ovGLP 0xacfee3A66337067F75151637D0DefEd09E880914 0x97EDBdCB4D4bD0bC3b784117db2970Aa27D2C6a8 5 604800
+                ovGMX: '0x084E1ceB358Fc9A78BB2799424A407419F28F3cf',
+                // yarn hardhat verify --network polygonMumbai 0x084E1ceB358Fc9A78BB2799424A407419F28F3cf 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 "Origami GMX Investment Vault" ovGMX 0x79Dd3E25E0ED4A8C375AEAE4813baAA145599e61 0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f 5 604800
+                ovGLP: '0xE781bF69e3dfaB3E7161B3f718897BcbDE17539a',
+                // yarn hardhat verify --network polygonMumbai 0xE781bF69e3dfaB3E7161B3f718897BcbDE17539a 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 "Origami GLP Investment Vault" ovGLP 0xea5043b2C7cEA4720B9Ec622E96FD79C051B1Ded 0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f 5 604800
 
-                GMX_EARN_ACCOUNT: '0x14Ab8d6Af3c6004B7A5005528A837b03853bA593',
-                // yarn hardhat verify --network polygonMumbai 0x14Ab8d6Af3c6004B7A5005528A837b03853bA593 0x0258d2d4D7bA794122539785722c1a65399cfA29
-                GLP_PRIMARY_EARN_ACCOUNT: '0xA8E4c1Ce9B980734e814FBE979632e7fB6913096',
-                // yarn hardhat verify --network polygonMumbai 0xA8E4c1Ce9B980734e814FBE979632e7fB6913096 0x0258d2d4D7bA794122539785722c1a65399cfA29
-                GLP_SECONDARY_EARN_ACCOUNT: '0x9dc9d0a95100c72bF6fcD66ef0a6A878bb83c858',
-                // yarn hardhat verify --network polygonMumbai 0x9dc9d0a95100c72bF6fcD66ef0a6A878bb83c858 0x0258d2d4D7bA794122539785722c1a65399cfA29
+                GMX_EARN_ACCOUNT: '0xB0D950bc9C87802c9691FF38d3baA1E4Bb2F8353',
+                // yarn hardhat verify --network polygonMumbai 0xB0D950bc9C87802c9691FF38d3baA1E4Bb2F8353 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87
+                GLP_PRIMARY_EARN_ACCOUNT: '0xa5765dC27a68A8D620443dA822E0AF8206a44112',
+                // yarn hardhat verify --network polygonMumbai 0xa5765dC27a68A8D620443dA822E0AF8206a44112 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87
+                GLP_SECONDARY_EARN_ACCOUNT: '0xEa2082f6168A5102A180575C32F822cE5EE5be25',
+                // yarn hardhat verify --network polygonMumbai 0xEa2082f6168A5102A180575C32F822cE5EE5be25 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87
 
-                GMX_MANAGER: '0x35696286529EBB88c5c53ADe87a4BdCF30b3c8d9',
-                // yarn hardhat verify --network polygonMumbai 0x35696286529EBB88c5c53ADe87a4BdCF30b3c8d9 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0x0258d2d4D7bA794122539785722c1a65399cfA29 0x0909C4C94F0120DCa998639c9a5F8A068185EEA8 0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45 0xacfee3A66337067F75151637D0DefEd09E880914 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0x14Ab8d6Af3c6004B7A5005528A837b03853bA593 0x0000000000000000000000000000000000000000
-                GLP_MANAGER: '0x1d8000368122bD16a1251B9b0fe2367C1cd247d1',
-                // yarn hardhat verify --network polygonMumbai 0x1d8000368122bD16a1251B9b0fe2367C1cd247d1 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0x0258d2d4D7bA794122539785722c1a65399cfA29 0x0909C4C94F0120DCa998639c9a5F8A068185EEA8 0xA30B312fDd4D5b9Ea11208239de7943E59cf2e45 0xacfee3A66337067F75151637D0DefEd09E880914 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0xA8E4c1Ce9B980734e814FBE979632e7fB6913096 0x9dc9d0a95100c72bF6fcD66ef0a6A878bb83c858
+                GMX_MANAGER: '0x3b81Fcc218c0b29F28c72c053cBe4f286A7dcf67',
+                // yarn hardhat verify --network polygonMumbai 0x3b81Fcc218c0b29F28c72c053cBe4f286A7dcf67 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87 0x2A8C68bc359e5ADA137512Cb6DA01D34B8fFf73f 0x79Dd3E25E0ED4A8C375AEAE4813baAA145599e61 0xea5043b2C7cEA4720B9Ec622E96FD79C051B1Ded 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0xB0D950bc9C87802c9691FF38d3baA1E4Bb2F8353 0x0000000000000000000000000000000000000000
+                GLP_MANAGER: '0xf589Ee06C0967Fe36bbF7E9B8DA45B6954Df2AFf',
+                // yarn hardhat verify --network polygonMumbai 0xf589Ee06C0967Fe36bbF7E9B8DA45B6954Df2AFf 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87 0x2A8C68bc359e5ADA137512Cb6DA01D34B8fFf73f 0x79Dd3E25E0ED4A8C375AEAE4813baAA145599e61 0xea5043b2C7cEA4720B9Ec622E96FD79C051B1Ded 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0xa5765dC27a68A8D620443dA822E0AF8206a44112 0xEa2082f6168A5102A180575C32F822cE5EE5be25
 
-                GMX_REWARDS_AGGREGATOR: '0x48165A1Ba49584eDF7038497d6D65A4756e43e55',
-                // yarn hardhat verify --network polygonMumbai 0x48165A1Ba49584eDF7038497d6D65A4756e43e55 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 1 0x35696286529EBB88c5c53ADe87a4BdCF30b3c8d9 0x1d8000368122bD16a1251B9b0fe2367C1cd247d1 0x500244EDee4AfCa6a1be7E28010719D9bcB3CB3e 0xee8405FBBa52312cE8783a09A646992D2E209C8a 0x5923eD1131Bf82C7e89716fd797687fE9174a86b 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165
-                GLP_REWARDS_AGGREGATOR: '0x4276a5D4AAB00702Ac4b28ff8A0228e0e76E46d6',
-                // yarn hardhat verify --network polygonMumbai 0x4276a5D4AAB00702Ac4b28ff8A0228e0e76E46d6 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0 0x35696286529EBB88c5c53ADe87a4BdCF30b3c8d9 0x1d8000368122bD16a1251B9b0fe2367C1cd247d1 0x7a8108A11949aa9F6395476F160304269A5EE48b 0xee8405FBBa52312cE8783a09A646992D2E209C8a 0x5923eD1131Bf82C7e89716fd797687fE9174a86b 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165
+                GMX_REWARDS_AGGREGATOR: '0x647Ea2305C51831f5e42A072d0f1757cdd7fAE26',
+                // yarn hardhat verify --network polygonMumbai 0x647Ea2305C51831f5e42A072d0f1757cdd7fAE26 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 1 0x3b81Fcc218c0b29F28c72c053cBe4f286A7dcf67 0xf589Ee06C0967Fe36bbF7E9B8DA45B6954Df2AFf 0x084E1ceB358Fc9A78BB2799424A407419F28F3cf 0xaDA4020481b166219DE50884dD710b3aD18573e4 0x7B174Bb59b6691fd3b9dfd5147E29a21972bd2E7 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165
+                GLP_REWARDS_AGGREGATOR: '0x32E5b971618f6DC55263Bbcc1593949697B8481b',
+                // yarn hardhat verify --network polygonMumbai 0x32E5b971618f6DC55263Bbcc1593949697B8481b 0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526 0 0x3b81Fcc218c0b29F28c72c053cBe4f286A7dcf67 0xf589Ee06C0967Fe36bbF7E9B8DA45B6954Df2AFf 0xE781bF69e3dfaB3E7161B3f718897BcbDE17539a 0xaDA4020481b166219DE50884dD710b3aD18573e4 0x7B174Bb59b6691fd3b9dfd5147E29a21972bd2E7 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165
             },
         },
 
         PRICES: {
-            NATIVE_USD_ORACLE: '0x3f73571Fa83301A0Ff52058504416fB48F0fAca5',
-            // yarn hardhat verify --network polygonMumbai 0x3f73571Fa83301A0Ff52058504416fB48F0fAca5 --constructor-args arguments.js
-            // [
-            // {
-            //     roundId: 10,
-            //     answer: "200000000000",
-            //     startedAt: 1678221225,
-            //     updatedAtLag: 1,
-            //     answeredInRound: 5
-            // },
-            // 8]
-
-            DAI_USD_ORACLE: '0x5b44Ff1400188eB1A2b2f7e34AE13a95AE412818',
-            // yarn hardhat verify --network polygonMumbai 0x5b44Ff1400188eB1A2b2f7e34AE13a95AE412818 --constructor-args arguments.js
+            NATIVE_USD_ORACLE: '0x50459F0d58c27495600f7504f37EEB943e6ce864',
+            // yarn hardhat verify --network polygonMumbai 0x50459F0d58c27495600f7504f37EEB943e6ce864 --constructor-args arguments.js
             // [
             //     {
             //       roundId: 10,
-            //       answer: "100000000",
-            //       startedAt: 1678221795,
+            //       answer: 200000000000,
+            //       startedAt: 1687817398,
             //       updatedAtLag: 1,
             //       answeredInRound: 5
             //     },
             //     8
             //   ]
 
-            BNB_USD_ORACLE: '0x12B05823b65015D2EE0bdEbc9534db88fE42acF2',
-            // yarn hardhat verify --network polygonMumbai 0x12B05823b65015D2EE0bdEbc9534db88fE42acF2 --constructor-args arguments.js
+            DAI_USD_ORACLE: '0x2639F4617eaFF3B8Ab41bBB39772ed51C9A36F1e',
+            // yarn hardhat verify --network polygonMumbai 0x2639F4617eaFF3B8Ab41bBB39772ed51C9A36F1e --constructor-args arguments.js
             // [
             //     {
             //       roundId: 10,
-            //       answer: "30000000000",
-            //       startedAt: 1678221887,
+            //       answer: 100000000,
+            //       startedAt: 1687817518,
             //       updatedAtLag: 1,
             //       answeredInRound: 5
             //     },
             //     8
             //   ]
 
-            BTC_USD_ORACLE: '0xE7b34CE7BEe7da1296e7d3Db62420831ccA6B83d',
-            // yarn hardhat verify --network polygonMumbai 0xE7b34CE7BEe7da1296e7d3Db62420831ccA6B83d --constructor-args arguments.js
+            BNB_USD_ORACLE: '0xDBED390230bE7A3b8d43fCf0D02fBcC66D334cF4',
+            // yarn hardhat verify --network polygonMumbai 0xDBED390230bE7A3b8d43fCf0D02fBcC66D334cF4 --constructor-args arguments.js
             // [
             //     {
             //       roundId: 10,
-            //       answer: "6000000000000",
-            //       startedAt: 1678221957,
+            //       answer: 30000000000,
+            //       startedAt: 1687817546,
             //       updatedAtLag: 1,
             //       answeredInRound: 5
             //     },
             //     8
             //   ]
 
-            NATIVE_GMX_POOL: '0x6F89ecB3bFDCeFB9C2a2afD03638EeC20812ab59',
-            // yarn hardhat verify --network polygonMumbai 0x6F89ecB3bFDCeFB9C2a2afD03638EeC20812ab59 46356982031850672597547879488562 0xee8405FBBa52312cE8783a09A646992D2E209C8a 0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948
+            BTC_USD_ORACLE: '0xAFa95cffaCF53A8cD2F189F8DC56f6d79BD881Ea',
+            // yarn hardhat verify --network polygonMumbai 0xAFa95cffaCF53A8cD2F189F8DC56f6d79BD881Ea --constructor-args arguments.js
+            // [
+            //     {
+            //       roundId: 10,
+            //       answer: 6000000000000,
+            //       startedAt: 1687817570,
+            //       updatedAtLag: 1,
+            //       answeredInRound: 5
+            //     },
+            //     8
+            //   ]
+
+            NATIVE_GMX_POOL: '0xE07CaDe0ad5846D0D1d04affC45E5B1b482dA512',
+            // yarn hardhat verify --network polygonMumbai 0xE07CaDe0ad5846D0D1d04affC45E5B1b482dA512 46356982031850672597547879488562 0xaDA4020481b166219DE50884dD710b3aD18573e4 0x79264843745dD81127B42Cffe30584A11a08C8F5
         },
 
         // This uses a DummyDEX with a fixed price for testing.
-        ZERO_EX_PROXY: '0x5923eD1131Bf82C7e89716fd797687fE9174a86b',
-        // yarn hardhat verify --network polygonMumbai 0x5923eD1131Bf82C7e89716fd797687fE9174a86b 0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948 0xee8405FBBa52312cE8783a09A646992D2E209C8a 1000000000000000000000000000000 46356982031850672597547879488562
+        ZERO_EX_PROXY: '0x7B174Bb59b6691fd3b9dfd5147E29a21972bd2E7',
+        // yarn hardhat verify --network polygonMumbai 0x7B174Bb59b6691fd3b9dfd5147E29a21972bd2E7 0x79264843745dD81127B42Cffe30584A11a08C8F5 0xaDA4020481b166219DE50884dD710b3aD18573e4 1000000000000000000000000000000 46356982031850672597547879488562
 
         GMX: {
             LIQUIDITY_POOL: {
-                WETH_TOKEN: '0xee8405FBBa52312cE8783a09A646992D2E209C8a',
-                // yarn hardhat verify --network polygonMumbai --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken 0xee8405FBBa52312cE8783a09A646992D2E209C8a WETH WETH
-                WETH_PRICE_FEED: '0x5d1d02ee8eDcb18737BC6a56dE617Bf940Ba7A0A',
-                // yarn hardhat verify --network polygonMumbai 0x5d1d02ee8eDcb18737BC6a56dE617Bf940Ba7A0A
-                BNB_TOKEN: '0xD80A1171E8E3400868051e7ced31550638660575',
-                // yarn hardhat verify --network polygonMumbai --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken 0xD80A1171E8E3400868051e7ced31550638660575 BNB BNB
-                BNB_PRICE_FEED: '0x775B4F36B1200a249Eb59E8c845E0aBf8842e7Ec',
-                // yarn hardhat verify --network polygonMumbai 0x775B4F36B1200a249Eb59E8c845E0aBf8842e7Ec
-                BTC_TOKEN: '0x436F79C41b477C28A292808523b3eb0E22202B7F',
-                // yarn hardhat verify --network polygonMumbai --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken 0x436F79C41b477C28A292808523b3eb0E22202B7F Bitcoin BTC
-                BTC_PRICE_FEED: '0x87c903765ebeb7ebd7a62CB530c1B517C7237fE0',
-                // yarn hardhat verify --network polygonMumbai 0x87c903765ebeb7ebd7a62CB530c1B517C7237fE0
-                DAI_TOKEN: '0x5da15e1fC595ff5991dD92447DB94Cfde78A08B8',
-                // yarn hardhat verify --network polygonMumbai --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken 0x5da15e1fC595ff5991dD92447DB94Cfde78A08B8 Dai DAI
-                DAI_PRICE_FEED: '0x4154E4749823F6172695EF7677e7d6e8582279A9',
-                // yarn hardhat verify --network polygonMumbai 0x4154E4749823F6172695EF7677e7d6e8582279A9
+                WETH_TOKEN: '0xaDA4020481b166219DE50884dD710b3aD18573e4',
+                // yarn hardhat verify --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken --network polygonMumbai 0xaDA4020481b166219DE50884dD710b3aD18573e4 WETH WETH
+                WETH_PRICE_FEED: '0xa51Db0B24eE4B9dDdDa24dFEE950f4ad3267857A',
+                // yarn hardhat verify --network polygonMumbai 0xa51Db0B24eE4B9dDdDa24dFEE950f4ad3267857A
+                BNB_TOKEN: '0xDAAe5236C1b4cE822ac5beDDb597e8a6E0604b4e',
+                // yarn hardhat verify --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken --network polygonMumbai 0xDAAe5236C1b4cE822ac5beDDb597e8a6E0604b4e BNB BNB
+                BNB_PRICE_FEED: '0x2Cb28E1579E00f15289259BF7cA91551d43D578e',
+                // yarn hardhat verify --network polygonMumbai 0x2Cb28E1579E00f15289259BF7cA91551d43D578e
+                BTC_TOKEN: '0xc8Daa4E13780E59B50150980beF3469B7E0Cff25',
+                // yarn hardhat verify --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken --network polygonMumbai 0xc8Daa4E13780E59B50150980beF3469B7E0Cff25 Bitcoin BTC
+                BTC_PRICE_FEED: '0x2B8ad0726F23252d487EF2A002F8f15Ab952f788',
+                // yarn hardhat verify --network polygonMumbai 0x2B8ad0726F23252d487EF2A002F8f15Ab952f788
+                DAI_TOKEN: '0x133B3e03B9164d846204Bf1B7780F948c95A36Ea',
+                // yarn hardhat verify --contract contracts/test/external/gmx/tokens/GMX_NamedToken.sol:GMX_NamedToken --network polygonMumbai 0x133B3e03B9164d846204Bf1B7780F948c95A36Ea Dai DAI
+                DAI_PRICE_FEED: '0x587B5b90356A8b7c2Fb4a8858DA32f49FbCE1134',
+                // yarn hardhat verify --network polygonMumbai 0x587B5b90356A8b7c2Fb4a8858DA32f49FbCE1134
             },
             TOKENS: {
-                GLP_TOKEN: '0x08Ea28a92c205A21D7CdF48000C5aAB466b080DA',
-                // yarn hardhat verify --network polygonMumbai 0x08Ea28a92c205A21D7CdF48000C5aAB466b080DA
-                GMX_TOKEN: '0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948',
-                // yarn hardhat verify --network polygonMumbai 0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948
-                ESGMX_TOKEN: '0x29dC9D44063ac86E2C6a3B407FD1d46626a3CFEe',
-                // yarn hardhat verify --network polygonMumbai 0x29dC9D44063ac86E2C6a3B407FD1d46626a3CFEe
-                BNGMX_TOKEN: '0x35CBc1e5a4DbE48745F09995bbf83d8A8f4f3B16',
-                // yarn hardhat verify --network polygonMumbai 0x35CBc1e5a4DbE48745F09995bbf83d8A8f4f3B16 "Bonus GMX" bnGMX 0
+                GLP_TOKEN: '0x34dd7eC18fcae1817DB0424E8b8B054DF68E8f37',
+                // yarn hardhat verify --network polygonMumbai 0x34dd7eC18fcae1817DB0424E8b8B054DF68E8f37
+                GMX_TOKEN: '0x79264843745dD81127B42Cffe30584A11a08C8F5',
+                // yarn hardhat verify --network polygonMumbai 0x79264843745dD81127B42Cffe30584A11a08C8F5
+                ESGMX_TOKEN: '0x16D97deE5d6EFFe6AFA95B17Ba68187B5AbEc758',
+                // yarn hardhat verify --network polygonMumbai 0x16D97deE5d6EFFe6AFA95B17Ba68187B5AbEc758
+                BNGMX_TOKEN: '0xa9867Fe9C86EeEf6f04e3bEF907b3aAC8A2e8E62',
+                // yarn hardhat verify --network polygonMumbai 0xa9867Fe9C86EeEf6f04e3bEF907b3aAC8A2e8E62 "Bonus GMX" bnGMX 0
             },
             CORE: {
-                TIMELOCK: '0x19A736f1E9D97adfbb43fFDf83bB444007a44241',
-                // yarn hardhat verify --network polygonMumbai 0x19A736f1E9D97adfbb43fFDf83bB444007a44241 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 10 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0x1BCD9aC0BF12162183971Ff166A46c730ac3F2c2 0x0258d2d4D7bA794122539785722c1a65399cfA29 100000000000000000000000000 10 100
-                VAULT: '0x1b5E9D37ccD409a6706c6EA47A580d24CE387Ceb',
-                // yarn hardhat verify --network polygonMumbai 0x1b5E9D37ccD409a6706c6EA47A580d24CE387Ceb
-                VAULT_PRICE_FEED: '0x8B89518e19CBd601cFEc8824fB9629466C120F8e',
-                // yarn hardhat verify --network polygonMumbai 0x8B89518e19CBd601cFEc8824fB9629466C120F8e
-                VAULT_UTILS: '0xA602a3C1D0bE6Ce61AAF5F6aAfadB7504938faB1',
-                // yarn hardhat verify --network polygonMumbai 0xA602a3C1D0bE6Ce61AAF5F6aAfadB7504938faB1 0x1b5E9D37ccD409a6706c6EA47A580d24CE387Ceb
-                VAULT_ERROR_CONTROLLER: '0xb7A5A6a3b1C521f747007d7a0961455c5836d228',
-                // yarn hardhat verify --network polygonMumbai 0xb7A5A6a3b1C521f747007d7a0961455c5836d228
-                USDG_TOKEN: '0xC906b6eb5454Eaa63033FdBE63A65210afAFC48e',
-                // yarn hardhat verify --network polygonMumbai 0xC906b6eb5454Eaa63033FdBE63A65210afAFC48e 0x1b5E9D37ccD409a6706c6EA47A580d24CE387Ceb
-                ROUTER: '0xe2fC9D1f4b60Babe623aD353B13E6d5395B708aB', 
-                // yarn hardhat verify --network polygonMumbai 0xe2fC9D1f4b60Babe623aD353B13E6d5395B708aB 0x1b5E9D37ccD409a6706c6EA47A580d24CE387Ceb 0xC906b6eb5454Eaa63033FdBE63A65210afAFC48e 0xD80A1171E8E3400868051e7ced31550638660575
-                GLP_MANAGER: '0x1BCD9aC0BF12162183971Ff166A46c730ac3F2c2',
-                // yarn hardhat verify --network polygonMumbai 0x1BCD9aC0BF12162183971Ff166A46c730ac3F2c2 0x1b5E9D37ccD409a6706c6EA47A580d24CE387Ceb 0xC906b6eb5454Eaa63033FdBE63A65210afAFC48e 0x08Ea28a92c205A21D7CdF48000C5aAB466b080DA 0x0000000000000000000000000000000000000000 900
+                TIMELOCK: '0x56D960eBAb6EdD84f40B4CFF726A1410ecc87553',
+                // yarn hardhat verify --network polygonMumbai 0x56D960eBAb6EdD84f40B4CFF726A1410ecc87553 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 10 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0x69E5F7487090EeFd92c16A803b3e6a689d8Ec165 0x93eC8b912D3a9673B1991C97a498E754B8c468da 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87 100000000000000000000000000 10 100
+                VAULT: '0xc0B5083647ABf89A2EA30307614909042d7c7182',
+                // yarn hardhat verify --network polygonMumbai 0xc0B5083647ABf89A2EA30307614909042d7c7182
+                VAULT_PRICE_FEED: '0xC750643Af431cE0370758F314E4B03b25B9F9D40',
+                // yarn hardhat verify --network polygonMumbai 0xC750643Af431cE0370758F314E4B03b25B9F9D40
+                VAULT_UTILS: '0x7d767323F9d524D5455027eA6592125c62824a5B',
+                // yarn hardhat verify --network polygonMumbai 0x7d767323F9d524D5455027eA6592125c62824a5B 0xc0B5083647ABf89A2EA30307614909042d7c7182
+                VAULT_ERROR_CONTROLLER: '0x26cB486c6458647b300dFf51BDee64cC02d5526e',
+                // yarn hardhat verify --network polygonMumbai 0x26cB486c6458647b300dFf51BDee64cC02d5526e
+                USDG_TOKEN: '0xab799112d6B9Dd85D2FeCc63CcAf9F7A2b4ed8F2',
+                // yarn hardhat verify --network polygonMumbai 0xab799112d6B9Dd85D2FeCc63CcAf9F7A2b4ed8F2 0xc0B5083647ABf89A2EA30307614909042d7c7182
+                ROUTER: '0x62D1AC3C1f85e4D86187Fe55E4E0b9672D2e12Bf', 
+                // yarn hardhat verify --network polygonMumbai 0x62D1AC3C1f85e4D86187Fe55E4E0b9672D2e12Bf 0xc0B5083647ABf89A2EA30307614909042d7c7182 0xab799112d6B9Dd85D2FeCc63CcAf9F7A2b4ed8F2 0xDAAe5236C1b4cE822ac5beDDb597e8a6E0604b4e
+                GLP_MANAGER: '0x93eC8b912D3a9673B1991C97a498E754B8c468da',
+                // yarn hardhat verify --network polygonMumbai 0x93eC8b912D3a9673B1991C97a498E754B8c468da 0xc0B5083647ABf89A2EA30307614909042d7c7182 0xab799112d6B9Dd85D2FeCc63CcAf9F7A2b4ed8F2 0x34dd7eC18fcae1817DB0424E8b8B054DF68E8f37 0x0000000000000000000000000000000000000000 900
             },
             STAKING: {
-                STAKED_GMX_TRACKER: '0x8C6C3899955E0A0ceB02Ba811B679822aa496157',
-                // yarn hardhat verify --network polygonMumbai 0x8C6C3899955E0A0ceB02Ba811B679822aa496157 "Staked GMX" sGMX
-                STAKED_GMX_DISTRIBUTOR: '0xb1B7D7DA88e36b315209a174cCF1412913d3a04a',
-                // yarn hardhat verify --network polygonMumbai 0xb1B7D7DA88e36b315209a174cCF1412913d3a04a 0x29dC9D44063ac86E2C6a3B407FD1d46626a3CFEe 0x8C6C3899955E0A0ceB02Ba811B679822aa496157
-                BONUS_GMX_TRACKER: '0x305fCBAa7A6aFAF10706584c1a80857717Bf19cA',
-                // yarn hardhat verify --network polygonMumbai 0x305fCBAa7A6aFAF10706584c1a80857717Bf19cA "Staked + Bonus GMX" sbGMX
-                BONUS_GMX_DISTRIBUTOR: '0x0bea5e0F0cfb405B57a4DD9B850a6ba14C6B26C3',
-                // yarn hardhat verify --network polygonMumbai 0x0bea5e0F0cfb405B57a4DD9B850a6ba14C6B26C3 0x35CBc1e5a4DbE48745F09995bbf83d8A8f4f3B16 0x305fCBAa7A6aFAF10706584c1a80857717Bf19cA
-                FEE_GMX_TRACKER: '0x0EB69bc02addF4ce20Da4E3720886EFc24057EDc',
-                // yarn hardhat verify --network polygonMumbai 0x0EB69bc02addF4ce20Da4E3720886EFc24057EDc "Staked + Bonus + Fee GMX" sbfGMX
-                FEE_GMX_DISTRIBUTOR: '0x25E4144008b2572C35e244677B9f198D54617268',
-                // yarn hardhat verify --network polygonMumbai 0x25E4144008b2572C35e244677B9f198D54617268 0xee8405FBBa52312cE8783a09A646992D2E209C8a 0x0EB69bc02addF4ce20Da4E3720886EFc24057EDc
-                FEE_GLP_TRACKER: '0x9A0dd83B3589F575C8879597512D72e794A96E52',
-                // yarn hardhat verify --network polygonMumbai 0x9A0dd83B3589F575C8879597512D72e794A96E52 "Fee GLP" fGLP
-                FEE_GLP_DISTRIBUTOR: '0x6600d926f38F968016C53BBF67E78Dd7B406AeB4',
-                // yarn hardhat verify --network polygonMumbai 0x6600d926f38F968016C53BBF67E78Dd7B406AeB4 0xee8405FBBa52312cE8783a09A646992D2E209C8a 0x9A0dd83B3589F575C8879597512D72e794A96E52
-                STAKED_GLP_TRACKER: '0x3A87A4F74B00b2aE4364021D3CB71347d63754d2',
-                // yarn hardhat verify --network polygonMumbai 0x3A87A4F74B00b2aE4364021D3CB71347d63754d2 "Fee + Staked GLP" fsGLP
-                STAKED_GLP_DISTRIBUTOR: '0x4Dc86BC72d84E4E9A91d1868A007215290e94C80',
-                // yarn hardhat verify --network polygonMumbai 0x4Dc86BC72d84E4E9A91d1868A007215290e94C80 0x29dC9D44063ac86E2C6a3B407FD1d46626a3CFEe 0x3A87A4F74B00b2aE4364021D3CB71347d63754d2
-                STAKED_GLP: '0x9f9d9e1f64618695142664280b6241442432e45b',
-                // yarn hardhat verify --network polygonMumbai 0x9f9d9e1f64618695142664280b6241442432e45b 0x08Ea28a92c205A21D7CdF48000C5aAB466b080DA 0x1BCD9aC0BF12162183971Ff166A46c730ac3F2c2 0x3A87A4F74B00b2aE4364021D3CB71347d63754d2 0x9A0dd83B3589F575C8879597512D72e794A96E52
-                GMX_ESGMX_VESTER: '0x081c6D8285Ec858088995C95bc2cF7dFe0b460e5',
-                // yarn hardhat verify --network polygonMumbai 0x081c6D8285Ec858088995C95bc2cF7dFe0b460e5 "Vested GMX" vGMX 31536000 0x29dC9D44063ac86E2C6a3B407FD1d46626a3CFEe 0x0EB69bc02addF4ce20Da4E3720886EFc24057EDc 0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948 0x8C6C3899955E0A0ceB02Ba811B679822aa496157
-                GLP_ESGMX_VESTER: '0x0dF45743856c19964714965654bbc93f46b4E305',
-                // yarn hardhat verify --network polygonMumbai 0x0dF45743856c19964714965654bbc93f46b4E305 "Vested GLP" vGLP 31536000 0x29dC9D44063ac86E2C6a3B407FD1d46626a3CFEe 0x3A87A4F74B00b2aE4364021D3CB71347d63754d2 0xd4E25f2BA9FaDd6FFCc094116264C49f4C62B948 0x3A87A4F74B00b2aE4364021D3CB71347d63754d2
-                GMX_REWARD_ROUTER: '0x0258d2d4D7bA794122539785722c1a65399cfA29',
-                // yarn hardhat verify --network polygonMumbai 0x0258d2d4D7bA794122539785722c1a65399cfA29
-                GLP_REWARD_ROUTER: '0x0909C4C94F0120DCa998639c9a5F8A068185EEA8',
-                // yarn hardhat verify --network polygonMumbai 0x0909C4C94F0120DCa998639c9a5F8A068185EEA8
+                STAKED_GMX_TRACKER: '0x3a4EA601FA9ac2DfA40Bc18Bf41192F87667d9A1',
+                // yarn hardhat verify --network polygonMumbai 0x3a4EA601FA9ac2DfA40Bc18Bf41192F87667d9A1 "Staked GMX" sGMX
+                STAKED_GMX_DISTRIBUTOR: '0xB689F00751db756DFd3cB3F1eb7C35E3FaF8DEf2',
+                // yarn hardhat verify --network polygonMumbai 0xB689F00751db756DFd3cB3F1eb7C35E3FaF8DEf2 0x16D97deE5d6EFFe6AFA95B17Ba68187B5AbEc758 0x3a4EA601FA9ac2DfA40Bc18Bf41192F87667d9A1
+                BONUS_GMX_TRACKER: '0x7b0bD5722bbE6209EB65C4e0F5F15533A80CFFD3',
+                // yarn hardhat verify --network polygonMumbai 0x7b0bD5722bbE6209EB65C4e0F5F15533A80CFFD3 "Staked + Bonus GMX" sbGMX
+                BONUS_GMX_DISTRIBUTOR: '0x7AB96FeF76293180f08B9FB159D8Cd48CFb6fA5e',
+                // yarn hardhat verify --network polygonMumbai 0x7AB96FeF76293180f08B9FB159D8Cd48CFb6fA5e 0xa9867Fe9C86EeEf6f04e3bEF907b3aAC8A2e8E62 0x7b0bD5722bbE6209EB65C4e0F5F15533A80CFFD3
+                FEE_GMX_TRACKER: '0x7c164086dF2c433e9558736Bd2C470abcDB648ff',
+                // yarn hardhat verify --network polygonMumbai 0x7c164086dF2c433e9558736Bd2C470abcDB648ff "Staked + Bonus + Fee GMX" sbfGMX
+                FEE_GMX_DISTRIBUTOR: '0x2BA4EA8051A5fc3DF777E0dC4d1ceb6bD2165E8B',
+                // yarn hardhat verify --network polygonMumbai 0x2BA4EA8051A5fc3DF777E0dC4d1ceb6bD2165E8B 0xaDA4020481b166219DE50884dD710b3aD18573e4 0x7c164086dF2c433e9558736Bd2C470abcDB648ff
+                FEE_GLP_TRACKER: '0xB642758D8ebacB5206E7ea45E49D0f81a55c35D0',
+                // yarn hardhat verify --network polygonMumbai 0xB642758D8ebacB5206E7ea45E49D0f81a55c35D0 "Fee GLP" fGLP
+                FEE_GLP_DISTRIBUTOR: '0xEeBfAA4A678F6001bcF0e1fdDC3FeC8A71658f18',
+                // yarn hardhat verify --network polygonMumbai 0xEeBfAA4A678F6001bcF0e1fdDC3FeC8A71658f18 0xaDA4020481b166219DE50884dD710b3aD18573e4 0xB642758D8ebacB5206E7ea45E49D0f81a55c35D0
+                STAKED_GLP_TRACKER: '0x907be4992b2C8F0F1Ae85C98413A8F0EF4a3E651',
+                // yarn hardhat verify --network polygonMumbai 0x907be4992b2C8F0F1Ae85C98413A8F0EF4a3E651 "Fee + Staked GLP" fsGLP
+                STAKED_GLP_DISTRIBUTOR: '0x114697d41bfF76C629F0F827f88821A3a296Cfb0',
+                // yarn hardhat verify --network polygonMumbai 0x114697d41bfF76C629F0F827f88821A3a296Cfb0 0x16D97deE5d6EFFe6AFA95B17Ba68187B5AbEc758 0x907be4992b2C8F0F1Ae85C98413A8F0EF4a3E651
+                STAKED_GLP: '0x947d2B5ADc3882FA5D4E86E065f7340a5465Dd91',
+                // yarn hardhat verify --network polygonMumbai 0x947d2B5ADc3882FA5D4E86E065f7340a5465Dd91 0x34dd7eC18fcae1817DB0424E8b8B054DF68E8f37 0x93eC8b912D3a9673B1991C97a498E754B8c468da 0x907be4992b2C8F0F1Ae85C98413A8F0EF4a3E651 0xB642758D8ebacB5206E7ea45E49D0f81a55c35D0
+                GMX_ESGMX_VESTER: '0xC50f3a41d77dAe48e82af4644e0E82aF3F12ad39',
+                // yarn hardhat verify --network polygonMumbai 0xC50f3a41d77dAe48e82af4644e0E82aF3F12ad39 "Vested GMX" vGMX 31536000 0x16D97deE5d6EFFe6AFA95B17Ba68187B5AbEc758 0x7c164086dF2c433e9558736Bd2C470abcDB648ff 0x79264843745dD81127B42Cffe30584A11a08C8F5 0x3a4EA601FA9ac2DfA40Bc18Bf41192F87667d9A1
+                GLP_ESGMX_VESTER: '0xF11D4C5860eDb0dd70047CFB461A7B4261c6Ba03',
+                // yarn hardhat verify --network polygonMumbai 0xF11D4C5860eDb0dd70047CFB461A7B4261c6Ba03 "Vested GLP" vGLP 31536000 0x16D97deE5d6EFFe6AFA95B17Ba68187B5AbEc758 0x907be4992b2C8F0F1Ae85C98413A8F0EF4a3E651 0x79264843745dD81127B42Cffe30584A11a08C8F5 0x907be4992b2C8F0F1Ae85C98413A8F0EF4a3E651
+                GMX_REWARD_ROUTER: '0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87',
+                // yarn hardhat verify --network polygonMumbai 0x12bc6F46926B8D7a7Ee79b2772f4AEf5cf409f87
+                GLP_REWARD_ROUTER: '0x2A8C68bc359e5ADA137512Cb6DA01D34B8fFf73f',
+                // yarn hardhat verify --network polygonMumbai 0x2A8C68bc359e5ADA137512Cb6DA01D34B8fFf73f
             },
         },
 
-        TESTNET_MINTER: '0xD2509497D21E2F40B2612F9f2386A44E191770c1',
+        TESTNET_MINTER: '0x1dED637E7F68fFEbC94930550E9E0D6D1eeE203a',
         // yarn hardhat verify --network polygonMumbai 0xD2509497D21E2F40B2612F9f2386A44E191770c1  --constructor-args arguments.js
         // [
         //     [
