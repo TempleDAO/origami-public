@@ -1,16 +1,19 @@
 
-import { createTaskRunner } from "@mountainpath9/overlord";
+import { TaskContext, TaskException, createTaskRunner } from "@mountainpath9/overlord";
 import { harvestGmxRewards } from "./investments/gmx/gmx-auto-compounder";
 import { harvestGlpRewards } from "./investments/gmx/glp-auto-compounder";
 import { transferStakedGlp } from "./investments/gmx/transfer-staked-glp";
 import { createAlertPausedTask } from "./investments/gmx/alert-paused-status";
 
-import { getConfig } from "./config";
+import { DISCORD_WEBHOOK_URL_KEY, getConfig } from "./config";
+import { connectDiscord } from "./common/discord";
 
 
 async function main() {
   const runner = createTaskRunner("origami");
   const config = getConfig();
+
+  runner.setTaskExceptionHandler(discordNotifyTaskException)
 
   runner.addPeriodicTask({
     id: 'gmx-auto-compounder',
@@ -51,6 +54,31 @@ async function main() {
   );
 
   runner.main();
+}
+
+async function discordNotifyTaskException(ctx: TaskContext, te: TaskException) {
+  const content = [
+    `**ORIGAMI Task Failed**`,
+    `task label: ${te.label}`,
+    `task id: ${te.taskId}`,
+    `task phase: ${te.phase}`,
+  ];
+
+  if (te.exception instanceof Error) {
+    content.push(`exception type: Error`);
+    // We truncate the message here as discord doesn't like large contents
+    const message 
+      = te.exception.message.length > 997 
+      ? te.exception.message.substring(0, 997) + "..." 
+      : te.exception.message;
+    content.push(`exception message: ${message}`);
+  } else {
+    content.push(`exception type: unknown`);
+  }
+
+  const webhookUrl = await ctx.getSecret(DISCORD_WEBHOOK_URL_KEY);
+  const discord = await connectDiscord(webhookUrl, ctx.logger);
+  await discord.postMessage({content: content.join('\n')});
 }
 
 

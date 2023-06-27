@@ -26,7 +26,7 @@ export function getConfig() : Config {
 
 const COMMON_CONFIG = {
   CHAIN: MUMBAI,
-  WALLET_NAME: 'origami_automation',
+  WALLET_NAME: 'origami_automation_testnet',
 }
 
 const HARVEST_GMX_CONFIG : HarvestGmxConfig = {
