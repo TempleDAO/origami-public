@@ -4,12 +4,12 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy:mainnet": "graph deploy --product hosted-service templedao/origami-arbitrum",
+    "deploy:arbitrum": "graph deploy --product hosted-service templedao/origami-arb",
     "deploy:testnet": "graph deploy --product hosted-service medariox/origami-mumbai",
+    "prepare:arbitrum": "mustache ./config/arbitrum.json subgraph.template.yaml > subgraph.yaml",
     "prepare:testnet": "mustache ./config/testnet.json subgraph.template.yaml > subgraph.yaml",
-    "prepare:mainnet": "mustache ./config/mainnet.json subgraph.template.yaml > subgraph.yaml",
-    "lfg:testnet": "yarn prepare:testnet && yarn codegen && yarn build && yarn deploy:testnet",
-    "lfg:mainnet": "yarn prepare:mainnet && yarn codegen && yarn build && yarn deploy:mainnet"
+    "lfg:arbitrum": "yarn prepare:arbitrum && yarn codegen && yarn build && yarn deploy:arbitrum",
+    "lfg:testnet": "yarn prepare:testnet && yarn codegen && yarn build && yarn deploy:testnet"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "^0.35.0",
