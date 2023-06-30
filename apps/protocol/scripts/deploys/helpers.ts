@@ -119,16 +119,8 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
       throw new Error(`Empty arg in position ${i}`);
   });
 
-  const renderedConstructorArgs: string = constructorArgs ? constructorArgs.map(a => {
-    if (typeof a === 'string') {
-        return a;
-    } else if (typeof a === 'number') {
-        return a.toString();
-    } else {
-        throw new Error(`Unknown constructor arg type: ${typeof a}`);
-    }
-  }).join(' ') : '';
-  const renderedInitArgs: string = args.map(a => a.toString()).join(' ');
+  const renderedConstructorArgs = constructorArgs ? JSON.stringify(constructorArgs, null, 2) : '[]';
+  const renderedInitArgs = args ? JSON.stringify(args, null, 2) : '[]';
 
   let contract: T;
   if (network.name != "localhost" && existingProxyAddress && isAddress(existingProxyAddress)) {
@@ -150,9 +142,18 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
 
   console.log(`${name}=${contract.address}`);
   console.log(`export ${name}=${contract.address}`);
+
+  const argsPath = `scripts/deploys/${network.name}/deploymentArgs/${contract.address}.js`;
+  const verifyCommand = `yarn hardhat verify --network ${network.name} ${contract.address} --constructor-args ${argsPath}`;
+  ensureDirectoryExistence(argsPath);
+  let contents = `// ${network.name}: ${name}=${contract.address}`;
+  contents += `\n// ${verifyCommand}`;
   // Hardhat will verify the underlying, and then the proxy and then link them together
   // No args since their passed into initialize() instead of the constructor.
-  console.log(`yarn hardhat verify --network ${network.name} ${contract.address} ${renderedConstructorArgs}`);
+  contents += `\nmodule.exports = ${renderedConstructorArgs};`;
+  fs.writeFileSync(argsPath, contents);
+
+  console.log(verifyCommand);
   console.log('********************\n');
 
   return contract;

@@ -173,7 +173,6 @@ async function main() {
     await mine(contracts.gmxEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.glpPrimaryEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
     await mine(contracts.glpSecondaryEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
-    await mine(contracts.glpSecondaryEarnAccount.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
     
     // The Investments & managers mints/burns oGMXtokens.
     // The GLP manager also needs mint access on oGMX, for rewards.
@@ -195,15 +194,16 @@ async function main() {
     await mine(contracts.ovGMX.addOperator(owner.getAddress()));
     await mine(contracts.ovGLP.addOperator(owner.getAddress()));
 
-    // Allow the OpenZeppelin Defender Bot to harvest rewards.
-    await mine(contracts.gmxRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
-    await mine(contracts.glpRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    // Allow the Overlord Automation Bot to harvest rewards and transfer staked GLP
+    await mine(contracts.gmxRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    await mine(contracts.glpRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    await mine(contracts.glpSecondaryEarnAccount.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
     await mine(contracts.gmxRewardsAggregator.addOperator(owner.getAddress()));
     await mine(contracts.glpRewardsAggregator.addOperator(owner.getAddress()));
 
-    // Allow the OpenZeppelin Defender Bot to harvest secondary rewards.
-    await mine(contracts.gmxManager.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
-    await mine(contracts.glpManager.addOperator(GMX_DEPLOYED.ORIGAMI.OZ_BOT_EOA));
+    // Allow the Overlord Automation Bot to harvest secondary rewards.
+    await mine(contracts.gmxManager.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    await mine(contracts.glpManager.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
     
     // Set the investment managers in both the GMX & GLP Manager
     await mine(contracts.gmxManager.setRewardsAggregators(
@@ -215,7 +215,7 @@ async function main() {
         contracts.glpRewardsAggregator.address,
     ));
 
-    // Initial setup -- link the manager contracts into the investments.
+    // Link the manager contracts into the investments.
     {
         await contracts.oGLP.setOrigamiGlpManager(contracts.glpManager.address);
         await contracts.oGMX.setOrigamiGmxManager(contracts.gmxManager.address);

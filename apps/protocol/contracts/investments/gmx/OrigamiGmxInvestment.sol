@@ -9,7 +9,7 @@ import {OrigamiInvestment} from "../OrigamiInvestment.sol";
 import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 
-/// @title Origami GMX Investment
+/// @title Origami GMX
 /// @notice Users purchase oGMX with pre-purchased GMX
 /// Upon investment, users receive the same as amount of oGMX as deposited GMX
 contract OrigamiGmxInvestment is OrigamiInvestment {
@@ -22,7 +22,7 @@ contract OrigamiGmxInvestment is OrigamiInvestment {
     
     constructor(
         address _initialGov
-    ) OrigamiInvestment("Origami GMX Investment", "oGMX", _initialGov) {}
+    ) OrigamiInvestment("Origami GMX Token", "oGMX", _initialGov) {}
 
     /// @notice Set the Origami GMX Manager contract used to apply GMX to earn rewards.
     function setOrigamiGmxManager(address _origamiGmxManager) external onlyGov {

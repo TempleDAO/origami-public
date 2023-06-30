@@ -2,7 +2,7 @@ import { network } from "hardhat";
 
 export interface GmxDeployedContracts {
     ORIGAMI: {
-        OZ_BOT_EOA: string,
+        OVERLORD_EOA: string,
 
         GMX: {
             oGMX: string,
@@ -91,7 +91,7 @@ export interface GmxDeployedContracts {
 const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     polygonMumbai: {
         ORIGAMI: {            
-            OZ_BOT_EOA: '0xc6ac5dda21252fa0847fbed04a6bf69873a117ac', // https://defender.openzeppelin.com/#/relay/e78b7ac1-09f3-457a-a0d7-61ca4c15feb4/settings
+            OVERLORD_EOA: '0xd3668b94e54472b5cdff2642da6a7b9d1d5c1864', // https://app.automation-templedao.link/
 
             TOKEN_PRICES: '0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f',
             // yarn hardhat verify --network polygonMumbai 0xfB720eAa483beF207400D6561b5E17b8d6f2BB2f 30

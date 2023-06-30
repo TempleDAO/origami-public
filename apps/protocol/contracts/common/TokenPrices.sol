@@ -9,12 +9,10 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {IAggregatorV3Interface} from "../interfaces/external/chainlink/IAggregatorV3Interface.sol";
 import {IGlpManager} from "../interfaces/external/gmx/IGlpManager.sol";
-import {IGmxReader} from "../interfaces/external/gmx/IGmxReader.sol";
 import {IGmxVault} from "../interfaces/external/gmx/IGmxVault.sol";
 import {IUniswapV3Pool} from "../interfaces/external/uniswap/IUniswapV3Pool.sol";
 import {IJoeLBQuoter} from "../interfaces/external/traderJoe/IJoeLBQuoter.sol";
 
-import {CommonEventsAndErrors} from "./CommonEventsAndErrors.sol";
 import {ITokenPrices} from "../interfaces/common/ITokenPrices.sol";
 import {IRepricingToken} from "../interfaces/common/IRepricingToken.sol";
 

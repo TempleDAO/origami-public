@@ -17,7 +17,7 @@ async function main() {
   const pairs = [
     {token: GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.WETH_TOKEN, amount: ethers.utils.parseEther("10"), mintType: 0,},
     {token: GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.BNB_TOKEN, amount: ethers.utils.parseEther("67"), mintType: 0,},
-    {token: GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.BTC_TOKEN, amount: ethers.utils.parseEther("0.4"), mintType: 0,},
+    // {token: GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.BTC_TOKEN, amount: ethers.utils.parseEther("0.4"), mintType: 0,},
     {token: GMX_DEPLOYED_CONTRACTS.GMX.LIQUIDITY_POOL.DAI_TOKEN, amount: ethers.utils.parseEther("20000"), mintType: 0,},
     {token: GMX_DEPLOYED_CONTRACTS.GMX.TOKENS.GMX_TOKEN, amount: ethers.utils.parseEther("500"), mintType: 0,},
     {token: GMX_DEPLOYED_CONTRACTS.GMX.STAKING.STAKED_GLP, amount: ethers.utils.parseEther("20000"), mintType: 1,},

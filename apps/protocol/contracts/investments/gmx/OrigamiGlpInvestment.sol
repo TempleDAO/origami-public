@@ -11,7 +11,7 @@ import {IWrappedToken} from "../../interfaces/common/IWrappedToken.sol";
 import {IOrigamiGmxManager} from "../../interfaces/investments/gmx/IOrigamiGmxManager.sol";
 import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 
-/// @title Origami GLP Investment
+/// @title Origami GLP
 /// @notice Users purchase oGLP with an accepted GMX.io ERC20 token, ETH, or staked GLP
 /// Upon investment, users receive the same as amount of oGLP 1:1 as if they were purchasing GLP directly via GMX.io.
 contract OrigamiGlpInvestment is OrigamiInvestment {
@@ -30,7 +30,7 @@ contract OrigamiGlpInvestment is OrigamiInvestment {
     constructor(
         address _initialGov,
         address _wrappedNativeToken
-    ) OrigamiInvestment("Origami GLP Investment", "oGLP", _initialGov) {
+    ) OrigamiInvestment("Origami GLP Token", "oGLP", _initialGov) {
         wrappedNativeToken = _wrappedNativeToken;
     }
 

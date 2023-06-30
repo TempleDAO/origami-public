@@ -3,13 +3,13 @@ import { BigNumberish } from 'ethers';
 import { ethers } from 'hardhat';
 import { ZERO_ADDRESS } from '../../helpers';
 import { 
-    OrigamiGlpInvestment, OrigamiGlpInvestment__factory,
     OrigamiGmxEarnAccount, OrigamiGmxEarnAccount__factory,
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
+    OrigamiGmxManager, OrigamiGmxManager__factory,
+    OrigamiGlpInvestment, OrigamiGlpInvestment__factory,
     OrigamiGmxInvestment, OrigamiGmxInvestment__factory,
-    OrigamiGmxManager, OrigamiGmxManager__factory, 
-    OrigamiInvestmentVault, OrigamiInvestmentVault__factory, 
-    TokenPrices, TokenPrices__factory,
+    OrigamiInvestmentVault, OrigamiInvestmentVault__factory,
+    TokenPrices, TokenPrices__factory, 
 } from '../../../../typechain';
 import {
     ensureExpectedEnvvars,
@@ -49,7 +49,7 @@ function connectToContracts(DEPLOYED: GmxDeployedContracts, owner: SignerWithAdd
         tokenPrices: TokenPrices__factory.connect(DEPLOYED.ORIGAMI.TOKEN_PRICES, owner),
     }
 }
-  
+
 type TokenPricesArg = string | boolean | BigNumberish;
 
 const encodeFunction = (fn: string, ...args: TokenPricesArg[]): string => {
@@ -105,51 +105,51 @@ async function setupPrices(contracts: ContractInstances, DEPLOYED: GmxDeployedCo
     const encodedEthGmx = encodedUniV3Price(DEPLOYED.PRICES.NATIVE_GMX_POOL, true);
     const encodedEthUsdGmx = encodedGmxVaultPrice(DEPLOYED.GMX.CORE.VAULT, DEPLOYED.GMX.LIQUIDITY_POOL.WETH_TOKEN);
     const encodedGmxUsd = encodedDivPrice(encodedEthUsdGmx, encodedEthGmx);
-    await contracts.tokenPrices.setTokenPriceFunction(DEPLOYED.GMX.TOKENS.GMX_TOKEN, encodedGmxUsd);
+    await mine(contracts.tokenPrices.setTokenPriceFunction(DEPLOYED.GMX.TOKENS.GMX_TOKEN, encodedGmxUsd));
 
     // $GLP
     const encodedGlpUsd = encodedGlpPrice(DEPLOYED.GMX.CORE.GLP_MANAGER);
-    await contracts.tokenPrices.setTokenPriceFunction(DEPLOYED.GMX.TOKENS.GLP_TOKEN, encodedGlpUsd);
+    await mine(contracts.tokenPrices.setTokenPriceFunction(DEPLOYED.GMX.TOKENS.GLP_TOKEN, encodedGlpUsd));
 
     // $sGLP -- staked GLP
     await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.STAKING.STAKED_GLP,
         encodedAliasFor(DEPLOYED.GMX.TOKENS.GLP_TOKEN)
     ));
-    
+
     // $oGMX
-    await contracts.tokenPrices.setTokenPriceFunction(
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.ORIGAMI.GMX.oGMX,
         encodedAliasFor(DEPLOYED.GMX.TOKENS.GMX_TOKEN)
-    );
+    ));
 
     // $ovGMX
-    await contracts.tokenPrices.setTokenPriceFunction(
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.ORIGAMI.GMX.ovGMX,
         encodedRepricingTokenPrice(DEPLOYED.ORIGAMI.GMX.ovGMX)
-    );
+    ));
 
     // $oGLP
-    await contracts.tokenPrices.setTokenPriceFunction(
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.ORIGAMI.GMX.oGLP,
         encodedAliasFor(DEPLOYED.GMX.TOKENS.GLP_TOKEN)
-    );
+    ));
 
     // $ovGLP
-    await contracts.tokenPrices.setTokenPriceFunction(
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.ORIGAMI.GMX.ovGLP,
         encodedRepricingTokenPrice(DEPLOYED.ORIGAMI.GMX.ovGLP)
-    );
+    ));
 }
 
 async function main() {
     ensureExpectedEnvvars();
   
     const [owner] = await ethers.getSigners();
-    const GMX_DEPLOYED_CONTRACTS = gmxDeployedContracts();
-    const GOV_DEPLOYED_CONTRACTS = govDeployedContracts();
-    const contracts = connectToContracts(GMX_DEPLOYED_CONTRACTS, owner);
-    
+    const GMX_DEPLOYED = gmxDeployedContracts();
+    const GOV_DEPLOYED = govDeployedContracts();
+    const contracts = connectToContracts(GMX_DEPLOYED, owner);
+
     // The Investments are added as manager operators such that they can sell oGLP/oGMX
     await mine(contracts.gmxManager.addOperator(contracts.oGMX.address));
     await mine(contracts.glpManager.addOperator(contracts.oGLP.address));
@@ -160,10 +160,10 @@ async function main() {
     await mine(contracts.glpManager.addOperator(contracts.glpRewardsAggregator.address));
 
     // Add the timelock and multisig as valid pausers
-    await mine(contracts.gmxManager.setPauser(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG, true));
-    await mine(contracts.gmxManager.setPauser(GOV_DEPLOYED_CONTRACTS.ORIGAMI.GOV_TIMELOCK, true));
-    await mine(contracts.glpManager.setPauser(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG, true));
-    await mine(contracts.glpManager.setPauser(GOV_DEPLOYED_CONTRACTS.ORIGAMI.GOV_TIMELOCK, true));
+    await mine(contracts.gmxManager.setPauser(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(contracts.gmxManager.setPauser(GOV_DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
+    await mine(contracts.glpManager.setPauser(GOV_DEPLOYED.ORIGAMI.MULTISIG, true));
+    await mine(contracts.glpManager.setPauser(GOV_DEPLOYED.ORIGAMI.GOV_TIMELOCK, true));
 
     // The Investments & managers are added as operators such that they can buy/sell/stake/unstake GLP/GMX
     await mine(contracts.gmxEarnAccount.addOperator(contracts.gmxManager.address));
@@ -173,10 +173,10 @@ async function main() {
     await mine(contracts.glpSecondaryEarnAccount.addOperator(contracts.glpManager.address));
 
     // Allow the multisig to perform operations on the earn accounts.
-    await mine(contracts.gmxEarnAccount.addOperator(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG));
-    await mine(contracts.glpPrimaryEarnAccount.addOperator(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG));
-    await mine(contracts.glpSecondaryEarnAccount.addOperator(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG));
-
+    await mine(contracts.gmxEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpPrimaryEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.glpSecondaryEarnAccount.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    
     // The Investments & managers mints/burns oGMXtokens.
     // The GLP manager also needs mint access on oGMX, for rewards.
     await mine(contracts.oGMX.addMinter(contracts.gmxManager.address));
@@ -185,24 +185,25 @@ async function main() {
     // Set the investment manager as the rewards aggregator in the ovGMX/ovGLP, for APR calcs
     await mine(contracts.ovGMX.setInvestmentManager(contracts.gmxRewardsAggregator.address));
     await mine(contracts.ovGLP.setInvestmentManager(contracts.glpRewardsAggregator.address));
-
+    
     // The rewards aggregator compounds and adds reserves to the vaults
     await mine(contracts.ovGMX.addOperator(contracts.gmxRewardsAggregator.address));
     await mine(contracts.ovGLP.addOperator(contracts.glpRewardsAggregator.address));
 
     // Set the multisig as an operator on ovGMX/ovGLP, such that we can manually add reserves
     // to boost rewards if required.
-    await mine(contracts.ovGMX.addOperator(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG));
-    await mine(contracts.ovGLP.addOperator(GOV_DEPLOYED_CONTRACTS.ORIGAMI.MULTISIG));
+    await mine(contracts.ovGMX.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
+    await mine(contracts.ovGLP.addOperator(GOV_DEPLOYED.ORIGAMI.MULTISIG));
 
-    // Allow the OpenZeppelin Defender Bot to harvest rewards.
-    await mine(contracts.gmxRewardsAggregator.addOperator(GMX_DEPLOYED_CONTRACTS.ORIGAMI.OZ_BOT_EOA));
-    await mine(contracts.glpRewardsAggregator.addOperator(GMX_DEPLOYED_CONTRACTS.ORIGAMI.OZ_BOT_EOA));
+    // Allow the Overlord Automation Bot to harvest rewards and transfer staked GLP
+    await mine(contracts.gmxRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    await mine(contracts.glpRewardsAggregator.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    await mine(contracts.glpSecondaryEarnAccount.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
 
-    // Allow the OpenZeppelin Defender Bot to harvest secondary rewards.
-    await mine(contracts.gmxManager.addOperator(GMX_DEPLOYED_CONTRACTS.ORIGAMI.OZ_BOT_EOA));
-    await mine(contracts.glpManager.addOperator(GMX_DEPLOYED_CONTRACTS.ORIGAMI.OZ_BOT_EOA));
-
+    // Allow the Overlord Automation Bot to harvest secondary rewards.
+    await mine(contracts.gmxManager.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    await mine(contracts.glpManager.addOperator(GMX_DEPLOYED.ORIGAMI.OVERLORD_EOA));
+    
     // Set the investment managers in both the GMX & GLP Manager
     await mine(contracts.gmxManager.setRewardsAggregators(
         contracts.gmxRewardsAggregator.address,
@@ -212,8 +213,8 @@ async function main() {
         contracts.gmxRewardsAggregator.address,
         contracts.glpRewardsAggregator.address,
     ));
-    
-    // Initial setup -- link the staking/manager contracts into the investments.
+
+    // Link the manager contracts into the investments.
     {
         await contracts.oGLP.setOrigamiGlpManager(contracts.glpManager.address);
         await contracts.oGMX.setOrigamiGmxManager(contracts.gmxManager.address);
@@ -222,9 +223,9 @@ async function main() {
     // Set default policy
     {
         // GMX Manager
-        await mine(contracts.gmxManager.setSellFeeRate(5, 1000)); // 0.5% fee on oGMX when selling
+        // await mine(contracts.gmxManager.setSellFeeRate(0, 1000)); // No fees on oGMX when selling
         await mine(contracts.gmxManager.setOGmxRewardsFeeRate(30, 100)); // 30% fee on oGMX rewards
-        await mine(contracts.gmxManager.setEsGmxVestingRate(10, 100)); // Vest 10% of the esGMX rewards into GMX
+        await mine(contracts.gmxManager.setEsGmxVestingRate(100, 100)); // Vest 10% of the esGMX rewards into GMX
 
         // GLP Manager
         // No fees on oGLP when selling
@@ -232,7 +233,7 @@ async function main() {
         // setEsGmxVestingRate left at 0%
     }
 
-    await setupPrices(contracts, GMX_DEPLOYED_CONTRACTS);
+    await setupPrices(contracts, GMX_DEPLOYED);
   }
   
   // We recommend this pattern to be able to use async/await everywhere

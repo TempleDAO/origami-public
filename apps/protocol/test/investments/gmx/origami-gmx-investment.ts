@@ -20,7 +20,7 @@ import {
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { getSigners } from "../../signers";
 
-describe("Origami GMX Investment", async () => {
+describe("Origami GMX", async () => {
     let owner: Signer;
     let alan: Signer;
     let feeCollector: Signer;

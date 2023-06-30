@@ -2,7 +2,7 @@ import { network } from "hardhat";
 
 export interface GmxDeployedContracts {
     ORIGAMI: {
-        OZ_BOT_EOA: string,
+        OVERLORD_EOA: string,
 
         GMX: {
             oGMX: string,
@@ -84,49 +84,41 @@ export interface GmxDeployedContracts {
 const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     arbitrum: {
         ORIGAMI: {
-            OZ_BOT_EOA: '',
+            OVERLORD_EOA: '0x93319b7059dd3e6c1ae4a2a3b825397fca81d627',
 
-            TOKEN_PRICES: '',
+            TOKEN_PRICES: '0x534fe8c14d291950da1022d25D0f7d38Fe057ef4',
 
             GMX: {
-                oGMX: '',
-                // yarn hardhat verify
-                oGLP: '',
-                // yarn hardhat verify
+                oGMX: '0x784f75C39bD7D3EBC377e64991e99178341c831D',
+                oGLP: '0xb48aC9c5585e5F3c88c63CF9bcbAEdC921F76Df2',
 
-                ovGMX: '',
-                // yarn hardhat verify
-                ovGLP: '',
-                // yarn hardhat verify
+                ovGMX: '0xe488A643E4b0Aaae60E4bdC02045a10d8a323bae',
+                ovGLP: '0x7FC862A47BBCDe3812CA772Ae851d0A9D1619eDa',
 
-                GMX_EARN_ACCOUNT: '',
-                // yarn hardhat verify
-                GLP_PRIMARY_EARN_ACCOUNT: '',
-                // yarn hardhat verify
-                GLP_SECONDARY_EARN_ACCOUNT: '',
-                // yarn hardhat verify
+                GMX_EARN_ACCOUNT: '0x9B517Eb5806b41af0ab49992985D35816612134e',
+                GLP_PRIMARY_EARN_ACCOUNT: '0x73957eEf5b6F32208F274D6fEA07f60cF53Def9b',
+                GLP_SECONDARY_EARN_ACCOUNT: '0xc3431D389999f2412B2570a66DA84CE59E5C2a94',
 
-                GMX_MANAGER: '',
-                // yarn hardhat verify
-                GLP_MANAGER: '',
-                // yarn hardhat verify
+                GMX_MANAGER: '0xc0F9dd64D247f4Cb50C07632353896918bE79562',
+                GLP_MANAGER: '0x58833508c3d057FE8901A7A2D89CeCcb3449ac24',
 
-                GMX_REWARDS_AGGREGATOR: '',
-                // yarn hardhat verify
-                GLP_REWARDS_AGGREGATOR: '',
-                // yarn hardhat verify
+                GMX_REWARDS_AGGREGATOR: '0xcB6D80Ac3209626D5BC6cB9291eF6c4c321c82bA',
+                GLP_REWARDS_AGGREGATOR: '0x643d715a0697c56629A25EC33C9BF5990D08317F',
             },
         },
 
         PRICES: {
-            ETH_USD_ORACLE: '0x639fe6ab55c921f74e7fac1ee960c0b6293ba612',
-            BTC_USD_ORACLE: '0x6ce185860a4963106506c203335a2910413708e9',
-            LINK_USD_ORACLE: '0x86e53cf1b870786351da77a57575e79cb55812cb',
-            UNI_USD_ORACLE: '0x9c917083fdb403ab5adbec26ee294f6ecada2720',
-            USDC_USD_ORACLE: '0x50834f3163758fcc1df9973b6e91f0f0f0434ad3',
-            USDT_USD_ORACLE: '0x3f3f5df88dc9f13eac63df89ec16ef6e7e25dde7',
-            DAI_USD_ORACLE: '0xc5c8e77b397e531b8ec06bfb0048328b30e9ecfb',
-            FRAX_USD_ORACLE: '0x0809e3d38d1b4214958faf06d8b1b1a2b73f2ab8',
+            ETH_USD_ORACLE: '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612',
+            BTC_USD_ORACLE: '0x6ce185860a4963106506C203335A2910413708e9',
+            LINK_USD_ORACLE: '0x86E53CF1B870786351Da77A57575e79CB55812CB',
+            UNI_USD_ORACLE: '0x9C917083fDb403ab5ADbEC26Ee294f6EcAda2720',
+            USDC_USD_ORACLE: '0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3',
+            USDT_USD_ORACLE: '0x3f3f5dF88dC9F13eac63DF89EC16ef6e7E25DdE7',
+            DAI_USD_ORACLE: '0xc5C8E77B397E531B8EC06BFb0048328B30E9eCfB',
+            FRAX_USD_ORACLE: '0x0809E3d38d1B4214958faf06D8b1B1a2b73f2ab8',
+
+            // GMX's FE also uses this ETH/GMX univ3 1% pool:
+            // https://github.com/gmx-io/gmx-interface/blob/master/src/config/contracts.ts#L155
             NATIVE_GMX_POOL: '0x80A9ae39310abf666A87C743d6ebBD0E8C42158E',
 
             // Unused in Arbi
@@ -172,7 +164,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     },
     avalanche: {
         ORIGAMI: {
-            OZ_BOT_EOA: '',
+            OVERLORD_EOA: '',
 
             TOKEN_PRICES: '',
 
@@ -261,7 +253,7 @@ const GMX_DEPLOYED_CONTRACTS: {[key: string]: GmxDeployedContracts} = {
     },
     localhost: {
         ORIGAMI: {
-            OZ_BOT_EOA: '0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526',
+            OVERLORD_EOA: '0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526',
 
             TOKEN_PRICES: '0x95401dc811bb5740090279Ba06cfA8fcF6113778',
 

@@ -15,7 +15,6 @@ import {IGlpManager} from "../../interfaces/external/gmx/IGlpManager.sol";
 import {IOrigamiGmxEarnAccount} from "../../interfaces/investments/gmx/IOrigamiGmxEarnAccount.sol";
 
 import {FractionalAmount} from "../../common/FractionalAmount.sol";
-import {CommonEventsAndErrors} from "../../common/CommonEventsAndErrors.sol";
 import {Operators} from "../../common/access/Operators.sol";
 import {GovernableUpgradeable} from "../../common/access/GovernableUpgradeable.sol";
 

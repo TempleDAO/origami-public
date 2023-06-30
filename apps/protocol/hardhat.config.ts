@@ -86,7 +86,6 @@ module.exports = {
             accounts: process.env.ARBITRUM_ADDRESS_PRIVATE_KEY
                 ? [process.env.ARBITRUM_ADDRESS_PRIVATE_KEY]
                 : [],
-            gasPrice: parseInt(process.env.ARBITRUM_GAS_IN_GWEI || '0') * 1000000000,
         },
         avalanche: {
             url: process.env.AVALANCHE_RPC_URL || '',
@@ -116,6 +115,7 @@ module.exports = {
         apiKey: {
             polygonMumbai: process.env.POLYGONSCAN_API_KEY,
             polygon: process.env.POLYGONSCAN_API_KEY,
+            arbitrumOne: process.env.ARBISCAN_API_KEY,
         },
     },
     mocha: {
