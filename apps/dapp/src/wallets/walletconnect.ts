@@ -31,8 +31,7 @@ export async function createWalletConnectWallet(
   const connector = new WalletConnectConnector({
     chains: wagmiChains,
     options: {
-      qrcode: true,
-      version: '2',
+      showQrModal: true,
       projectId: WALLET_CONNECT_PROJECT_ID,
     },
   });
