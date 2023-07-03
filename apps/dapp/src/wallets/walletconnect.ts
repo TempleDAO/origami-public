@@ -15,6 +15,7 @@ import {
   polygonMumbai,
   avalanche,
   avalancheFuji,
+  arbitrum,
 } from '@wagmi/chains';
 
 /** AppWallet implementation for walletconnect, via wagmi*/
@@ -93,6 +94,7 @@ function initializeWagmi(wagmiChains: WagmiChain[]) {
 /// investments.
 const ALL_WAGMI_CHAINS: WagmiChain[] = [
   mainnet,
+  arbitrum,
   polygon,
   polygonMumbai,
   avalanche,
