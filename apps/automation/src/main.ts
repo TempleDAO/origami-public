@@ -5,13 +5,16 @@ import { harvestGlpRewards } from "./investments/gmx/glp-auto-compounder";
 import { transferStakedGlp } from "./investments/gmx/transfer-staked-glp";
 import { createAlertPausedTask } from "./investments/gmx/alert-paused-status";
 
-import { DISCORD_WEBHOOK_URL_KEY, getConfig } from "./config";
-import { connectDiscord } from "./common/discord";
+import { CONFIG as CONFIG_TESTNETS } from "./config/testnets";
+import { CONFIG as CONFIG_PRODNETS } from "./config/prodnets";
+
+import { DISCORD_WEBHOOK_URL_KEY, connectDiscord } from "./common/discord";
 
 
 async function main() {
-  const runner = createTaskRunner("origami");
-  const config = getConfig();
+  const runner = createTaskRunner();
+  const label = await runner.getLabel();
+  const config = getConfig(label);
 
   runner.setTaskExceptionHandler(discordNotifyTaskException)
 
@@ -54,6 +57,14 @@ async function main() {
   );
 
   runner.main();
+}
+
+function getConfig(label: string) {
+  if (label.endsWith('_testnets')) {
+    return CONFIG_TESTNETS;
+  } else {
+    return CONFIG_PRODNETS;
+  }
 }
 
 async function discordNotifyTaskException(ctx: TaskContext, te: TaskException) {

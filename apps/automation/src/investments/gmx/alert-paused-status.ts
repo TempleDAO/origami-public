@@ -6,7 +6,7 @@ import { IOrigamiGmxManager } from "@/typechain/OrigamiGmxManager";
 import { TypedEvent, TypedEventFilter } from "@/typechain/common";
 import { ChainEventTask, TaskContext, TaskRunner } from "@mountainpath9/overlord";
 import { BaseContract, providers } from "ethers";
-import { DISCORD_WEBHOOK_URL_KEY } from "@/config";
+import { DISCORD_WEBHOOK_URL_KEY } from "@/common/discord";
 
 
 export interface AlertPausedStatusConfig {

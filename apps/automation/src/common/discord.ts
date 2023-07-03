@@ -32,3 +32,5 @@ export function decodeWebhookUrl(url: string): { id: string, token: string } {
 }
 
 const DISCORD_URL_RE = new RegExp('https://discord.com/api/webhooks/([^/]+)/(.+)$');
+
+export const DISCORD_WEBHOOK_URL_KEY = "origami_discord_webhook_url";

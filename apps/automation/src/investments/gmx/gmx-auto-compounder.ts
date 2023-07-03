@@ -19,7 +19,7 @@ import {
     wasHarvestedRecently
 } from "./utils";
 import { Chain } from "@/chains";
-import { DISCORD_WEBHOOK_URL_KEY } from "@/config";
+import { DISCORD_WEBHOOK_URL_KEY } from "@/common/discord";
 
 
 export const TRANSACTION_NAME = 'gmx-auto-compounder';
