@@ -37,7 +37,7 @@ const ARBITRUM: Chain = {
     decimals: 18,
   },
   subgraphUrl:
-    'https://api.thegraph.com/subgraphs/name/medariox/origami-arbitrum',
+    'https://api.thegraph.com/subgraphs/name/templedao/origami-arb',
   explorer: {
     transactionUrl: (hash) => `https://arbiscan.io/tx/${hash}`,
     tokenUrl: (hash) => `https://arbiscan.io/token/${hash}`,
