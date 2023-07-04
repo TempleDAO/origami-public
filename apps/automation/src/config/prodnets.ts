@@ -30,7 +30,7 @@ const HARVEST_GMX_CONFIG : HarvestGmxConfig = {
   MIN_HARVEST_INTERVAL_SECS: 15*60, // 15 mins
 
   // max price impact when swapping $WETH -> $GMX via 0x
-  WETH_TO_GMX_PRICE_IMPACT_BPS: 50, // 0.5%
+  WETH_TO_GMX_PRICE_IMPACT_BPS: 100, // 1%
 
   // max slippage (not including price impact) when swapping $WETH -> $GMX via 0x
   WETH_TO_GMX_SLIPPAGE_BPS: 100, // 1%
@@ -54,7 +54,7 @@ const HARVEST_GLP_CONFIG: HarvestGlpConfig = {
   // likely routed through either:
   // https://info.uniswap.org/#/arbitrum/pools/0x1aeedd3727a6431b8f070c0afaa81cc74f273882
   // https://info.uniswap.org/#/arbitrum/pools/0x80a9ae39310abf666a87c743d6ebbd0e8c42158e
-  GMX_TO_WETH_PRICE_IMPACT_BPS: 50, // 0.5%
+  GMX_TO_WETH_PRICE_IMPACT_BPS: 100, // 1%
 
   // max slippage (not including price impact) when swapping $GMX -> $WETH via 0x
   GMX_TO_WETH_SLIPPAGE_BPS: 100, // 1%
