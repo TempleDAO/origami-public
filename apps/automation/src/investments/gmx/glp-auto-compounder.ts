@@ -104,6 +104,25 @@ async function arbitrumGmxToWethQuote(
     return { quoteData: quoteResp.data, minAmountExpected };
 }
 
+/**
+ * A workaround for oGmx reward compounding.
+ * There are no more esGMX rewards now from GMX.io, so that means no more oGmx rewards from the GLP vault.
+ * Unfortunately the aggregator contract doesn't handle the case where oGmx=0, it will revert.
+ * So this assumes there is a small amount of oGMX in the contract (protocol funded), and will
+ * exit a very small amount only.
+ */
+function calcOGmxToHarvest(harvestableOGmx: BigNumber) {
+    const minOGmxRemaining = ethers.utils.parseEther("0.1");
+    const oGmxDustToHarvest = ethers.utils.parseEther("0.00001"); // 10k harvests for this.
+    if (harvestableOGmx.gt(minOGmxRemaining)) {
+        // Leave the minimum amount in the aggregator for next time
+        return harvestableOGmx.sub(minOGmxRemaining);
+    } else {
+        // Use the dust amount. The GLP_REWARD_AGGREGATOR_ADDRESS must have at least this balance.
+        return oGmxDustToHarvest;
+    }
+}
+
 export async function harvestGlpRewards(
     ctx: TaskContext,
     config: HarvestGlpConfig,
@@ -135,7 +154,7 @@ export async function harvestGlpRewards(
 
     const wethAddress = await rewardAggregator.wrappedNativeToken();
     const _harvestableRewards = await rewardAggregator.harvestableRewards();
-    const harvestableRewards = { weth: _harvestableRewards[0], oGmx: _harvestableRewards[1], oGlp: _harvestableRewards[2] };
+    const harvestableRewards = { weth: _harvestableRewards[0], oGmx: calcOGmxToHarvest(_harvestableRewards[1]), oGlp: _harvestableRewards[2] };
     ctx.logger.info(`\tGLP Harvestable Reward Amounts: [weth: ${harvestableRewards.weth}, oGmx: ${harvestableRewards.oGmx}, oGlp: ${harvestableRewards.oGlp}]`);
 
     // Get a quote to swap $oGMX rewards -> $GMX
