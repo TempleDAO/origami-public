@@ -14,6 +14,9 @@ import { LoadingText } from '@/components/commons/LoadingText';
 import { Loading } from '@/utils/loading-value';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { truncateAddress } from '@/utils/truncate-address';
+import { useEffect } from 'react';
+import { useAudioPlayer } from 'react-use-audio-player';
+import oriSingleFoldSound from '@/assets/sounds/Ori_SingleFold_01.mp3';
 
 export function ActionArrow(props: { busytext?: string }) {
   return (
@@ -53,6 +56,12 @@ export function TxSucceeded(props: {
   txHash: string;
   transactionUrl: (s: string) => string;
 }) {
+  const { load } = useAudioPlayer();
+  useEffect(() => {
+    load(oriSingleFoldSound, { autoplay: true });
+    /* eslint-disable-next-line */
+  }, []);
+
   return (
     <FlexDown>
       <DivH3>
