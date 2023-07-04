@@ -737,6 +737,16 @@ class SignerApiImpl implements SignerApi {
       this.signer
     );
 
+    if (await investmentContract.areInvestmentsPaused()) {
+      req.onStage &&
+        req.onStage({
+          kind: 'txfail',
+          message: `Investmens paused. Origami runs 
+        daily operations on the positions to maximise yield, which incurs a 15 minute cooldown`,
+        });
+      return asyncNever();
+    }
+
     if (req.quote.from.kind == 'token') {
       req.onStage && req.onStage({ kind: 'approve' });
 
