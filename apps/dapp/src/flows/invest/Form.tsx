@@ -45,6 +45,7 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
   const [investFrom, setInvestFrom] = useState<TokenOrNative>(
     ctx.acceptedTokens[0]
   );
+  const [isConfirming, setIsConfirming] = useState(false);
   const signerAddress = sapi.signerAddress;
 
   const options = useAdvancedOptionsState();
@@ -108,9 +109,11 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
     isReady(quote);
 
   async function onConfirm() {
+    setIsConfirming(true);
     if (canConfirm) {
       runInvest(sapi, setState, quote.value);
     }
+    setIsConfirming(false);
   }
 
   return (
@@ -190,7 +193,12 @@ export const Form: FC<FormProps> = ({ ctx, setState }) => {
         </div>
         <div>(Estimated)</div>
       </FlexDown>
-      <Button label="Confirm" onClick={onConfirm} disabled={!canConfirm} />
+      <Button
+        label="Confirm"
+        onClick={onConfirm}
+        disabled={!canConfirm}
+        showSpinner={isConfirming}
+      />
     </FlexDownSpaced>
   );
 };

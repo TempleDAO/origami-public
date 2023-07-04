@@ -737,6 +737,26 @@ class SignerApiImpl implements SignerApi {
       this.signer
     );
 
+    if (
+      (await investmentContract.areInvestmentsPaused()) &&
+      req.quote.investment.name === 'ovGLP'
+    ) {
+      const result = {
+        investTokenAmount: DecimalBigNumber.fromBN(
+          ethers.BigNumber.from('0'),
+          0
+        ),
+        txHash: 'UNKNOWN',
+      };
+      req.onStage &&
+        req.onStage({
+          kind: 'txfail',
+          message: `Investmens paused. Origami runs 
+        daily operations on the positions to maximise yield, which incurs a 15 minute cooldown`,
+        });
+      return result;
+    }
+
     if (req.quote.from.kind == 'token') {
       req.onStage && req.onStage({ kind: 'approve' });
 

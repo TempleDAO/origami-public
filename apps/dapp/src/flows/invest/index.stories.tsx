@@ -143,6 +143,27 @@ export const FlowRunOnChain4 = () => {
 };
 FlowRunOnChain4.storyName = '05 Run on chain (fail)';
 
+export const FlowRunOnChain5 = () => {
+  const { papi, sapi } = useTestApis();
+  const ctx = useTestContext(papi, sapi);
+  const stage: InvestStage = {
+    kind: 'txfail',
+    message:
+      'Investmens paused. Origami runs daily operations on the positions to maximise yield, which incurs a 15 minute cooldown',
+  };
+
+  return (
+    <Main>
+      <Run
+        ctx={ctx}
+        state={runOnChainState(TEST_INVEST_REQ, stage)}
+        setState={noop}
+      />
+    </Main>
+  );
+};
+FlowRunOnChain5.storyName = '06 Run on chain (paused)';
+
 function useTestContext(papi: ProviderApi, sapi: SignerApi): Ctx {
   return useMemo(() => {
     const investment = gmxInvestment();
