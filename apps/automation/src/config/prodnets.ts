@@ -5,7 +5,7 @@ import { HarvestGmxConfig } from "../investments/gmx/gmx-auto-compounder";
 import { HarvestGlpConfig } from "../investments/gmx/glp-auto-compounder";
 import { TransferStakedGlpConfig } from "../investments/gmx/transfer-staked-glp";
 import { AlertPausedStatusConfig } from "../investments/gmx/alert-paused-status";
-import { MUMBAI } from "../chains";
+import { ARBITRUM } from "../chains";
 
 export interface Config {
   harvestGmx: HarvestGmxConfig,
@@ -15,7 +15,7 @@ export interface Config {
 }
 
 const COMMON_CONFIG = {
-  CHAIN: MUMBAI,
+  CHAIN: ARBITRUM,
   WALLET_NAME: 'origami_automation',
 }
 
@@ -74,7 +74,7 @@ const TRANSFER_STAKED_GLP_CONFIG: TransferStakedGlpConfig = {
 };
 
 const ALERT_PAUSED_STATUS_CONFIG: AlertPausedStatusConfig = {
-  CHAIN: MUMBAI,
+  CHAIN: ARBITRUM,
   GLP_MANAGER: "0x58833508c3d057FE8901A7A2D89CeCcb3449ac24",
   GMX_MANAGER: "0xc0F9dd64D247f4Cb50C07632353896918bE79562",
 };

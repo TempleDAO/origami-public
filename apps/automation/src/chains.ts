@@ -10,4 +10,13 @@ export const MUMBAI : Chain = {
   transactionUrl(txhash: string) {
     return `https://mumbai.polygonscan.com/tx/${txhash}`;
   }
-};;
+};
+
+export const ARBITRUM : Chain = {
+  id: 42161,
+  name: "Arbitrum",
+  transactionUrl(txhash: string) {
+    return `https://arbiscan.io/tx/${txhash}`;
+  }
+};
+
