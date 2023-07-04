@@ -2,7 +2,7 @@
 import {
     OrigamiGmxRewardsAggregator, OrigamiGmxRewardsAggregator__factory,
     IOrigamiInvestment, IOrigamiInvestment__factory,
-    DummyDex, DummyDex__factory, RepricingToken, RepricingToken__factory,
+    DummyDex, DummyDex__factory, RepricingToken, RepricingToken__factory, OrigamiGmxManager, OrigamiGmxManager__factory,
 } from "@/typechain";
 import { zeroExQuote, ZeroExQuoteParams } from './zero-ex'
 import { bpsToFraction } from "@/common/utils";
@@ -22,6 +22,7 @@ import { Chain } from "@/chains";
 import { DISCORD_WEBHOOK_URL_KEY } from "@/common/discord";
 
 export const TRANSACTION_NAME = 'glp-auto-compounder';
+const GLP_VAULT_TYPE = 0;
 
 export interface HarvestGlpConfig {
     CHAIN: Chain,
@@ -46,6 +47,11 @@ export interface HarvestGlpConfig {
 
     // What percentage of the total oGLP on hand does the aggregator actually add as reserves into ovGLP
     DAILY_ADD_TO_RESERVE_BPS: number,
+
+    // What threshold of secondary WETH rewards (from initial user deposits) 
+    // should be available to harvest for it to be worth spending the gas.
+    // In decimal format, eg specific `0.01` to mean 0.01 WETH
+    SECONDARY_REWARDS_THRESHOLD: number,
 }
 
 async function mumbaiGmxToWethQuote(
@@ -123,6 +129,36 @@ function calcOGmxToHarvest(harvestableOGmx: BigNumber) {
     }
 }
 
+/**
+ * User deposits into oGLP first get added to the secondaryGmxEarnAccount, and then that position is migrated
+ * daily into the primaryGmxEarnAccount.
+ * In that (up to) 24hr period, rewards may have been earned which should be harvested ready for the compounding.
+ */
+async function harvestSecondaryWeth(
+    ctx: TaskContext,
+    config: HarvestGlpConfig,
+    signer: ethers.Signer, 
+    rewardAggregator: OrigamiGmxRewardsAggregator
+) {
+    const glpManager: OrigamiGmxManager = OrigamiGmxManager__factory.connect(
+        await rewardAggregator.glpManager(),
+        signer
+    );
+    
+    const harvestableWeth = (await glpManager.harvestableSecondaryRewards(GLP_VAULT_TYPE))[0];
+    ctx.logger.info(`harvestableSecondaryRewards (from transient GLP)=[${harvestableWeth.toString()}]`);
+    
+    if (harvestableWeth.gt(ethers.utils.parseEther(config.SECONDARY_REWARDS_THRESHOLD.toString()))) {
+        ctx.logger.info(`harvestableSecondaryRewards greather than threshold of [${config.SECONDARY_REWARDS_THRESHOLD}]. Harvesting...`);
+        const tx = await glpManager.harvestSecondaryRewards({
+            gasLimit: 1_000_000,
+        });
+        const txReceipt = await tx.wait();
+        const txUrl = config.CHAIN.transactionUrl(txReceipt.transactionHash);
+        ctx.logger.info(`harvestSecondaryRewards txUrl: ${txUrl}`);
+    }
+}
+
 export async function harvestGlpRewards(
     ctx: TaskContext,
     config: HarvestGlpConfig,
@@ -151,6 +187,8 @@ export async function harvestGlpRewards(
     if (await wasHarvestedRecently(ctx.logger, config.MIN_HARVEST_INTERVAL_SECS, rewardAggregator)) {
         return;
     }
+
+    await harvestSecondaryWeth(ctx, config, signer, rewardAggregator);
 
     const wethAddress = await rewardAggregator.wrappedNativeToken();
     const _harvestableRewards = await rewardAggregator.harvestableRewards();

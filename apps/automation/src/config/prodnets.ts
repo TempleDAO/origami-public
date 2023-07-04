@@ -63,7 +63,12 @@ const HARVEST_GLP_CONFIG: HarvestGlpConfig = {
   WETH_TO_OGLP_INVESTMENT_SLIPPAGE_BPS: 100, // 1%
 
   // What percentage of the total oGLP on hand does the aggregator actually add as reserves into ovGLP
-  DAILY_ADD_TO_RESERVE_BPS: 10_000,// 100%
+  DAILY_ADD_TO_RESERVE_BPS: 10_000, // 100%
+
+  // What threshold of secondary WETH rewards (from initial user deposits) 
+  // should be available to harvest for it to be worth spending the gas.
+  // In decimal format, eg specific `0.01` to mean 0.01 WETH
+  SECONDARY_REWARDS_THRESHOLD: 0.001,
 };
 
 
