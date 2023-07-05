@@ -4,6 +4,7 @@ import { harvestGmxRewards } from "./investments/gmx/gmx-auto-compounder";
 import { harvestGlpRewards } from "./investments/gmx/glp-auto-compounder";
 import { transferStakedGlp } from "./investments/gmx/transfer-staked-glp";
 import { createAlertPausedTask } from "./investments/gmx/alert-paused-status";
+import { checkEthBalance } from "./investments/gmx/eth-auto-checker";
 
 import { CONFIG as CONFIG_TESTNETS } from "./config/testnets";
 import { CONFIG as CONFIG_PRODNETS } from "./config/prodnets";
@@ -21,34 +22,67 @@ async function main() {
   runner.addPeriodicTask({
     id: 'gmx-auto-compounder',
     cronSchedule: '30 22 * * *',
-    action: async (ctx) => harvestGmxRewards(ctx, config.harvestGmx),
+    action: async (ctx) => {
+      await harvestGmxRewards(ctx, config.harvestGmx);
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
   });
 
   runner.addWebhookTask({
     id: 'gmx-auto-compounder-wh',
-    action: async (ctx) => harvestGmxRewards(ctx, config.harvestGmx),
+    action: async (ctx) => {
+      await harvestGmxRewards(ctx, config.harvestGmx);
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
   });
 
   runner.addPeriodicTask({
     id: 'glp-auto-compounder',
     cronSchedule: '30 22 * * *',
-    action: async (ctx) => harvestGlpRewards(ctx, config.harvestGlp),
+    action: async (ctx) => {
+      await harvestGlpRewards(ctx, config.harvestGlp);
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
   });
 
   runner.addWebhookTask({
     id: 'glp-auto-compounder-wh',
-    action: async (ctx) => harvestGlpRewards(ctx, config.harvestGlp),
+    action: async (ctx) => {
+      await harvestGlpRewards(ctx, config.harvestGlp);
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
   });
 
   runner.addPeriodicTask({ 
     id: 'transfer-staked-glp',
     cronSchedule: '0 22 * * *',
-    action: async (ctx) => transferStakedGlp(ctx, config.transferStakedGlp),
+    action: async (ctx) => {
+      await transferStakedGlp(ctx, config.transferStakedGlp);
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
   });
 
   runner.addWebhookTask({ 
     id: 'transfer-staked-glp-wh',
-    action: async (ctx) => transferStakedGlp(ctx, config.transferStakedGlp),
+    action: async (ctx) => {
+      await transferStakedGlp(ctx, config.transferStakedGlp);
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
+  });
+
+  runner.addPeriodicTask({ 
+    id: 'check-eth-balance',
+    cronSchedule: '30 * * * *',
+    action: async (ctx) => {
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
+  });
+
+  runner.addWebhookTask({ 
+    id: 'check-eth-balance-wh',
+    action: async (ctx) => {
+      await checkEthBalance(ctx, config.checkEthBalance);
+    }
   });
   
   const alertPausedTask = await createAlertPausedTask(runner, 'alert-paused-status', config.alertPausedStatus);
@@ -91,6 +125,5 @@ async function discordNotifyTaskException(ctx: TaskContext, te: TaskException) {
   const discord = await connectDiscord(webhookUrl, ctx.logger);
   await discord.postMessage({content: content.join('\n')});
 }
-
 
 main();

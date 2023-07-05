@@ -15,7 +15,7 @@ export async function connectDiscord(webhookUrl: string, logger: Logger): Promis
 
   async function postMessage(message: DiscordMesage): Promise<void> {
     logger.info(`sending message to discord webhook ${params.id}`);
-    webhookClient.send(message);
+    await webhookClient.send(message);
   }
 
   return {
