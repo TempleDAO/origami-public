@@ -4,14 +4,9 @@ import { HarvestGmxConfig } from "../investments/gmx/gmx-auto-compounder";
 import { HarvestGlpConfig } from "../investments/gmx/glp-auto-compounder";
 import { TransferStakedGlpConfig } from "../investments/gmx/transfer-staked-glp";
 import { AlertPausedStatusConfig } from "../investments/gmx/alert-paused-status";
+import { CheckEthBalanceConfig } from "../investments/gmx/eth-auto-checker";
 import { MUMBAI } from "../chains";
-
-export interface Config {
-  harvestGmx: HarvestGmxConfig,
-  harvestGlp: HarvestGlpConfig,
-  transferStakedGlp: TransferStakedGlpConfig,
-  alertPausedStatus: AlertPausedStatusConfig,
-}
+import { ethers } from 'ethers';
 
 const COMMON_CONFIG = {
   CHAIN: MUMBAI,
@@ -83,9 +78,15 @@ const ALERT_PAUSED_STATUS_CONFIG: AlertPausedStatusConfig = {
   GMX_MANAGER: "0x3b81Fcc218c0b29F28c72c053cBe4f286A7dcf67",
 };
 
+const CHECK_ETH_BALANCE_CONFIG: CheckEthBalanceConfig = {
+  ...COMMON_CONFIG,
+  MIN_ETH_BALANCE: ethers.utils.parseEther("0.1"),
+}
+
 export const CONFIG = {
   harvestGmx: HARVEST_GMX_CONFIG,
   harvestGlp: HARVEST_GLP_CONFIG,
   transferStakedGlp: TRANSFER_STAKED_GLP_CONFIG,
   alertPausedStatus: ALERT_PAUSED_STATUS_CONFIG,
+  checkEthBalance: CHECK_ETH_BALANCE_CONFIG,
 }
