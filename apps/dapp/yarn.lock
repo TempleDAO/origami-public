@@ -9274,6 +9274,11 @@ hosted-git-info@^4.0.1:
   dependencies:
     lru-cache "^6.0.0"
 
+howler@^2.2.3:
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/howler/-/howler-2.2.3.tgz#a2eff9b08b586798e7a2ee17a602a90df28715da"
+  integrity sha512-QM0FFkw0LRX1PR8pNzJVAY25JhIWvbKMBFM4gqk+QdV+kPXOhleWGCB6AiAF/goGjIHK2e/nIElplvjQwhr0jg==
+
 html-entities@^2.1.0:
   version "2.3.3"
   resolved "https://registry.yarnpkg.com/html-entities/-/html-entities-2.3.3.tgz#117d7626bece327fc8baace8868fa6f5ef856e46"
@@ -12723,6 +12728,13 @@ react-transition-group@^4.3.0:
     dom-helpers "^5.0.1"
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
+
+react-use-audio-player@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/react-use-audio-player/-/react-use-audio-player-2.0.1.tgz#773746a6e23d76f49ff7755d90c831f402c8da60"
+  integrity sha512-Ja6+6Z00D+3QsQKpMYaljqyfYFpWOb9OXapRMSLWb6CbqMHuwfC9zAASpbgGqwnpf/cASwyS5eBPz77e4+mTEg==
+  dependencies:
+    howler "^2.2.3"
 
 react@^18.2.0:
   version "18.2.0"
