@@ -1,6 +1,6 @@
 import { AppRoutes } from './app-routes';
 
-const ORIGAMI_URL = 'https://origami.finance';
+const ORIGAMI_URL = `${window.location.origin}`;
 const GMX_URL = 'https://gmx.io';
 const DISCLAIMER_URL = `${window.location.origin}${AppRoutes.Disclaimer}`;
 const TERMS_OF_SERVICE_URL = `${window.location.origin}${AppRoutes.TermsOfService}`;
