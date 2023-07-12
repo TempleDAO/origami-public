@@ -8,6 +8,7 @@ import { AppWallet, WalletState } from '@/wallets/types';
 import { createMetaMaskWallet } from '@/wallets/metamask';
 import { createWalletConnectWallet } from '@/wallets/walletconnect';
 import { assertNever } from '@/utils/assert';
+import { TERMS_OF_SERVICE_URL } from '@/urls';
 
 interface ApiManager {
   papi: ProviderApi;
@@ -55,12 +56,12 @@ export function ApiManagerProvider(props: {
 
     const termsKey = `origami.tos.${walletState.address}`;
     if (localStorage.getItem(termsKey) === null) {
-      const termsMessage = `I agree to the Origami Terms & Conditions at:\n\nhttps://origami.finance/disclaimer`;
+      const termsMessage = `I agree to the Origami Terms of Service at:\n\n${TERMS_OF_SERVICE_URL}`;
       try {
         const signedMessage = await connection.signer.signMessage(termsMessage);
         localStorage.setItem(termsKey, signedMessage);
       } catch (e) {
-        console.error('failed to sign terms and conditions', e);
+        console.error('failed to sign terms of Service', e);
         return;
       }
     }

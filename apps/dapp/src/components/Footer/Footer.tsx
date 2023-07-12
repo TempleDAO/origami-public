@@ -3,6 +3,8 @@ import type { FC } from 'react';
 import styled from 'styled-components';
 import { Icon } from '@/components/commons/Icon';
 import breakpoints from '@/styles/responsive-breakpoints';
+import { AppRoutes } from '@/app-routes';
+import { Link } from '../commons/Link';
 
 const SUBTEXT_FONT_SIZE = '0.9rem';
 
@@ -28,7 +30,15 @@ const Footer: FC<FooterProps> = ({ className }) => (
       <img src="/header-logo.svg" alt="Origami" height={40} />
       <TextContainer>
         <CopyrightText>© 2023 ORIGAMI. All rights reserved.</CopyrightText>
-        <Disclaimer href="/disclaimer">Disclaimer</Disclaimer>
+        <Link href={AppRoutes.Disclaimer} style={{ paddingRight: '1rem' }}>
+          Disclaimer
+        </Link>
+        <Link href={AppRoutes.TermsOfService} style={{ paddingRight: '1rem' }}>
+          Terms of Service
+        </Link>
+        <Link href={AppRoutes.PrivacyPolicy} style={{ paddingRight: '1rem' }}>
+          Privacy Policy
+        </Link>
       </TextContainer>
     </CopyrightContainer>
     <div>
@@ -93,18 +103,6 @@ const CopyrightText = styled.small`
   display: block;
   color: ${({ theme }) => theme.colors.greyMid};
   font-size: ${SUBTEXT_FONT_SIZE};
-`;
-
-const Disclaimer = styled.a`
-  color: ${({ theme }) => theme.colors.greyMid};
-  font-size: ${SUBTEXT_FONT_SIZE};
-  font-weight: bold;
-  text-decoration: underline;
-  filter: brightness(1.3);
-  transition: color 300ms ease;
-  &:hover {
-    color: ${({ theme }) => theme.colors.white};
-  }
 `;
 
 const IconStyled = styled(Icon)`

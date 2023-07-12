@@ -10,12 +10,15 @@ import { Page as InvestPage } from './pages/deposit';
 import { Page as ManagePage } from './pages/manage';
 import { Page as DisclaimerPage } from './pages/disclaimer';
 import { Page as LandingPage } from './pages/landing';
+import { Page as TermsOfServicePage } from './pages/tos';
+import { Page as PrivacyPolicyPage } from './pages/policy';
 
 import './styles/fonts.css';
 import { ApiManagerProvider } from './hooks/use-api-manager';
 import { getApiConfig } from './config';
 import { AppLayout } from './components/Layouts/AppLayout';
 import { ConnectModalProvider } from './components/commons/ConnectModal';
+import { AppRoutes } from './app-routes';
 
 // polyfill Buffer required for WalletConnect
 if (!window.Buffer) {
@@ -24,11 +27,11 @@ if (!window.Buffer) {
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: AppRoutes.Index,
     element: <LandingPage />,
   },
   {
-    path: '/deposit',
+    path: AppRoutes.Deposit,
     element: (
       <AppLayout>
         <InvestPage />
@@ -36,7 +39,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/manage',
+    path: AppRoutes.Manage,
     element: (
       <AppLayout>
         <ManagePage />
@@ -44,10 +47,26 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: '/disclaimer',
+    path: AppRoutes.Disclaimer,
     element: (
       <AppLayout>
         <DisclaimerPage />
+      </AppLayout>
+    ),
+  },
+  {
+    path: AppRoutes.TermsOfService,
+    element: (
+      <AppLayout>
+        <TermsOfServicePage />
+      </AppLayout>
+    ),
+  },
+  {
+    path: AppRoutes.PrivacyPolicy,
+    element: (
+      <AppLayout>
+        <PrivacyPolicyPage />
       </AppLayout>
     ),
   },
