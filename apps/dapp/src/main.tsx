@@ -17,8 +17,9 @@ import './styles/fonts.css';
 import { ApiManagerProvider } from './hooks/use-api-manager';
 import { getApiConfig } from './config';
 import { AppLayout } from './components/Layouts/AppLayout';
-import { ConnectModalProvider } from './components/commons/ConnectModal';
 import { AppRoutes } from './app-routes';
+import { Web3OnboardProvider } from '@web3-onboard/react';
+import { WEB3_ONBOARD } from './config/web3onboard';
 
 // polyfill Buffer required for WalletConnect
 if (!window.Buffer) {
@@ -77,14 +78,14 @@ const API_CONFIG = getApiConfig();
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   // Put the ApiManagerProvider outside StrictMode, so that the api only gets
   // created once in dev.
-  <ApiManagerProvider apiConfig={API_CONFIG}>
-    <React.StrictMode>
-      <ThemeContext.Provider value={theme}>
-        <GlobalStyle />
-        <ConnectModalProvider>
-          <RouterProvider router={router} />
-        </ConnectModalProvider>
-      </ThemeContext.Provider>
-    </React.StrictMode>
-  </ApiManagerProvider>
+  <Web3OnboardProvider web3Onboard={WEB3_ONBOARD}>
+    <ApiManagerProvider apiConfig={API_CONFIG}>
+      <React.StrictMode>
+        <ThemeContext.Provider value={theme}>
+          <GlobalStyle />
+            <RouterProvider router={router} />
+        </ThemeContext.Provider>
+      </React.StrictMode>
+    </ApiManagerProvider>
+  </Web3OnboardProvider>
 );

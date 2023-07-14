@@ -1,23 +1,24 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useConnectWallet, useSetChain } from '@web3-onboard/react';
+import { WalletState } from '@web3-onboard/core';
+
 import { ProviderApi, SignerApi } from '@/api/api';
-import { Chain } from '@/api/types';
 import { createProviderApi, createSignerApi, ApiConfig } from '@/api/ethers';
 
-import React, { useEffect, useMemo, useState } from 'react';
 import { ApiCache, useCache } from '@/api/cache';
-import { AppWallet, WalletState } from '@/wallets/types';
-import { createMetaMaskWallet } from '@/wallets/metamask';
-import { createWalletConnectWallet } from '@/wallets/walletconnect';
-import { assertNever } from '@/utils/assert';
 import { TERMS_OF_SERVICE_URL } from '@/urls';
+
+import { ethers } from 'ethers';
+import { ChainId } from '@/api/types';
 
 interface ApiManager {
   papi: ProviderApi;
   sapi: SignerApi | undefined;
-  wallet: WalletState | undefined;
+
   cache: ApiCache;
 
-  walletInitialize(walletKind: SupportedWallet): Promise<void>;
-  walletConnect(chain: Chain): Promise<SignerApi | undefined>;
+  walletConnect(): Promise<void>;
+  walletSetChain(chainId: number): Promise<void>;
   walletDisconnect(): Promise<void>;
 }
 
@@ -28,82 +29,69 @@ export function ApiManagerProvider(props: {
   apiConfig: ApiConfig;
   children?: React.ReactNode;
 }) {
+  const [{ wallet }, connect, disconnect] = useConnectWallet();
+  const [{ connectedChain }, setChain] = useSetChain();
+
   const papi = useMemo(
     () => createProviderApi(props.apiConfig),
     [props.apiConfig]
   );
-  const [appWallet, setAppWallet] = useState<AppWallet | undefined>();
-  const [walletState, setWalletState] = useState<WalletState | undefined>();
   const [sapi, setSApi] = useState<SignerApi | undefined>();
+  const cache = useCache(papi, sapi?.signerAddress);
 
-  async function walletInitialize(walletKind: SupportedWallet) {
-    const appWallet = await createAppWallet(walletKind, props.apiConfig.chains);
-    setAppWallet(appWallet);
-    setWalletState(appWallet.getState());
-    localStorage.setItem(LOCALSTORE_WALLET_STATE, walletKind);
-  }
+  useEffect(() => {
+    async function setupFromWallet(wallet: WalletState | null) {
+      if (wallet?.provider && connectedChain) {
+        const ethersProvider = new ethers.providers.Web3Provider(
+          wallet.provider,
+          'any'
+        );
+        const signer = ethersProvider.getSigner();
+        const chainId = (await ethersProvider.getNetwork()).chainId;
+        const address = await ethersProvider.getSigner().getAddress();
 
-  async function walletConnect(chain: Chain): Promise<SignerApi | undefined> {
-    if (!appWallet) {
-      throw new Error('no wallet initialized');
-    }
-    await appWallet.connect(chain);
-    const walletState = appWallet.getState();
-    const connection = walletState.connection;
-    if (!connection) {
-      throw new Error('Failed to connect');
-    }
+        const termsKey = `origami.tos.${address}`;
+        if (localStorage.getItem(termsKey) === null) {
+          const termsMessage = `I agree to the Origami Terms of Service at:\n\n${TERMS_OF_SERVICE_URL}`;
+          try {
+            const signedMessage = await signer.signMessage(termsMessage);
+            localStorage.setItem(termsKey, signedMessage);
+          } catch (e) {
+            console.error('failed to sign terms of Service', e);
+            return;
+          }
+        }
 
-    const termsKey = `origami.tos.${walletState.address}`;
-    if (localStorage.getItem(termsKey) === null) {
-      const termsMessage = `I agree to the Origami Terms of Service at:\n\n${TERMS_OF_SERVICE_URL}`;
-      try {
-        const signedMessage = await connection.signer.signMessage(termsMessage);
-        localStorage.setItem(termsKey, signedMessage);
-      } catch (e) {
-        console.error('failed to sign terms of Service', e);
-        return;
+        const sapi = createSignerApi(props.apiConfig, address, chainId, signer);
+        setSApi(sapi);
+      } else {
+        setSApi(undefined);
       }
     }
 
-    setWalletState(walletState);
-    const sapi = createSignerApi(
-      props.apiConfig,
-      walletState.address,
-      connection.chainId,
-      connection.signer
-    );
+    setupFromWallet(wallet);
+  }, [wallet, connectedChain, props.apiConfig]);
 
-    setSApi(sapi);
-    return sapi;
+  async function walletConnect() {
+    await connect();
+  }
+
+  async function walletSetChain(chainId: number) {
+    setChain({ chainId: '0x' + chainId.toString(16) });
   }
 
   async function walletDisconnect() {
-    if (appWallet) {
-      await appWallet.disconnect();
-      setAppWallet(undefined);
-      setWalletState(undefined);
-      setSApi(undefined);
+    if (wallet) {
+      await disconnect({ label: wallet.label });
     }
-    localStorage.removeItem(LOCALSTORE_WALLET_STATE);
   }
-
-  useEffect(() => {
-    const walletKind = localStorage.getItem(LOCALSTORE_WALLET_STATE);
-    if (walletKind != null) {
-      walletInitialize(walletKind as SupportedWallet);
-    }
-  }, []); // eslint-disable-line
-
-  const cache = useCache(papi, walletState?.address);
 
   const apiManager: ApiManager = {
     papi,
     sapi,
-    wallet: walletState,
     cache,
-    walletInitialize,
     walletConnect,
+    walletSetChain,
     walletDisconnect,
   };
   return (
@@ -111,20 +99,6 @@ export function ApiManagerProvider(props: {
       {props.children}
     </ApiManagerContext.Provider>
   );
-}
-
-export type SupportedWallet = 'metaMask' | 'walletConnect';
-
-export async function createAppWallet(
-  walletKind: SupportedWallet,
-  chains: Chain[]
-): Promise<AppWallet> {
-  if (walletKind === 'metaMask') {
-    return createMetaMaskWallet();
-  } else if (walletKind == 'walletConnect') {
-    return createWalletConnectWallet(chains);
-  }
-  return assertNever(walletKind);
 }
 
 export function useApiManager(): ApiManager {
@@ -135,4 +109,64 @@ export function useApiManager(): ApiManager {
   return chainSigner;
 }
 
-const LOCALSTORE_WALLET_STATE = 'walletState';
+export type AsyncWithSigner = (
+  papi: ProviderApi,
+  sapi: SignerApi
+) => Promise<void>;
+export type RequestActionFn = (
+  chainId: ChainId,
+  action: AsyncWithSigner
+) => void;
+
+// Hook to schedule running an action once a wallet has been connected and the
+// appropriate wallet chain configured
+export function useActionWithSigner(): RequestActionFn {
+  const [reqAction, setReqAction] =
+    useState<{ run: AsyncWithSigner } | undefined>();
+  const [reqChain, setReqChain] = useState<ChainId>(1);
+
+  const { papi, sapi, walletConnect, walletSetChain } = useApiManager();
+
+  useEffect(() => {
+    async function runActionWhenReady(): Promise<void> {
+      const currentChain = sapi?.chainId;
+      if (reqAction) {
+        console.log('action requested');
+        if (!sapi) {
+          console.log('Connecting wallet');
+          try {
+            await walletConnect();
+          } catch (e: unknown) {
+            setReqAction(undefined);
+          }
+        } else {
+          if (currentChain !== reqChain) {
+            console.log('Selecting chain');
+
+            try {
+              await walletSetChain(reqChain);
+            } catch (e: unknown) {
+              setReqAction(undefined);
+            }
+          } else {
+            console.log('running action');
+            // Everything is good, lets run the action
+            const action = reqAction;
+            setReqAction(undefined);
+            console.log('ACTDIOB', papi, sapi);
+            action.run(papi, sapi);
+          }
+        }
+      }
+    }
+
+    runActionWhenReady();
+  }, [reqAction, reqChain, papi, sapi, walletConnect, walletSetChain]);
+
+  function requestAction(chainId: ChainId, action: AsyncWithSigner) {
+    setReqChain(chainId);
+    setReqAction({ run: action });
+  }
+
+  return requestAction;
+}

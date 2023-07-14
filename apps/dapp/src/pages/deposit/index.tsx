@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { DepositGrid, DepositGridItem } from './DepositGrid';
 import { FlowOverlay } from '@/flows/invest';
 import { MetricsResp, ProviderApi, SignerApi } from '@/api/api';
-import { Chain, Investment, InvestmentConfig } from '@/api/types';
+import { Investment, InvestmentConfig } from '@/api/types';
 import {
   getValue,
   isReady,
@@ -13,42 +13,42 @@ import {
   newLoading,
   ready,
 } from '@/utils/loading-value';
-import { useApiManager } from '@/hooks/use-api-manager';
+import {
+  RequestActionFn,
+  useActionWithSigner,
+  useApiManager,
+} from '@/hooks/use-api-manager';
 import { ApiCache } from '@/api/cache';
 import { DecimalBigNumber } from '@/utils/decimal-big-number';
 import { isReserveToken } from '@/utils/api-utils';
-import { useConnectModal } from '@/components/commons/ConnectModal';
 import { PlatformMetricsWidget } from './PlatformMetricsWidget';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { theme } from '@/styles/theme';
 
 export function Page() {
   const am = useApiManager();
-  const modal = useConnectModal();
+  const requestActionWithSigner = useActionWithSigner();
   return (
     <PageContent
       papi={am.papi}
-      walletAddress={am.wallet?.address}
+      sapi={am.sapi}
       cache={am.cache}
-      walletInitialize={modal.walletInitialize}
-      walletConnect={am.walletConnect}
+      requestActionWithSigner={requestActionWithSigner}
     />
   );
 }
 
 interface PageContentProps {
   papi: ProviderApi;
-  walletAddress: string | undefined;
+  sapi?: SignerApi;
   cache: ApiCache;
-  walletInitialize(): Promise<void>;
-  walletConnect(chain: Chain): Promise<SignerApi | undefined>;
+  requestActionWithSigner: RequestActionFn;
 }
 
 export const PageContent = (props: PageContentProps) => {
-  const { papi, walletConnect } = props;
+  const { papi } = props;
   const [activeFlow, setActiveFlow] = useState<JSX.Element | undefined>();
   const investments = getValue(props.cache.investments) || [];
-  const [pending, setPending] = useState<InvestmentConfig | undefined>();
   const [platformMetricsExpanded, setPlatformMetricsExpanded] = useState(false);
   const [VaultExpanded, setVaultExpanded] =
     useState<number | undefined>(undefined);
@@ -59,25 +59,13 @@ export const PageContent = (props: PageContentProps) => {
     setActiveFlow(undefined);
   }
 
-  async function onInvest(ic: InvestmentConfig) {
-    if (props.walletAddress) {
-      onInvestImpl(ic);
-      return;
-    }
-
-    // We are not connected to a wallet yet. So initialize the
-    // wallet now, then schedule the invest flow via an effect
-    await props.walletInitialize();
-    setPending(ic);
-  }
-
-  async function onInvestImpl(ic: InvestmentConfig) {
+  async function onInvest(
+    papi: ProviderApi,
+    sapi: SignerApi,
+    ic: InvestmentConfig
+  ) {
+    console.log('onInvest', papi, sapi, ic);
     const investment = await papi.getInvestment(ic);
-    const sapi = await walletConnect(investment.chain);
-    if (!sapi) {
-      return;
-    }
-
     // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
     const allAcceptedTokens = await investment.acceptedInvestTokens();
     const acceptedTokens = allAcceptedTokens.filter(
@@ -100,20 +88,17 @@ export const PageContent = (props: PageContentProps) => {
   const gridItems = investments.map((investment) => {
     const metrics = newLoading(props.cache.metrics.get(investment));
     const tokenPrice = newLoading(props.cache.tokenPrices.get(investment));
-    return makeDepositGridItem(papi, investment, metrics, tokenPrice, () =>
-      onInvest(investment)
+    return makeDepositGridItem(
+      papi,
+      investment,
+      metrics,
+      tokenPrice,
+      async () =>
+        props.requestActionWithSigner(investment.chain.id, (papi, sapi) =>
+          onInvest(papi, sapi, investment)
+        )
     );
   });
-
-  useEffect(() => {
-    async function delayedInvest() {
-      if (props.walletAddress && pending) {
-        await onInvestImpl(pending);
-        setPending(undefined);
-      }
-    }
-    delayedInvest();
-  }, [props.walletAddress, pending]); // eslint-disable-line
 
   useEffect(() => {
     if (!papi) return;

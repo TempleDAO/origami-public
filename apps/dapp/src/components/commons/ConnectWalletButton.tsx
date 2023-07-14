@@ -5,17 +5,15 @@ import { useApiManager } from '@/hooks/use-api-manager';
 import { truncateAddress } from '@/utils/truncate-address';
 import clickableStyles from '@/styles/mixins/clickable-styles';
 import { Button } from './Button';
-import { useConnectModal } from './ConnectModal';
 
 export const ConnectWalletButton = () => {
-  const apim = useApiManager();
-  const modal = useConnectModal();
-  const address = apim.wallet?.address;
+  const { sapi, walletConnect, walletDisconnect } = useApiManager();
+  const address = sapi?.signerAddress;
   const [mouseOver, setMouseOver] = useState(false);
 
   async function disconnect() {
     try {
-      await apim.walletDisconnect();
+      await walletDisconnect();
     } finally {
       setMouseOver(false);
     }
@@ -32,7 +30,7 @@ export const ConnectWalletButton = () => {
           <span>{mouseOver ? 'DISCONNECT' : truncateAddress(address)}</span>
         </ButtonBox>
       ) : (
-        <Button onClick={modal.walletInitialize} label="CONNECT" secondary />
+        <Button onClick={walletConnect} label="CONNECT" secondary />
       )}
     </>
   );

@@ -12,16 +12,18 @@ import {
   formatPercent,
 } from '@/utils/formatNumber';
 import { SignerApi, ProviderApi } from '@/api/api';
-import { Chain, HistoricPeriod, Investment } from '@/api/types';
+import { HistoricPeriod, Investment } from '@/api/types';
 import { ApiCache } from '@/api/cache';
 import { DBN_ZERO } from '@/utils/decimal-big-number';
 import breakpoints from '@/styles/responsive-breakpoints';
+import { RequestActionFn } from '@/hooks/use-api-manager';
 
 export type AssetDetailsProps = {
   papi: ProviderApi;
-  sapi(chain: Chain): Promise<SignerApi | undefined>;
+  sapi?: SignerApi;
   cache: ApiCache;
   investment: Investment;
+  requestActionWithSigner: RequestActionFn;
 };
 
 export const AssetDetails: FC<AssetDetailsProps> = (props) => {
@@ -92,6 +94,7 @@ export const AssetDetails: FC<AssetDetailsProps> = (props) => {
         cache={props.cache}
         receiptTokenBalance={lmap(values, (v) => v.tokenBalance)}
         receiptTokenBalanceUsd={lmap(values, (v) => v.tokenValue)}
+        requestActionWithSigner={props.requestActionWithSigner}
       />
     </Container>
   );

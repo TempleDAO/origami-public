@@ -1,7 +1,7 @@
 import type { FC } from 'react';
-import type { Chain, Investment } from '@/api/types';
+import type { Investment } from '@/api/types';
 import type { Loading } from '@/utils/loading-value';
-
+import { RequestActionFn } from '@/hooks/use-api-manager';
 import styled from 'styled-components';
 import { AsyncButton } from '@/components/commons/Button';
 import { Text } from '@/components/commons/Text';
@@ -17,24 +17,24 @@ import { isReserveToken } from '@/utils/api-utils';
 
 type ActionCardProps = {
   papi: ProviderApi;
-  sapi(chain: Chain): Promise<SignerApi | undefined>;
+  sapi?: SignerApi;
   cache: ApiCache;
   investment: Investment;
   apy: Loading<string>;
   receiptTokenBalance: Loading<string>;
   receiptTokenBalanceUsd: Loading<string>;
   setActiveFlow: (Flow: JSX.Element | undefined) => void;
+  requestActionWithSigner: RequestActionFn;
 };
 
 export const ActionCard: FC<ActionCardProps> = ({
-  papi,
-  sapi: getSapi,
   cache,
   investment,
   apy,
   receiptTokenBalance,
   receiptTokenBalanceUsd,
   setActiveFlow,
+  requestActionWithSigner,
 }) => {
   function hidePanel() {
     setActiveFlow(undefined);
@@ -42,12 +42,7 @@ export const ActionCard: FC<ActionCardProps> = ({
 
   const receiptToken = investment.receiptToken.symbol;
 
-  async function showInvestFlow() {
-    const sapi = await getSapi(investment.chain);
-    if (!sapi) {
-      return;
-    }
-
+  async function showInvestFlow(papi: ProviderApi, sapi: SignerApi) {
     // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
     const allAcceptedTokens = await investment.acceptedInvestTokens();
     const acceptedTokens = allAcceptedTokens.filter(
@@ -66,12 +61,7 @@ export const ActionCard: FC<ActionCardProps> = ({
     );
   }
 
-  async function showExitFlow() {
-    const sapi = await getSapi(investment.chain);
-    if (!sapi) {
-      return;
-    }
-
+  async function showExitFlow(papi: ProviderApi, sapi: SignerApi) {
     // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
     const allAcceptedTokens = await investment.acceptedExitTokens();
     const acceptedTokens = allAcceptedTokens.filter(
@@ -113,7 +103,13 @@ export const ActionCard: FC<ActionCardProps> = ({
       </TokenBalances>
       <VerticalFlex>
         <ActionRow>
-          <AsyncButton secondary label="Deposit" onClick={showInvestFlow} />
+          <AsyncButton
+            secondary
+            label="Deposit"
+            onClick={async () =>
+              requestActionWithSigner(investment.chain.id, showInvestFlow)
+            }
+          />
           <InfoText small>
             Deposit with{' '}
             <Highlight>{investment.supportedAssetsDescription}</Highlight> and
@@ -121,7 +117,13 @@ export const ActionCard: FC<ActionCardProps> = ({
           </InfoText>
         </ActionRow>
         <ActionRow>
-          <AsyncButton secondary label="Exit" onClick={showExitFlow} />
+          <AsyncButton
+            secondary
+            label="Exit"
+            onClick={async () =>
+              requestActionWithSigner(investment.chain.id, showExitFlow)
+            }
+          />
           <InfoText small>
             Exit <Highlight>{investment.receiptToken.symbol}</Highlight> to
             receive{' '}

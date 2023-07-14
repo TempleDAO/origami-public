@@ -1,6 +1,10 @@
 import { ProviderApi, SignerApi } from '@/api/api';
-import { Chain, Investment } from '@/api/types';
-import { useApiManager } from '@/hooks/use-api-manager';
+import { Investment } from '@/api/types';
+import {
+  RequestActionFn,
+  useActionWithSigner,
+  useApiManager,
+} from '@/hooks/use-api-manager';
 import {
   ApiCache,
   BalanceMap,
@@ -36,12 +40,13 @@ export function Page() {
   const am = useApiManager();
   const [selectedInvestment, setSelectedInvestment] =
     useState<Investment | undefined>();
+  const requestActionWithSigner = useActionWithSigner();
 
   return (
     <PageContent
       papi={am.papi}
-      sapi={am.walletConnect}
-      walletAddress={am.wallet?.address}
+      sapi={am.sapi}
+      requestActionWithSigner={requestActionWithSigner}
       cache={am.cache}
       selectedInvestment={selectedInvestment}
       setSelectedInvestment={setSelectedInvestment}
@@ -50,8 +55,8 @@ export function Page() {
 }
 interface PageContentProps {
   papi: ProviderApi;
-  sapi(chain: Chain): Promise<SignerApi | undefined>;
-  walletAddress: string | undefined;
+  sapi: SignerApi | undefined;
+  requestActionWithSigner: RequestActionFn;
   cache: ApiCache;
   selectedInvestment: Investment | undefined;
   setSelectedInvestment(i: Investment | undefined): void;
@@ -78,7 +83,7 @@ export function PageContent(props: PageContentProps) {
     [props.papi, userHoldings]
   );
 
-  if (!props.walletAddress) {
+  if (!props.sapi) {
     return (
       <EmptyStateWrapper>
         <p>Connect your wallet to view and manage your holdings</p>
@@ -109,6 +114,7 @@ export function PageContent(props: PageContentProps) {
           <AssetDetails
             papi={props.papi}
             sapi={props.sapi}
+            requestActionWithSigner={props.requestActionWithSigner}
             cache={props.cache}
             investment={props.selectedInvestment}
           />
