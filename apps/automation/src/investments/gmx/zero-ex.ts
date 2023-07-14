@@ -32,12 +32,15 @@ export const zeroExQuote = async (
     logger: Logger,
     chainId: number,
     quoteParams: ZeroExQuoteParams,
+    apiKey: string,
 ): Promise<ZeroExQuoteResponse> => {
     try {
         const chainName = zeroExChainName(chainId);
         const url = `https://${chainName}.api.0x.org/swap/v1/quote?${qs.stringify(quoteParams)}`;
         logger.info(`Zero Ex Quote Request: [${url}]`);
-        const { data } = await axios.get<ZeroExQuoteResponse>(url);
+        const { data } = await axios.get<ZeroExQuoteResponse>(url, {
+            headers: { '0x-api-key' : apiKey }
+        });
         logger.info(`Zero Ex Quote Response: [${JSON.stringify(data)}]`);
         return data;
       } catch (error) {

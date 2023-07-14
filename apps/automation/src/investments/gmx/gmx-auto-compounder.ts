@@ -88,7 +88,8 @@ async function arbitrumWethToGmxQuote(
         enableSlippageProtection: true,
     };
 
-    const quoteResp = await zeroExQuote(ctx.logger, config.CHAIN.id, quoteParams);
+    const apiKey = await ctx.getSecret('zeroex_api_key');
+    const quoteResp = await zeroExQuote(ctx.logger, config.CHAIN.id, quoteParams, apiKey);
 
     // eg "buyAmount": "336056751580968879966"
     const buyAmount = BigNumber.from(quoteResp.buyAmount);
