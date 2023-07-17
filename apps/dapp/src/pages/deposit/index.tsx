@@ -64,7 +64,6 @@ export const PageContent = (props: PageContentProps) => {
     sapi: SignerApi,
     ic: InvestmentConfig
   ) {
-    console.log('onInvest', papi, sapi, ic);
     const investment = await papi.getInvestment(ic);
     // Filter out the reserve token from the UI (may be added as an 'advanced mode' in a future release)
     const allAcceptedTokens = await investment.acceptedInvestTokens();

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useConnectWallet, useSetChain } from '@web3-onboard/react';
 import { WalletState } from '@web3-onboard/core';
 
@@ -72,13 +72,16 @@ export function ApiManagerProvider(props: {
     setupFromWallet(wallet);
   }, [wallet, connectedChain, props.apiConfig]);
 
-  async function walletConnect() {
+  const walletConnect = useCallback(async () => {
     await connect();
-  }
+  }, [connect]);
 
-  async function walletSetChain(chainId: number) {
-    setChain({ chainId: '0x' + chainId.toString(16) });
-  }
+  const walletSetChain = useCallback(
+    async (chainId: number) => {
+      await setChain({ chainId: '0x' + chainId.toString(16) });
+    },
+    [setChain]
+  );
 
   async function walletDisconnect() {
     if (wallet) {
@@ -131,9 +134,7 @@ export function useActionWithSigner(): RequestActionFn {
     async function runActionWhenReady(): Promise<void> {
       const currentChain = sapi?.chainId;
       if (reqAction) {
-        console.log('action requested');
         if (!sapi) {
-          console.log('Connecting wallet');
           try {
             await walletConnect();
           } catch (e: unknown) {
@@ -141,19 +142,15 @@ export function useActionWithSigner(): RequestActionFn {
           }
         } else {
           if (currentChain !== reqChain) {
-            console.log('Selecting chain');
-
             try {
               await walletSetChain(reqChain);
             } catch (e: unknown) {
               setReqAction(undefined);
             }
           } else {
-            console.log('running action');
             // Everything is good, lets run the action
             const action = reqAction;
             setReqAction(undefined);
-            console.log('ACTDIOB', papi, sapi);
             action.run(papi, sapi);
           }
         }
