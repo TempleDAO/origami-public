@@ -18,7 +18,7 @@ export const HeroCarousel: FC<{ items: string[] }> = ({ items }) => {
         showStatus={false}
         showIndicators={false}
         showThumbs={false}
-        interval={4000}
+        interval={3000}
         width={'90vw'}
       >
         {heroText.map((item, index) => (

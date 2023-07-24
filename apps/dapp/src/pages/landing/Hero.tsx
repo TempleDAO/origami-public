@@ -16,10 +16,10 @@ type HeroProps = {
 };
 
 const carouselStrings = [
-  'compound staking yields for any supported protocol',
-  'maximize returns without sacrificing liquidity',
-  'leverage your staked vault HOLDINGS',
-  'now supporting gmx and glp',
+  'multiply your token exposure by folding',
+  'compounding + leverage = folding',
+  'take your yieds to a whole new level',
+  '1x folding now available for gmx and glp',
 ];
 
 export const Hero: FC<HeroProps> = ({ cache }) => {
