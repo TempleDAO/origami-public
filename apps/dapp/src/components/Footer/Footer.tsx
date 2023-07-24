@@ -9,7 +9,7 @@ import { Link } from '../commons/Link';
 const SUBTEXT_FONT_SIZE = '0.9rem';
 
 const socials = [
-  { iconName: 'discord', href: 'https://discord.gg/ErWduDfr' },
+  { iconName: 'discord', href: 'https://discord.gg/origami' },
   { iconName: 'twitter', href: 'https://twitter.com/origami_fi' },
   // @todo update once properly published
   {
