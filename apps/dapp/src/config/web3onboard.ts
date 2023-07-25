@@ -2,7 +2,7 @@ import { init as web3OnboardInit } from '@web3-onboard/react';
 import injectedModule from '@web3-onboard/injected-wallets';
 import walletconnect from '@web3-onboard/walletconnect';
 import { getApiConfig } from './index';
-import { DISCLAIMER_URL } from '@/urls';
+import { DISCLAIMER_URL, ORIGAMI_URL } from '@/urls';
 
 const API_CONFIG = getApiConfig();
 
@@ -51,7 +51,7 @@ export const WEB3_ONBOARD = web3OnboardInit({
       { name: 'MetaMask', url: 'https://metamask.io' },
       { name: 'Coinbase', url: 'https://wallet.coinbase.com/' },
     ],
-    explore: 'https://stage.origami.finance/',
+    explore: ORIGAMI_URL,
     agreement: {
       version: '1.0',
       termsUrl: DISCLAIMER_URL,
