@@ -6,7 +6,6 @@ import { ProviderApi, SignerApi } from '@/api/api';
 import { createProviderApi, createSignerApi, ApiConfig } from '@/api/ethers';
 
 import { ApiCache, useCache } from '@/api/cache';
-import { TERMS_OF_SERVICE_URL } from '@/urls';
 
 import { ethers } from 'ethers';
 import { ChainId } from '@/api/types';
@@ -49,19 +48,6 @@ export function ApiManagerProvider(props: {
         const signer = ethersProvider.getSigner();
         const chainId = (await ethersProvider.getNetwork()).chainId;
         const address = await ethersProvider.getSigner().getAddress();
-
-        const termsKey = `origami.tos.${address}`;
-        if (localStorage.getItem(termsKey) === null) {
-          const termsMessage = `I agree to the Origami Terms of Service at:\n\n${TERMS_OF_SERVICE_URL}`;
-          try {
-            const signedMessage = await signer.signMessage(termsMessage);
-            localStorage.setItem(termsKey, signedMessage);
-          } catch (e) {
-            console.error('failed to sign terms of Service', e);
-            return;
-          }
-        }
-
         const sapi = createSignerApi(props.apiConfig, address, chainId, signer);
         setSApi(sapi);
       } else {
