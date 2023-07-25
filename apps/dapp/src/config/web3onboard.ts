@@ -2,7 +2,7 @@ import { init as web3OnboardInit } from '@web3-onboard/react';
 import injectedModule from '@web3-onboard/injected-wallets';
 import walletconnect from '@web3-onboard/walletconnect';
 import { getApiConfig } from './index';
-import { TERMS_OF_SERVICE_URL } from '@/urls';
+import { DISCLAIMER_URL } from '@/urls';
 
 const API_CONFIG = getApiConfig();
 
@@ -54,7 +54,7 @@ export const WEB3_ONBOARD = web3OnboardInit({
     explore: 'https://stage.origami.finance/',
     agreement: {
       version: '1.0',
-      termsUrl: TERMS_OF_SERVICE_URL,
+      termsUrl: DISCLAIMER_URL,
     },
   },
   connect: {
@@ -75,7 +75,10 @@ export const WEB3_ONBOARD = web3OnboardInit({
       connect: {
         selectingWallet: {
           agreement: {
-            terms: 'Origami Terms & Conditions',
+            agree:
+              'I agree to have read and comply with the terms laid out in the',
+            terms:
+              'Origami Disclaimer and associated Terms of Service and Privacy Policy',
           },
         },
       },
