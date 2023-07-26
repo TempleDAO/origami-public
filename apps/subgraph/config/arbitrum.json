@@ -1,0 +1,23 @@
+{
+    "network": "arbitrum-one",
+    "gmxInvestment": {
+        "address": "0x784f75C39bD7D3EBC377e64991e99178341c831D",
+        "startBlock": "105911635"
+    },
+    "glpInvestment": {
+        "address": "0xb48aC9c5585e5F3c88c63CF9bcbAEdC921F76Df2",
+        "startBlock": "105911767"
+    },
+    "gmxInvestmentVault": {
+        "address": "0xe488A643E4b0Aaae60E4bdC02045a10d8a323bae",
+        "startBlock": "105912259"
+    },
+    "glpInvestmentVault": {
+        "address": "0x7FC862A47BBCDe3812CA772Ae851d0A9D1619eDa",
+        "startBlock": "105912320"
+    },
+    "hourlyScheduler": {
+        "address": "0x3607e46698d218B3a5Cae44bF381475C0a5e2ca7",
+        "startBlock": "105911635"
+    }
+}

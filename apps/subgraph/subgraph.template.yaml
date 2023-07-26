@@ -1,0 +1,165 @@
+specVersion: 0.0.5
+description: Origami Subgraph
+features:
+  - grafting
+repository: https://github.com/TempleDAO/origami-subgraph
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: GmxInvestment
+    network: {{network}}
+    source:
+      address: '{{gmxInvestment.address}}'
+      abi: OrigamiInvestment
+      startBlock: {{gmxInvestment.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investment.ts
+      entities:
+        - Investment
+      abis:
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvested
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExited
+  - kind: ethereum/contract
+    name: GlpInvestment
+    network: {{network}}
+    source:
+      address: '{{glpInvestment.address}}'
+      abi: OrigamiInvestment
+      startBlock: {{glpInvestment.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investment.ts
+      entities:
+        - Investment
+      abis:
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvested
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExited
+  - kind: ethereum/contract
+    name: GmxInvestmentVault
+    network: {{network}}
+    source:
+      address: '{{gmxInvestmentVault.address}}'
+      abi: OrigamiInvestmentVault
+      startBlock: {{gmxInvestmentVault.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investmentVault.ts
+      entities:
+        - InvestmentVault
+      abis:
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: InvestmentManagerSet(indexed address)
+          handler: onInvestmentManagerSet
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvestedVault
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExitedVault
+        - event: PendingReservesAdded(uint256)
+          handler: onPendingReservesAdded
+        - event: TokenPricesSet(indexed address)
+          handler: onTokenPricesSet
+        - event: PerformanceFeeSet(uint128,uint128)
+          handler: onPerformanceFeeSet
+  - kind: ethereum/contract
+    name: GlpInvestmentVault
+    network: {{network}}
+    source:
+      address: '{{glpInvestmentVault.address}}'
+      abi: OrigamiInvestmentVault
+      startBlock: {{glpInvestmentVault.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/investmentVault.ts
+      entities:
+        - InvestmentVault
+      abis:
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+      eventHandlers:
+        - event: InvestmentManagerSet(indexed address)
+          handler: onInvestmentManagerSet
+        - event: Invested(indexed address,uint256,indexed address,uint256)
+          handler: onInvestedVault
+        - event: Exited(indexed address,uint256,indexed address,uint256,indexed address)
+          handler: onExitedVault
+        - event: PendingReservesAdded(uint256)
+          handler: onPendingReservesAdded
+        - event: TokenPricesSet(indexed address)
+          handler: onTokenPricesSet
+        - event: PerformanceFeeSet(uint128,uint128)
+          handler: onPerformanceFeeSet
+  # Access Controlled Offchain Aggregator
+  - kind: ethereum/contract
+    name: HourlyScheduler
+    network: {{network}}
+    source:
+      address: '{{hourlyScheduler.address}}'
+      abi: OffchainAggregator
+      startBlock: {{hourlyScheduler.startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      file: ./src/mappings/hourlyScheduler.ts
+      entities:
+        - HourlyScheduler
+      abis:
+        - name: OrigamiInvestment
+          file: ./abis/OrigamiInvestment.json
+        - name: OrigamiInvestmentVault
+          file: ./abis/OrigamiInvestmentVault.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: TokenPrices
+          file: ./abis/TokenPrices.json
+        - name: OffchainAggregator
+          file: ./abis/OffchainAggregator.json
+      eventHandlers:
+        - event: AnswerUpdated(indexed int256,indexed uint256,uint256)
+          handler: onAnswerUpdated

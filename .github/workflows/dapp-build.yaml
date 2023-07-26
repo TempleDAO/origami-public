@@ -1,0 +1,23 @@
+name: DApp Build
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - .github/workflows/dapp-build.yaml
+      - 'apps/dapp/**'
+
+jobs:
+  build:
+    name: DApp Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'yarn'
+          cache-dependency-path: 'apps/dapp/yarn.lock'
+
+      - run: (cd apps/dapp; yarn install)
+      - run: (cd apps/dapp; yarn build)
+      - run: (cd apps/dapp; yarn lint)

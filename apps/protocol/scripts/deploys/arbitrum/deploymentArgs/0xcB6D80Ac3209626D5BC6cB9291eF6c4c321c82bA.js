@@ -1,0 +1,12 @@
+// arbitrum: origamiGmxRewardsAggregator=0xcB6D80Ac3209626D5BC6cB9291eF6c4c321c82bA
+// yarn hardhat verify --network arbitrum 0xcB6D80Ac3209626D5BC6cB9291eF6c4c321c82bA --constructor-args scripts/deploys/arbitrum/deploymentArgs/0xcB6D80Ac3209626D5BC6cB9291eF6c4c321c82bA.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  1,
+  "0xc0F9dd64D247f4Cb50C07632353896918bE79562",
+  "0x58833508c3d057FE8901A7A2D89CeCcb3449ac24",
+  "0xe488A643E4b0Aaae60E4bdC02045a10d8a323bae",
+  "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+  "0xDef1C0ded9bec7F1a1670819833240f027b25EfF",
+  "0x2eb2717755E6A82762D439e15d4ef1E5Ced6bA35"
+];

@@ -1,0 +1,10 @@
+[profile.default]
+src = 'contracts'
+out = 'artifacts-foundry'
+libs = ['node_modules', 'lib']
+test = 'test/foundry'
+cache_path  = 'cache-foundry'
+gas_reports = ["*"]
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_MAINNET_KEY}" }

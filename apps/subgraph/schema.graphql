@@ -1,0 +1,226 @@
+type Metric @entity {
+  id: ID!
+  timestamp: BigInt!
+  investments: [Investment!]!
+  investmentCount: Int!
+  investmentsTvlUSD: BigDecimal!
+  investmentVaults: [InvestmentVault!]!
+  investmentVaultCount: Int!
+  investmentVaultsTvlUSD: BigDecimal!
+  pricedTokens: [PricedToken!]!
+  pricedTokenCount: Int!
+  userCount: Int!
+  metricDailySnapshots: [MetricDailySnapshot!]! @derivedFrom(field: "metric")
+  metricHourlySnapshots: [MetricHourlySnapshot!]! @derivedFrom(field: "metric")
+}
+
+type MetricDailySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  metric: Metric!
+  investmentCount: Int!
+  investmentsTvlUSD: BigDecimal!
+  investmentVaultCount: Int!
+  investmentVaultsTvlUSD: BigDecimal!
+  pricedTokenCount: Int!
+  userCount: Int!
+}
+
+type MetricHourlySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  metric: Metric!
+  investmentCount: Int!
+  investmentsTvlUSD: BigDecimal!
+  investmentVaultCount: Int!
+  investmentVaultsTvlUSD: BigDecimal!
+  pricedTokenCount: Int!
+  userCount: Int!
+}
+
+type InvestmentVault @entity {
+  id: ID!
+  timestamp: BigInt!
+  name: String!
+  symbol: String!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  apr: BigDecimal!
+  apy: BigDecimal!
+  reservesPerShare: BigDecimal!
+  totalReserves: BigDecimal!
+  totalSupply: BigDecimal!
+  acceptedInvestTokens: [Bytes!]!
+  acceptedExitTokens: [Bytes!]!
+  vaultToken: PricedToken!
+  reserveToken: PricedToken!
+  investmentManager: Bytes!
+  investment: Investment!
+  tokenPrices: Bytes!
+  performanceFee: BigDecimal!
+  userCount: Int!
+  investmentVaultDailySnapshots: [InvestmentVaultDailySnapshot!]! @derivedFrom(field: "investmentVault")
+  investmentVaultHourlySnapshots: [InvestmentVaultHourlySnapshot!]! @derivedFrom(field: "investmentVault")
+}
+
+type InvestmentVaultDailySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  investmentVault: InvestmentVault!
+  name: String!
+  symbol: String!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  apr: BigDecimal!
+  apy: BigDecimal!
+  reservesPerShare: BigDecimal!
+  totalReserves: BigDecimal!
+  totalSupply: BigDecimal!
+  performanceFee: BigDecimal!
+  userCount: Int!
+}
+
+type InvestmentVaultHourlySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  investmentVault: InvestmentVault!
+  name: String!
+  symbol: String!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  apr: BigDecimal!
+  apy: BigDecimal!
+  reservesPerShare: BigDecimal!
+  totalReserves: BigDecimal!
+  totalSupply: BigDecimal!
+  performanceFee: BigDecimal!
+  userCount: Int!
+}
+
+type Investment @entity {
+  id: ID!
+  timestamp: BigInt!
+  tvl: BigDecimal!
+  tvlUSD: BigDecimal!
+  volume: BigDecimal!
+  volumeUSD: BigDecimal!
+  acceptedInvestTokens: [Bytes!]!
+  acceptedExitTokens: [Bytes!]!
+  userCount: Int!
+}
+
+type User @entity {
+  id: ID!
+  timestamp: BigInt!
+  enterTimestamp: BigInt!
+  userBalances: [UserBalance!]! @derivedFrom(field: "user")
+}
+
+type UserBalance @entity {
+  id: ID!
+  timestamp: BigInt!
+  user: User!
+  investmentVault: InvestmentVault!
+  enterInvestTimestamp: BigInt!
+  investAmount: BigDecimal!
+  investAmountUSD: BigDecimal!
+  investVolume: BigDecimal!
+  investCount: Int!
+  exitCount: Int!
+  userInvestments: [UserInvestment!]! @derivedFrom(field: "userBalance")
+  userExits: [UserExit!]! @derivedFrom(field: "userBalance")
+  userBalanceSnapshots: [UserBalanceSnapshot!]! @derivedFrom(field: "userBalance")
+}
+
+type UserBalanceSnapshot @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  userBalance: UserBalance!
+  user: User!
+  investmentVault: InvestmentVault!
+  enterInvestTimestamp: BigInt!
+  investAmount: BigDecimal!
+  investAmountUSD: BigDecimal!
+  investVolume: BigDecimal!
+  investCount: Int!
+  exitCount: Int!
+}
+
+type UserInvestment @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  transaction: Bytes!
+  userBalance: UserBalance!
+  user: User!
+  tokenIn: Token!
+  tokenOut: PricedToken!
+  amountIn: BigDecimal!
+  amountOut: BigDecimal!
+}
+
+type UserExit @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  transaction: Bytes!
+  userBalance: UserBalance!
+  user: User!
+  tokenIn: PricedToken!
+  tokenOut: Token!
+  amountIn: BigDecimal!
+  amountOut: BigDecimal!
+  recipient: Bytes!
+}
+
+type Token @entity(immutable: true) {
+  id: ID!
+  timestamp: BigInt!
+  name: String!
+  symbol: String!
+  decimals: Int!
+}
+
+type PricedToken @entity {
+  id: ID!
+  timestamp: BigInt!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  price: BigDecimal!
+  tokenPrices: Bytes!
+  pricedTokenHourlySnapshots: [PricedTokenHourlySnapshot!]! @derivedFrom(field: "pricedToken")
+  pricedTokenDailySnapshots: [PricedTokenDailySnapshot!]! @derivedFrom(field: "pricedToken")
+}
+
+type PricedTokenHourlySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  pricedToken: PricedToken!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  price: BigDecimal!
+  tokenPrices: Bytes!
+}
+
+type PricedTokenDailySnapshot @entity {
+  id: ID!
+  timestamp: BigInt!
+  timeframe: BigInt!
+  pricedToken: PricedToken!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  price: BigDecimal!
+  tokenPrices: Bytes!
+}

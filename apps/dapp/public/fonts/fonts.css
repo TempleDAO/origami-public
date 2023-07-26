@@ -1,0 +1,17 @@
+@font-face {
+  font-family: 'Exo';
+  src: url('/fonts/Exo-Regular.woff2') format('woff2'),
+    url('/fonts/Exo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Exo';
+  src: url('/fonts/Exo-Bold.woff2') format('woff2'),
+    url('/fonts/Exo-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

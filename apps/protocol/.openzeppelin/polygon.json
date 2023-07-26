@@ -1,0 +1,164 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x93a717f2772072f91B4165A7464f6c3c54224632",
+      "txHash": "0x7689289adf5e33e9b9cea87095c1ec60575a7535511f9307804dd64ee2fa61b2",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "fef425bec444fe54b3862d634e10e0cc877f18a375ce2c6a4c3a85cc7990a831": {
+      "address": "0xBcB8b7FC9197fEDa75C101fA69d3211b5a30dCD9",
+      "txHash": "0xe6fc9004a40e184961b3a3aa17f51ff56fae831d42ecc157818ae22d29875a51",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_gov",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "GovernableBase",
+            "src": "contracts/common/access/GovernableBase.sol:10"
+          },
+          {
+            "label": "_proposedNewGov",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "GovernableBase",
+            "src": "contracts/common/access/GovernableBase.sol:11"
+          },
+          {
+            "label": "_initialized",
+            "offset": 20,
+            "slot": "1",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 21,
+            "slot": "1",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "GovernableUpgradeable",
+            "src": "contracts/common/access/GovernableUpgradeable.sol:24"
+          },
+          {
+            "label": "_operators",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "Operators",
+            "src": "contracts/common/access/Operators.sol:9"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
+          },
+          {
+            "label": "tetuRewardsDistributor",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_contract(ITetuRewardsDistributor)10379",
+            "contract": "OrigamiVeTetuProxy",
+            "src": "contracts/investments/vetetu/OrigamiVeTetuProxy.sol:37"
+          },
+          {
+            "label": "snapshotDelegator",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_contract(ISnapshotDelegator)9911",
+            "contract": "OrigamiVeTetuProxy",
+            "src": "contracts/investments/vetetu/OrigamiVeTetuProxy.sol:40"
+          },
+          {
+            "label": "tetuVoter",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_contract(ITetuVoter)10430",
+            "contract": "OrigamiVeTetuProxy",
+            "src": "contracts/investments/vetetu/OrigamiVeTetuProxy.sol:43"
+          },
+          {
+            "label": "tetuPlatformVoter",
+            "offset": 0,
+            "slot": "155",
+            "type": "t_contract(ITetuPlatformVoter)10292",
+            "contract": "OrigamiVeTetuProxy",
+            "src": "contracts/investments/vetetu/OrigamiVeTetuProxy.sol:46"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(ISnapshotDelegator)9911": {
+            "label": "contract ISnapshotDelegator",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ITetuPlatformVoter)10292": {
+            "label": "contract ITetuPlatformVoter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ITetuRewardsDistributor)10379": {
+            "label": "contract ITetuRewardsDistributor",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ITetuVoter)10430": {
+            "label": "contract ITetuVoter",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}

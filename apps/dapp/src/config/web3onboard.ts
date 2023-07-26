@@ -1,0 +1,87 @@
+import { init as web3OnboardInit } from '@web3-onboard/react';
+import injectedModule from '@web3-onboard/injected-wallets';
+import walletconnect from '@web3-onboard/walletconnect';
+import { getApiConfig } from './index';
+import { DISCLAIMER_URL, ORIGAMI_URL } from '@/urls';
+
+const API_CONFIG = getApiConfig();
+
+const WC_PROJECT_ID = '9a4023728c00ee517019dbbc07e92481';
+
+export const WEB3_ONBOARD = web3OnboardInit({
+  wallets: [
+    injectedModule(),
+    walletconnect({
+      version: 2,
+      projectId: WC_PROJECT_ID,
+    }),
+  ],
+  theme: 'dark',
+  chains: API_CONFIG.chains.map((c) => {
+    return {
+      id: '0x' + c.id.toString(16),
+      token: c.nativeCurrency.symbol,
+      label: c.name,
+      rpcUrl: c.walletRpcUrl,
+    };
+  }),
+  appMetadata: {
+    name: 'Origami',
+    icon: `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+    y="0px" viewBox="0 0 260 230" style="enable-background:new 0 0 260 230;" xml:space="preserve">
+    <style type="text/css">
+      .st0 {
+        fill: url(#SVGID_1_);
+      }
+    </style>
+    <linearGradient id="SVGID_00000095311994709172113390000010480967233156324008_" gradientUnits="userSpaceOnUse" x1="0"
+      y1="0" x2="260" y2="230" gradientTransform="matrix(1 0 0 -1 0 232)">
+      <stop offset="0.1239" style="stop-color:#2DF6A7" />
+      <stop offset="0.8483" style="stop-color:#2EB8EC" />
+    </linearGradient>
+    <path style="fill:url(#SVGID_00000095311994709172113390000010480967233156324008_);" d="M194.5,55.6l-27.2,37.7l-16-35.8
+    l-14.5,16.2L122.9,38L99.3,85.9L74.4,50.1l-49.5,107l58.6-24.4l52.4,77.1l52.5-68.6l47.7,24.3L194.5,55.6z M195.3,66.9l34.8,92
+    L190,138.5L195.3,66.9z M192.3,64.3l-5.4,73.7l-0.2,0.2l-17.8-41.4l1.1-1.6L192.3,64.3z M165.1,96.3L165.1,96.3l19.3,44.9l-46,60.1
+    L152,67l12.4,27.7L165.1,96.3z M149,65.1l-14,137.7l-48.7-71.7l49.4-51.4v0.1l0.9-1l1.5-1.5l-0.1-0.1l1.2-1.3L149,65.1z M134.5,76.4
+    l-7.9,8.2l-1.9-33.3l9.2,23.5L134.5,76.4z M121.3,48.7l2.2,39.1l-13.4,13.9l-8.7-12.9l0.8-1.5L121.3,48.7z M99.7,92.2L99.7,92.2
+    l8.1,11.9l-23.2,24.1L77,59.7l19.5,28.1L99.7,92.2z M73.8,59.2l7.8,70.8l-50.3,21L73.8,59.2z" />
+  `,
+    description: 'The folding protocol for defi',
+    recommendedInjectedWallets: [
+      { name: 'MetaMask', url: 'https://metamask.io' },
+      { name: 'Coinbase', url: 'https://wallet.coinbase.com/' },
+    ],
+    explore: ORIGAMI_URL,
+    agreement: {
+      version: '1.0',
+      termsUrl: DISCLAIMER_URL,
+    },
+  },
+  connect: {
+    // showSidebar: false,
+    removeWhereIsMyWalletWarning: true,
+    autoConnectLastWallet: true,
+  },
+  accountCenter: {
+    desktop: {
+      enabled: false,
+    },
+    mobile: {
+      enabled: false,
+    },
+  },
+  i18n: {
+    en: {
+      connect: {
+        selectingWallet: {
+          agreement: {
+            agree:
+              'I agree to have read and comply with the terms laid out in the',
+            terms:
+              'Origami Disclaimer and associated Terms of Service and Privacy Policy',
+          },
+        },
+      },
+    },
+  },
+});
