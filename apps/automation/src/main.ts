@@ -38,7 +38,7 @@ async function main() {
 
   runner.addPeriodicTask({
     id: 'glp-auto-compounder',
-    cronSchedule: '30 22 * * *',
+    cronSchedule: '45 22 * * *',
     action: async (ctx) => {
       await harvestGlpRewards(ctx, config.harvestGlp);
       await checkEthBalance(ctx, config.checkEthBalance);
