@@ -11,10 +11,9 @@ const SUBTEXT_FONT_SIZE = '0.9rem';
 const socials = [
   { iconName: 'discord', href: 'https://discord.gg/origami' },
   { iconName: 'twitter', href: 'https://twitter.com/origami_fi' },
-  // @todo update once properly published
   {
     iconName: 'gitbook',
-    href: 'https://app.gitbook.com/o/j9MPDBLQNjXAd0d2eB0X/s/uQqfnSZUSHvj0FdEt8I8/introduction/what-is-origami',
+    href: 'https://docs.origami.finance',
   },
   //   { iconName: 'telegram', href: 'https://t.me/+fr8eQevq_6tjZDYx' },
   //   { iconName: 'medium', href: 'https://origamifinance.medium.com/' },
