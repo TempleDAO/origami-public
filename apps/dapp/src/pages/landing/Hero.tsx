@@ -18,7 +18,7 @@ type HeroProps = {
 const carouselStrings = [
   'multiply your token exposure by folding',
   'compounding + leverage = folding',
-  'take your yieds to a whole new level',
+  'take your yields to a whole new level',
   '1x folding now available for gmx and glp',
 ];
 
