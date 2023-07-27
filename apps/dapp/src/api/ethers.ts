@@ -75,6 +75,7 @@ import { first, matchEvents } from './utils';
 import { asyncNever } from '@/utils/noop';
 import { assertNever } from '@/utils/assert';
 import { ENABLE_API_LOGS } from '@/config';
+import { cmpTokenOrNative } from '@/utils/compare';
 
 export interface ApiConfig {
   chains: Chain[];
@@ -242,15 +243,30 @@ class ProviderApiImpl implements ProviderApi {
     const address = await contract.reserveToken();
     const reserveToken = await this.getToken({ address, chainId: chain.id });
 
+    const excludeTokens_ = (
+      tokenAddresses: string[],
+      excludeAddresses?: string[]
+    ) => {
+      // Filter out any of the excludeAddresses from tokenAddresses
+      return excludeAddresses
+        ? tokenAddresses.filter((v) => !excludeAddresses.includes(v))
+        : tokenAddresses;
+    };
+
     const acceptedInvestTokens = createMemoizedAsyncValue(async () => {
+      const tokenAddresses = await contract.acceptedInvestTokens();
       return this.getAcceptedTokens(
         chain,
-        await contract.acceptedInvestTokens()
+        excludeTokens_(tokenAddresses, ic.excludedDepositTokens)
       );
     }).get;
 
     const acceptedExitTokens = createMemoizedAsyncValue(async () => {
-      return this.getAcceptedTokens(chain, await contract.acceptedExitTokens());
+      const tokenAddresses = await contract.acceptedExitTokens();
+      return this.getAcceptedTokens(
+        chain,
+        excludeTokens_(tokenAddresses, ic.excludedExitTokens)
+      );
     }).get;
 
     const getMetrics_ = async (): Promise<MetricsResp> => {
@@ -297,7 +313,11 @@ class ProviderApiImpl implements ProviderApi {
     chain: Chain,
     tokenaddrs: string[]
   ): Promise<TokenOrNative[]> {
-    return Promise.all(tokenaddrs.map((a) => this.getAcceptedToken(chain, a)));
+    const tokens = await Promise.all(
+      tokenaddrs.map((a) => this.getAcceptedToken(chain, a))
+    );
+
+    return tokens.sort(cmpTokenOrNative);
   }
 
   private async getAcceptedToken(

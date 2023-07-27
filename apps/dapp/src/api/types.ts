@@ -57,6 +57,8 @@ export interface InvestmentConfig {
   description: string;
   supportedAssetsDescription: string;
   info: string;
+  excludedDepositTokens?: string[];
+  excludedExitTokens?: string[];
 }
 
 export type PriceContractConfig = ContractAddress;
