@@ -1,3 +1,4 @@
+import { TokenOrNative } from '@/api/types';
 import { DecimalBigNumber } from './decimal-big-number';
 
 export type Equals<T> = (v1: T, v2: T) => boolean;
@@ -57,4 +58,17 @@ export function equals<T>(cfn: Compare<T>): Equals<T> {
   return (v1, v2) => {
     return cfn(v1, v2) === 0;
   };
+}
+
+export function cmpTokenOrNative(v1: TokenOrNative, v2: TokenOrNative) {
+  if (v1.kind == 'native' && v2.kind == 'native') {
+    return 0;
+  } else if (v1.kind == 'native') {
+    return -1;
+  } else if (v2.kind == 'native') {
+    return 1;
+  }
+
+  // No native - so compare the token symbols.
+  return cmpPrim(v1.token.symbol, v2.token.symbol);
 }
