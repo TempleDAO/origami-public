@@ -191,6 +191,9 @@ async function updateOracleThreshold(DEPLOYED: GmxDeployedContracts, contracts: 
         DEPLOYED.GMX.LIQUIDITY_POOL.USDC_TOKEN, 
         encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.USDC_E_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.USDT_TOKEN, 
         encodedOraclePrice(DEPLOYED.PRICES.USDT_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
@@ -489,6 +492,7 @@ async function main() {
     await claimGov(contracts, origamiMultisig, contracts.glpRewardsAggregator);
     await claimGov(contracts, origamiMultisig, contracts.oGMX);
     await claimGov(contracts, origamiMultisig, contracts.oGLP);
+    await claimGov(contracts, origamiMultisig, contracts.gmxManager);
     
     await setUpstreamRewardRates(contracts, owner);
     await updateOracleThreshold(GMX_DEPLOYED, contracts);
@@ -569,6 +573,10 @@ async function main() {
 
     console.log("\n**Harvest Rewards**");
     {
+        // The deployment script vests 100% of the rewards, meaning all 100% of deposits are locked for a period of time
+        // Set this to 10% so we can then pull up to 90% of the funds out still.
+        await mine(contracts.gmxManager.setEsGmxVestingRate(10, 100)); // Vest 10% of the esGMX rewards into GMX
+
         await mineForwardSeconds(86400);
 
         await mine(contracts.gmxRewardsAggregator.setPerformanceFeeCollector(feeCollector.getAddress()));

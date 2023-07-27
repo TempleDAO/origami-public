@@ -92,6 +92,9 @@ async function setupPrices(contracts: ContractInstances, DEPLOYED: GmxDeployedCo
         DEPLOYED.GMX.LIQUIDITY_POOL.USDC_TOKEN, 
         encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
+        DEPLOYED.GMX.LIQUIDITY_POOL.USDC_E_TOKEN, 
+        encodedOraclePrice(DEPLOYED.PRICES.USDC_USD_ORACLE, stalenessThreshold)));
+    await mine(contracts.tokenPrices.setTokenPriceFunction(
         DEPLOYED.GMX.LIQUIDITY_POOL.USDT_TOKEN, 
         encodedOraclePrice(DEPLOYED.PRICES.USDT_USD_ORACLE, stalenessThreshold)));
     await mine(contracts.tokenPrices.setTokenPriceFunction(
@@ -225,7 +228,7 @@ async function main() {
         // GMX Manager
         // await mine(contracts.gmxManager.setSellFeeRate(0, 1000)); // No fees on oGMX when selling
         await mine(contracts.gmxManager.setOGmxRewardsFeeRate(30, 100)); // 30% fee on oGMX rewards
-        await mine(contracts.gmxManager.setEsGmxVestingRate(100, 100)); // Vest 10% of the esGMX rewards into GMX
+        await mine(contracts.gmxManager.setEsGmxVestingRate(100, 100)); // Vest 100% of the esGMX rewards into GMX
 
         // GLP Manager
         // No fees on oGLP when selling
