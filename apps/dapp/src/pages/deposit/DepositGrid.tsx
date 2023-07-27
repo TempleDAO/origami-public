@@ -80,7 +80,12 @@ export function DepositGrid(props: DepositGridProps): JSX.Element {
 
   const headings = makeGridHeadings([
     { name: '', widthWeight: 6 },
-    { name: 'APY', widthWeight: 1 },
+    {
+      name: 'APY',
+      widthWeight: 1,
+      tooltipDesc:
+        'APY will experience a ramp up period after each new deposit as rewards catch up to the new TVL',
+    },
     { name: 'PRICE', widthWeight: 1 },
     { name: 'TVL', widthWeight: 1 },
     { name: 'CHAIN', widthWeight: 1 },

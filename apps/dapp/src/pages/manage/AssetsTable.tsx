@@ -17,6 +17,7 @@ import breakpoints from '@/styles/responsive-breakpoints';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { theme } from '@/styles/theme';
 import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
+import { Tooltip } from '@/components/commons/Tooltip';
 
 export type AssetHolding = {
   investment: Investment;
@@ -42,9 +43,11 @@ export const AssetsTable: FC<AssetsTableProps> = ({
     <Table>
       {isDesktop && (
         <Row css="">
-          <Item col={2}>
-            <Subtext>APY</Subtext>
-          </Item>
+          <Tooltip content="APY will experience a ramp up period after each new deposit as rewards catch up to the new TVL">
+            <Item col={2}>
+              <Subtext>APY</Subtext>
+            </Item>
+          </Tooltip>
           <Item col={3}>
             <Subtext>PRICE</Subtext>
           </Item>

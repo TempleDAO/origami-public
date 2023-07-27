@@ -57,7 +57,7 @@ const GMX_ON_MUMBAI: InvestmentConfig = {
   info: `
   Users deposit GMX and receive proportional ovGMX vault shares.
   \n
-  The ovGMX price per GMX will gradually rise, as GMX staking rewards are harvested and auto-compounded daily into vault reserves.
+  The GMX price per ovGMX will gradually rise, as GMX staking rewards are harvested and auto-compounded daily into vault reserves.
   \n
   The GMX vault yield is further boosted from staking GMX's esGMX and multiplier point rewards.
   `,
@@ -78,7 +78,7 @@ const GLP_ON_MUMBAI: InvestmentConfig = {
   Alternatively users may provide one of the [underlying GLP assets](https://app.gmx.io/#/buy_glp), 
   and Origami will purchase GLP and deposit into the ovGLP vault on their behalf.
   \n
-  The ovGMX price per GLP will gradually rise, as GLP staking rewards are harvested and auto-compounded daily into vault reserves. 
+  The GLP price per ovGLP will gradually rise, as GLP staking rewards are harvested and auto-compounded daily into vault reserves. 
   \n
   Users may exit the vault directly into staked GLP or into one of the [underlying GLP assets](https://app.gmx.io/#/buy_glp)
   `,

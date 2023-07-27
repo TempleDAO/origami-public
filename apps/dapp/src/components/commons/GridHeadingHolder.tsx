@@ -1,17 +1,29 @@
 import breakpoints from '@/styles/responsive-breakpoints';
 import styled from 'styled-components';
+import { Tooltip } from './Tooltip';
 
-export interface HeadingAndWidth {
+export interface HeadingProps {
   name: string;
   widthWeight: number;
+  tooltipDesc?: string;
 }
 
-export const makeGridHeadings = (headings: HeadingAndWidth[]) => {
+export const makeGridHeadings = (headings: HeadingProps[]) => {
   // Create the set of headings, filtering out any undefined (empty columns)
   const rows = headings.map((h, i) => (
-    <Heading key={i + 1} col={i + 1}>
-      {h.name}
-    </Heading>
+    <>
+      {h.tooltipDesc ? (
+        <Tooltip key={i + 1} content={h.tooltipDesc}>
+          <Heading key={i + 1} col={i + 1}>
+            {h.name}
+          </Heading>
+        </Tooltip>
+      ) : (
+        <Heading key={i + 1} col={i + 1}>
+          {h.name}
+        </Heading>
+      )}
+    </>
   ));
   const flexWeights = headings.map((h) => `${h.widthWeight}fr`).join(' ');
 
