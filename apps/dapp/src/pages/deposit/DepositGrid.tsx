@@ -38,6 +38,7 @@ import { FlexRight } from '@/flows/common/components';
 import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
 import { Card, CardColumn, GridValue, SuffixSpan } from '@/components/Card';
 import { makeGridHeadings } from '@/components/commons/GridHeadingHolder';
+import { ApyTooltip, ApyTooltipWrapper } from '@/components/commons/ApyTooltip';
 
 export interface DepositGridItem {
   icon: string;
@@ -83,8 +84,7 @@ export function DepositGrid(props: DepositGridProps): JSX.Element {
     {
       name: 'APY',
       widthWeight: 1,
-      tooltipDesc:
-        'APY will experience a ramp up period after each new deposit as rewards catch up to the new TVL',
+      tooltipWrapper: ApyTooltipWrapper,
     },
     { name: 'PRICE', widthWeight: 1 },
     { name: 'TVL', widthWeight: 1 },
@@ -150,52 +150,66 @@ function ItemFragment({
             tokenExplorerUrl={item.chain.explorer.tokenUrl(item.tokenAddr)}
           />
         </IconNameHolder>
-        <GridValue
-          active={isExpanded && histSeries === 'apy'}
-          onClick={() => {
-            isExpanded || onExpand();
-            setHistSeries('apy');
-          }}
-        >
-          <LoadingText
-            value={lmap(item.apy, formatPercent)}
-            suffix={<SuffixSpan> % {!isDesktop && ' APY'}</SuffixSpan>}
-          />
-        </GridValue>
-        <GridValue
-          active={
-            isExpanded &&
-            (histSeries === 'price' || histSeries === 'reservesPerShare')
-          }
-          onClick={() => {
-            isExpanded || onExpand();
-            setHistSeries('price');
-          }}
-        >
-          <LoadingText
-            value={lmap(item.tokenPrice, formatDecimalBigNumber)}
-            suffix={<SuffixSpan> USD {!isDesktop && ' PRICE'}</SuffixSpan>}
-          />
-        </GridValue>
-        <GridValue
-          active={isExpanded && histSeries === 'tvl'}
-          onClick={() => {
-            isExpanded || onExpand();
-            setHistSeries('tvl');
-          }}
-        >
-          <LoadingText
-            value={lmap(item.tvl, formatNumber)}
-            suffix={<SuffixSpan> USD {!isDesktop && ' TVL'}</SuffixSpan>}
-          />
-        </GridValue>
-        <GridValue subdued>
-          <Tooltip content={item.chain.name}>
-            <ChainIconHolder>
-              <Icon iconName={item.chain.iconName} />
-            </ChainIconHolder>
-          </Tooltip>
-        </GridValue>
+        <MaxWidthItem>
+          <ApyTooltip>
+            <GridValue
+              active={isExpanded && histSeries === 'apy'}
+              onClick={() => {
+                isExpanded || onExpand();
+                setHistSeries('apy');
+              }}
+            >
+              <LoadingText
+                value={lmap(item.apy, formatPercent)}
+                suffix={<SuffixSpan> % {!isDesktop && ' APY'}</SuffixSpan>}
+              />
+            </GridValue>
+          </ApyTooltip>
+        </MaxWidthItem>
+
+        <MaxWidthItem>
+          <GridValue
+            active={
+              isExpanded &&
+              (histSeries === 'price' || histSeries === 'reservesPerShare')
+            }
+            onClick={() => {
+              isExpanded || onExpand();
+              setHistSeries('price');
+            }}
+          >
+            <LoadingText
+              value={lmap(item.tokenPrice, formatDecimalBigNumber)}
+              suffix={<SuffixSpan> USD {!isDesktop && ' PRICE'}</SuffixSpan>}
+            />
+          </GridValue>
+        </MaxWidthItem>
+
+        <MaxWidthItem>
+          <GridValue
+            active={isExpanded && histSeries === 'tvl'}
+            onClick={() => {
+              isExpanded || onExpand();
+              setHistSeries('tvl');
+            }}
+          >
+            <LoadingText
+              value={lmap(item.tvl, formatNumber)}
+              suffix={<SuffixSpan> USD {!isDesktop && ' TVL'}</SuffixSpan>}
+            />
+          </GridValue>
+        </MaxWidthItem>
+
+        <MaxWidthItem>
+          <GridValue subdued>
+            <Tooltip content={item.chain.name}>
+              <ChainIconHolder>
+                <Icon iconName={item.chain.iconName} />
+              </ChainIconHolder>
+            </Tooltip>
+          </GridValue>
+        </MaxWidthItem>
+
         {isDesktop && (
           <ButtonHolder>
             <AsyncButton
@@ -300,6 +314,13 @@ const IconNameHolder = styled.div`
   ${breakpoints.lg(`
     grid-column: 1;
   `)}
+`;
+
+const MaxWidthItem = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const ButtonHolder = styled.div`

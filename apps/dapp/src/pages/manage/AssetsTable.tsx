@@ -17,7 +17,7 @@ import breakpoints from '@/styles/responsive-breakpoints';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { theme } from '@/styles/theme';
 import { InvestmentNameAndDescription } from '@/components/commons/InvestmentNameAndDescription';
-import { Tooltip } from '@/components/commons/Tooltip';
+import { ApyTooltip } from '@/components/commons/ApyTooltip';
 
 export type AssetHolding = {
   investment: Investment;
@@ -43,11 +43,12 @@ export const AssetsTable: FC<AssetsTableProps> = ({
     <Table>
       {isDesktop && (
         <Row css="">
-          <Tooltip content="APY will experience a ramp up period after each new deposit as rewards catch up to the new TVL">
+          <Item col={1}></Item>
+          <ApyTooltip>
             <Item col={2}>
               <Subtext>APY</Subtext>
             </Item>
-          </Tooltip>
+          </ApyTooltip>
           <Item col={3}>
             <Subtext>PRICE</Subtext>
           </Item>
@@ -100,16 +101,18 @@ const AssetsTableRow: FC<AssetsTableRowProps> = ({ holding, handleSelect }) => {
         </AssetInfo>
       </Item0>
       <Item col={2}>
-        <ValueContainer>
-          <Primary>
-            <LoadingText
-              value={lmap(holding.metrics, (metrics) =>
-                formatPercent(metrics.apy)
-              )}
-              suffix={<ValueSuffix> % {!isDesktop && ' APY'}</ValueSuffix>}
-            />
-          </Primary>
-        </ValueContainer>
+        <ApyTooltip>
+          <ValueContainer>
+            <Primary>
+              <LoadingText
+                value={lmap(holding.metrics, (metrics) =>
+                  formatPercent(metrics.apy)
+                )}
+                suffix={<ValueSuffix> % {!isDesktop && ' APY'}</ValueSuffix>}
+              />
+            </Primary>
+          </ValueContainer>
+        </ApyTooltip>
       </Item>
       <Item col={3}>
         <ValueContainer>
