@@ -9,14 +9,14 @@ export const ApyTooltip: FC<TippyProps> = ({ children }) => (
   <Tooltip content={APY_TOOLTIP_CONTENT}>{children}</Tooltip>
 );
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type TooltipWrapperFn = (props: {
   key?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children?: React.ReactElement<any>;
 }) => JSX.Element;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ApyTooltipWrapper = (props: {
   key?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children?: React.ReactElement<any>;
 }) => <ApyTooltip key={props.key}>{props.children}</ApyTooltip>;
