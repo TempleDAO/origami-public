@@ -21,6 +21,7 @@ import { AppRoutes } from './app-routes';
 import { Web3OnboardProvider } from '@web3-onboard/react';
 import { WEB3_ONBOARD } from './config/web3onboard';
 import { GEOBLOCK_URL } from './urls';
+import { AnalyticsService } from './utils/analytics';
 
 // polyfill Buffer required for WalletConnect
 if (!window.Buffer) {
@@ -75,6 +76,8 @@ const router = createBrowserRouter([
 ]);
 
 const API_CONFIG = getApiConfig();
+
+AnalyticsService.init();
 
 const AccessRestricted = () => (
   <FullScreenContainer>
