@@ -15,6 +15,7 @@ import breakpoints from '@/styles/responsive-breakpoints';
 import sunkenStyles from '@/styles/mixins/cards/sunken';
 import { textH1, textH3 } from '@/styles/mixins/text-styles';
 import { ApiCache } from '@/api/cache';
+import { ApyTooltip } from '@/components/commons/ApyTooltip';
 
 type InvestmentMetrics = {
   key: string;
@@ -60,15 +61,17 @@ export const LandingPageMetrics: FC<{ cache: ApiCache }> = ({ cache }) => {
                 </p>
               </MetricHeader>
             </InvestmentInfo>
-            <Metric key={`${metrics.key} - APY`}>
-              <h2>APY</h2>
-              <p>
-                <LoadingText
-                  value={lmap(metrics.metrics, (v) => formatPercent(v.apy))}
-                />{' '}
-                <MetricSubtext>%</MetricSubtext>
-              </p>
-            </Metric>
+            <ApyTooltip>
+              <Metric key={`${metrics.key} - APY`}>
+                <h2>APY</h2>
+                <p>
+                  <LoadingText
+                    value={lmap(metrics.metrics, (v) => formatPercent(v.apy))}
+                  />{' '}
+                  <MetricSubtext>%</MetricSubtext>
+                </p>
+              </Metric>
+            </ApyTooltip>
             <Metric key={`${metrics.key} - TVL`}>
               <h2>TVL</h2>
               <p>
