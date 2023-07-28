@@ -4,7 +4,7 @@ import { harvestGmxRewards } from "./investments/gmx/gmx-auto-compounder";
 import { harvestGlpRewards } from "./investments/gmx/glp-auto-compounder";
 import { transferStakedGlp } from "./investments/gmx/transfer-staked-glp";
 import { createAlertPausedTask } from "./investments/gmx/alert-paused-status";
-import { checkEthBalance } from "./investments/gmx/eth-auto-checker";
+import { isLowEthBalance, reportLowEthBalance } from "./investments/gmx/eth-auto-checker";
 
 import { CONFIG as CONFIG_TESTNETS } from "./config/testnets";
 import { CONFIG as CONFIG_PRODNETS } from "./config/prodnets";
@@ -21,10 +21,10 @@ async function main() {
 
   runner.addPeriodicTask({
     id: 'gmx-auto-compounder',
-    cronSchedule: '30 22 * * *',
+    cronSchedule: '30 10,22 * * *',
     action: async (ctx) => {
       await harvestGmxRewards(ctx, config.harvestGmx);
-      await checkEthBalance(ctx, config.checkEthBalance);
+      await reportLowEthBalance(ctx, config.checkEthBalance);
     }
   });
 
@@ -32,16 +32,16 @@ async function main() {
     id: 'gmx-auto-compounder-wh',
     action: async (ctx) => {
       await harvestGmxRewards(ctx, config.harvestGmx);
-      await checkEthBalance(ctx, config.checkEthBalance);
+      await reportLowEthBalance(ctx, config.checkEthBalance);
     }
   });
 
   runner.addPeriodicTask({
     id: 'glp-auto-compounder',
-    cronSchedule: '45 22 * * *',
+    cronSchedule: '45 10,22 * * *',
     action: async (ctx) => {
       await harvestGlpRewards(ctx, config.harvestGlp);
-      await checkEthBalance(ctx, config.checkEthBalance);
+      await reportLowEthBalance(ctx, config.checkEthBalance);
     }
   });
 
@@ -49,16 +49,16 @@ async function main() {
     id: 'glp-auto-compounder-wh',
     action: async (ctx) => {
       await harvestGlpRewards(ctx, config.harvestGlp);
-      await checkEthBalance(ctx, config.checkEthBalance);
+      await reportLowEthBalance(ctx, config.checkEthBalance);
     }
   });
 
   runner.addPeriodicTask({ 
     id: 'transfer-staked-glp',
-    cronSchedule: '0 22 * * *',
+    cronSchedule: '0 10,22 * * *',
     action: async (ctx) => {
       await transferStakedGlp(ctx, config.transferStakedGlp);
-      await checkEthBalance(ctx, config.checkEthBalance);
+      await reportLowEthBalance(ctx, config.checkEthBalance);
     }
   });
 
@@ -66,23 +66,15 @@ async function main() {
     id: 'transfer-staked-glp-wh',
     action: async (ctx) => {
       await transferStakedGlp(ctx, config.transferStakedGlp);
-      await checkEthBalance(ctx, config.checkEthBalance);
+      await reportLowEthBalance(ctx, config.checkEthBalance);
     }
   });
 
   runner.addPeriodicTask({ 
     id: 'check-eth-balance',
     cronSchedule: '30 * * * *',
-    action: async (ctx) => {
-      await checkEthBalance(ctx, config.checkEthBalance);
-    }
-  });
-
-  runner.addWebhookTask({ 
-    id: 'check-eth-balance-wh',
-    action: async (ctx) => {
-      await checkEthBalance(ctx, config.checkEthBalance);
-    }
+    predicate: async (ctx) => isLowEthBalance(ctx, config.checkEthBalance),
+    action: async (ctx) => reportLowEthBalance(ctx, config.checkEthBalance),
   });
   
   const alertPausedTask = await createAlertPausedTask(runner, 'alert-paused-status', config.alertPausedStatus);

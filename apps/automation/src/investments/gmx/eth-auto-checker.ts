@@ -10,7 +10,19 @@ export interface CheckEthBalanceConfig {
     MIN_ETH_BALANCE: BigNumber;
 }
 
-export async function checkEthBalance(
+export async function isLowEthBalance(
+  ctx: TaskContext,
+  config: CheckEthBalanceConfig
+): Promise<boolean> {
+  const provider = await ctx.getProvider(config.CHAIN.id);
+  const signer = await ctx.getSigner(provider, config.WALLET_NAME);
+  const balance = await signer.getBalance();
+  const walletAddress = await signer.getAddress();
+  ctx.logger.info(`ETH Balance for [${walletAddress}] = [${formatBigNumber(balance, 18, 6)}]`);
+  return balance.lt(config.MIN_ETH_BALANCE);
+}
+
+export async function reportLowEthBalance(
   ctx: TaskContext,
   config: CheckEthBalanceConfig
 ) {
@@ -19,7 +31,6 @@ export async function checkEthBalance(
   const balance = await signer.getBalance();
   const walletAddress = await signer.getAddress();
   const ethBalanceStr = formatBigNumber(balance, 18, 6);
-  ctx.logger.info(`ETH Balance for [${walletAddress}] = [${ethBalanceStr}]`);
 
   if (balance.lt(config.MIN_ETH_BALANCE)) {
     // Report low balance
