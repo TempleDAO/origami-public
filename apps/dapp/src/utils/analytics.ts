@@ -7,9 +7,14 @@ export class AnalyticsService {
 
   public static init(): void {
     console.debug(`AnalyticsService.init: IS_DEVELOPMENT=${IS_DEVELOPMENT}`);
+
     if (!IS_DEVELOPMENT) {
-      // TODO: Move posthog config to env vars
-      posthog.init('phc_kXbMwslQybtPZl6w6Q7Cdl7SDqjE4gGxlNJ0HE80ttH', {
+      const POSTHOG_TOKEN = import.meta.env.POSTHOG_TOKEN;
+      if (!POSTHOG_TOKEN) {
+        console.error('Posthog token is not set');
+        return;
+      }
+      posthog.init(POSTHOG_TOKEN, {
         api_host: 'https://app.posthog.com',
       });
     }
