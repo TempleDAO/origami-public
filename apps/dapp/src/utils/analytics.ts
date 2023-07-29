@@ -9,7 +9,7 @@ export class AnalyticsService {
     console.debug(`AnalyticsService.init: IS_DEVELOPMENT=${IS_DEVELOPMENT}`);
 
     if (!IS_DEVELOPMENT) {
-      const POSTHOG_TOKEN = import.meta.env.POSTHOG_TOKEN;
+      const POSTHOG_TOKEN = import.meta.env.VITE_POSTHOG_TOKEN;
       if (!POSTHOG_TOKEN) {
         console.error('Posthog token is not set');
         return;
