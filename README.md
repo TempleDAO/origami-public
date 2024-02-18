@@ -1,5 +1,7 @@
 # Origami Monorepo
 
+For documentation on the upcoming Origami v2, please see [HERE](./docs/README.md)
+
 ## Getting Started
 
 ### Contracts
