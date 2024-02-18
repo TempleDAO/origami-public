@@ -17,7 +17,7 @@
 
 lovDSR is a `Leveraged Vault` giving 10x exposure to DAI Savings Rate yield. In order to increase leverage, it needs USDC liquidity, provided by the ovUSDC `Liquidity Provider Vault`.
 
-For more details on these vaults, read the [lovStrategy Introduction](./lovStrategyIntro.md#origami-lovstrategy-background)
+For more details on these vaults, read the [lovToken Introduction](./lovTokenIntro.md#origami-lovToken-background)
 
 Both of these vaults implement the [IOrigamiInvestment.sol](../../apps/protocol/contracts/interfaces/investments/IOrigamiInvestment.sol) interface providing a consistent integration point for the dapp across all Origami vaults without custom subgraph/dapp logic.
 
