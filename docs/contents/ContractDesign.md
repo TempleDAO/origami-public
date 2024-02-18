@@ -4,6 +4,7 @@
   - [ovUSDC and lovDSR](#ovusdc-and-lovdsr)
       - [ovUSDC](#ovusdc)
       - [lovDSR](#lovdsr)
+  - [lovStEth](#lovsteth)
   - [General Design Notes](#general-design-notes)
     - [Origami Elevated Access](#origami-elevated-access)
     - [Circuit Breakers](#circuit-breakers)
@@ -20,10 +21,14 @@ For more details on these vaults, read the [lovStrategy Introduction](./lovStrat
 
 Both of these vaults implement the [IOrigamiInvestment.sol](../../apps/protocol/contracts/interfaces/investments/IOrigamiInvestment.sol) interface providing a consistent integration point for the dapp across all Origami vaults without custom subgraph/dapp logic.
 
+| ovUSDC | lovDSR |
+| ------ | ------ |
+| <img src="img/hfw-ovUSDC.png" alt="hfw-ovUSDC" style="width:300px;"/> | <img src="img/hfw-lovDSR.png" alt="hfw-lovDSR" style="width:300px;"/> |
+
 The high level interaction between these two vaults can be seen here:
 
 <div style="text-align: center;">
-  <img src="lovDSR-HighLevel.png" alt="ovUSDC-lovDSR" style="width:600px;"/>
+  <img src="img/lovDSR-HighLevel.png" alt="ovUSDC-lovDSR" style="width:600px;"/>
 </div>
 
 At a contract level, the interactions and safeguards are illustrated with these two figures
@@ -32,14 +37,64 @@ NB: For a better viewing experiance, see [Figma](https://www.figma.com/file/n1VQ
 
 #### ovUSDC
 
+- ovUSDC is a repricing (share based) vault. The "reserve token" is oUSDC
+- oUSDC is a 1:1. The "reserve token" is USDC
+- User deposits USDC in to ovUSDC, and does not need to interact with oUSDC.
+- The LendingClerk is the smart 'just in time' routing of liquidity for lovToken borrowers like lovDSR
+  - Idle liquidity is supplied into Aave
+  - iUSDC is a debt token which is used to track internal cost of borrowing USDC, across idle strategy and lovToken borrowers.
+- New oUSDC is minted based on the accrued iUDSC, and added as new supply to ovUSDC
+
 <div style="text-align: center;">
-  <img src="ovUsdc.png" alt="ovUsdc"/>
+  <img src="img/ovUsdc.png" alt="ovUsdc"/>
 </div>
 
 #### lovDSR
 
+- lovDSR is a repricing (share based) vault. The "reserve token" is sDAI
+- User deposits DAI or sDAI in to lovDSR
+- Users can only deposit and exit up to dynamic caps, based on the Assets/Liabilities (A/L) range which is set for the vault.
+- Rebalances (to increase/decrease leverage to within the target A/L range) are performed by a bot
+  - After a rebalance (or user deposit/exit) the A/L changes, meaning the dynamic deposit/exit utilisation has changed.
+- The LendingClerk is the smart 'just in time' routing of liquidity for lovToken borrowers like lovDSR
+  - Idle liquidity is supplied into Aave
+  - iUSDC is a debt token which is used to track internal cost of borrowing USDC, across idle strategy and lovToken borrowers.
+- New oUSDC is minted based on the accrued iUDSC, and added as new supply to ovUSDC
+
 <div style="text-align: center;">
-  <img src="lovDSR.png" alt="lovDSR"/>
+  <img src="img/lovDSR.png" alt="lovDSR"/>
+</div>
+
+## lovStEth
+
+lovStEth is a `Leveraged Vault` giving 9x exposure to Lido Staked ETH yield. In order to increase leverage, it utilises Spark Finance to loop by flashloaning wETH and adding to the collateral and debt position.
+
+<div style="text-align: center;">
+  <img src="img/hfw-lovStEth.png" alt="ovUsdc" style="width:300px;"/>
+</div>
+
+- lovStEth is a repricing (share based) vault. The "reserve token" is wstETH
+- User deposits wstETH
+- The same A/L caps hold as with lovDSR (and all other future lovTokens)
+- Origami levers up (a `rebalanceDown()`) by:
+  - Flashloan wETH
+  - swap wETH -> wstETH
+  - supply wstETH as collateral in Spark
+  - assets += this wstETH amount
+  - borrow the flashloan+fee amount from Spark
+  - liabilities += this wETH amount (we convert to wstETH later)
+  - Repay the flashloan
+- Origami delevers (a `rebalanceUp()`) by:
+  - Flashloan wETH
+  - repay wETH debt to Spark position
+  - liabilities -= this wETH amount (we convert to wstETH later)
+  - withdraw wstETH collateral
+  - assets -= this wstETH amount
+  - swap wstETH -> wETH
+  - repay the flashloan
+
+<div style="text-align: center;">
+  <img src="img/lovStEth.png" alt="lovStEth"/>
 </div>
 
 ## General Design Notes
@@ -63,7 +118,7 @@ This allows us to whitelist an address to have access to an individual bytes4 fu
 Origami has incorporated a circuit breaker for certain functions to provide limited liability in case of an emergency.
 
 <div style="text-align: center;">
-  <img src="circuitBreaker.png" alt="Circuit Breakers" style="width:600px;"/>
+  <img src="img/circuitBreaker.png" alt="Circuit Breakers" style="width:600px;"/>
 </div>
 
 Over time, there may be multiple types of circuit breaker implementations. As of writing, we have just one.

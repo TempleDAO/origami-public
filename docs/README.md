@@ -17,6 +17,6 @@ For more context, see:
 | Website (v1) | [https://origami.finance/](https://origami.finance/)             |
 | Dapp (v1)    | [https://origami.finance/deposit](https://origami.finance/deposit) |
 | Docs (v1)    | [https://docs.origami.finance/introduction/what-is-origami](https://docs.origami.finance/introduction/what-is-origami)    |
+| Audits (v1) | [origami-v1](../audits/origami-v1/)             |
 | Discord | [https://discord.gg/origami](https://discord.gg/origami)         |
 | Twitter | [https://twitter.com/origami_fi](https://twitter.com/origami_fi) |
-

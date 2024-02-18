@@ -38,9 +38,9 @@ The first lovStrategy vault is Leveraged Origami Vault for DSR, or lovDSR. The r
 >    1. The lovDSR vault will increase its exposure to the DSR Strategy by borrowing USDC from ovUSDC vault to make new deposits into the Spark sDAI contract using lovDSR user deposits as collateral for the loan
 
 Fig 1.
-<div style="text-align: center;">
-  <img src="HowFoldingWorks.png" alt="HowFoldingWorks" style="width:600px;"/>
-</div>
+| ovUSDC | lovDSR |
+| ------ | ------ |
+| <img src="img/hfw-ovUSDC.png" alt="hfw-ovUSDC" style="width:300px;"/> | <img src="img/hfw-lovDSR.png" alt="hfw-lovDSR" style="width:300px;"/> |
 
 ## How Origami Achieves Its Targeted Delta Exposure
 
