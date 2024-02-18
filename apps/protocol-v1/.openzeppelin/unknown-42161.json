@@ -1,0 +1,230 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x9B517Eb5806b41af0ab49992985D35816612134e",
+      "txHash": "0xd3ab0ecd7394c4cf2d55b2c051eb43568f3bde3dd84150de5d4e223333bf7177",
+      "kind": "uups"
+    },
+    {
+      "address": "0x73957eEf5b6F32208F274D6fEA07f60cF53Def9b",
+      "txHash": "0xed49ce4c81e9455c9c91affdd825e11ce6b8d1ff83876891f50edb7051d9047d",
+      "kind": "uups"
+    },
+    {
+      "address": "0xc3431D389999f2412B2570a66DA84CE59E5C2a94",
+      "txHash": "0x021e54f92e570198659308fb10445022cf3a3f0ad5be4b3cb21c76ea9a37a878",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "cab66f494da8defc51b42130523cfff1df5cedc4bfbaa48d746ef3d8569c373d": {
+      "address": "0x0b53Afe5de9f9df65C3Fe8A9DA81dC410d14d4d4",
+      "txHash": "0x46fbf04ae10d3ef57ab033007f90b67e292fd94cc6ec50b4acba2d6d19cf5df9",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_gov",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "GovernableBase",
+            "src": "contracts/common/access/GovernableBase.sol:10"
+          },
+          {
+            "label": "_proposedNewGov",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "GovernableBase",
+            "src": "contracts/common/access/GovernableBase.sol:11"
+          },
+          {
+            "label": "_initialized",
+            "offset": 20,
+            "slot": "1",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 21,
+            "slot": "1",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "GovernableUpgradeable",
+            "src": "contracts/common/access/GovernableUpgradeable.sol:24"
+          },
+          {
+            "label": "_operators",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "Operators",
+            "src": "contracts/common/access/Operators.sol:9"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:211"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:107"
+          },
+          {
+            "label": "bnGmxAddr",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_address",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:46"
+          },
+          {
+            "label": "gmxRewardRouter",
+            "offset": 0,
+            "slot": "153",
+            "type": "t_contract(IGmxRewardRouter)9691",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:49"
+          },
+          {
+            "label": "glpRewardRouter",
+            "offset": 0,
+            "slot": "154",
+            "type": "t_contract(IGmxRewardRouter)9691",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:52"
+          },
+          {
+            "label": "stakedGmxTracker",
+            "offset": 0,
+            "slot": "155",
+            "type": "t_contract(IGmxRewardTracker)9734",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:55"
+          },
+          {
+            "label": "feeGmxTracker",
+            "offset": 0,
+            "slot": "156",
+            "type": "t_contract(IGmxRewardTracker)9734",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:58"
+          },
+          {
+            "label": "stakedGlpTracker",
+            "offset": 0,
+            "slot": "157",
+            "type": "t_contract(IGmxRewardTracker)9734",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:61"
+          },
+          {
+            "label": "feeGlpTracker",
+            "offset": 0,
+            "slot": "158",
+            "type": "t_contract(IGmxRewardTracker)9734",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:64"
+          },
+          {
+            "label": "stakedGlp",
+            "offset": 0,
+            "slot": "159",
+            "type": "t_contract(IERC20Upgradeable)771",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:67"
+          },
+          {
+            "label": "esGmxVester",
+            "offset": 0,
+            "slot": "160",
+            "type": "t_contract(IGmxVester)9919",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:71"
+          },
+          {
+            "label": "glpInvestmentsPaused",
+            "offset": 20,
+            "slot": "160",
+            "type": "t_bool",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:74"
+          },
+          {
+            "label": "glpLastTransferredAt",
+            "offset": 0,
+            "slot": "161",
+            "type": "t_uint256",
+            "contract": "OrigamiGmxEarnAccount",
+            "src": "contracts/investments/gmx/OrigamiGmxEarnAccount.sol:77"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IERC20Upgradeable)771": {
+            "label": "contract IERC20Upgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGmxRewardRouter)9691": {
+            "label": "contract IGmxRewardRouter",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGmxRewardTracker)9734": {
+            "label": "contract IGmxRewardTracker",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGmxVester)9919": {
+            "label": "contract IGmxVester",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}
