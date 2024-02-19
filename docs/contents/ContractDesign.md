@@ -187,6 +187,8 @@ We are fans of the ERC-4626 standard for composability and consistency. However 
   - NB: There are proposals for multi-asset vaults (eg [mstable's metavaults](https://github.com/mstable/metavaults))
 - Vault: A requirement was to have a single interface which worked for all our vaults, whether they are repricing or not. These vaults needed to be composable such that we can create repricing vault (eg ovUSDC) which wraps a non-repricing vault (oUSDC)
 
+Some of these constraints can be worked around with via a Router design, which wrap the ERC-4626 vault. However this adds complexity for dapp and direct on-chain operations. The UX is better if you interact with the exact contract rather than a router.
+
 With those constraints, Origami v1 created the [IOrigamiInvestment.sol](../../apps/protocol/contracts/interfaces/investments/IOrigamiInvestment.sol) interface which allowed for getting on-chain quotes (with quote data), and then deposits and exits into the vault providing that quote data.
 
 Origami vaults are not intended for integrations. Utilising the ERC-4626 standard was not a priority.
