@@ -76,6 +76,7 @@ The prevailing APR for each lovToken vault is dynamic and will fluctuate dependi
   - When the underlying is trading below peg it charges a multiple of the difference between the oracle price and 1 for withdrawals and assumes the underlying is trading at peg for deposits.
   - When the underlying is trading above peg it charges a multiple of the difference between the oracle price and 1 for deposits and assumes the underlying is trading at peg for withdrawals
   - These vault fees are deflationary - lovToken shares are burned to benefit remaining users in the vault.
+  - Example scenarios showing the impact of dynamic fees can be found [here](https://docs.google.com/spreadsheets/d/1EUcZFJP5UeCfA8XY2mMWEWO1_oXJU5DWRFBzeDc27nY/edit?usp=sharing)
 
 ## Hats Audit
 
