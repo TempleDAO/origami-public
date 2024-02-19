@@ -6,7 +6,7 @@ Origami Finance ([https://origami.finance/](https://origami.finance/)) is a prot
 
 For more context, see:
 
-* [Introduction to lovToken's](./contents/lovTokenIntro.md)
+* [Introduction to lovTokens](./contents/lovTokenIntro.md)
 * [Hats Audit Comp](./contents/OrigamiHatsAuditComp.md)
 * [Contract Design](./contents/ContractDesign.md)
 
