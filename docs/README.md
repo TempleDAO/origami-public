@@ -8,6 +8,7 @@ For more context, see:
 
 * [Introduction to lovTokens](./contents/lovTokenIntro.md)
 * [Hats Audit Comp](./contents/OrigamiHatsAuditComp.md)
+  * [Audit In Scope Files](./contents/in-scope-files.txt)
 * [Contract Design](./contents/ContractDesign.md)
 
 ## Socials and Links
