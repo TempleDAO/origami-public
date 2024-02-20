@@ -1,17 +1,19 @@
 # Origami lovToken
 
-- [Origami lovToken Background](#origami-lovtoken-background)
-      - [Example 1 Typical Vault Flow on Origami:](#example-1-typical-vault-flow-on-origami)
-  - [How Origami Achieves Its Targeted Delta Exposure](#how-origami-achieves-its-targeted-delta-exposure)
-      - [Example 2 Deposits and Loans Affect the A/C Ratio and the A/L Ratio:](#example-2-deposits-and-loans-affect-the-ac-ratio-and-the-al-ratio)
+- [Origami lovToken](#origami-lovtoken)
+  - [Origami lovToken Background](#origami-lovtoken-background)
+      - [Example 1 Typical Vault Flow on Origami](#example-1-typical-vault-flow-on-origami)
+  - [How Origami Achieves Its Targeted Delta Exposure - A lovDSR Example](#how-origami-achieves-its-targeted-delta-exposure---a-lovdsr-example)
+      - [Example 2 Deposits and Loans Affect the A/C Ratio and the A/L Ratio](#example-2-deposits-and-loans-affect-the-ac-ratio-and-the-al-ratio)
     - [Yield For Liquidity Providers Comes From Accrued USDC Interest](#yield-for-liquidity-providers-comes-from-accrued-usdc-interest)
     - [Borrower Interest is Variable and Determined by Capital Utilisation Ratio](#borrower-interest-is-variable-and-determined-by-capital-utilisation-ratio)
-      - [Example 3 Interest Rate Calculations for lovToken Vaults:](#example-3-interest-rate-calculations-for-lovtoken-vaults)
+      - [Example 3 Interest Rate Calculations for lovToken Strategy Vaults](#example-3-interest-rate-calculations-for-lovtoken-strategy-vaults)
     - [Exit Liquidity Is Constrained By Available Liquidity in the Idle Strategy](#exit-liquidity-is-constrained-by-available-liquidity-in-the-idle-strategy)
     - [lovDSR User Gains and Losses Are Reflected in the Share Price](#lovdsr-user-gains-and-losses-are-reflected-in-the-share-price)
-    - [lovDSR will Utilise RebalanceUp/Down to Maintain Target Exposure\[ \]{.underline}](#lovdsr-will-utilise-rebalanceupdown-to-maintain-target-exposure-underline)
+      - [Example 4: lovDSR Share Price Calculations](#example-4-lovdsr-share-price-calculations)
+    - [lovDSR will Utilise RebalanceUp/Down to Maintain Target Exposure](#lovdsr-will-utilise-rebalanceupdown-to-maintain-target-exposure)
     - [ovUSDC vault will Utilise Borrow Caps To Allocate Available Liquidity](#ovusdc-vault-will-utilise-borrow-caps-to-allocate-available-liquidity)
-    - [\[Fortune Favours the Fold\]{.underline}](#fortune-favours-the-foldunderline)
+  - [Fortune Favours the Fold](#fortune-favours-the-fold)
 
 ## Origami lovToken Background
 
@@ -42,7 +44,7 @@ Fig 1.
 | ------ | ------ |
 | <img src="img/hfw-ovUSDC.png" alt="hfw-ovUSDC" style="width:300px;"/> | <img src="img/hfw-lovDSR.png" alt="hfw-lovDSR" style="width:300px;"/> |
 
-## How Origami Achieves Its Targeted Delta Exposure
+## How Origami Achieves Its Targeted Delta Exposure - A lovDSR Example
 
 The lovDSR vault tracks both its `Assets` and `Liabilities` in terms of sDAI. The lovDSR vault assets i.e. its Total sDAI balance can be parsed into *non-withdrawable* (amount reserved to back its USDC debt) and *withdrawable* (amount that is used to determine the price for lovDSR token holders). The price of lovDSR in sDAI terms is what determines gains and losses for lovDSR holders. Additionally, the vault's `Asset / Collateral` ratio can be calculated to assess the Delta Exposure i.e. Effective Exposure. The Collateralization or `Asset / Liability` ratio of the current vault position can be used to determine the health of its USDC loan.
 
@@ -145,4 +147,4 @@ Whilst the interest rate model helps to allocate available capital between vault
 
 ## Fortune Favours the Fold
 
-Origami unfolds to reveal a powerful and flexible vault paradigm that allows users to apply leverage to their favourite single-asset farming strategy. The lovToken vault framework is designed to maximise capital efficiency whilst minimising risk of liquidation and bad debt. Whilst only the DSR Strategy via Spark DAI (sDAI) will be available at launch, lovToken framework can be tailored to fit any compatible stablecoin yield Strategy. A future where Origami will wrap ETH liquid staking strategies such as wstETH is also within reach.
+Origami unfolds to reveal a powerful and flexible vault paradigm that allows users to apply leverage to their favourite single-asset farming strategy. The lovToken vault framework is designed to maximise capital efficiency whilst minimising risk of liquidation and bad debt. Whilst only the lovDSR Strategy via Spark DAI (sDAI) and lovSTETH Strategy via Lido will be available at launch, lovToken framework can be tailored to fit any compatible stablecoin yield Strategy. A most notable example being lovBGT liquid staking strategies on Berachain.
