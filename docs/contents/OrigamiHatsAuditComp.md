@@ -153,8 +153,9 @@ See here for [in-scope-files.txt](./in-scope-files.txt)
   - Non standard 18dp ERC20 Tokens (eg USDT, other fee taking ERC20s), other than USDC are OOS for the ovUSDC contract flow (OrigamiLendingSupplyManager, OrigamiLendingClerk)
   - Tokens other than DAI/sDAI are OOS for the lovDSR flow (OrigamiLovTokenErc4626Manager)
   - Tokens other than wstETH/wETH are OOS for the lovStEth flow (OrigamiLovTokenDirectAaveManager)
-- Any `4naly3er` or slither output is considered public and OOS
-  - Links to be be published when competition opens
+- Any `4naly3er` or `slither` output is considered public and OOS
+  - 4naly3er output: [apps/protocol/scripts/gas-report/4naly3er-report.md](../../apps/apps/protocol/scripts/gas-report/4naly3er-report.md)
+  - Slither output: [apps/protocol/slither.db.json](../../apps/protocol/slither.db.json)
 - Centralization risks are for policy/emergency/operational behaviour, and owned by the Origami multisig. This is acceptable and out of scope as it's required for the protocol to work as intended and protect user funds
 - External libraries (prbmath, openzeppelin) are out of scope
 - Whitelisting for contracts has known constraints (eg code=0 on construction) and this behaviour is expected.
