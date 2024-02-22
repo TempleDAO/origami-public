@@ -1,0 +1,47 @@
+[profile.default]
+  optimizer = true
+  optimizer_runs = 10_000
+  verbosity = 3
+  src = 'contracts'
+  out = 'artifacts-foundry'
+  libs = ['node_modules', 'lib']
+  test = 'test/foundry'
+  cache_path = 'cache-foundry'
+  gas_reports = ["*"]
+
+[profile.default.fuzz]
+  max_test_rejects = 1_000_000 # Number of times `vm.assume` can fail
+  runs = 100
+  # For the seed, add this to the pipeline so it's a different seed every week
+  # export FOUNDRY_FUZZ_SEED=$(echo $(($EPOCHSECONDS - $EPOCHSECONDS % 604800)))
+  # seed = "123"  export FOUNDRY_FUZZ_SEED=123
+
+[profile.default.invariant]
+  call_override = false # Override unsafe external calls to perform reentrancy checks
+  fail_on_revert = true
+  include_storage = false
+  # Number of calls executed in one run. Be mindful that all Handler fns are (unevenly) split over this total depth
+  depth = 80
+  runs = 200
+
+[profile.ci.invariant]
+  # Number of calls executed in one run. Be mindful that all Handler fns are (unevenly) split over this total depth
+  depth = 80
+  runs = 2500
+
+[profile.lite]
+  # Speed up compilation and tests during development.
+  optimizer = false
+
+[etherscan]
+  mainnet = { key = "${ETHERSCAN_MAINNET_KEY}" }
+
+[fmt]
+  bracket_spacing = true
+  int_types = "long"
+  line_length = 120
+  multiline_func_header = "all"
+  number_underscore = "thousands"
+  quote_style = "double"
+  tab_width = 4
+  wrap_comments = true

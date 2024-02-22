@@ -1,0 +1,13 @@
+// sepolia: ORACLES.IUSDC_USD=0x9e446a069280e8F586F5D0D1cffd3dA18BceDEAd
+// yarn hardhat verify --network sepolia 0x9e446a069280e8F586F5D0D1cffd3dA18BceDEAd --constructor-args scripts/deploys/sepolia/deploymentArgs/0x9e446a069280e8F586F5D0D1cffd3dA18BceDEAd.js
+module.exports = [
+  "0x81960c465605cddD9772a8653111D4aBE580Ce1e",
+  "IUSDC/USD",
+  18,
+  18,
+  "1000000000000000000",
+  "0x712841C85E296Eb3e52e5b935bA9C6F038b58De4",
+  87300,
+  "990000000000000000",
+  "1010000000000000000"
+];

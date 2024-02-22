@@ -1,0 +1,9 @@
+// sepolia: OV_USDC.BORROW.CIRCUIT_BREAKER_USDC_BORROW=0x221f80D32C6eD88523c619C5815b8c0da0C45c5f
+// yarn hardhat verify --network sepolia 0x221f80D32C6eD88523c619C5815b8c0da0C45c5f --constructor-args scripts/deploys/sepolia/deploymentArgs/0x221f80D32C6eD88523c619C5815b8c0da0C45c5f.js
+module.exports = [
+  "0x81960c465605cddD9772a8653111D4aBE580Ce1e",
+  "0x5D473025670A6Ef84dFc97ab4F4698DE59CDdaF7",
+  93600,
+  13,
+  "2000000000000"
+];

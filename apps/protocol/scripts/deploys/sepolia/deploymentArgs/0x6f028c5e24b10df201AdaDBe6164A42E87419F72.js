@@ -1,0 +1,13 @@
+// sepolia: ORACLES.DAI_USD=0x6f028c5e24b10df201AdaDBe6164A42E87419F72
+// yarn hardhat verify --network sepolia 0x6f028c5e24b10df201AdaDBe6164A42E87419F72 --constructor-args scripts/deploys/sepolia/deploymentArgs/0x6f028c5e24b10df201AdaDBe6164A42E87419F72.js
+module.exports = [
+  "0x81960c465605cddD9772a8653111D4aBE580Ce1e",
+  "DAI/USD",
+  18,
+  18,
+  "1000000000000000000",
+  "0x3c978bA11E9ff892334F65bAbAe26321f84C5EF3",
+  87300,
+  "990000000000000000",
+  "1010000000000000000"
+];

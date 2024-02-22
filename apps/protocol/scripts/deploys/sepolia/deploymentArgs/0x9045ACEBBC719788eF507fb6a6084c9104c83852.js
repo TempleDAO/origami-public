@@ -1,0 +1,11 @@
+// sepolia: OV_USDC.TOKENS.OV_USDC_TOKEN=0x9045ACEBBC719788eF507fb6a6084c9104c83852
+// yarn hardhat verify --network sepolia 0x9045ACEBBC719788eF507fb6a6084c9104c83852 --constructor-args scripts/deploys/sepolia/deploymentArgs/0x9045ACEBBC719788eF507fb6a6084c9104c83852.js
+module.exports = [
+  "0x81960c465605cddD9772a8653111D4aBE580Ce1e",
+  "Origami USDC Vault",
+  "ovUSDC",
+  "0xE0929D6E496499E15fcF9c2c5a1C4D16261Eb04a",
+  "0x91D9991095a2ff8e9EC9E8aBf70e304F5a1db742",
+  200,
+  172800
+];

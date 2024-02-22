@@ -1,0 +1,6 @@
+// sepolia: OV_USDC.SUPPLY.IDLE_STRATEGY_MANAGER=0x4aB9651e83C011006f03cCdC6C6EeBF39546B29C
+// yarn hardhat verify --network sepolia 0x4aB9651e83C011006f03cCdC6C6EeBF39546B29C --constructor-args scripts/deploys/sepolia/deploymentArgs/0x4aB9651e83C011006f03cCdC6C6EeBF39546B29C.js
+module.exports = [
+  "0x81960c465605cddD9772a8653111D4aBE580Ce1e",
+  "0x2B412AE45D95BDDdB7b9B15f5aadfaE883b1fF43"
+];
