@@ -6,6 +6,24 @@ For documentation on the upcoming Origami v2, please see [HERE](./docs/README.md
 
 ### Contracts
 
+tl;dr:
+
+```bash
+cd apps/protocol
+git submodule update --init --recursive
+
+# Install foundry if not already installed.
+# curl -L https://foundry.paradigm.xyz | bash
+# Update foundry version to latest
+foundryup
+
+# npm packages used for ext. deps
+nvm use
+yarn
+
+forge test
+```
+
 See [./apps/protocol/README.md](./apps/protocol/README.md)
 
 ### Dapp
