@@ -2,7 +2,7 @@ pragma solidity 0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (libraries/OrigamiMath.sol)
 
-import { mulDiv as prbMulDiv } from "@prb/math/src/Common.sol";
+import { mulDiv as prbMulDiv, PRBMath_MulDiv_Overflow } from "@prb/math/src/Common.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
 /**
@@ -30,13 +30,15 @@ library OrigamiMath {
     ) internal pure returns (uint256 result) {
         // Special case for scalar == 1, as it's common for token amounts to not need
         // scaling if decimal places are the same
-        if (scalar == 1) {
-            result = amount;
-        } else if (roundingMode == Rounding.ROUND_DOWN) {
-            result = amount / scalar;
-        } else {
-            // ROUND_UP uses the same logic as OZ Math.ceilDiv()
-            result = amount == 0 ? 0 : (amount - 1) / scalar + 1;
+        unchecked {
+            if (scalar == 1) {
+                result = amount;
+            } else if (roundingMode == Rounding.ROUND_DOWN) {
+                result = amount / scalar;
+            } else {
+                // ROUND_UP uses the same logic as OZ Math.ceilDiv()
+                result = amount == 0 ? 0 : (amount - 1) / scalar + 1;
+            }
         }
     }
 
@@ -51,28 +53,43 @@ library OrigamiMath {
         Rounding roundingMode
     ) internal pure returns (uint256 result) {
         result = prbMulDiv(x, y, denominator);
-        if (roundingMode == Rounding.ROUND_UP && mulmod(x, y, denominator) != 0) {
-            result += 1;
+        if (roundingMode == Rounding.ROUND_UP) {
+            if (mulmod(x, y, denominator) != 0) {
+                if (result < type(uint256).max) {
+                    unchecked {
+                        result = result + 1;
+                    }
+                } else {
+                    revert PRBMath_MulDiv_Overflow(x, y, denominator);
+                }
+            }
         }
     }
 
-    function subtractBps(uint256 inputAmount, uint256 basisPoints) internal pure returns (uint256 result) {
+    function subtractBps(
+        uint256 inputAmount, 
+        uint256 basisPoints,
+        Rounding roundingMode
+    ) internal pure returns (uint256 result) {
         uint256 numeratorBps;
         unchecked {
             numeratorBps = BASIS_POINTS_DIVISOR - basisPoints;
         }
 
         result = basisPoints < BASIS_POINTS_DIVISOR
-            // Round down for min amounts out expected
             ? mulDiv(
                 inputAmount,
                 numeratorBps, 
                 BASIS_POINTS_DIVISOR, 
-                Rounding.ROUND_DOWN
+                roundingMode
             ) : 0;
     }
 
-    function addBps(uint256 inputAmount, uint256 basisPoints) internal pure returns (uint256 result) {
+    function addBps(
+        uint256 inputAmount,
+        uint256 basisPoints,
+        Rounding roundingMode
+    ) internal pure returns (uint256 result) {
         uint256 numeratorBps;
         unchecked {
             numeratorBps = BASIS_POINTS_DIVISOR + basisPoints;
@@ -83,28 +100,35 @@ library OrigamiMath {
             inputAmount,
             numeratorBps, 
             BASIS_POINTS_DIVISOR, 
-            Rounding.ROUND_UP
+            roundingMode
         );
     }
 
     /**
      * @notice Split the `inputAmount` into two parts based on the `basisPoints` fraction.
      * eg: 3333 BPS (33.3%) can be used to split an input amount of 600 into: (result=400, removed=200).
-     * @dev In case of rounding, the `result` is rounded down, `removed` is rounded up
+     * @dev The rounding mode is applied to the `result`
      */
-    function splitSubtractBps(uint256 inputAmount, uint256 basisPoints) internal pure returns (uint256 result, uint256 removed) {
-        result = subtractBps(inputAmount, basisPoints);
+    function splitSubtractBps(
+        uint256 inputAmount, 
+        uint256 basisPoints,
+        Rounding roundingMode
+    ) internal pure returns (uint256 result, uint256 removed) {
+        result = subtractBps(inputAmount, basisPoints, roundingMode);
         unchecked {
             removed = inputAmount - result;
         }
     }
 
     /**
-     * @notice Reverse the fractional amount of an input, rounding up.
+     * @notice Reverse the fractional amount of an input.
      * eg: For 3333 BPS (33.3%) and the remainder=400, the result is 600
-     * @dev Rounds up
      */
-    function inverseSubtractBps(uint256 remainderAmount, uint256 basisPoints) internal pure returns (uint256 result) {
+    function inverseSubtractBps(
+        uint256 remainderAmount, 
+        uint256 basisPoints,
+        Rounding roundingMode
+    ) internal pure returns (uint256 result) {
         if (basisPoints == 0) return remainderAmount; // gas shortcut for 0
         if (basisPoints >= BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
 
@@ -116,7 +140,34 @@ library OrigamiMath {
             remainderAmount,
             BASIS_POINTS_DIVISOR, 
             denominatorBps, 
-            OrigamiMath.Rounding.ROUND_UP
+            roundingMode
+        );
+    }
+
+    /**
+     * @notice Calculate the relative difference of a value to a reference
+     * @dev `value` and `referenceValue` must have the same precision
+     * The denominator is always the referenceValue
+     */
+    function relativeDifferenceBps(
+        uint256 value,
+        uint256 referenceValue,
+        Rounding roundingMode
+    ) internal pure returns (uint256) {
+        if (referenceValue == 0) revert CommonEventsAndErrors.InvalidParam();
+
+        uint256 absDelta;
+        unchecked {
+            absDelta = value < referenceValue
+                ? referenceValue - value
+                : value - referenceValue;
+        }
+
+        return mulDiv(
+            absDelta,
+            BASIS_POINTS_DIVISOR,
+            referenceValue,
+            roundingMode
         );
     }
 }

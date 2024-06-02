@@ -330,19 +330,4 @@ contract OrigamiMockLovTokenManager is OrigamiAbstractLovTokenManager {
 
         // Anything else returns 0
     }
-
-    /**
-     * @notice Calculate the max number of reserves allowed before the user debt ceiling is hit, 
-     * taking into consideration any current liabiltiies
-     */
-    function _maxUserReserves(IOrigamiOracle.PriceType /*debtPriceType*/) internal override view returns (uint256) {
-        if (_liabilities == 0) return MAX_TOKEN_AMOUNT;
-
-        // Round down for the remaining reserves capacity
-        return _liabilities.mulDiv(
-            userALRange.ceiling, 
-            PRECISION, 
-            OrigamiMath.Rounding.ROUND_DOWN
-        );
-    }
 }

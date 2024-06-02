@@ -30,21 +30,11 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
     IOrigamiOracle public immutable quoteAssetOracle;
 
     constructor (
-        string memory _description,
-        address _baseAssetAddress,
+        BaseOracleParams memory baseParams,
         address _baseAssetOracle,
-        uint8 _baseAssetDecimals,
-        address _quoteTokenAddress,
-        address _quoteAssetOracle,
-        uint8 _quoteAssetDecimals
+        address _quoteAssetOracle
     )
-        OrigamiOracleBase(
-            _description, 
-            _baseAssetAddress, 
-            _baseAssetDecimals, 
-            _quoteTokenAddress, 
-            _quoteAssetDecimals
-        )
+        OrigamiOracleBase(baseParams)
     {
         baseAssetOracle = IOrigamiOracle(_baseAssetOracle);
         quoteAssetOracle = IOrigamiOracle(_quoteAssetOracle);
@@ -61,7 +51,7 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
         OrigamiMath.Rounding roundingMode
     ) public override view returns (uint256) {
         // baseOracle (the numerator) price follows the requested roundingMode
-        // So if roundDown, then we want the nuemrator to be lower (round down)
+        // So if roundDown, then we want the numerator to be lower (round down)
         uint256 _numerator = baseAssetOracle.latestPrice(
             priceType, 
             roundingMode

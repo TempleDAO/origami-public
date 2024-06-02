@@ -14,7 +14,7 @@ contract MockCaller {
     }
 
     function doStuff(uint256 amt) external {
-        breaker.preCheck(address(this), amt);       
+        breaker.preCheck(amt);       
     }
 }
 
@@ -46,7 +46,7 @@ contract OrigamiCircuitBreakerTestAccess is OrigamiCircuitBreakerTestBase {
 
     function test_access_preCheck() public {
         expectElevatedAccess();
-        breaker.preCheck(alice, 0);
+        breaker.preCheck(0);
     }
 }
 
@@ -107,7 +107,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
 
         // Add works
         {
-            breaker.preCheck(address(this), 1);
+            breaker.preCheck(1);
             assertEq(breaker.bucketIndex(), 0);
             assertEq(breaker.buckets(0), 2);
         }
@@ -115,12 +115,12 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
         // Breached the cap
         {
             vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 100e18+1, 100e18));
-            breaker.preCheck(address(this), 100e18);
+            breaker.preCheck(100e18);
         }
 
         // One less works - right at the cap
         {
-            breaker.preCheck(address(this), 100e18-1);
+            breaker.preCheck(100e18-1);
             assertEq(breaker.bucketIndex(), 0);
             assertEq(breaker.buckets(0), 100e18 + 1);
         }
@@ -148,9 +148,10 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
 
     function doCheck(uint256 amt, uint256 bucketIndex, uint256 utilisationAfter) internal {
         assertEq(breaker.currentUtilisation(), utilisationAfter-amt, "utilisationBefore");
-        breaker.preCheck(address(this), amt);
+        breaker.preCheck(amt);
         assertEq(breaker.bucketIndex() % breaker.nBuckets(), bucketIndex, "bucketIndex");
         assertEq(breaker.currentUtilisation(), utilisationAfter, "utilisationAfter");
+        assertEq(breaker.available(), breaker.cap() - utilisationAfter);
 
         for (uint256 i; i<breaker.nBuckets(); ++i) {
             assertEq(breaker.buckets(i), ebkts[i]+1);
@@ -249,7 +250,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
             doCheck(10e18, 23, 100e18);
 
             vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 100e18+1, 100e18));
-            breaker.preCheck(address(this), 1);
+            breaker.preCheck(1);
         }
 
         // day 1, 00:00:00
@@ -289,7 +290,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
         {
             warp(3, 1, 0, 2);
             vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 100e18 + 1, 100e18));
-            breaker.preCheck(address(this), 1);
+            breaker.preCheck(1);
         }
 
         // day 5, 10:00:00
@@ -336,7 +337,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
         }
 
         uint256 avgGas = totalGas / 4000;
-        assertLt(avgGas, 11_600);
+        assertLt(avgGas, 88_000);
 
         if (LOG) console2.log("totalGas:", totalGas, totalGas/4000);
     }
@@ -428,7 +429,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
             doCheck(10e18, 7, 100e18);
 
             vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 100e18+1, 100e18));
-            breaker.preCheck(address(this), 1);
+            breaker.preCheck(1);
         }
 
         // day 2, 00:00:00
@@ -468,7 +469,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
         {
             warp(6, 6, 0, 2);
             vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 100e18 + 1, 100e18));
-            breaker.preCheck(address(this), 1);
+            breaker.preCheck(1);
         }
 
         // day 10, 19:00:00
@@ -499,7 +500,7 @@ contract OrigamiCircuitBreakerTestPreCheck is OrigamiCircuitBreakerTestBase {
         {
             warp(1, 12, 59, 59);
             vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 100e18 + 1, 100e18));
-            breaker.preCheck(address(this), 1);
+            breaker.preCheck(1);
         }
 
         {

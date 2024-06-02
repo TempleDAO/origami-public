@@ -11,6 +11,16 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/dra
 ///  pricePerShare = numShares * totalReserves / totalSupply
 /// Elevated access can increase the totalReserves in order to increase the pricePerShare
 interface IRepricingToken is IERC20, IERC20Permit {
+    event IssueSharesFromReserves(address indexed user, address indexed recipient, uint256 reserveTokenAmount, uint256 sharesAmount);
+    event RedeemReservesFromShares(address indexed user, address indexed recipient, uint256 sharesAmount, uint256 reserveTokenAmount);
+    event ReservesVestingDurationSet(uint48 duration);
+    event PendingReservesAdded(uint256 amount);
+    event VestedReservesAdded(uint256 amount);
+    event VestedReservesRemoved(uint256 amount);
+    event ReservesCheckpoint(uint256 fullyVestedReserves, uint256 newVestedReserves, uint256 carriedOverPendingReserves, uint256 newPendingReserves);
+
+    error CannotCheckpointReserves(uint256 secsSinceLastCheckpoint, uint256 vestingDuration);
+
     /// @notice The token used to track reserves for this investment
     function reserveToken() external view returns (address);
 
@@ -18,18 +28,18 @@ interface IRepricingToken is IERC20, IERC20Permit {
     /// @dev Comprised of both user deposited reserves (when new shares are issued)
     /// And also when new reserves are deposited by the protocol to increase the reservesPerShare
     /// (which vest in over time)
-    function vestedReserves() external returns (uint256);
+    function vestedReserves() external returns (uint128);
 
     /// @notice Extra reserve tokens deposited by the protocol to increase the reservesPerShare
     /// @dev These vest in per second over `vestingDuration`
-    function pendingReserves() external returns (uint256);
+    function pendingReserves() external returns (uint128);
 
     /// @notice When new reserves are added to increase the reservesPerShare, 
     /// they will vest over this duration (in seconds)
-    function reservesVestingDuration() external returns (uint256);
+    function reservesVestingDuration() external returns (uint48);
 
     /// @notice The time at which any accrued pendingReserves were last moved from `pendingReserves` -> `vestedReserves`
-    function lastVestingCheckpoint() external returns (uint256);
+    function lastVestingCheckpoint() external returns (uint48);
 
     /// @notice The current amount of fully vested reserves plus any accrued pending reserves
     function totalReserves() external view returns (uint256);

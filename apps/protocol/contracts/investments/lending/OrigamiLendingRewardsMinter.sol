@@ -119,11 +119,19 @@ contract OrigamiLendingRewardsMinter is IOrigamiLendingRewardsMinter, OrigamiEle
     function _mintRewards() internal {
         uint256 _cumulativeInterestCheckpoint = cumulativeInterestCheckpoint;
         // The latest amount of cumulative interest (for all time) minus the previous checkpoint
-        uint256 mintAmount = (debtToken.estimatedCumulativeInterest() - _cumulativeInterestCheckpoint).subtractBps(carryOverRate);
+        uint256 mintAmount = (debtToken.estimatedCumulativeInterest() - _cumulativeInterestCheckpoint).subtractBps(
+            carryOverRate, 
+            OrigamiMath.Rounding.ROUND_DOWN
+        );
 
+        uint256 newReservesAmount;
         if (mintAmount != 0) {
             uint256 feeRate = ovToken.performanceFee();
-            (uint256 newReservesAmount, uint256 feeAmount) = mintAmount.splitSubtractBps(feeRate);
+            uint256 feeAmount;
+            (newReservesAmount, feeAmount) = mintAmount.splitSubtractBps(
+                feeRate, 
+                OrigamiMath.Rounding.ROUND_DOWN
+            );
             emit RewardsMinted(newReservesAmount, feeAmount);
 
             cumulativeInterestCheckpoint = _cumulativeInterestCheckpoint + mintAmount;
@@ -135,9 +143,17 @@ contract OrigamiLendingRewardsMinter is IOrigamiLendingRewardsMinter, OrigamiEle
             if (newReservesAmount != 0) {
                 // Mint and add the oToken as reserves into the ovToken
                 oToken.mint(address(this), newReservesAmount);
-                oToken.safeIncreaseAllowance(address(ovToken), newReservesAmount);
-                ovToken.addPendingReserves(newReservesAmount);
             }
+        }
+
+        // Use the total oToken balance in this address, meaning donations or other fees can be sent to
+        // this contract and distributed as extra pending reserves.
+        // Performance fees are intentionally not applied on these extra balances.
+        newReservesAmount = oToken.balanceOf(address(this));
+
+        if (newReservesAmount != 0) {
+            oToken.safeIncreaseAllowance(address(ovToken), newReservesAmount);
+            ovToken.addPendingReserves(newReservesAmount);
         }
     }
 }

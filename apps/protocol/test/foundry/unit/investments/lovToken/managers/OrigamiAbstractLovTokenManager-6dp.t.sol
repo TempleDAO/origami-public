@@ -13,8 +13,7 @@ import { Range } from "contracts/libraries/Range.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 contract OrigamiAbstractLovTokenManagerTestAdmin_6dp is OrigamiLovTokenTestBase_6dp {
-    event RedeemableReservesBufferSet(uint256 bufferInBps);
-    event FeeConfigSet(uint16 maxExitFeeBps, uint16 minExitFeeBps, uint16 feeLeverageFactor);
+    event FeeConfigSet(uint16 maxExitFeeBps, uint16 minExitFeeBps, uint24 feeLeverageFactor);
     event UserALRangeSet(uint128 floor, uint128 ceiling);
     event RebalanceALRangeSet(uint128 floor, uint128 ceiling);
 
@@ -25,7 +24,6 @@ contract OrigamiAbstractLovTokenManagerTestAdmin_6dp is OrigamiLovTokenTestBase_
         assertEq(minDepositFeeBps, MIN_DEPOSIT_FEE_BPS);
         assertEq(minExitFeeBps, MIN_EXIT_FEE_BPS);
         assertEq(feeLeverageFactor, FEE_LEVERAGE_FACTOR);
-        assertEq(manager.redeemableReservesBufferBps(), 10_000);
         assertEq(manager.reserveToken(), address(sUsdcToken));
 
         (uint128 floor, uint128 ceiling) = manager.userALRange();
@@ -59,27 +57,13 @@ contract OrigamiAbstractLovTokenManagerTestAdmin_6dp is OrigamiLovTokenTestBase_
     function test_setFeeConfig_success() public {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(manager));
-        emit FeeConfigSet(10, 80, 15);
-        manager.setFeeConfig(10, 80, 15);
+        emit FeeConfigSet(10, 80, 15e4);
+        manager.setFeeConfig(10, 80, 15e4);
 
         (uint64 minDepositFeeBps, uint64 minExitFeeBps, uint64 feeLeverageFactor) = manager.getFeeConfig();
         assertEq(minDepositFeeBps, 10);
         assertEq(minExitFeeBps, 80);
-        assertEq(feeLeverageFactor, 15);
-    }
-
-    function test_setRedeemableReservesBuffer_fail() public {
-        vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
-        manager.setRedeemableReservesBufferBps(10_000 + 1);
-    }
-
-    function test_setRedeemableReservesBuffer_success() public {
-        vm.startPrank(origamiMultisig);
-        vm.expectEmit(address(manager));
-        emit RedeemableReservesBufferSet(10_080);
-        manager.setRedeemableReservesBufferBps(80);
-        assertEq(manager.redeemableReservesBufferBps(), 10_080);
+        assertEq(feeLeverageFactor, 15e4);
     }
 
     function test_setUserALRange_fail_floor() public {
@@ -148,11 +132,6 @@ contract OrigamiAbstractLovTokenManagerTestAccess_6dp is OrigamiLovTokenTestBase
     function test_access_setFeeConfig() public {
         expectElevatedAccess();
         manager.setFeeConfig(123, 123, 123);
-    }
-
-    function test_access_setRedeemableReservesBufferBps() public {
-        expectElevatedAccess();
-        manager.setRedeemableReservesBufferBps(123);
     }
 
     function test_access_setUserALRange() public {
@@ -230,31 +209,21 @@ contract OrigamiAbstractLovTokenManagerTestViews_6dp is OrigamiLovTokenTestBase_
 
         // After rebalance
         doRebalanceDown(1.11e18);
-        assertEq(manager.sharesToReserves(5e18, IOrigamiOracle.PriceType.SPOT_PRICE), 5e6);
-        assertEq(manager.sharesToReserves(5e18, IOrigamiOracle.PriceType.HISTORIC_PRICE), 5e6);
 
-        // With liabilities buffer
         {
-            vm.startPrank(origamiMultisig);
-            manager.setRedeemableReservesBufferBps(50);
             uint256 _expectedReserves = 201.818182e6;
             uint256 _expectedLiabilities = 181.818182e6;
             assertEq(manager.reservesBalance(), _expectedReserves);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedLiabilities);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedLiabilities);
-            assertEq(manager.redeemableReservesBufferBps(), 10_050);
             assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), (
-                _expectedReserves - 
-                _expectedLiabilities
-                    .mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP)
+                _expectedReserves - _expectedLiabilities
             ));
             assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), (
-                _expectedReserves - 
-                _expectedLiabilities
-                    .mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP)
+                _expectedReserves - _expectedLiabilities
             ));
-            assertEq(manager.sharesToReserves(5e18, IOrigamiOracle.PriceType.SPOT_PRICE), 4.772727e6);
-            assertEq(manager.sharesToReserves(5e18, IOrigamiOracle.PriceType.HISTORIC_PRICE), 4.772727e6);
+            assertEq(manager.sharesToReserves(5e18, IOrigamiOracle.PriceType.SPOT_PRICE), 5e6);
+            assertEq(manager.sharesToReserves(5e18, IOrigamiOracle.PriceType.HISTORIC_PRICE), 5e6);
         }
     }
 
@@ -295,31 +264,21 @@ contract OrigamiAbstractLovTokenManagerTestViews_6dp is OrigamiLovTokenTestBase_
 
         // After rebalance
         doRebalanceDown(1.11e18);
-        assertEq(manager.reservesToShares(5e6, IOrigamiOracle.PriceType.SPOT_PRICE), 5e18);
-        assertEq(manager.reservesToShares(5e6, IOrigamiOracle.PriceType.HISTORIC_PRICE), 5e18);
 
-        // With liabilities buffer
         {
-            vm.startPrank(origamiMultisig);
-            manager.setRedeemableReservesBufferBps(50);
             uint256 _expectedReserves = 201.818182e6;
             uint256 _expectedLiabilities = 181.818182e6;
             assertEq(manager.reservesBalance(), _expectedReserves);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedLiabilities);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedLiabilities);
-            assertEq(manager.redeemableReservesBufferBps(), 10_050);                   
             assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), (
-                _expectedReserves - 
-                _expectedLiabilities
-                    .mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP)
+                _expectedReserves - _expectedLiabilities
             ));                
             assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), (
-                _expectedReserves - 
-                _expectedLiabilities
-                    .mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP)
+                _expectedReserves - _expectedLiabilities
             ));
-            assertEq(manager.reservesToShares(5e6, IOrigamiOracle.PriceType.SPOT_PRICE), 5.238095263038548871e18);
-            assertEq(manager.reservesToShares(5e6, IOrigamiOracle.PriceType.HISTORIC_PRICE), 5.238095263038548871e18);
+            assertEq(manager.reservesToShares(5e6, IOrigamiOracle.PriceType.SPOT_PRICE), 5e18);
+            assertEq(manager.reservesToShares(5e6, IOrigamiOracle.PriceType.HISTORIC_PRICE), 5e18);
         }
     }
 
@@ -608,7 +567,6 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
 
     function test_investQuote_success_fresh() public {
         vm.startPrank(origamiMultisig);
-        manager.setRedeemableReservesBufferBps(500);
 
         bootstrapSUsdc(123_456e6);
         uint256 slippageBps = 100;
@@ -626,13 +584,13 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedInvestmentAmount, 19.009523762e18);
-        assertEq(quoteData.minInvestmentAmount, quoteData.expectedInvestmentAmount.subtractBps(slippageBps));
+        assertEq(quoteData.minInvestmentAmount, quoteData.expectedInvestmentAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
         assertEq(investFeeBps.length, 1);
         assertEq(investFeeBps[0], 20);
     }
 
-    function test_investQuote_success_afterFirstSupply_noBuffer() public {
+    function test_investQuote_success_afterFirstSupply() public {
         bootstrapSUsdc(123_456e6);
         uint256 slippageBps = 100;
         uint256 depositAmount = 20e6;
@@ -652,39 +610,7 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedInvestmentAmount, 18.971504714476e18);
-        assertEq(quoteData.minInvestmentAmount, quoteData.expectedInvestmentAmount.subtractBps(slippageBps));
-        assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
-        assertEq(investFeeBps.length, 1);
-        assertEq(investFeeBps[0], 20);
-    }
-
-    function test_investQuote_success_afterFirstSupply_withBuffer() public {
-        bootstrapSUsdc(123_456e6);
-        uint256 slippageBps = 100;
-        uint256 depositAmount = 20e6;
-
-        investWithSUsdc(100e6, alice);
-        doRebalanceDown(1.111111111111111111e18);
-
-        // Set the buffer on the liabilities such that the share price reduces
-        assertEq(lovToken.reservesPerShare(), 1.002004e6);
-        vm.startPrank(origamiMultisig);
-        manager.setRedeemableReservesBufferBps(500);
-        assertEq(lovToken.reservesPerShare(), 0.551102e6);
-
-        (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
-            depositAmount,
-            address(usdcToken),
-            slippageBps,
-            123
-        );
-
-        assertEq(quoteData.fromToken, address(usdcToken));
-        assertEq(quoteData.fromTokenAmount, depositAmount);
-        assertEq(quoteData.maxSlippageBps, slippageBps);
-        assertEq(quoteData.deadline, 123);
-        assertEq(quoteData.expectedInvestmentAmount, 34.493645562568101137e18); // Get less because the share price has changed
-        assertEq(quoteData.minInvestmentAmount, quoteData.expectedInvestmentAmount.subtractBps(slippageBps));
+        assertEq(quoteData.minInvestmentAmount, quoteData.expectedInvestmentAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
         assertEq(investFeeBps.length, 1);
         assertEq(investFeeBps[0], 20);
@@ -762,8 +688,6 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
 
         investWithSUsdc(100e6, alice);
         doRebalanceDown(1.111111111111111111e18);
-
-        // Set the buffer on the liabilities such that the share price reduces
         assertEq(lovToken.reservesPerShare(), 1.002004e6);
 
         (IOrigamiInvestment.InvestQuoteData memory quoteData, ) = manager.investQuote(
@@ -836,7 +760,8 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
         uint256 expectedReservesBalance = (depositAmount * 1e6 / sUsdcPrice);
         uint256 expectedShares = OrigamiMath.subtractBps(
             expectedReservesBalance * 1e12,
-            expectedFeeBps
+            expectedFeeBps,
+            OrigamiMath.Rounding.ROUND_DOWN
         );
 
         doMint(usdcToken, address(manager), depositAmount);
@@ -855,19 +780,14 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
         assertEq(sUsdcToken.balanceOf(address(manager)), manager.reservesBalance());
     }
 
-    function test_invesWithToken_success_afterFirstSupply_withBuffer() public {
+    function test_invesWithToken_success_afterFirstSupply() public {
         bootstrapSUsdc(123_456e6);
         uint256 slippageBps = 100;
         uint256 depositAmount = 20e6;
 
         investWithSUsdc(100e6, alice);
         doRebalanceDown(1.111111111111111111e18);
-
-        // Set the buffer on the liabilities such that the share price reduces
         assertEq(lovToken.reservesPerShare(), 1.002004e6);
-        vm.startPrank(origamiMultisig);
-        manager.setRedeemableReservesBufferBps(500);
-        assertEq(lovToken.reservesPerShare(), 0.551102e6);
 
         (IOrigamiInvestment.InvestQuoteData memory quoteData, ) = manager.investQuote(
             depositAmount,
@@ -879,7 +799,7 @@ contract OrigamiAbstractLovTokenManagerTestInvest_6dp is OrigamiLovTokenTestBase
         doMint(usdcToken, address(manager), depositAmount);
         vm.startPrank(address(lovToken));
         uint256 shares = manager.investWithToken(alice, quoteData);
-        uint256 expectedShares = 34.493645562568101137e18;
+        uint256 expectedShares = 18.971504714476000000e18;
         assertEq(shares, expectedShares);
 
         // lovToken does this itself after the manager returns
@@ -953,16 +873,16 @@ contract OrigamiAbstractLovTokenManagerTestExit_6dp is OrigamiLovTokenTestBase_6
         vm.startPrank(origamiMultisig);
         manager.setUserALRange(1.05e18, 100e18);
         // This also includes on the exit fee amount
-        assertEq(manager.maxExit(address(usdcToken)), 582.411789473684210527e18);
+        assertEq(manager.maxExit(address(usdcToken)), 582.411789473684210526e18);
 
         // Manually force the sUSDC maxDeposit amount to check it uses the min
         manager.setTest__MaxRedeemAmt(556e6);
-        assertEq(manager.maxExit(address(usdcToken)), 582.411789473684210527e18);
+        assertEq(manager.maxExit(address(usdcToken)), 582.411789473684210526e18);
         manager.setTest__MaxRedeemAmt(100e6);
-        uint256 expectedShares = 104.844606565919749870e18;
+        uint256 expectedShares = 104.844606565919749869e18;
         assertEq(manager.maxExit(address(usdcToken)), expectedShares);
         // Confirm the exit fees were added
-        assertEq(expectedShares * (10_000 - 500) / 10_000, manager.reservesToShares(100e6, IOrigamiOracle.PriceType.SPOT_PRICE));
+        assertEq(expectedShares * (10_000 - 500) / 10_000 + 1, manager.reservesToShares(100e6, IOrigamiOracle.PriceType.SPOT_PRICE));
     }
 
     function test_exitQuote_fail_zero() public {
@@ -995,8 +915,8 @@ contract OrigamiAbstractLovTokenManagerTestExit_6dp is OrigamiLovTokenTestBase_6
         assertEq(quoteData.toToken, address(usdcToken));
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
-        assertEq(quoteData.expectedToTokenAmount, (exitAmount * sharePrice1 / 1e18).subtractBps(MIN_EXIT_FEE_BPS));
-        assertEq(quoteData.minToTokenAmount, quoteData.expectedToTokenAmount.subtractBps(slippageBps));
+        assertEq(quoteData.expectedToTokenAmount, (exitAmount * sharePrice1 / 1e18).subtractBps(MIN_EXIT_FEE_BPS, OrigamiMath.Rounding.ROUND_DOWN));
+        assertEq(quoteData.minToTokenAmount, quoteData.expectedToTokenAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
 
         assertEq(exitFeeBps.length, 1);
@@ -1021,7 +941,7 @@ contract OrigamiAbstractLovTokenManagerTestExit_6dp is OrigamiLovTokenTestBase_6
         uint256 expectedFeeBps = 50;
         uint256 expectedAmount = sUsdcToken.previewRedeem(
             lovToken.sharesToReserves(
-                exitAmount.subtractBps(expectedFeeBps)
+                exitAmount.subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN)
             )
         );
 
@@ -1030,41 +950,10 @@ contract OrigamiAbstractLovTokenManagerTestExit_6dp is OrigamiLovTokenTestBase_6
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedToTokenAmount, expectedAmount);
-        assertEq(quoteData.minToTokenAmount, expectedAmount.subtractBps(slippageBps));
+        assertEq(quoteData.minToTokenAmount, expectedAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
         assertEq(exitFeeBps.length, 1);
         assertEq(exitFeeBps[0], expectedFeeBps);
-    }
-
-    function test_exitQuote_success_withBuffer() public {
-        bootstrapSUsdc(123_456e6);
-        uint256 slippageBps = 100;
-        investWithSUsdc(100e6, alice);
-        doRebalanceDown(1.111111111111111111e18);
-
-        // Set the buffer on the liabilities such that the share price reduces
-        assertEq(lovToken.reservesPerShare(), 1.002004e6);
-        vm.startPrank(origamiMultisig);
-        manager.setRedeemableReservesBufferBps(500);
-        assertEq(lovToken.reservesPerShare(), 0.551102e6);
-
-        uint256 exitAmount = 15e18;
-        (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
-            exitAmount,
-            address(usdcToken),
-            slippageBps,
-            123
-        );
-
-        assertEq(quoteData.investmentTokenAmount, exitAmount);
-        assertEq(quoteData.toToken, address(usdcToken));
-        assertEq(quoteData.maxSlippageBps, slippageBps);
-        assertEq(quoteData.deadline, 123);
-        assertEq(quoteData.expectedToTokenAmount, 8.636460e6);
-        assertEq(quoteData.minToTokenAmount, quoteData.expectedToTokenAmount.subtractBps(slippageBps));
-        assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
-        assertEq(exitFeeBps.length, 1);
-        assertEq(exitFeeBps[0], MIN_EXIT_FEE_BPS);
     }
 
     function test_exitToToken_fail_paused() public {
@@ -1180,7 +1069,7 @@ contract OrigamiAbstractLovTokenManagerTestExit_6dp is OrigamiLovTokenTestBase_6
 
         uint256 expectedFeeBps = 50;
         uint256 expectedSUsdcAmount = lovToken.sharesToReserves(
-            exitAmount.subtractBps(expectedFeeBps)
+            exitAmount.subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN)
         );
         uint256 expectedUsdcAmount = sUsdcToken.previewRedeem(expectedSUsdcAmount);
 

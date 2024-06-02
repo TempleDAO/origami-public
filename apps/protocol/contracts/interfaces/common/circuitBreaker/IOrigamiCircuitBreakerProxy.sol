@@ -50,13 +50,36 @@ interface IOrigamiCircuitBreakerProxy {
 
     /**
      * @notice For a given identifier & token, verify the new amount requested for the sender does not breach the
-     * cap in this rolling period.
+     * limits.
      */
     function preCheck(
         address token,
-        address onBehalfOf,
         uint256 amount
     ) external;
+
+    /**
+     * @notice The maximum allowed amount to be transacted
+     */
+    function cap(
+        address token,
+        address caller
+    ) external view returns (uint256);
+
+    /**
+     * @notice The total utilised out of the cap so far
+     */
+    function currentUtilisation(
+        address token,
+        address caller
+    ) external view returns (uint256);
+
+    /**
+     * @notice The unutilised amount
+     */
+    function available(
+        address token,
+        address caller
+    ) external view returns (uint256);
 
     /**
      * @notice The set of all identifiers registered

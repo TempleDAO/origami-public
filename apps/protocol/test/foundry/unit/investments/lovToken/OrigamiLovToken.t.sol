@@ -5,7 +5,6 @@ import { OrigamiLovTokenTestBase } from "test/foundry/unit/investments/lovToken/
 
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
 import { IOrigamiOTokenManager } from "contracts/interfaces/investments/IOrigamiOTokenManager.sol";
-import { IOrigamiLovToken } from "contracts/interfaces/investments/lovToken/IOrigamiLovToken.sol";
 import { IOrigamiManagerPausable } from "contracts/interfaces/investments/util/IOrigamiManagerPausable.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 import { OrigamiLovToken } from "contracts/investments/lovToken/OrigamiLovToken.sol";
@@ -15,9 +14,9 @@ import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol
 
 contract OrigamiLovTokenTestAdmin is OrigamiLovTokenTestBase {
     event ManagerSet(address indexed manager);
-    event PerformanceFeeSet(uint256 fee);
     event FeeCollectorSet(address indexed feeCollector);
     event TokenPricesSet(address indexed tokenPrices);
+    event MaxTotalSupplySet(uint256 maxTotalSupply);
 
     function test_initialization() public {
         assertEq(lovToken.owner(), origamiMultisig);
@@ -50,10 +49,10 @@ contract OrigamiLovTokenTestAdmin is OrigamiLovTokenTestBase {
         (uint256 depositFee, uint256 exitFee) = lovToken.getDynamicFeesBps();
         assertEq(depositFee, 20);
         assertEq(exitFee, 50);
-        assertEq(lovToken.performanceFee(), 500);
+        assertEq(lovToken.annualPerformanceFeeBps(), 500);
         assertEq(lovToken.feeCollector(), feeCollector);
-        assertEq(lovToken.PERFORMANCE_FEE_FREQUENCY(), 7 days);
-        assertEq(lovToken.lastPerformanceFeeTime(), 0);
+        assertEq(lovToken.lastPerformanceFeeTime(), 1);
+        assertEq(lovToken.maxTotalSupply(), MAX_TOTAL_SUPPLY);
 
         assertEq(address(lovToken.tokenPrices()), address(tokenPrices));
     }
@@ -66,7 +65,8 @@ contract OrigamiLovTokenTestAdmin is OrigamiLovTokenTestBase {
             "lovToken",
             10_001,
             feeCollector,
-            address(0)
+            address(0),
+            0
         );
     }
 
@@ -82,20 +82,6 @@ contract OrigamiLovTokenTestAdmin is OrigamiLovTokenTestBase {
         emit ManagerSet(alice);
         lovToken.setManager(alice);
         assertEq(address(lovToken.manager()), alice);
-    }
-
-    function test_setPerformanceFee_fail() public {
-        vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
-        lovToken.setPerformanceFee(10_001);
-    }
-
-    function test_setPerformanceFee_success() public {
-        vm.startPrank(origamiMultisig);
-        vm.expectEmit(address(lovToken));
-        emit PerformanceFeeSet(123);
-        lovToken.setPerformanceFee(123);
-        assertEq(lovToken.performanceFee(), 123);
     }
 
     function test_setFeeCollector_fail() public {
@@ -140,6 +126,14 @@ contract OrigamiLovTokenTestAdmin is OrigamiLovTokenTestBase {
         lovToken.setTokenPrices(alice);
         assertEq(address(lovToken.tokenPrices()), alice);
     }
+
+    function test_setMaxTotalSupply_success() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(lovToken));
+        emit MaxTotalSupplySet(100);
+        lovToken.setMaxTotalSupply(100);
+        assertEq(lovToken.maxTotalSupply(), 100);
+    }
 }
 
 contract OrigamiLovTokenTestAccess is OrigamiLovTokenTestBase {
@@ -148,9 +142,9 @@ contract OrigamiLovTokenTestAccess is OrigamiLovTokenTestBase {
         lovToken.setManager(alice);
     }
 
-    function test_access_setPerformanceFee() public {
+    function test_access_setAnnualPerformanceFee() public {
         expectElevatedAccess();
-        lovToken.setPerformanceFee(123);
+        lovToken.setAnnualPerformanceFee(123);
     }
 
     function test_access_setFeeCollector() public {
@@ -167,6 +161,11 @@ contract OrigamiLovTokenTestAccess is OrigamiLovTokenTestBase {
         expectElevatedAccess();
         lovToken.setTokenPrices(alice);
     }
+
+    function test_access_setMaxTotalSupply() public {
+        expectElevatedAccess();
+        lovToken.setMaxTotalSupply(100);
+    }
 }
 
 contract OrigamiLovTokenTestViews is OrigamiLovTokenTestBase {
@@ -182,21 +181,16 @@ contract OrigamiLovTokenTestViews is OrigamiLovTokenTestBase {
 
         // After rebalance
         doRebalanceDown(1.11e18);
-        assertEq(lovToken.sharesToReserves(5e18), 5.010020040080160320e18);
 
-        // With liabilities buffer
         {
-            vm.startPrank(origamiMultisig);
-            manager.setRedeemableReservesBufferBps(50);
             uint256 _expectedReserves = 201.818181818181818182e18;
             uint256 _expectedLiabilities = 181.818181818181818182e18;
             assertEq(manager.reservesBalance(), _expectedReserves);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedLiabilities);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedLiabilities);
-            assertEq(manager.redeemableReservesBufferBps(), 10_050);
-            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedReserves - _expectedLiabilities.mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP));
-            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedReserves - _expectedLiabilities.mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP));
-            assertEq(lovToken.sharesToReserves(5e18), 4.782291856440153033e18);
+            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedReserves - _expectedLiabilities);
+            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedReserves - _expectedLiabilities);
+            assertEq(lovToken.sharesToReserves(5e18), 5.010020040080160320e18);
         }
     }
 
@@ -215,20 +209,15 @@ contract OrigamiLovTokenTestViews is OrigamiLovTokenTestBase {
         assertEq(lovToken.reservesToShares(5e18), 4.99e18);
         assertEq(lovToken.reservesPerShare(), 1.002004008016032064e18);
 
-        // With liabilities buffer
         {
-            vm.startPrank(origamiMultisig);
-            manager.setRedeemableReservesBufferBps(50);
             uint256 _expectedReserves = 201.818181818181818182e18;
             uint256 _expectedLiabilities = 181.818181818181818182e18;
             assertEq(manager.reservesBalance(), _expectedReserves);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedLiabilities);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedLiabilities);
-            assertEq(manager.redeemableReservesBufferBps(), 10_050);
-            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedReserves - _expectedLiabilities.mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP));
-            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedReserves - _expectedLiabilities.mulDiv(10_050, 10_000, OrigamiMath.Rounding.ROUND_UP));
-            assertEq(lovToken.sharesToReserves(5e18), 4.782291856440153033e18);
-            assertEq(lovToken.reservesPerShare(), uint256(4.782291856440153033e18) / 5);
+            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), _expectedReserves - _expectedLiabilities);
+            assertEq(manager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), _expectedReserves - _expectedLiabilities);
+            assertEq(lovToken.sharesToReserves(5e18), 5.010020040080160320e18);
         }
     }
 
@@ -312,7 +301,7 @@ contract OrigamiLovTokenTestInvest is OrigamiLovTokenTestBase {
 
     // Not testing the mock manager implementation here - just that it passes through to the manager.
     function test_maxInvest() public {
-        assertEq(lovToken.maxInvest(address(daiToken)), type(uint256).max);
+        assertEq(lovToken.maxInvest(address(daiToken)), 10_020_040.080160320641282565e18);
     }
 
     function test_investQuote_success_depositAsset() public {
@@ -328,14 +317,14 @@ contract OrigamiLovTokenTestInvest is OrigamiLovTokenTestBase {
         );
 
         uint256 expectedFeeBps = 20;
-        uint256 expectedShares = (depositAmount * 1e18 / sharePrice).subtractBps(expectedFeeBps);
+        uint256 expectedShares = (depositAmount * 1e18 / sharePrice).subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
 
         assertEq(quoteData.fromToken, address(daiToken));
         assertEq(quoteData.fromTokenAmount, depositAmount);
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedInvestmentAmount, expectedShares);
-        assertEq(quoteData.minInvestmentAmount, expectedShares.subtractBps(slippageBps));
+        assertEq(quoteData.minInvestmentAmount, expectedShares.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
 
         assertEq(investFeeBps.length, 1);
@@ -355,14 +344,14 @@ contract OrigamiLovTokenTestInvest is OrigamiLovTokenTestBase {
         );
 
         uint256 expectedFeeBps = 20;
-        uint256 expectedShares = depositAmount.subtractBps(expectedFeeBps);
+        uint256 expectedShares = depositAmount.subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
 
         assertEq(quoteData.fromToken, address(sDaiToken));
         assertEq(quoteData.fromTokenAmount, depositAmount);
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedInvestmentAmount, expectedShares);
-        assertEq(quoteData.minInvestmentAmount, expectedShares.subtractBps(slippageBps));
+        assertEq(quoteData.minInvestmentAmount, expectedShares.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_DOWN));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
 
         assertEq(investFeeBps.length, 1);
@@ -431,7 +420,8 @@ contract OrigamiLovTokenTestInvest is OrigamiLovTokenTestBase {
         uint256 expectedFeeBps = 20;
         uint256 expectedShares = OrigamiMath.subtractBps(
             depositAmount * 1e18 / sDaiPrice,
-            expectedFeeBps
+            expectedFeeBps,
+            OrigamiMath.Rounding.ROUND_DOWN
         );
 
         vm.expectEmit(address(lovToken));
@@ -475,6 +465,48 @@ contract OrigamiLovTokenTestInvest is OrigamiLovTokenTestBase {
             0
         );
     }
+
+    function test_investWithToken_fail_breachedMaxSupply() public {
+        bootstrapSDai(123_456e18);
+        uint256 slippageBps = 100;
+        uint256 depositAmount = lovToken.maxInvest(address(sDaiToken)) + 2;
+        assertEq(lovToken.maxInvest(address(sDaiToken)), 10_020_040.080160320641282565e18);
+
+        // Fails if just over
+        {
+            (IOrigamiInvestment.InvestQuoteData memory quoteData, ) = lovToken.investQuote(
+                depositAmount,
+                address(sDaiToken),
+                slippageBps,
+                123
+            );
+
+            vm.startPrank(alice);
+            doMint(sDaiToken, alice, depositAmount);
+            sDaiToken.approve(address(lovToken), depositAmount);
+
+            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.BreachedMaxTotalSupply.selector, MAX_TOTAL_SUPPLY+1, MAX_TOTAL_SUPPLY));
+            lovToken.investWithToken(quoteData);
+        }
+
+        // OK with one less
+        {
+            (IOrigamiInvestment.InvestQuoteData memory quoteData, ) = lovToken.investQuote(
+                depositAmount-1,
+                address(sDaiToken),
+                slippageBps,
+                123
+            );
+            uint256 shares = lovToken.investWithToken(quoteData);
+            assertEq(shares, MAX_TOTAL_SUPPLY);
+            assertEq(lovToken.totalSupply(), shares);
+            assertEq(lovToken.balanceOf(alice), shares);
+            assertEq(sDaiToken.balanceOf(alice), 123_456e18+1);
+            assertEq(sDaiToken.balanceOf(address(lovToken)), 0);
+            assertEq(sDaiToken.balanceOf(address(manager)), manager.reservesBalance());
+            assertEq(lovToken.maxInvest(address(sDaiToken)), 0);
+        }
+    }
 }
 
 contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
@@ -515,8 +547,8 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         assertEq(quoteData.toToken, address(daiToken));
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
-        assertEq(quoteData.expectedToTokenAmount, (exitAmount * sharePrice1 / 1e18).subtractBps(MIN_EXIT_FEE_BPS));
-        assertEq(quoteData.minToTokenAmount, quoteData.expectedToTokenAmount.subtractBps(slippageBps));
+        assertEq(quoteData.expectedToTokenAmount, (exitAmount * sharePrice1 / 1e18).subtractBps(MIN_EXIT_FEE_BPS, OrigamiMath.Rounding.ROUND_DOWN));
+        assertEq(quoteData.minToTokenAmount, quoteData.expectedToTokenAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_DOWN));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
 
         assertEq(exitFeeBps.length, 1);
@@ -541,7 +573,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         uint256 expectedFeeBps = 50;
         uint256 expectedAmount = sDaiToken.previewRedeem(
             lovToken.sharesToReserves(
-                exitAmount.subtractBps(expectedFeeBps)
+                exitAmount.subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN)
             )
         );
 
@@ -550,7 +582,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedToTokenAmount, expectedAmount);
-        assertEq(quoteData.minToTokenAmount, expectedAmount.subtractBps(slippageBps));
+        assertEq(quoteData.minToTokenAmount, expectedAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
         assertEq(exitFeeBps.length, 1);
         assertEq(exitFeeBps[0], expectedFeeBps);
@@ -572,7 +604,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
 
         uint256 expectedFeeBps = 50;
         uint256 expectedAmount = lovToken.sharesToReserves(
-            exitAmount.subtractBps(expectedFeeBps)
+            exitAmount.subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN)
         );
         
         assertEq(quoteData.investmentTokenAmount, exitAmount);
@@ -580,7 +612,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         assertEq(quoteData.maxSlippageBps, slippageBps);
         assertEq(quoteData.deadline, 123);
         assertEq(quoteData.expectedToTokenAmount, expectedAmount);
-        assertEq(quoteData.minToTokenAmount, expectedAmount.subtractBps(slippageBps));
+        assertEq(quoteData.minToTokenAmount, expectedAmount.subtractBps(slippageBps, OrigamiMath.Rounding.ROUND_UP));
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
         assertEq(exitFeeBps.length, 1);
         assertEq(exitFeeBps[0], expectedFeeBps);
@@ -622,6 +654,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         bootstrapSDai(123_456e18);
         uint256 slippageBps = 100;
         uint256 depositAmount = 20e18;
+        investWithDai(100e18, bob);
         investWithDai(depositAmount, alice);
 
         uint256 exitAmount = 100e18;
@@ -632,7 +665,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
             123
         );
 
-        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        vm.expectRevert("ERC20: burn amount exceeds balance");
         lovToken.exitToToken(quoteData, alice);
     }
 
@@ -692,7 +725,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         uint256 expectedFeeBps = 50;
         uint256 expectedDaiAmount = sDaiToken.previewRedeem(
             lovToken.sharesToReserves(
-                exitAmount.subtractBps(expectedFeeBps)
+                exitAmount.subtractBps(expectedFeeBps, OrigamiMath.Rounding.ROUND_DOWN)
             )
         );
 
@@ -700,7 +733,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         vm.expectEmit(address(lovToken));
         emit Exited(alice, exitAmount, address(daiToken), expectedDaiAmount, alice);
         vm.expectEmit(address(lovToken));
-        emit Transfer(address(manager), address(0), exitAmount);
+        emit Transfer(alice, address(0), exitAmount);
         uint256 daiAmount = lovToken.exitToToken(quoteData, alice);
         assertEq(daiAmount, expectedDaiAmount);
 
@@ -733,7 +766,7 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
         vm.expectEmit(address(lovToken));
         emit Exited(alice, exitAmount, address(daiToken), expectedDaiAmount, alice);
         vm.expectEmit(address(lovToken));
-        emit Transfer(address(manager), address(0), exitAmount);
+        emit Transfer(alice, address(0), exitAmount);
         uint256 daiAmount = lovToken.exitToToken(quoteData, alice);
         assertEq(daiAmount, expectedDaiAmount);
 
@@ -776,14 +809,26 @@ contract OrigamiLovTokenTestExit is OrigamiLovTokenTestBase {
 
 contract OrigamiLovTokenTestFees is OrigamiLovTokenTestBase {
     event PerformanceFeesCollected(address indexed feeCollector, uint256 mintAmount);
+    event PerformanceFeeSet(uint256 fee);
 
-    function test_performanceFeeAmount() public {
+    function test_accruedPerformanceFee() public {
+        // No supply yet
+        assertEq(lovToken.totalSupply(), 0);
+        assertEq(lovToken.accruedPerformanceFee(), 0);
+
         bootstrapSDai(123_456e18);
         uint256 depositAmount = 100_000e18;
         investWithDai(depositAmount, alice);
 
-        assertEq(lovToken.totalSupply(), 95_047.619047619047619047e18);
-        assertEq(lovToken.performanceFeeAmount(), 91.141552511415525114e18);
+        uint256 expectedTotalSupply = 95_047.619047619047619047e18;
+        assertEq(lovToken.totalSupply(), expectedTotalSupply);
+        assertEq(lovToken.accruedPerformanceFee(), 0);
+
+        vm.warp(block.timestamp + 182.5 days);
+        assertEq(lovToken.accruedPerformanceFee(), expectedTotalSupply * 500 / 10_000 / 2);
+
+        vm.warp(block.timestamp + 182.5 days);
+        assertEq(lovToken.accruedPerformanceFee(), expectedTotalSupply * 500 / 10_000);
     }
 
     function test_collectPerformanceFees_success() public {
@@ -794,37 +839,67 @@ contract OrigamiLovTokenTestFees is OrigamiLovTokenTestBase {
         investWithDai(depositAmount, alice);
 
         uint256 totalSupply = lovToken.totalSupply();
-        assertEq(totalSupply, 95_047.619047619047619047e18);
 
         vm.startPrank(origamiMultisig);
+        lovToken.collectPerformanceFees();
+        assertEq(lovToken.balanceOf(feeCollector), 0);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
 
-        uint256 expectedAmount = 91.141552511415525114e18;
+        vm.warp(block.timestamp + 182.5 days);
+        uint256 expectedAmount = totalSupply * 500 / 10_000 / 2;
         vm.expectEmit(address(lovToken));
         emit PerformanceFeesCollected(feeCollector, expectedAmount);
         uint256 amount = lovToken.collectPerformanceFees();
         assertEq(amount, expectedAmount);
         assertEq(lovToken.balanceOf(feeCollector), expectedAmount);
+        assertEq(lovToken.totalSupply(), totalSupply + expectedAmount);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
+
+        uint256 expectedAmount2 = (totalSupply + expectedAmount) * 500 / 10_000 / 2;
+        vm.warp(block.timestamp + 182.5 days);
+        vm.expectEmit(address(lovToken));
+        emit PerformanceFeesCollected(feeCollector, expectedAmount2);
+        amount = lovToken.collectPerformanceFees();
+        assertEq(amount, expectedAmount2);
+        assertEq(lovToken.balanceOf(feeCollector), expectedAmount + expectedAmount2);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
     }
 
-    function test_collectPerformanceFees_fail_tooSoon() public {
-        vm.warp(1702020398);
+    function test_setAnnualPerformanceFee_fail() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        lovToken.setAnnualPerformanceFee(10_001);
+    }
 
+    function test_setAnnualPerformanceFee_successNoSupply() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(lovToken));
+        emit PerformanceFeeSet(123);
+        lovToken.setAnnualPerformanceFee(123);
+        assertEq(lovToken.annualPerformanceFeeBps(), 123);
+        assertEq(lovToken.balanceOf(feeCollector), 0);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
+    }
+
+    function test_setAnnualPerformanceFee_successWithSupply() public {
+        vm.warp(1702020398);
         bootstrapSDai(123_456e18);
         uint256 depositAmount = 100_000e18;
         investWithDai(depositAmount, alice);
-
         uint256 totalSupply = lovToken.totalSupply();
-        assertEq(totalSupply, 95_047.619047619047619047e18);
+
+        vm.warp(block.timestamp + 365 days);
+        uint256 expectedAmount = totalSupply * 500 / 10_000;
 
         vm.startPrank(origamiMultisig);
-        lovToken.collectPerformanceFees();
-        vm.warp(block.timestamp + 7 days - 1);
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiLovToken.TooSoon.selector));
-        lovToken.collectPerformanceFees();
-
-        vm.warp(block.timestamp + 1);
-        lovToken.collectPerformanceFees();
-        assertEq(lovToken.balanceOf(feeCollector), 182.370501032088571964e18);
+        vm.expectEmit(address(lovToken));
+        emit PerformanceFeesCollected(feeCollector, expectedAmount);
+        vm.expectEmit(address(lovToken));
+        emit PerformanceFeeSet(123);
+        lovToken.setAnnualPerformanceFee(123);
+        assertEq(lovToken.annualPerformanceFeeBps(), 123);
+        assertEq(lovToken.balanceOf(feeCollector), 4_752.380952380952380952e18);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
     }
     
     function test_collectPerformanceFees_nothingToMint() public {
@@ -838,10 +913,45 @@ contract OrigamiLovTokenTestFees is OrigamiLovTokenTestBase {
         assertEq(totalSupply, 95_047.619047619047619047e18);
 
         vm.startPrank(origamiMultisig);
-        lovToken.setPerformanceFee(0);
+        lovToken.setAnnualPerformanceFee(0);
 
         uint256 amount = lovToken.collectPerformanceFees();
         assertEq(amount, 0);
         assertEq(lovToken.balanceOf(feeCollector), 0);
+    }
+
+    function test_collectPerformanceFees_overMaxTotalSupply() public {
+        vm.warp(1702020398);
+
+        bootstrapSDai(123_456e18);
+        uint256 depositAmount = lovToken.maxInvest(address(daiToken));
+        investWithDai(depositAmount, alice);
+
+        uint256 totalSupply = lovToken.totalSupply();
+
+        vm.startPrank(origamiMultisig);
+        lovToken.collectPerformanceFees();
+        assertEq(lovToken.balanceOf(feeCollector), 0);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
+
+        vm.warp(block.timestamp + 182.5 days);
+        uint256 expectedAmount = totalSupply * 500 / 10_000 / 2;
+        vm.expectEmit(address(lovToken));
+        emit PerformanceFeesCollected(feeCollector, expectedAmount);
+        uint256 amount = lovToken.collectPerformanceFees();
+        assertEq(amount, expectedAmount);
+        assertEq(lovToken.balanceOf(feeCollector), expectedAmount);
+        assertEq(lovToken.totalSupply(), totalSupply + expectedAmount);
+        assertEq(totalSupply + expectedAmount, 10_249_999.999999999999999998e18);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
+
+        uint256 expectedAmount2 = (totalSupply + expectedAmount) * 500 / 10_000 / 2;
+        vm.warp(block.timestamp + 182.5 days);
+        vm.expectEmit(address(lovToken));
+        emit PerformanceFeesCollected(feeCollector, expectedAmount2);
+        amount = lovToken.collectPerformanceFees();
+        assertEq(amount, expectedAmount2);
+        assertEq(lovToken.balanceOf(feeCollector), expectedAmount + expectedAmount2);
+        assertEq(lovToken.lastPerformanceFeeTime(), block.timestamp);
     }
 }

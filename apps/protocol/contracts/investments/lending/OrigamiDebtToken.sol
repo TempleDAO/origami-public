@@ -102,7 +102,9 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
         if (_rate > MAX_INTEREST_RATE) revert CommonEventsAndErrors.InvalidParam();
 
         // Can be set by either a debt minter or elevated access
-        if (!minters[msg.sender] && !isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
+        if (!minters[msg.sender]) {
+            if (!isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
+        }
 
         // First checkpoint the debtor interest, then update
         Debtor storage debtor = debtors[_debtor];
@@ -225,18 +227,21 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
 
         // Use the RO (read-only) version in order to tally the total interestDelta
         // to save multiple sload/sstore of estimatedTotalInterest
-        uint256 _length = _debtors.length;
-        for (uint256 i; i < _length; ++i) {
+        for (uint256 i; i < _debtors.length;) {
             _debtorAddr = _debtors[i];
             if (_debtorAddr == address(0)) revert CommonEventsAndErrors.InvalidAddress(_debtorAddr);
             _debtor = debtors[_debtorAddr];
             _debtorPosition = _getDebtorPositionRO(_debtor);
-            _interestDelta += _debtorPosition.interestDelta;
+            _interestDelta = _interestDelta + _debtorPosition.interestDelta;
             _debtor.interestCheckpoint = _debtorPosition.interest;
             _debtor.timeCheckpoint = uint32(block.timestamp);
-            emit Checkpoint(_debtorAddr, _debtor.principal, _debtor.interestCheckpoint);
+            emit Checkpoint(_debtorAddr, _debtor.principal, _debtorPosition.interest);
+
+            unchecked {
+                ++i;
+            }
         }
-        estimatedTotalInterest += _interestDelta;
+        estimatedTotalInterest = estimatedTotalInterest + _interestDelta;
     }
 
     /**
@@ -245,11 +250,10 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
     function currentDebtsOf(address[] calldata _debtors) external override view returns (
         DebtOwed[] memory debtsOwed
     ) {
-        uint256 _length = _debtors.length;
-        debtsOwed = new DebtOwed[](_length);
+        debtsOwed = new DebtOwed[](_debtors.length);
         DebtorPosition memory _debtorPosition;
         
-        for (uint256 i; i < _length; ++i) {
+        for (uint256 i; i < _debtors.length; ++i) {
             _debtorPosition = _getDebtorPositionRO(debtors[_debtors[i]]);
             debtsOwed[i] = DebtOwed(
                 _debtorPosition.principal, 
@@ -298,17 +302,18 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
      */
     function totalSupplyExcluding(address[] calldata debtorList) external override view returns (uint256) {
         Debtor storage _debtor;
-        uint256 _length = debtorList.length;
         uint256 _excludeSum;
-        for (uint256 i; i < _length; ++i) {
+        for (uint256 i; i < debtorList.length;) {
             _debtor = debtors[debtorList[i]];
             unchecked {
-                _excludeSum += _debtor.principal + _debtor.interestCheckpoint;
+                _excludeSum = _excludeSum + _debtor.principal + _debtor.interestCheckpoint;
+                ++i;
             }
         }
         
         unchecked {
-            return uint256(totalPrincipal) + estimatedTotalInterest - _excludeSum;
+            uint256 total = uint256(totalPrincipal) + estimatedTotalInterest;
+            return total > _excludeSum ? total - _excludeSum : 0;
         }
     }
 
@@ -345,8 +350,9 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
         Debtor storage toDebtor = debtors[_debtor];
         DebtorPosition memory _debtorPosition = _getDebtorPosition(toDebtor);
 
+        totalPrincipal = totalPrincipal + _amount;
         unchecked {
-            totalPrincipal += _amount;
+            // If the totalPrincipal doesn't overflow above, then the individual debtorPosition cannot
             toDebtor.principal = _debtorPosition.principal = _debtorPosition.principal + _amount;
         }
 
@@ -389,7 +395,7 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
 
         unchecked {
             // Any remaining `_burnAmount` is principal which is repaid.
-            _burnAmount -= _interestDebtRepaid;
+            _burnAmount = _burnAmount - _interestDebtRepaid;
         }
 
         // Update the contract state.
@@ -398,7 +404,7 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
             _debtor.interestCheckpoint = _debtorPosition.interest = _debtorPosition.interest - _interestDebtRepaid;
             _debtor.timeCheckpoint = uint32(block.timestamp);
 
-            totalPrincipal -= _burnAmount;
+            totalPrincipal = totalPrincipal - _burnAmount;
 
             // Update the cumulative estimate of total debtor interest owing.
             unchecked {
@@ -407,7 +413,7 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
                 estimatedTotalInterest = totalInterest > _interestDebtRepaid ? totalInterest - _interestDebtRepaid : 0;
             }
 
-            repaidTotalInterest += _interestDebtRepaid;
+            repaidTotalInterest = repaidTotalInterest + _interestDebtRepaid;
         }
     }
 
@@ -461,7 +467,7 @@ contract OrigamiDebtToken is IOrigamiDebtToken, OrigamiElevatedAccess {
     ) {
         if (_initDebtorPosition(_debtor, debtorPosition)) {
             unchecked {
-               estimatedTotalInterest += debtorPosition.interestDelta;
+               estimatedTotalInterest = estimatedTotalInterest + debtorPosition.interestDelta;
             }
 
             _debtor.interestCheckpoint = debtorPosition.interest;

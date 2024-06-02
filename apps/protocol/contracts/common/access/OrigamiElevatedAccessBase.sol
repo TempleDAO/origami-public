@@ -57,9 +57,8 @@ abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
      */
     function setExplicitAccess(address allowedCaller, ExplicitAccess[] calldata access) external override onlyElevatedAccess {
         if (allowedCaller == address(0)) revert CommonEventsAndErrors.InvalidAddress(allowedCaller);
-        uint256 _length = access.length;
         ExplicitAccess memory _access;
-        for (uint256 i; i < _length; ++i) {
+        for (uint256 i; i < access.length; ++i) {
             _access = access[i];
             emit ExplicitAccessSet(allowedCaller, _access.fnSelector, _access.allowed);
             explicitFunctionAccess[allowedCaller][_access.fnSelector] = _access.allowed;

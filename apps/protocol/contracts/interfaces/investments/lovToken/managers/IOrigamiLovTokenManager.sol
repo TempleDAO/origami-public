@@ -2,22 +2,36 @@ pragma solidity 0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/investments/lovToken/managers/IOrigamiLovTokenManager.sol)
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import { IOrigamiOTokenManager } from "contracts/interfaces/investments/IOrigamiOTokenManager.sol";
 import { IWhitelisted } from "contracts/interfaces/common/access/IWhitelisted.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
+import { IOrigamiLovToken } from "contracts/interfaces/investments/lovToken/IOrigamiLovToken.sol";
 
 /**
  * @title Origami lovToken Manager
  * @notice The delegated logic to handle deposits/exits, and borrow/repay (rebalances) into the underlying reserve token
  */
 interface IOrigamiLovTokenManager is IOrigamiOTokenManager, IWhitelisted {
-    event RedeemableReservesBufferSet(uint256 bufferInBps);
-    event FeeConfigSet(uint16 maxExitFeeBps, uint16 minExitFeeBps, uint16 feeLeverageFactor);
+    event FeeConfigSet(uint16 maxExitFeeBps, uint16 minExitFeeBps, uint24 feeLeverageFactor);
 
     event UserALRangeSet(uint128 floor, uint128 ceiling);
     event RebalanceALRangeSet(uint128 floor, uint128 ceiling);
+
+    event Rebalance(
+        /// @dev positive when Origami supplies the `reserveToken` as new collateral, negative when Origami withdraws collateral
+        /// Represented in the units of the `reserveToken` of this lovToken
+        int256 collateralChange,
+
+        /// @dev positive when Origami borrows new debt, negative when Origami repays debt
+        /// Represented in the units of the `debtToken` of this lovToken
+        int256 debtChange,
+
+        /// @dev The Assets/Liabilities ratio before the rebalance
+        uint256 alRatioBefore,
+
+        /// @dev The Assets/Liabilities ratio after the rebalance
+        uint256 alRatioAfter
+    );
     
     error ALTooLow(uint128 ratioBefore, uint128 ratioAfter, uint128 minRatio);
     error ALTooHigh(uint128 ratioBefore, uint128 ratioAfter, uint128 maxRatio);
@@ -26,14 +40,9 @@ interface IOrigamiLovTokenManager is IOrigamiOTokenManager, IWhitelisted {
     /**
      * @notice Set the minimum fee (in basis points) of lovToken's for deposit and exit,
      * and also the nominal leverage factor applied within the fee calculations
+     * @dev feeLeverageFactor has 4dp precision
      */
-    function setFeeConfig(uint16 _minDepositFeeBps, uint16 _minExitFeeBps, uint16 _feeLeverageFactor) external;
-
-    /**
-     * @notice Set the amount of reserves buffer that is held proportionate to the debt
-     * @dev represented in basis points
-     */
-    function setRedeemableReservesBufferBps(uint16 bufferInBps) external;
+    function setFeeConfig(uint16 _minDepositFeeBps, uint16 _minExitFeeBps, uint24 _feeLeverageFactor) external;
 
     /**
      * @notice Set the valid lower and upper bounds of A/L when users deposit/exit into lovToken
@@ -48,10 +57,11 @@ interface IOrigamiLovTokenManager is IOrigamiOTokenManager, IWhitelisted {
     /**
      * @notice lovToken contract - eg lovDSR
      */
-    function lovToken() external view returns (IERC20);
+    function lovToken() external view returns (IOrigamiLovToken);
 
     /**
      * @notice The min deposit/exit fee and feeLeverageFactor configuration
+     * @dev feeLeverageFactor has 4dp precision
      */
     function getFeeConfig() external view returns (uint64 minDepositFeeBps, uint64 minExitFeeBps, uint64 feeLeverageFactor);
 
@@ -61,13 +71,6 @@ interface IOrigamiLovTokenManager is IOrigamiOTokenManager, IWhitelisted {
      * @dev represented in basis points
      */
     function getDynamicFeesBps() external view returns (uint256 depositFeeBps, uint256 exitFeeBps);
-
-    /**
-     * @notice A buffer added to the amount of debt (in the reserveToken terms)
-     * held back from user redeemable reserves, in order to protect from bad debt.
-     * @dev stored as 1+buffer% in basis points
-     */
-    function redeemableReservesBufferBps() external view returns (uint64 bufferInBps);
 
     /**
      * @notice The valid lower and upper bounds of A/L allowed when users deposit/exit into lovToken
@@ -135,9 +138,7 @@ interface IOrigamiLovTokenManager is IOrigamiOTokenManager, IWhitelisted {
 
     /**
      * @notice The amount of reserves that users may redeem their lovTokens as of this block
-     * A small buffer amount is added to the current debt to protect from variations in
-     * debt calculation
-     * @dev = reserves - (1 + buffer%) * liabilities
+     * @dev = reserves - liabilities
      * Use the Oracle `debtPriceType` to value any debt in terms of the reserve token
      */
     function userRedeemableReserves(IOrigamiOracle.PriceType debtPriceType) external view returns (uint256);

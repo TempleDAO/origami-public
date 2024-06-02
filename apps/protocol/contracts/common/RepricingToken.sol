@@ -4,7 +4,6 @@ pragma solidity 0.8.19;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import { ERC20Burnable } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -12,6 +11,7 @@ import { IRepricingToken } from "contracts/interfaces/common/IRepricingToken.sol
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
+import { SafeCast } from "contracts/libraries/SafeCast.sol";
 
 /// @notice A re-pricing token which implements the ERC20 interface.
 /// Each minted RepricingToken represents 1 share.
@@ -19,45 +19,39 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 ///  reservesPerShare = numShares * totalReserves / totalSupply
 /// Elevated access can add new reserves in order to increase the reservesPerShare.
 /// These new reserves are vested per second, over a set period of time.
-abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable, OrigamiElevatedAccess {
+abstract contract RepricingToken is IRepricingToken, ERC20Permit, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
     using OrigamiMath for uint256;
-
-    /// @notice The token used to track reserves for this investment
-    address public override immutable reserveToken;
+    using SafeCast for uint256;
 
     /// @notice The fully vested reserve tokens
     /// @dev Comprised of both user deposited reserves (when new shares are issued)
     /// And also when new reserves are deposited by the protocol to increase the reservesPerShare
     /// (which vest in over time)
-    uint256 public override vestedReserves;
+    uint128 public override vestedReserves;
 
     /// @notice Extra reserve tokens deposited by the protocol to increase the reservesPerShare
     /// @dev These vest in per second over `vestingDuration`
-    uint256 public override pendingReserves;
+    uint128 public override pendingReserves;
 
     /// @notice When new reserves are added to increase the reservesPerShare, 
     /// they will vest over this duration (in seconds)
-    uint256 public override reservesVestingDuration;
+    uint48 public override reservesVestingDuration;
 
     /// @notice The time at which any accrued pendingReserves were last moved from `pendingReserves` -> `vestedReserves`
-    uint256 public override lastVestingCheckpoint;
+    uint48 public override lastVestingCheckpoint;
 
-    event IssueSharesFromReserves(address indexed user, address indexed recipient, uint256 reserveTokenAmount, uint256 sharesAmount);
-    event RedeemReservesFromShares(address indexed user, address indexed recipient, uint256 sharesAmount, uint256 reserveTokenAmount);
-    event ReservesVestingDurationSet(uint256 duration);
-    event PendingReservesAdded(uint256 amount);
-    event VestedReservesAdded(uint256 amount);
-    event VestedReservesRemoved(uint256 amount);
-    event ReservesCheckpoint(uint256 fullyVestedReserves, uint256 newVestedReserves, uint256 carriedOverPendingReserves, uint256 newPendingReserves);
+    /// @notice The token used to track reserves for this investment
+    address public override immutable reserveToken;
 
-    error CannotCheckpointReserves(uint256 secsSinceLastCheckpoint, uint256 vestingDuration);
+    /// @notice The number of decimal on the reserveToken.
+    uint8 internal immutable reserveTokenDecimals;
 
     constructor(
         string memory _name, 
         string memory _symbol, 
         address _reserveToken, 
-        uint256 _reservesVestingDuration, 
+        uint48 _reservesVestingDuration,
         address _initialOwner
     )
         ERC20(_name, _symbol)
@@ -66,13 +60,14 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
     {
         reserveToken = _reserveToken;
         reservesVestingDuration = _reservesVestingDuration;
+        reserveTokenDecimals = ERC20(reserveToken).decimals();
     }
 
     /// @notice Update the vesting duration for any new reserves being added.
     /// @dev This will first checkpoint any pending reserves, any carried over amount will be
     /// spread out over the new duration.
-    function setReservesVestingDuration(uint256 _reservesVestingDuration) external onlyElevatedAccess {
-        _checkpointAndAddReserves(0);
+    function setReservesVestingDuration(uint48 _reservesVestingDuration) external onlyElevatedAccess {
+        _checkpointAndAddReserves(vestedReserves, pendingReserves, 0);
         reservesVestingDuration = _reservesVestingDuration;
         emit ReservesVestingDurationSet(_reservesVestingDuration);
     }
@@ -83,8 +78,9 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
         // It can't dip into the actual user or protocol added reserves. 
         // This includes any vested rewards plus any unvested (but pending) reserves
         if (_token == reserveToken) {
-            uint256 bal = IERC20(reserveToken).balanceOf(address(this));
-            if (_amount > (bal - (vestedReserves + pendingReserves))) revert CommonEventsAndErrors.InvalidAmount(_token, _amount);
+            uint256 _reservesBalance = IERC20(reserveToken).balanceOf(address(this));
+            uint256 _surplusReserves = _reservesBalance - pendingReserves - uint256(vestedReserves);
+            if (_amount > _surplusReserves) revert CommonEventsAndErrors.InvalidAmount(_token, _amount);
         }
         
         emit CommonEventsAndErrors.TokenRecovered(_to, _token, _amount);
@@ -94,13 +90,16 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
     /// @notice Returns the number of decimals used to get its user representation.
     /// @dev Uses the underlying reserve token's decimals
     function decimals() public view override returns (uint8) {
-        return ERC20(reserveToken).decimals();
+        return reserveTokenDecimals;
     }
 
     /// @notice The current amount of fully vested reserves plus any accrued pending reserves
     function totalReserves() public view override returns (uint256) {
-        (uint256 accrued, ) = unvestedReserves();
-        return vestedReserves + accrued;
+        (uint128 accrued, ) = _unvestedReserves(pendingReserves);
+        unchecked {
+            // Unchecked safe because `accrued` was a uint128
+            return uint256(accrued) + vestedReserves;
+        }
     }
 
     /// @notice How many reserve tokens would one get given a single share, as of now
@@ -133,19 +132,8 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
 
     /// @notice The accrued vs outstanding amount of pending reserve tokens which have
     /// not yet been fully vested.
-    function unvestedReserves() public view override returns (uint256 accrued, uint256 outstanding) {
-        uint256 _pendingReserves = pendingReserves;
-        uint256 _vestingDuration = reservesVestingDuration;
-        uint256 secsSinceLastCheckpoint = block.timestamp - lastVestingCheckpoint;
-
-        // The whole amount has been accrued (vested but not yet added to `vestedReserves`) 
-        // if the time since the last checkpoint has passed the vesting duration
-        accrued = (secsSinceLastCheckpoint >= _vestingDuration)
-            ? _pendingReserves
-            : _pendingReserves * secsSinceLastCheckpoint / _vestingDuration;
-
-        // Any amount not yet vested, to be carried over
-        outstanding = _pendingReserves - accrued;
+    function unvestedReserves() external view override returns (uint256 accrued, uint256 outstanding) {
+        (accrued, outstanding) = _unvestedReserves(pendingReserves);
     }
 
     /// @notice Add pull in and add reserve tokens, which slowly increases the reservesPerShare()
@@ -158,15 +146,15 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
         emit PendingReservesAdded(amount);
         IERC20(reserveToken).safeTransferFrom(msg.sender, address(this), amount);
 
-        _checkpointAndAddReserves(amount);
-        _validateReservesBalance();
+        (uint128 _vestedReserves, uint128 _pendingReserves) = _checkpointAndAddReserves(vestedReserves, pendingReserves, amount.encodeUInt128());
+        _validateReservesBalance(_vestedReserves, _pendingReserves);
     }
 
     /// @notice Checkpoint any pending reserves as long as the `reservesVestingDuration` period has completely passed.
     /// @dev No economic benefit, but may be useful for book keeping purposes.
     function checkpointReserves() external override {
         if (block.timestamp - lastVestingCheckpoint < reservesVestingDuration) revert CannotCheckpointReserves(block.timestamp - lastVestingCheckpoint, reservesVestingDuration);
-        _checkpointAndAddReserves(0);
+        _checkpointAndAddReserves(vestedReserves, pendingReserves, 0);
     }
 
     /// @notice Return the current estimated APR based on the pending reserves which are vesting per second
@@ -199,17 +187,28 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
         // Mint shares to the user and add to the total reserves
         _mint(recipient, sharesAmount);
 
-        vestedReserves += reserveTokenAmount;
+        uint128 _vestedReserves = vestedReserves = vestedReserves + reserveTokenAmount.encodeUInt128();
         emit VestedReservesAdded(reserveTokenAmount);
 
-        _validateReservesBalance();
+        _validateReservesBalance(_vestedReserves, pendingReserves);
     }
 
     /// @dev Check the invariant that the amount of reserve tokens held by this contract
     /// is at least the vestedReserves + pendingReserves
-    function _validateReservesBalance() internal view {
-        if (IERC20(reserveToken).balanceOf(address(this)) < (vestedReserves + pendingReserves)) {
-            revert CommonEventsAndErrors.InsufficientBalance(reserveToken, vestedReserves + pendingReserves, IERC20(reserveToken).balanceOf(address(this)));
+    function _validateReservesBalance(uint128 _vestedReserves, uint128 _pendingReserves) internal view {
+        uint256 _balance = IERC20(reserveToken).balanceOf(address(this));
+        uint256 _totalReserves;
+        unchecked {
+            // Unchecked safe because it upcasts from uint128 to uint256
+            _totalReserves = uint256(_vestedReserves) + _pendingReserves;
+        }
+
+        if (_balance < _totalReserves) {
+            revert CommonEventsAndErrors.InsufficientBalance(
+                reserveToken, 
+                _totalReserves, 
+                _balance
+            );
         }
     }
 
@@ -228,27 +227,59 @@ abstract contract RepricingToken is IRepricingToken, ERC20Permit, ERC20Burnable,
         // Burn the users shares and remove the reserves
         _burn(from, sharesAmount);
 
-        vestedReserves -= reserveTokenAmount;
+        (uint128 _vestedReserves, uint128 _pendingReserves) = (vestedReserves, pendingReserves);
+
+        // In the unlikely event where the vested reserves are less than the amount to transfer,
+        // force a checkpoint
+        uint128 reserveTokenAmount128 = reserveTokenAmount.encodeUInt128();
+        if (_vestedReserves < reserveTokenAmount128) {
+            (_vestedReserves, _pendingReserves) = _checkpointAndAddReserves(_vestedReserves, _pendingReserves, 0);
+        }
+
+        vestedReserves = _vestedReserves = _vestedReserves - reserveTokenAmount128;
         emit VestedReservesRemoved(reserveTokenAmount);
 
         if (receiver != address(this)) {
             IERC20(reserveToken).safeTransfer(receiver, reserveTokenAmount);
         }
 
-        _validateReservesBalance();
+        _validateReservesBalance(_vestedReserves, _pendingReserves);
     }
 
     /// @dev Checkpoint by moving any `pendingReserves` which have vested to the `vestedReserves`.
     /// Any unvested balance is added to `newReserves` to become the new `pendingReserves` which will start
     /// vesting from now.
-    function _checkpointAndAddReserves(uint256 newReserves) internal {
-        (uint256 accrued, uint256 outstanding) = unvestedReserves();
-        uint256 _vestedReserves = vestedReserves + accrued;
+    function _checkpointAndAddReserves(
+        uint128 oldVestedReserves, 
+        uint128 oldPendingReserves, 
+        uint128 newReserves
+    ) internal returns (uint128 newVestedReserves, uint128 newPendingReserves) {
+        (uint128 accrued, uint128 outstanding) = _unvestedReserves(oldPendingReserves);
 
-        vestedReserves = _vestedReserves;
-        pendingReserves = outstanding + newReserves;
-        lastVestingCheckpoint = block.timestamp;
+        vestedReserves = newVestedReserves = oldVestedReserves + accrued;
+        pendingReserves = newPendingReserves = outstanding + newReserves;
+        lastVestingCheckpoint = uint48(block.timestamp);
 
-        emit ReservesCheckpoint(_vestedReserves, accrued, outstanding, newReserves);
+        emit ReservesCheckpoint(newVestedReserves, accrued, outstanding, newReserves);
+    }
+
+    function _unvestedReserves(uint128 _pendingReserves) internal view returns (uint128 accrued, uint128 outstanding) {
+        uint48 _vestingDuration = reservesVestingDuration;
+        uint48 secsSinceLastCheckpoint;
+        unchecked {
+            secsSinceLastCheckpoint = uint48(block.timestamp) - lastVestingCheckpoint;
+        }
+
+        // The whole amount has been accrued (vested but not yet added to `vestedReserves`) 
+        // if the time since the last checkpoint has passed the vesting duration
+        accrued = (secsSinceLastCheckpoint >= _vestingDuration)
+            ? _pendingReserves
+            : _pendingReserves * secsSinceLastCheckpoint / _vestingDuration;
+
+        // Any amount not yet vested, to be carried over
+        unchecked {
+            // Unchecked safe because `accrued` guaranteed to be <= `_pendingReserves`
+            outstanding = _pendingReserves - accrued;
+        }
     }
 }

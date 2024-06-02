@@ -8,9 +8,8 @@ library OrigamiLovTokenTestConstants {
 
     uint16 public constant LOV_DSR_MIN_DEPOSIT_FEE_BPS = 10; // 0.1%
     uint16 public constant LOV_DSR_MIN_EXIT_FEE_BPS = 50; // 0.5%
-    uint16 public constant LOV_DSR_FEE_LEVERAGE_FACTOR = 15;
-    uint16 public constant LOV_DSR_REDEEMABLE_RESERVES_BUFFER = 50; // 0.5%
-    uint256 public constant LOV_DSR_PERFORMANCE_FEE_BPS = 500; // 5%
+    uint24 public constant LOV_DSR_FEE_LEVERAGE_FACTOR = 15e4; // 15x
+    uint48 public constant LOV_DSR_PERFORMANCE_FEE_BPS = 500; // 5%
     uint256 public constant LOV_DSR_IUSDC_BORROW_CAP = 2_000_000e18;
 
     /**
@@ -28,6 +27,7 @@ library OrigamiLovTokenTestConstants {
     uint80 public constant BORROWER_IR_AT_100_UR = 0.045e18; // 4.5%
 
     uint96 public constant IDLE_STRATEGY_IR = 0.05e18; // 5%
+    uint96 public constant OUSDC_EXIT_FEE_BPS = 10; // 0.1%
     uint256 public constant OUSDC_PERFORMANCE_FEE_BPS = 200; // 2%
     uint256 public constant OUSDC_CARRY_OVER_BPS = 500; // 5%
     uint128 public constant CB_DAILY_USDC_BORROW_LIMIT = 2_000_000e6;

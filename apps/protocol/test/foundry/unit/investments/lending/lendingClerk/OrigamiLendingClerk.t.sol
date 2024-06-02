@@ -305,6 +305,26 @@ contract OrigamiLendingClerkTestBorrow is OrigamiLendingClerkTestBase {
         lendingClerk.borrow(20e6+1, alice);
     }
 
+    function test_availableToBorrow() public {
+        uint256 globalCapacity = 3_000_000e6;
+        uint256 borrowAmount = 500_000e6;
+        doDeposit(globalCapacity);
+        addBorrower(1_000_000e18);
+        vm.startPrank(address(borrower));
+
+        // Capped to the debt ceiling
+        assertEq(lendingClerk.availableToBorrow(address(borrower)), 1_000_000e6);
+        lendingClerk.borrow(borrowAmount, alice);
+        assertEq(lendingClerk.availableToBorrow(address(borrower)), 500_000e6);
+
+        // Up the debt ceiling
+        vm.startPrank(origamiMultisig);
+        lendingClerk.setBorrowerDebtCeiling(address(borrower), 3_000_000e18);
+
+        // Capped to the circuit breaker remaining amount
+        assertEq(lendingClerk.availableToBorrow(address(borrower)), 1_500_000e6);
+    }
+
     function test_borrow_fail_notEnoughGlobalCapacity() public {
         uint256 globalCapacity = 100e6;
         uint256 borrowAmount = 80e6;
@@ -634,6 +654,18 @@ contract OrigamiLendingClerkTestBorrow is OrigamiLendingClerkTestBase {
         assertEq(debtPosition.interestDelta, 0);
         assertEq(debtPosition.rate, BORROWER_IR_AT_100_UR);
     }
+
+    function test_borrowMax_hitCircuitBreaker() public {
+        doDeposit(5_000_000e6);
+        addBorrower(3_000_000e18);
+
+        uint256 _availableToBorrow = lendingClerk.availableToBorrow(address(borrower));
+        assertEq(_availableToBorrow, 2_000_000e6);
+        vm.startPrank(address(borrower));
+        uint256 actuallyBorrowed = lendingClerk.borrowMax(alice);
+        assertEq(actuallyBorrowed, _availableToBorrow);
+        assertEq(usdcToken.balanceOf(alice), _availableToBorrow);
+    }
 }
 
 contract OrigamiLendingClerkTestRepay is OrigamiLendingClerkTestBase {
@@ -759,6 +791,9 @@ contract OrigamiLendingClerkTestRepay is OrigamiLendingClerkTestBase {
         assertEq(usdcToken.balanceOf(alice), 500e6);
         assertEq(iUsdc.balanceOf(address(borrower)), 500e18);
 
+        vm.startPrank(origamiMultisig);
+        setExplicitAccess(lendingClerk, bob, OrigamiLendingClerk.repay.selector, true);
+
         vm.startPrank(bob);
         doMint(usdcToken, bob, 100e6);
         usdcToken.approve(address(lendingClerk), 100e6);
@@ -801,6 +836,9 @@ contract OrigamiLendingClerkTestRepay is OrigamiLendingClerkTestBase {
         assertEq(usdcToken.balanceOf(alice), 500e6);
 
         vm.warp(block.timestamp + 30 days);
+
+        vm.startPrank(origamiMultisig);
+        setExplicitAccess(lendingClerk, bob, OrigamiLendingClerk.repay.selector, true);
 
         vm.startPrank(bob);
         doMint(usdcToken, bob, 1_000e6);
@@ -896,7 +934,7 @@ contract OrigamiLendingClerkTestRepay is OrigamiLendingClerkTestBase {
         vm.startPrank(address(borrower));
         lendingClerk.borrow(500e6, address(borrower));
 
-        vm.startPrank(address(unauthorizedUser));
+        vm.startPrank(address(origamiMultisig));
         usdcToken.approve(address(lendingClerk), 1_000e6);
         vm.expectRevert("ERC20: transfer amount exceeds balance");
         lendingClerk.repay(1_000e6, address(borrower));

@@ -18,13 +18,18 @@ async function main() {
     'ORACLES.DAI_IUSDC',
     factory,
     factory.deploy,
-    "DAI/iUSDC",
-    ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN,
+    {
+      description: "DAI/iUSDC",
+      baseAssetAddress: ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN,
+      baseAssetDecimals: DEFAULT_SETTINGS.ORACLES.DAI_USD.BASE_DECIMALS,
+      // Intentionally uses the USDC token address
+      // iUSDC oracle is just a proxy for the USDC price, 
+      // but with 18dp instead of 6
+      quoteAssetAddress: ADDRS.EXTERNAL.CIRCLE.USDC_TOKEN,
+      quoteAssetDecimals: DEFAULT_SETTINGS.ORACLES.IUSDC_USD.BASE_DECIMALS,
+    },
     ADDRS.ORACLES.DAI_USD,
-    DEFAULT_SETTINGS.ORACLES.DAI_USD.BASE_DECIMALS,
-    ADDRS.OV_USDC.TOKENS.IUSDC_DEBT_TOKEN,
     ADDRS.ORACLES.IUSDC_USD,
-    DEFAULT_SETTINGS.ORACLES.IUSDC_USD.BASE_DECIMALS,
   );
 }
 

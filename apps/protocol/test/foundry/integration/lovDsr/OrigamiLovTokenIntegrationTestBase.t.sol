@@ -38,7 +38,7 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
         aToken = OrigamiAaveV3IdleStrategy(address(oUsdcContracts.idleStrategy)).aToken();
     }
 
-    function investOusdc(address account, uint256 amount) internal returns (uint256 amountOut) {
+    function investOvUsdc(address account, uint256 amount) internal returns (uint256 amountOut) {
         doMint(externalContracts.usdcToken, account, amount);
         vm.startPrank(account);
         externalContracts.usdcToken.approve(address(oUsdcContracts.ovUsdc), amount);
@@ -53,7 +53,7 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
         amountOut = oUsdcContracts.ovUsdc.investWithToken(quoteData);
     }
 
-    function exitOusdc(address account, uint256 amount) internal returns (uint256 amountOut) {
+    function exitOvUsdc(address account, uint256 amount) internal returns (uint256 amountOut) {
         vm.startPrank(account);
 
         (IOrigamiInvestment.ExitQuoteData memory quoteData,) = oUsdcContracts.ovUsdc.exitQuote(
@@ -165,9 +165,9 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
 
         (daiDepositAmount, params.swapData) = swapUsdcToDaiQuote(params.borrowAmount);
         
-        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps));
-        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps));
-        params.minReservesOut = OrigamiMath.subtractBps(reservesAmount, swapSlippageBps);
+        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
+        params.minReservesOut = OrigamiMath.subtractBps(reservesAmount, swapSlippageBps, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     // Increase liabilities to lower A/L
@@ -189,10 +189,10 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
         // How much DAI to sell for that reserves amount
         params.depositAssetsToWithdraw = externalContracts.sDaiToken.previewRedeem(params.minReserveAssetShares);
         (params.minDebtAmountToRepay, params.swapData) = swapDaiToUsdcQuote(params.depositAssetsToWithdraw);
-        params.minDebtAmountToRepay = OrigamiMath.subtractBps(params.minDebtAmountToRepay, swapSlippageBps);
+        params.minDebtAmountToRepay = OrigamiMath.subtractBps(params.minDebtAmountToRepay, swapSlippageBps, OrigamiMath.Rounding.ROUND_DOWN);
 
-        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps));
-        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps));
+        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
     }
 
     // Decrease liabilities to raise A/L

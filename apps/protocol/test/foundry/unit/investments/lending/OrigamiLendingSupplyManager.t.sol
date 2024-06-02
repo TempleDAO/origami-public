@@ -24,6 +24,7 @@ contract OrigamiLendingSupplyManagerTestBase is OrigamiTest {
     DummyLendingClerk public lendingClerk;
 
     bytes32 public constant EXIT = keccak256("EXIT");
+    uint96 internal constant OUSDC_EXIT_FEE_BPS = 10; // 0.1%
 
     function setUp() public {
         usdcToken = new DummyMintableToken(origamiMultisig, "USDC", "USDC", 6);
@@ -37,7 +38,9 @@ contract OrigamiLendingSupplyManagerTestBase is OrigamiTest {
             address(usdcToken), 
             address(oUsdc),
             address(ovUsdc),
-            address(cbProxy)
+            address(cbProxy),
+            feeCollector,
+            OUSDC_EXIT_FEE_BPS
         );
 
         vm.startPrank(origamiMultisig);
@@ -53,7 +56,9 @@ contract OrigamiLendingSupplyManagerTestBase is OrigamiTest {
 
 contract OrigamiLendingSupplyManagerTestAdmin is OrigamiLendingSupplyManagerTestBase {
     event LendingClerkSet(address indexed lendingClerk);
-
+    event FeeCollectorSet(address indexed feeCollector);
+    event ExitFeeBpsSet(uint256 feeBps);
+    
     function test_initialization() public {
         assertEq(supplyManager.owner(), origamiMultisig);
         assertEq(address(supplyManager.asset()), address(usdcToken));
@@ -71,6 +76,9 @@ contract OrigamiLendingSupplyManagerTestAdmin is OrigamiLendingSupplyManagerTest
         tokens = supplyManager.acceptedExitTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], address(usdcToken));
+
+        assertEq(supplyManager.feeCollector(), feeCollector);
+        assertEq(supplyManager.exitFeeBps(), OUSDC_EXIT_FEE_BPS);
     }
 
     function test_setLendingClerk_fail() public {
@@ -94,6 +102,34 @@ contract OrigamiLendingSupplyManagerTestAdmin is OrigamiLendingSupplyManagerTest
         assertEq(address(supplyManager.lendingClerk()), bob);
         assertEq(usdcToken.allowance(address(supplyManager), address(lendingClerk)), 0);
         assertEq(usdcToken.allowance(address(supplyManager), bob), type(uint256).max);
+    }
+
+    function test_setFeeCollector_fail() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
+        supplyManager.setFeeCollector(address(0));
+    }
+
+    function test_setFeeCollector_success() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(supplyManager));
+        emit FeeCollectorSet(alice);
+        supplyManager.setFeeCollector(alice);
+        assertEq(address(supplyManager.feeCollector()), alice);
+    }
+
+    function test_setExitFeeBps_fail() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        supplyManager.setExitFeeBps(10_001);
+    }
+
+    function test_setExitFeeBps_success() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(supplyManager));
+        emit ExitFeeBpsSet(999);
+        supplyManager.setExitFeeBps(999);
+        assertEq(supplyManager.exitFeeBps(), 999);
     }
 
     function test_recoverToken() public {
@@ -163,12 +199,24 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
         assertEq(supplyManager.maxInvest(address(usdcToken)), type(uint256).max);
     }
 
-    function test_maxExit() public {
+    function test_maxExit_underCircuitBreaker() public {
         // Fake that the lending clerk has USDC available for borrow/exit
         deal(address(usdcToken), address(lendingClerk), 100e6, true);
 
         assertEq(supplyManager.maxExit(bob), 0);
-        assertEq(supplyManager.maxExit(address(usdcToken)), 100e18);
+
+        // Because of the exit fee applied, the maxExit amount is higher
+        assertEq(supplyManager.maxExit(address(usdcToken)), 100.100100100100100100e18);
+    }
+
+    function test_maxExit_overCircuitBreaker() public {
+        // Fake that the lending clerk has USDC available for borrow/exit
+        deal(address(usdcToken), address(lendingClerk), 999_999_999e6, true);
+
+        assertEq(supplyManager.maxExit(bob), 0);
+
+        // Because of the exit fee applied, the maxExit amount is higher
+        assertEq(supplyManager.maxExit(address(usdcToken)), 2_002_002.002002002002002002e18);
     }
 
     function test_investQuote_success() public {
@@ -220,11 +268,12 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
         assertEq(quoteData.toToken, address(usdcToken));
         assertEq(quoteData.maxSlippageBps, 123);
         assertEq(quoteData.deadline, 100);
-        assertEq(quoteData.expectedToTokenAmount, 100e6);
-        assertEq(quoteData.minToTokenAmount, 100e6);
+        assertEq(quoteData.expectedToTokenAmount, 99.9e6);
+        assertEq(quoteData.minToTokenAmount, 99.9e6);
         assertEq(quoteData.underlyingInvestmentQuoteData, bytes(""));
 
-        assertEq(exitFeeBps.length, 0);
+        assertEq(exitFeeBps.length, 1);
+        assertEq(exitFeeBps[0], 10);
     }
 
     function test_investWithToken_fail_paused() public {
@@ -363,6 +412,7 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
             0
         );
 
+        deal(address(oUsdc), address(supplyManager), amountOut);
         vm.expectRevert("ERC20: transfer to the zero address");
         supplyManager.exitToToken(alice, quoteData, address(0));
     }
@@ -409,6 +459,7 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
                 0
             );
 
+            deal(address(oUsdc), address(supplyManager), amount);
             supplyManager.exitToToken(alice, quoteData, alice);
         }
 
@@ -439,15 +490,21 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
             0,
             0
         );
+        uint256 expectedToBurn = 99.9e18;
+        uint256 expectedToToken = 99.9e6;
+        uint256 expectedFee = 0.1e6;
 
+        deal(address(oUsdc), address(supplyManager), amountOut);
         (uint256 toTokenAmount, uint256 toBurnAmount) = supplyManager.exitToToken(alice, quoteData, bob);
-        assertEq(toTokenAmount, amountIn);
-        assertEq(toBurnAmount, amountOut);
+        assertEq(toTokenAmount, expectedToToken);
+        assertEq(toBurnAmount, expectedToBurn);
         assertEq(usdcToken.balanceOf(address(supplyManager)), 0);
-        assertEq(usdcToken.balanceOf(address(lendingClerk)), 0);
-        assertEq(usdcToken.balanceOf(bob), amountIn);
+        assertEq(usdcToken.balanceOf(address(lendingClerk)), expectedFee);
+        assertEq(usdcToken.balanceOf(bob), expectedToToken);
         assertEq(usdcToken.balanceOf(alice), 0);
-        assertEq(lendingClerk.totalAvailableToWithdraw(), 0);
+        assertEq(lendingClerk.totalAvailableToWithdraw(), expectedFee);
+        assertEq(oUsdc.balanceOf(feeCollector), amountOut-expectedToBurn);
+        assertEq(oUsdc.balanceOf(address(supplyManager)), expectedToBurn);
     }
 
     function test_exitToToken_success_contract() public {
@@ -463,16 +520,22 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
             0,
             0
         );
+        uint256 expectedToBurn = 99.9e18;
+        uint256 expectedToToken = 99.9e6;
+        uint256 expectedFee = 0.1e6;
 
         // Don't need to whitelist the `account` param when exiting
+        deal(address(oUsdc), address(supplyManager), amountOut);
         (uint256 toTokenAmount, uint256 toBurnAmount) = supplyManager.exitToToken(address(lendingClerk), quoteData, bob);
-        assertEq(toTokenAmount, amountIn);
-        assertEq(toBurnAmount, amountOut);
+        assertEq(toTokenAmount, expectedToToken);
+        assertEq(toBurnAmount, expectedToBurn);
         assertEq(usdcToken.balanceOf(address(supplyManager)), 0);
-        assertEq(usdcToken.balanceOf(address(lendingClerk)), 0);
-        assertEq(usdcToken.balanceOf(bob), amountIn);
+        assertEq(usdcToken.balanceOf(address(lendingClerk)), expectedFee);
+        assertEq(usdcToken.balanceOf(bob), expectedToToken);
         assertEq(usdcToken.balanceOf(alice), 0);
-        assertEq(lendingClerk.totalAvailableToWithdraw(), 0);
+        assertEq(lendingClerk.totalAvailableToWithdraw(), expectedFee);
+        assertEq(oUsdc.balanceOf(feeCollector), amountOut-expectedToBurn);
+        assertEq(oUsdc.balanceOf(address(supplyManager)), expectedToBurn);
     }
 
     function test_exitToToken_success_smallAmount() public {
@@ -488,15 +551,84 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
             0,
             0
         );
+        uint256 expectedToBurn = 12332;
+        uint256 expectedToToken = 0;
 
+        deal(address(oUsdc), address(supplyManager), amountOut);
         (uint256 toTokenAmount, uint256 toBurnAmount) = supplyManager.exitToToken(alice, quoteData, bob);
-        assertEq(toTokenAmount, 0);
-        assertEq(toBurnAmount, amountOut);
+        assertEq(toTokenAmount, expectedToToken);
+        assertEq(toBurnAmount, expectedToBurn);
         assertEq(usdcToken.balanceOf(address(supplyManager)), 0);
         assertEq(usdcToken.balanceOf(address(lendingClerk)), amountIn);
-        assertEq(usdcToken.balanceOf(bob), 0);
+        assertEq(usdcToken.balanceOf(bob), expectedToToken);
         assertEq(usdcToken.balanceOf(alice), 0);
         assertEq(lendingClerk.totalAvailableToWithdraw(), amountIn);
+        assertEq(oUsdc.balanceOf(feeCollector), amountOut-expectedToBurn);
+        assertEq(oUsdc.balanceOf(address(supplyManager)), expectedToBurn);
+    }
+
+    function test_exitToToken_success_allFees() public {
+        vm.startPrank(origamiMultisig);
+        supplyManager.setExitFeeBps(10_000);
+
+        uint256 amountIn = 100e6;
+        uint256 amountOut = 50e6;
+        _invest(alice, amountIn);
+
+        vm.startPrank(address(oUsdc));
+
+        (IOrigamiInvestment.ExitQuoteData memory quoteData, ) = supplyManager.exitQuote(
+            amountOut,
+            address(usdcToken),
+            0,
+            0
+        );
+        uint256 expectedToBurn = 0;
+        uint256 expectedToToken = 0;
+
+        deal(address(oUsdc), address(supplyManager), amountOut);
+        (uint256 toTokenAmount, uint256 toBurnAmount) = supplyManager.exitToToken(alice, quoteData, bob);
+        assertEq(toTokenAmount, expectedToToken);
+        assertEq(toBurnAmount, expectedToBurn);
+        assertEq(usdcToken.balanceOf(address(supplyManager)), 0);
+        assertEq(usdcToken.balanceOf(address(lendingClerk)), amountIn);
+        assertEq(usdcToken.balanceOf(bob), expectedToToken);
+        assertEq(usdcToken.balanceOf(alice), 0);
+        assertEq(lendingClerk.totalAvailableToWithdraw(), amountIn);
+        assertEq(oUsdc.balanceOf(feeCollector), amountOut);
+        assertEq(oUsdc.balanceOf(address(supplyManager)), expectedToBurn);
+    }
+
+    function test_exitToToken_success_noFees() public {
+        vm.startPrank(origamiMultisig);
+        supplyManager.setExitFeeBps(0);
+
+        uint256 amountIn = 100e6;
+        uint256 amountOut = 50e18;
+        _invest(alice, amountIn);
+
+        vm.startPrank(address(oUsdc));
+
+        (IOrigamiInvestment.ExitQuoteData memory quoteData, ) = supplyManager.exitQuote(
+            amountOut,
+            address(usdcToken),
+            0,
+            0
+        );
+        uint256 expectedToBurn = 50e18;
+        uint256 expectedToToken = 50e6;
+
+        deal(address(oUsdc), address(supplyManager), amountOut);
+        (uint256 toTokenAmount, uint256 toBurnAmount) = supplyManager.exitToToken(alice, quoteData, bob);
+        assertEq(toTokenAmount, expectedToToken);
+        assertEq(toBurnAmount, expectedToBurn);
+        assertEq(usdcToken.balanceOf(address(supplyManager)), 0);
+        assertEq(usdcToken.balanceOf(address(lendingClerk)), amountIn-expectedToToken);
+        assertEq(usdcToken.balanceOf(bob), expectedToToken);
+        assertEq(usdcToken.balanceOf(alice), 0);
+        assertEq(lendingClerk.totalAvailableToWithdraw(), amountIn-expectedToToken);
+        assertEq(oUsdc.balanceOf(feeCollector), 0);
+        assertEq(oUsdc.balanceOf(address(supplyManager)), expectedToBurn);
     }
 
 }

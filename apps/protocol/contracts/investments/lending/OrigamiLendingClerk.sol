@@ -283,7 +283,7 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
         uint256 i = 1;
         {
             uint256 _debtTokenHoldersLength = _length + 1;
-            address[] memory _debtTokenHolders = new address[](_length+1);
+            address[] memory _debtTokenHolders = new address[](_debtTokenHoldersLength);
             _debtTokenHolders[0] = address(idleStrategyManager);
             for (; i < _debtTokenHoldersLength; ++i) {
                 _debtTokenHolders[i] = borrowerList[i-1];
@@ -374,8 +374,7 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
      * @param recipient The receiving address of the `asset` tokens
      */
     function borrow(uint256 amount, address recipient) external override {
-        BorrowerConfig storage _borrowerConfig = _getBorrowerConfig(msg.sender);
-        _borrow(msg.sender, recipient, _borrowerConfig, amount);
+        _borrow(msg.sender, recipient, _getBorrowerConfig(msg.sender), amount);
     }
 
     /**
@@ -401,6 +400,9 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
      * @param borrower The borrower to repay on behalf of
      */
     function repay(uint256 amount, address borrower) external override returns (uint256 amountRepaid) {
+        // Borrower can repay for themselves, Elevated Access can repay on behalf of others.
+        if (msg.sender != borrower && !isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
+        
         BorrowerConfig storage _borrowerConfig = _getBorrowerConfig(borrower);
 
         // Get the borrower's current debt balance and convert to a max amount which can
@@ -467,8 +469,10 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
         IOrigamiLendingBorrower.AssetBalance[] memory assetBalances,
         uint256 debtTokenBalance
     ) {
-        if (!_borrowersSet.contains(borrower) && borrower != address(idleStrategyManager)) {
-            return (new IOrigamiLendingBorrower.AssetBalance[](0), 0);
+        if (borrower != address(idleStrategyManager)) {
+            if (!_borrowersSet.contains(borrower)) {
+                return (new IOrigamiLendingBorrower.AssetBalance[](0), 0);
+            }
         }
 
         IOrigamiLendingBorrower _borrower = IOrigamiLendingBorrower(borrower);
@@ -481,8 +485,10 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
      * @dev Represented as `PRECISION` decimals
      */
     function borrowerDebt(address borrower) external override view returns (uint256) {
-        if (!_borrowersSet.contains(borrower) && borrower != address(idleStrategyManager)) {
-            return 0;
+        if (borrower != address(idleStrategyManager)){
+            if (!_borrowersSet.contains(borrower)) {
+                return 0;
+            }
         }
         
         return debtToken.balanceOf(borrower);
@@ -627,7 +633,6 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
         // Check this borrow amount against the circuit breaker
         circuitBreakerProxy.preCheck(
             address(asset),
-            msg.sender,
             borrowAmount
         );
 
@@ -711,6 +716,12 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
             }
         }
 
+        // Also cap to the remaining capacity in the circuit breaker (asset's dp)
+        uint256 _cbAvailable = circuitBreakerProxy.available(address(asset), address(this));
+        if (_cbAvailable < _borrowerAmount) {
+            _borrowerAmount = _cbAvailable;
+        }
+
         uint256 _globalAmount = totalAvailableToWithdraw(); // asset's dp
 
         // Return the min of the globally available and
@@ -763,8 +774,9 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
      */
     function _calculateGlobalInterestRate(bool validateUR) private view returns (uint96) {
         uint256 ur = globalUtilisationRatio();
-        if (validateUR && ur > PRECISION) revert AboveMaxUtilisation(ur);
-
+        if (validateUR) {
+            if (ur > PRECISION) revert AboveMaxUtilisation(ur);
+        }
         return globalInterestRateModel.calculateInterestRate(ur);
     }
 
@@ -779,8 +791,9 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
         bool validateUR
     ) private view returns (uint96) {
         uint256 ur = _borrowerUtilisationRatio(borrower, borrowerConfig);
-        if (validateUR && ur > PRECISION) revert AboveMaxUtilisation(ur);
-        
+        if (validateUR) {
+            if (ur > PRECISION) revert AboveMaxUtilisation(ur);
+        }        
         return borrowerConfig.interestRateModel.calculateInterestRate(ur);
     }
     
@@ -793,7 +806,8 @@ contract OrigamiLendingClerk is IOrigamiLendingClerk, OrigamiElevatedAccess {
         address borrower, 
         BorrowerConfig storage borrowerConfig
     ) private view returns (uint256) {
-        // Equivalent logic here to within `_availableToBorrow()`
+        // Equivalent logic here to within `_availableToBorrow()`, except the
+        // global circuit breaker is not included in the denominator
         uint256 _borrowerDebtBalance = debtToken.balanceOf(borrower); // 18dp
         uint256 _borrowerDebtCeiling = borrowerConfig.debtCeiling;      // 18 dp
 

@@ -464,4 +464,47 @@ contract OrigamiOTokenTestAmo is OrigamiOTokenTestBase {
         // Zero amount also fine.
         oToken.amoBurn(alice, 0);
     }
+
+    function test_burn_fail_afterAmoMint() public {
+        address amoContract = makeAddr("amoContract");
+
+        vm.startPrank(origamiMultisig);
+        uint256 amount = 100e18;
+        oToken.amoMint(amoContract, amount);
+        uint256 aliceAmount = _invest();
+
+        assertEq(oToken.amoMinted(), amount);
+        assertEq(oToken.circulatingSupply(), aliceAmount);
+        assertEq(oToken.totalSupply(), aliceAmount + amount);
+        assertEq(oToken.balanceOf(amoContract), amount);
+        assertEq(oToken.balanceOf(alice), aliceAmount);
+
+        vm.startPrank(origamiMultisig);
+        oToken.addMinter(origamiMultisig);
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(oToken), 1e18+1));
+        oToken.burn(amoContract, 1e18+1);
+
+        // Can still mess things up by burning amo tokens accidentally rather than amoBurn
+        {
+            oToken.burn(amoContract, 1e18);
+            assertEq(oToken.amoMinted(), amount);
+            assertEq(oToken.circulatingSupply(), 0);
+            assertEq(oToken.totalSupply(), aliceAmount + amount - 1e18);
+            assertEq(oToken.balanceOf(amoContract), amount-1e18);
+            assertEq(oToken.balanceOf(alice), aliceAmount);
+        }
+
+        // But can still fix
+        {
+            oToken.mint(amoContract, 1e18);
+            oToken.amoBurn(amoContract, 1e18);
+
+            assertEq(oToken.amoMinted(), amount-1e18);
+            assertEq(oToken.circulatingSupply(), 1e18);
+            assertEq(oToken.totalSupply(), aliceAmount + amount - 1e18);
+            assertEq(oToken.balanceOf(amoContract), amount-1e18);
+            assertEq(oToken.balanceOf(alice), aliceAmount);
+        }
+    }
 }

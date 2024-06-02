@@ -90,12 +90,26 @@ contract LinearWithKinkInterestRateModel is BaseInterestRateModel, OrigamiElevat
         if (_baseInterestRate > _kinkInterestRate) revert CommonEventsAndErrors.InvalidParam();
         if (_kinkInterestRate > _maxInterestRate) revert CommonEventsAndErrors.InvalidParam();
 
-        rateParams = RateParams({
-            baseInterestRate: _baseInterestRate,
-            maxInterestRate: _maxInterestRate,
-            kinkInterestRate: _kinkInterestRate,
-            kinkUtilizationRatio: _kinkUtilizationRatio
-        });
+        // The slope between base->kink should be lte the slope between kink->max:
+        if (
+            OrigamiMath.mulDiv(
+                _kinkInterestRate - _baseInterestRate,
+                PRECISION - _kinkUtilizationRatio,
+                1e18,
+                OrigamiMath.Rounding.ROUND_DOWN
+            ) > 
+            OrigamiMath.mulDiv(
+                _maxInterestRate - _kinkInterestRate,
+                _kinkUtilizationRatio,
+                1e18,
+                OrigamiMath.Rounding.ROUND_DOWN
+            )
+        ) revert CommonEventsAndErrors.InvalidParam();
+
+        rateParams.baseInterestRate = _baseInterestRate;
+        rateParams.maxInterestRate = _maxInterestRate;
+        rateParams.kinkInterestRate = _kinkInterestRate;
+        rateParams.kinkUtilizationRatio = _kinkUtilizationRatio;
         emit InterestRateParamsSet(
             _baseInterestRate, 
             _maxInterestRate, 
@@ -109,25 +123,51 @@ contract LinearWithKinkInterestRateModel is BaseInterestRateModel, OrigamiElevat
      * @param utilizationRatio The utilization ratio scaled to `PRECISION`
      */
     function computeInterestRateImpl(uint256 utilizationRatio) internal override view returns (uint96) {
-        RateParams memory _rateParams = rateParams;
+        RateParams storage _rateParams = rateParams;
 
         uint256 interestRate;
-        if (utilizationRatio > _rateParams.kinkUtilizationRatio) {
+        uint256 kinkUtilizationRatio = _rateParams.kinkUtilizationRatio;
+        if (utilizationRatio > kinkUtilizationRatio) {
+            uint256 kinkInterestRate = _rateParams.kinkInterestRate;
+            uint256 urDownDelta;
+            uint256 irDelta;
+            uint256 urUpDelta;
+            unchecked {
+                urDownDelta = utilizationRatio - kinkUtilizationRatio;
+                irDelta = _rateParams.maxInterestRate - kinkInterestRate;
+                urUpDelta = PRECISION - kinkUtilizationRatio;
+            }
+            
             // linearly interpolated point between kink IR and max IR
+            // y = y1 + (x-x1) * (y2-y1) / (x2-x1)
             interestRate = OrigamiMath.mulDiv(
-                utilizationRatio - _rateParams.kinkUtilizationRatio,
-                _rateParams.maxInterestRate - _rateParams.kinkInterestRate,
-                PRECISION - _rateParams.kinkUtilizationRatio,
+                urDownDelta,
+                irDelta,
+                urUpDelta,
                 OrigamiMath.Rounding.ROUND_UP
-            ) + _rateParams.kinkInterestRate;
+            );
+            unchecked {
+                interestRate = interestRate + kinkInterestRate;
+            }
         } else {
+            uint256 baseInterestRate = _rateParams.baseInterestRate;
+            uint256 irDelta;
+            unchecked {
+                irDelta = _rateParams.kinkInterestRate - baseInterestRate;
+            }
+
             // linearly interpolated point between base IR and kink IR
+            // y = y1 + (x-x1) * (y2-y1) / (x2-x1)
+            // where x1 = zero
             interestRate = OrigamiMath.mulDiv(
                 utilizationRatio,
-                _rateParams.kinkInterestRate - _rateParams.baseInterestRate,
-                _rateParams.kinkUtilizationRatio,
+                irDelta,
+                kinkUtilizationRatio,
                 OrigamiMath.Rounding.ROUND_UP
-            ) + _rateParams.baseInterestRate;
+            );
+            unchecked {
+                interestRate = interestRate + baseInterestRate;
+            }
         }
 
         // Downcast safe because IR is always lte the maxInterestRate (uint80)

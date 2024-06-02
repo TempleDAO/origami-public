@@ -46,7 +46,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
         address _origamiInvestment,
         address _tokenPrices,
         uint256 _performanceFee,
-        uint256 _reservesActualisationDuration
+        uint48 _reservesActualisationDuration
     ) RepricingToken(_name, _symbol, _origamiInvestment, _reservesActualisationDuration, _initialOwner) {
         tokenPrices = ITokenPrices(_tokenPrices);
         if (_performanceFee > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
@@ -156,20 +156,24 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
         // If investing with the reserve token, it's based off the current pricePerShare()
         // Otherwise first get a quote for the number of underlying reserve tokens using the fromToken
         // and then calculate the number of shares based off the current pricePerShare
-        if (fromToken == reserveToken) {
+        address _reserveToken = reserveToken;
+        if (fromToken == _reserveToken) {
             quoteData.fromToken = fromToken;
             quoteData.fromTokenAmount = fromTokenAmount;
             quoteData.maxSlippageBps = maxSlippageBps;
             quoteData.deadline = deadline;
             quoteData.expectedInvestmentAmount = reservesToShares(fromTokenAmount);
-            quoteData.minInvestmentAmount = quoteData.expectedInvestmentAmount.subtractBps(maxSlippageBps);
+            quoteData.minInvestmentAmount = quoteData.expectedInvestmentAmount.subtractBps(
+                maxSlippageBps, 
+                OrigamiMath.Rounding.ROUND_UP
+            );
             // quoteData.underlyingInvestmentQuoteData remains as bytes(0)
             investFeeBps = new uint256[](0);
         } else {
             // Get the underlying quote and encode into underlyingInvestmentQuoteData
             // Safe to assume 100% slippage for the imtermediate/underlying investment as the
             // final amount of shares are checked at the end.
-            (quoteData, investFeeBps) = IOrigamiInvestment(reserveToken).investQuote(
+            (quoteData, investFeeBps) = IOrigamiInvestment(_reserveToken).investQuote(
                 fromTokenAmount, fromToken, OrigamiMath.BASIS_POINTS_DIVISOR, deadline
             );
             quoteData.underlyingInvestmentQuoteData = abi.encode(quoteData);
@@ -177,7 +181,10 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
 
             // Now calculate how many shares that translates to.
             quoteData.expectedInvestmentAmount = reservesToShares(quoteData.expectedInvestmentAmount);
-            quoteData.minInvestmentAmount = quoteData.expectedInvestmentAmount.subtractBps(maxSlippageBps);
+            quoteData.minInvestmentAmount = quoteData.expectedInvestmentAmount.subtractBps(
+                maxSlippageBps, 
+                OrigamiMath.Rounding.ROUND_UP
+            );
         }
     }
 
@@ -196,11 +203,12 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
 
         // If investing with the reserve token, pull them from the user
         // Otherwise pull the fromToken and use to invest in the underlying Origami Investment
+        address _reserveToken = reserveToken;
         uint256 reservesAmount;
-        if (quoteData.fromToken == reserveToken) {
+        if (quoteData.fromToken == _reserveToken) {
             // Pull the `reserveToken` from the user
             reservesAmount = quoteData.fromTokenAmount;
-            IERC20(reserveToken).safeTransferFrom(msg.sender, address(this), reservesAmount);
+            IERC20(_reserveToken).safeTransferFrom(msg.sender, address(this), reservesAmount);
         } else {
             // Use the `fromToken` to invest in the underlying and receive `reserveToken`           
             InvestQuoteData memory underlyingQuoteData = abi.decode(
@@ -218,9 +226,9 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
 
             // Pull the `fromToken` into this contract and approve the reserveToken to pull it.
             IERC20(quoteData.fromToken).safeTransferFrom(msg.sender, address(this), quoteData.fromTokenAmount);
-            IERC20(quoteData.fromToken).safeIncreaseAllowance(reserveToken, quoteData.fromTokenAmount);
+            IERC20(quoteData.fromToken).safeIncreaseAllowance(_reserveToken, quoteData.fromTokenAmount);
 
-            reservesAmount = IOrigamiInvestment(reserveToken).investWithToken(underlyingQuoteData);
+            reservesAmount = IOrigamiInvestment(_reserveToken).investWithToken(underlyingQuoteData);
         }
 
         // Now issue shares to the user based off the `reserveAmount`
@@ -296,7 +304,10 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
             quoteData.maxSlippageBps = maxSlippageBps;
             quoteData.deadline = deadline;
             quoteData.expectedToTokenAmount = sharesToReserves(investmentAmount);
-            quoteData.minToTokenAmount = quoteData.expectedToTokenAmount.subtractBps(maxSlippageBps);
+            quoteData.minToTokenAmount = quoteData.expectedToTokenAmount.subtractBps(
+                maxSlippageBps, 
+                OrigamiMath.Rounding.ROUND_UP
+            );
             // quoteData.underlyingInvestmentQuoteData remains as bytes(0)
             exitFeeBps = new uint256[](0);
         } else {
@@ -313,7 +324,10 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
                 maxSlippageBps: maxSlippageBps,
                 deadline: deadline,
                 expectedToTokenAmount: quoteData.expectedToTokenAmount,
-                minToTokenAmount: quoteData.expectedToTokenAmount.subtractBps(maxSlippageBps),
+                minToTokenAmount: quoteData.expectedToTokenAmount.subtractBps(
+                    maxSlippageBps, 
+                    OrigamiMath.Rounding.ROUND_UP
+                ),
                 underlyingInvestmentQuoteData: abi.encode(quoteData)
             });
         }
@@ -417,9 +431,10 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
     function maxInvest(address fromToken) external override view returns (uint256 amount) {
         // Unbounded if using the reserveToken
         // Delegate to the underlying reserveToken for any other token
-        amount = fromToken == reserveToken
+        address _reserveToken = reserveToken;
+        amount = fromToken == _reserveToken
             ? type(uint256).max
-            : IOrigamiInvestment(reserveToken).maxInvest(fromToken);
+            : IOrigamiInvestment(_reserveToken).maxInvest(fromToken);
     }
 
     /**
@@ -429,10 +444,11 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
     function maxExit(address toToken) external override view returns (uint256 amount) {
         // Unbounded if to the reserveToken
         // Delegate to the underlying reserveToken for any other token
-        amount = toToken == reserveToken
+        address _reserveToken = reserveToken;
+        amount = toToken == _reserveToken
             ? type(uint256).max
             : reservesToShares(
-                IOrigamiInvestment(reserveToken).maxExit(toToken)
+                IOrigamiInvestment(_reserveToken).maxExit(toToken)
               );
     }
 }

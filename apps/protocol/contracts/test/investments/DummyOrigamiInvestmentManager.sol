@@ -65,7 +65,7 @@ contract DummyOrigamiInvestmentManager is IOrigamiInvestmentManager {
         if (subtractPerformanceFees) {
             uint256 feeRate = ovToken.performanceFee();
             for (uint256 i; i < rewardTokens.length; ++i) {
-                amounts[i] = amounts[i].subtractBps(feeRate);
+                amounts[i] = amounts[i].subtractBps(feeRate, OrigamiMath.Rounding.ROUND_DOWN);
             }
         }
     }

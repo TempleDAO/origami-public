@@ -19,24 +19,6 @@ import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracl
  * `debtAsset` can be any decimal places <= 18
  */
 interface IOrigamiLovTokenErc4626Manager is IOrigamiLovTokenManager, IOrigamiLendingBorrower {
-    event RebalanceUp(
-        uint256 depositAssetWithdrawn, 
-        uint256 reserveAssetWithdrawn, 
-        uint256 debtAmountToRepay,
-        uint256 debtAmountRepaid,
-        uint256 alRatioBefore, // The asset/liability ratio before the rebalance
-        uint256 alRatioAfter, // The asset/liability ratio after the rebalance
-        bool forceRebalance
-    );
-    event RebalanceDown(
-        uint256 debtBorrowed,
-        uint256 depositAssetReceived,
-        uint256 reservesReceived,
-        uint256 alRatioBefore, // The asset/liability ratio before the rebalance
-        uint256 alRatioAfter, // The asset/liability ratio after the rebalance
-        bool forceRebalance
-    );
-
     event SwapperSet(address indexed swapper);
     event LendingClerkSet(address indexed lendingClerk);
     event OracleSet(address indexed oracle);
@@ -72,7 +54,7 @@ interface IOrigamiLovTokenErc4626Manager is IOrigamiLovTokenManager, IOrigamiLen
         // The minimum acceptable A/L, will revert if below this
         uint128 minNewAL;
 
-        // The minimum acceptable A/L, will revert if above this
+        // The maximum acceptable A/L, will revert if above this
         uint128 maxNewAL;
     }
 
@@ -100,7 +82,7 @@ interface IOrigamiLovTokenErc4626Manager is IOrigamiLovTokenManager, IOrigamiLen
         // The minimum acceptable A/L, will revert if below this
         uint128 minNewAL;
 
-        // The minimum acceptable A/L, will revert if above this
+        // The maximum acceptable A/L, will revert if above this
         uint128 maxNewAL;
     }
 

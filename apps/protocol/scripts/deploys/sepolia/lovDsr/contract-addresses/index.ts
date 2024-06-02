@@ -24,11 +24,14 @@ import {
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
 import { CONTRACTS as SEPOLIA_CONTRACTS } from "./sepolia";
+import { CONTRACTS as LOCALHOST_CONTRACTS } from "./localhost";
 
 
 export function getDeployedContracts(): ContractAddresses {
   if (network.name === 'sepolia') {
     return SEPOLIA_CONTRACTS;
+  } else if (network.name === 'localhost') {
+    return LOCALHOST_CONTRACTS;
   }
   console.log(`No contracts configured for ${network.name}`);
   throw new Error(`No contracts configured for ${network.name}`);

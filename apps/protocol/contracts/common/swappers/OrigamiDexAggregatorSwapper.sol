@@ -8,25 +8,22 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
+import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
 
 /**
  * @notice An on chain swapper contract to integrate with the 1Inch router | 0x proxy, 
  * possibly others which obtain quote calldata offchain and then execute via a low level call
- * to perform the swap onchain
+ * to perform the swap onchain.
+ * @dev The amount of tokens bought is expected to be checked for slippage in the calling contract
  */
 contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
+    using DexAggregator for address;
 
     /**
      * @notice The address of the 1Inch/0x/etc router
      */
     address public immutable router;
-
-    // Internal balance tracking
-    struct Balances {
-        uint256 sellTokenAmount;
-        uint256 buyTokenAmount;
-    }
 
     constructor(
         address _initialOwner,
@@ -55,49 +52,9 @@ contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
         IERC20 buyToken, 
         bytes calldata swapData
     ) external override returns (uint256 buyTokenAmount) {
-        Balances memory initial = Balances({
-            sellTokenAmount: sellToken.balanceOf(address(this)),
-            buyTokenAmount: buyToken.balanceOf(address(this))
-        });
-
         sellToken.safeTransferFrom(msg.sender, address(this), sellTokenAmount);
-        sellToken.forceApprove(router, sellTokenAmount);
 
-        // Execute the swap
-        (bool success, bytes memory returndata) = router.call(swapData);
-
-        if (!success) {
-            if (returndata.length != 0) {
-                // Look for revert reason and bubble it up if present
-                // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Address.sol#L232
-                assembly {
-                    let returndata_size := mload(returndata)
-                    revert(add(32, returndata), returndata_size)
-                }
-            }
-            revert UnknownSwapError(returndata);
-        }
-
-        // Verify that we have spent the expected amount, and have received some proceeds
-        Balances memory current = Balances({
-            sellTokenAmount: sellToken.balanceOf(address(this)),
-            buyTokenAmount: buyToken.balanceOf(address(this))
-        });
-
-        // Cannot have any remaining balance of sellToken
-        if (current.sellTokenAmount != initial.sellTokenAmount) {
-            revert InvalidSwap();
-        }
-
-        // Should have a new balance of buyToken
-        // slither-disable-next-line incorrect-equality
-        if (current.buyTokenAmount == initial.buyTokenAmount) {
-            revert InvalidSwap();
-        }
-
-        unchecked {
-            buyTokenAmount = current.buyTokenAmount - initial.buyTokenAmount;
-        }
+        buyTokenAmount = router.swap(sellToken, sellTokenAmount, buyToken, swapData);
 
         // Transfer back to the caller
         buyToken.safeTransfer(msg.sender, buyTokenAmount);

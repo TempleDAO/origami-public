@@ -18,7 +18,7 @@ interface IOrigamiIdleStrategy {
     function asset() external view returns (IERC20);
 
     /**
-     * @notice Allocate any idle funds in this contract, into the underlying protocol
+     * @notice Allocate funds into the underlying protocol
      */
     function allocate(uint256 amount) external;
 

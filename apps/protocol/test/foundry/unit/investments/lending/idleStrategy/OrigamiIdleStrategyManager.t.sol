@@ -458,4 +458,117 @@ contract OrigamiIdleStrategyManagerTestAllocate is OrigamiIdleStrategyTestBase {
             assertEq(manager.availableToWithdraw(), 47e18);
         }
     }
+
+    function test_allocateAndWithdraw_equalThreshold() public {
+        vm.startPrank(origamiMultisig);
+        // 100% as available for this test
+        idleStrategy.setAvailableSplit(10_000);
+        addThresholds(25e18, 25e18);
+
+        deal(address(asset), origamiMultisig, 100e18);
+        asset.approve(address(manager), 100_000e18);
+
+        assertEq(asset.balanceOf(address(manager)), 0);
+        assertEq(asset.balanceOf(address(idleStrategy)), 0);
+
+        // 25 is kept in the manager (depositThreshold)
+        manager.allocate(100e18);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 0);
+        assertEq(asset.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+
+        // Only pulled from the manager
+        manager.withdraw(25e18, origamiMultisig);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 25e18);
+        assertEq(asset.balanceOf(address(manager)), 0);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+
+        // Only deposited into the manager
+        allocate(25e18);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 0);
+        assertEq(asset.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+
+        // Only pulled from the manager
+        manager.withdraw(25e18, origamiMultisig);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 25e18);
+        assertEq(asset.balanceOf(address(manager)), 0);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+    }
+
+    function test_allocateAndWithdraw_smallerWithdrawalThreshold() public {
+        vm.startPrank(origamiMultisig);
+        // 100% as available for this test
+        idleStrategy.setAvailableSplit(10_000);
+        addThresholds(25e18, 20e18);
+
+        deal(address(asset), origamiMultisig, 100e18);
+        asset.approve(address(manager), 100_000e18);
+
+        assertEq(asset.balanceOf(address(manager)), 0);
+        assertEq(asset.balanceOf(address(idleStrategy)), 0);
+
+        // 25 is kept in the manager (depositThreshold)
+        manager.allocate(100e18);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 0);
+        assertEq(asset.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+
+        // Only pulled from the manager
+        manager.withdraw(23e18, origamiMultisig);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 23e18);
+        assertEq(asset.balanceOf(address(manager)), 2e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+
+        // Only deposited into the manager
+        allocate(23e18);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 0);
+        assertEq(asset.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+
+        // Only pulled from the manager
+        manager.withdraw(23e18, origamiMultisig);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 23e18);
+        assertEq(asset.balanceOf(address(manager)), 2e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 75e18);
+    }
+
+    function test_allocateAndWithdraw_fail_largerWithdrawalThreshold() public {
+        vm.startPrank(origamiMultisig);
+        addThresholds(20e18, 25e18);
+
+        deal(address(asset), origamiMultisig, 100e18);
+        asset.approve(address(manager), 100_000e18);
+
+        assertEq(asset.balanceOf(address(manager)), 0);
+        assertEq(asset.balanceOf(address(idleStrategy)), 0);
+
+        // 20 is kept in the manager (depositThreshold)
+        manager.allocate(100e18);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 0);
+        assertEq(asset.balanceOf(address(manager)), 20e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 80e18);
+
+        // This is chruning smaller deposits into the underlying idle strategy
+        // but in reality it's unlikely there'll be a single repeated
+        // allocate() and withraw() in the range depositThreshold < x <= withdrawThreshold
+        // 
+        // If there is a withdrawal, it is a valid possibility that we will want to
+        // withdraw a decent amount (more than we keep when there's a deposit)
+        // At the end of the day, it's the user paying for this gas anyway.
+        manager.withdraw(23e18, origamiMultisig);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 23e18);
+        assertEq(asset.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 52e18);
+
+        allocate(23e18);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 0);
+        assertEq(asset.balanceOf(address(manager)), 20e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 80e18);
+
+        manager.withdraw(23e18, origamiMultisig);
+        assertEq(asset.balanceOf(address(origamiMultisig)), 23e18);
+        assertEq(asset.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(idleStrategy)), 52e18);
+    }
 }

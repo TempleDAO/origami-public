@@ -15,8 +15,8 @@ let ADDRS: ContractAddresses;
 let INSTANCES: ContractInstances;
 
 async function setupPrices() {
-  // These are 'static' prices which never really change. So set the threshold to be super large.
-  const stalenessThreshold = 86400 * 365 * 10;
+  // 1 day + 15 mins
+  const stalenessThreshold = 86400 + 900;
 
   // $DAI and $sDAI
   await mine(INSTANCES.CORE.TOKEN_PRICES.setTokenPriceFunction(
@@ -63,11 +63,6 @@ async function main() {
     INSTANCES.LOV_DSR.LOV_DSR_MANAGER.setRebalanceALRange(
       DEFAULT_SETTINGS.LOV_DSR.REBALANCE_AL_FLOOR,
       DEFAULT_SETTINGS.LOV_DSR.REBALANCE_AL_CEILING
-    )
-  );
-  await mine(
-    INSTANCES.LOV_DSR.LOV_DSR_MANAGER.setRedeemableReservesBufferBps(
-      DEFAULT_SETTINGS.LOV_DSR.LOV_DSR_REDEEMABLE_RESERVES_BUFFER,
     )
   );
   await mine(

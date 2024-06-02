@@ -24,6 +24,7 @@ interface IOrigamiBorrowAndLend {
 
     /**
      * @notice Withdraw collateral tokens to recipient
+     * @dev Set `withdrawAmount` to type(uint256).max in order to withdraw the whole balance
      */
     function withdraw(
         uint256 withdrawAmount, 
@@ -40,7 +41,9 @@ interface IOrigamiBorrowAndLend {
 
     /**
      * @notice Repay debt. 
-     * @dev `debtRepaidAmount` return parameter will be capped to the outstanding debt amount.
+     * @dev If `repayAmount` is set higher than the actual outstanding debt balance, it will be capped
+     * to that outstanding debt balance
+     * `debtRepaidAmount` return parameter will be capped to the outstanding debt balance.
      * Any surplus debtTokens (if debt fully repaid) will remain in this contract
      */
     function repay(
@@ -49,7 +52,10 @@ interface IOrigamiBorrowAndLend {
 
     /**
      * @notice Repay debt and withdraw collateral in one step
-     * @dev `debtRepaidAmount` return parameter will be capped to the outstanding debt amount.
+     * @dev If `repayAmount` is set higher than the actual outstanding debt balance, it will be capped
+     * to that outstanding debt balance
+     * Set `withdrawAmount` to type(uint256).max in order to withdraw the whole balance
+     * `debtRepaidAmount` return parameter will be capped to the outstanding debt amount.
      * Any surplus debtTokens (if debt fully repaid) will remain in this contract
      */
     function repayAndWithdraw(
@@ -69,11 +75,6 @@ interface IOrigamiBorrowAndLend {
         uint256 borrowAmount, 
         address recipient
     ) external;
-
-    /**
-     * @notice Reclaim surplus borrowToken which cannot be repaid
-     */
-    function reclaimSurplusDebt(uint256 amount, address recipient) external;
 
     /**
      * @notice The approved owner of the borrow/lend position
@@ -108,7 +109,7 @@ interface IOrigamiBorrowAndLend {
 
     /**
      * @notice How many `supplyToken` are available to withdraw from collateral
-     * from the entire protocol
+     * from the entire protocol, assuming this contract has fully paid down its debt
      */
     function availableToWithdraw() external view returns (uint256);
 
@@ -117,7 +118,12 @@ interface IOrigamiBorrowAndLend {
      */
     function availableToSupply() external view returns (
         uint256 supplyCap,
-        uint256 utilised,
         uint256 available
     );
+
+    /**
+     * @notice How many `borrowToken` are available to borrow
+     * from the entire protocol
+     */
+    function availableToBorrow() external view returns (uint256);
 }

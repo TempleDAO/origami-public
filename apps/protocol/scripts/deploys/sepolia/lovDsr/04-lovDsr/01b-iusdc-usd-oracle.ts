@@ -19,18 +19,24 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    "iUSDC/USD",
-    ADDRS.OV_USDC.TOKENS.IUSDC_DEBT_TOKEN,
-    DEFAULT_SETTINGS.ORACLES.IUSDC_USD.BASE_DECIMALS,
-    DEFAULT_SETTINGS.ORACLES.INTERNAL_USD_ADDRESS,
-    DEFAULT_SETTINGS.ORACLES.IUSDC_USD.QUOTE_DECIMALS,
+    {
+      description: "iUSDC/USD",
+      // Intentionally uses the USDC token address
+      // iUSDC oracle is just a proxy for the USDC price, 
+      // but with 18dp instead of 6
+      baseAssetAddress: ADDRS.EXTERNAL.CIRCLE.USDC_TOKEN,
+      baseAssetDecimals: DEFAULT_SETTINGS.ORACLES.IUSDC_USD.BASE_DECIMALS,
+      quoteAssetAddress: DEFAULT_SETTINGS.ORACLES.INTERNAL_USD_ADDRESS,
+      quoteAssetDecimals: DEFAULT_SETTINGS.ORACLES.IUSDC_USD.QUOTE_DECIMALS,
+    },
     DEFAULT_SETTINGS.ORACLES.IUSDC_USD.HISTORIC_PRICE,
     ADDRS.EXTERNAL.CHAINLINK.USDC_USD_ORACLE,
     DEFAULT_SETTINGS.ORACLES.IUSDC_USD.STALENESS_THRESHOLD,
     {
       floor: DEFAULT_SETTINGS.ORACLES.IUSDC_USD.MIN_THRESHOLD,
       ceiling: DEFAULT_SETTINGS.ORACLES.IUSDC_USD.MAX_THRESHOLD
-    }
+    },
+    true // Chainlink uses roundId
   );
 }
 

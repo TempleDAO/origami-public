@@ -13,25 +13,9 @@ import { IOrigamiFlashLoanProvider } from "contracts/interfaces/common/flashLoan
  * @notice The delegated logic to handle deposits/exits, and borrow/repay (rebalances) into the underlying reserve token
  */
 interface IOrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenManager, IOrigamiFlashLoanReceiver {
-    event RebalanceUp(
-        uint256 debtTokenFlashAmount,
-        uint256 collateralWithdrawn,
-        uint256 debtTokenRepaid,
-        uint256 alRatioBefore, // The asset/liability ratio before the rebalance
-        uint256 alRatioAfter, // The asset/liability ratio after the rebalance
-        bool forceRebalance
-    );
-    event RebalanceDown(
-        uint256 debtTokenFlashAmount,
-        uint256 collateralSupplied,
-        uint256 debtTokenBorrowed,
-        uint256 alRatioBefore, // The asset/liability ratio before the rebalance
-        uint256 alRatioAfter, // The asset/liability ratio after the rebalance
-        bool forceRebalance
-    );
     event SwapperSet(address indexed swapper);
     event FlashLoanProviderSet(address indexed provider);
-    event OracleSet(address indexed oracle);
+    event OraclesSet(address indexed debtTokenToReserveTokenOracle, address indexed dynamicFeePriceOracle);
     event BorrowLendSet(address indexed addr);
 
     /**
@@ -42,7 +26,7 @@ interface IOrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenManager, IOri
     /**
      * @notice Set the `reserveToken` <--> `debtToken` oracle configuration 
      */
-    function setOracle(address _oracle) external;
+    function setOracles(address _debtTokenToReserveTokenOracle, address _dynamicFeePriceOracle) external;
     
     /**
      * @notice Set the flash loan provider
@@ -70,7 +54,7 @@ interface IOrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenManager, IOri
         // The minimum acceptable A/L, will revert if below this
         uint128 minNewAL;
 
-        // The minimum acceptable A/L, will revert if above this
+        // The maximum acceptable A/L, will revert if above this
         uint128 maxNewAL;
     }
 
@@ -98,7 +82,7 @@ interface IOrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenManager, IOri
         // The minimum acceptable A/L, will revert if below this
         uint128 minNewAL;
 
-        // The minimum acceptable A/L, will revert if above this
+        // The maximum acceptable A/L, will revert if above this
         uint128 maxNewAL;
     }
 
@@ -128,4 +112,14 @@ interface IOrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenManager, IOri
      * @notice The oracle to convert `debtToken` <--> `reserveToken`
      */
     function debtTokenToReserveTokenOracle() external view returns (IOrigamiOracle);
+
+    /**
+     * @notice The base asset used when retrieving the prices for dynamic fee calculations.
+     */
+    function dynamicFeeOracleBaseToken() external view returns (address);
+
+    /**
+     * @notice The oracle to use when observing prices which are used for the dynamic fee calculations
+     */
+    function dynamicFeePriceOracle() external view returns (IOrigamiOracle);
 }

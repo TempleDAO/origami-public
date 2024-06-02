@@ -276,7 +276,7 @@ contract LovDsrCombinedInvariantTest is BaseInvariantTest {
                     "Invariant violation: A/L <= REBALANCE_AL_CEILING after lovDSR rebalance up"
                 );
             } else {
-                fail("Unknown lovDsrHandler sig");
+                fail();
             }
         } else if (handler == address(ovUsdcHandler)) {
             // When the lovDSR borrow interest rate is less than the sDAI interest rate,
@@ -307,7 +307,7 @@ contract LovDsrCombinedInvariantTest is BaseInvariantTest {
                 );
             }
         } else {
-            fail("Unknown handler");
+            fail();
         }
     }
 }

@@ -13,6 +13,7 @@ import { IGlpManager } from "contracts/interfaces/external/gmx/IGlpManager.sol";
 import { IGmxVault } from "contracts/interfaces/external/gmx/IGmxVault.sol";
 import { IUniswapV3Pool } from "contracts/interfaces/external/uniswap/IUniswapV3Pool.sol";
 import { IJoeLBQuoter } from "contracts/interfaces/external/traderJoe/IJoeLBQuoter.sol";
+import { IStETH } from "contracts/interfaces/external/lido/IStETH.sol";
 
 import { ITokenPrices } from "contracts/interfaces/common/ITokenPrices.sol";
 import { IRepricingToken } from "contracts/interfaces/common/IRepricingToken.sol";
@@ -72,6 +73,11 @@ contract TokenPrices is ITokenPrices, Ownable {
 
         if (feedValue < 0) revert InvalidPrice(feedValue);
         price = scaleToPrecision(uint256(feedValue), oracle.decimals());
+    }
+
+    /// @notice The wstEth -> stETH conversion ratio
+    function wstEthRatio(address _stEthToken) external view returns (uint256 ratio) {
+        return IStETH(_stEthToken).getPooledEthByShares(10 ** decimals);
     }
 
     /// @notice Fetch the Trader Joe pair price, not inclusive of swap fees or price impact.

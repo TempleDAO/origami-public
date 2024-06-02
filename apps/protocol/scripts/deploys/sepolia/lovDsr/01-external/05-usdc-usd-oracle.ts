@@ -2,6 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import { ethers } from 'hardhat';
 import { RelayedOracle, RelayedOracle__factory } from '../../../../../typechain';
 import {
+  blockTimestamp,
   deployAndMine,
   ensureExpectedEnvvars,
 } from '../../../helpers';
@@ -14,7 +15,7 @@ async function main() {
     roundId: 1,
     answer: 1.00006620e8,
     startedAt: 0,
-    updatedAt: 0,
+    updatedAt: await blockTimestamp(),
     answeredInRound: 1
   };
 

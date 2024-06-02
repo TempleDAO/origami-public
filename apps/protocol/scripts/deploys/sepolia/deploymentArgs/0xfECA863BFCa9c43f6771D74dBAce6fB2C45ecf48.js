@@ -1,0 +1,17 @@
+// sepolia: ORACLES.STETH_ETH=0xfECA863BFCa9c43f6771D74dBAce6fB2C45ecf48
+// yarn hardhat verify --network sepolia 0xfECA863BFCa9c43f6771D74dBAce6fB2C45ecf48 --constructor-args scripts/deploys/sepolia/deploymentArgs/0xfECA863BFCa9c43f6771D74dBAce6fB2C45ecf48.js
+module.exports = [
+  "0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526",
+  "STETH/ETH",
+  "0x10E1f5B8EF6b0b39238bbCD0cDFAf0857A806340",
+  18,
+  "0x94EB5672E4EFfa57f0BBC2f8cA11E2Fe365f1892",
+  18,
+  "1000000000000000000",
+  "0xc7D7c2602eaCd3EB9589500F49d93B841Cd74B40",
+  87300,
+  {
+    "floor": "990000000000000000",
+    "ceiling": "1010000000000000000"
+  }
+];

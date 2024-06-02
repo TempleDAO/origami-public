@@ -139,6 +139,20 @@ contract LinearWithKinkInterestRateModelTestAdmin is LinearWithKinkInterestRateM
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         interestRateModelKinkNinety.setRateParams(100, 99, 100, 100);
     }
+
+    function test_setRateParams_failSlope() public {
+        vm.startPrank(origamiMultisig);
+
+        // base->kink slope > kink->max slope
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        interestRateModelKinkNinety.setRateParams(0.1e18, 0.29999e18, 0.5e18, 0.2e18);
+
+        // base->kink slope == kink->max slope
+        interestRateModelKinkNinety.setRateParams(0.1e18, 0.3e18, 0.5e18, 0.2e18);
+
+        // base->kink slope < kink->max slope
+        interestRateModelKinkNinety.setRateParams(0.1e18, 3.0001e18, 0.5e18, 0.2e18);
+    }
 }
 
 contract LinearWithKinkInterestRateModelTestCalculateIR is LinearWithKinkInterestRateModelTestBase

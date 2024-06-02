@@ -61,7 +61,8 @@ contract OrigamiCircuitBreakerProxy is IOrigamiCircuitBreakerProxy, OrigamiEleva
 
     /**
      * @notice Set the address of the circuit breaker for a particular identifier and token
-     * @dev address(0) is allowed as a special case for native ETH
+     * @dev address(0) is allowed as a special case for the `token` to represent native ETH
+     * @dev address(0) is allowed as a special case for the `circuitBreaker` to disable that implementation
      */
     function setCircuitBreaker(
         bytes32 identifier,
@@ -69,7 +70,6 @@ contract OrigamiCircuitBreakerProxy is IOrigamiCircuitBreakerProxy, OrigamiEleva
         address circuitBreaker
     ) external override onlyElevatedAccess {
         if (!_identifiers.contains(identifier)) revert CommonEventsAndErrors.InvalidParam();
-        if (circuitBreaker == address(0)) revert CommonEventsAndErrors.InvalidAddress(circuitBreaker);
 
         circuitBreakers[identifier][token] = IOrigamiCircuitBreaker(circuitBreaker);
         emit CircuitBreakerSet(identifier, token, circuitBreaker);
@@ -77,18 +77,54 @@ contract OrigamiCircuitBreakerProxy is IOrigamiCircuitBreakerProxy, OrigamiEleva
 
     /**
      * @notice For a given identifier & token, verify the new amount requested for the sender does not breach the
-     * cap in this rolling period.
+     * limits.
      */
     function preCheck(
         address token,
-        address onBehalfOf,
         uint256 amount
     ) external override {
-        bytes32 _identifier = callerToIdentifier[msg.sender];
-
-        // This will fail with an EVM error if not in the mapping, which is fine.
+        // If impl isn't found, then will fail with an EVM error if not in the mapping, which is fine.
         // Not worth a specific custom error check prior.
-        circuitBreakers[_identifier][token].preCheck(onBehalfOf, amount);
+        _getImpl(token, msg.sender).preCheck(amount);
+    }
+
+    /**
+     * @notice The maximum allowed amount to be transacted
+     */
+    function cap(
+        address token,
+        address caller
+    ) external override view returns (uint256) {
+        IOrigamiCircuitBreaker _impl = _getImpl(token, caller);
+        return address(_impl) == address(0)
+            ? 0
+            : _impl.cap();
+    }
+
+    /**
+     * @notice The total utilised out of the cap so far
+     */
+    function currentUtilisation(
+        address token,
+        address caller
+    ) external override view returns (uint256) {
+        IOrigamiCircuitBreaker _impl = _getImpl(token, caller);
+        return address(_impl) == address(0)
+            ? 0
+            : _impl.currentUtilisation();
+    }
+
+    /**
+     * @notice The unutilised amount
+     */
+    function available(
+        address token,
+        address caller
+    ) external override view returns (uint256) {
+        IOrigamiCircuitBreaker _impl = _getImpl(token, caller);
+        return address(_impl) == address(0)
+            ? 0
+            : _impl.available();
     }
 
     /**
@@ -96,5 +132,9 @@ contract OrigamiCircuitBreakerProxy is IOrigamiCircuitBreakerProxy, OrigamiEleva
      */
     function identifiers() external override view returns (bytes32[] memory) {
         return _identifiers.values();
+    }
+
+    function _getImpl(address token, address caller) internal view returns (IOrigamiCircuitBreaker) {
+        return circuitBreakers[callerToIdentifier[caller]][token];
     }
 }

@@ -259,7 +259,7 @@ describe("Repricing Token", async () => {
         expect(await reserveToken.balanceOf(repricingToken.address)).eq(ethers.utils.parseEther("100").add(100));
 
         // Burn some of the reserve tokens, so the invariant on balance check no longer holds
-        await reserveToken["burn(address,uint256)"](repricingToken.address, ethers.utils.parseEther("10"));
+        await reserveToken.burn(repricingToken.address, ethers.utils.parseEther("10"));
         await reserveToken.mint(bob.getAddress(), 1_000);
         await reserveToken.connect(bob).approve(repricingToken.address, 1_000);
         await expect(repricingToken.connect(bob).issueSharesFromReserves(100, alan.getAddress(), 0))
@@ -306,7 +306,7 @@ describe("Repricing Token", async () => {
         expect(await reserveToken.balanceOf(repricingToken.address)).eq(1500-125);
 
         // Burn some of the reserve tokens, so the invariant on balance check no longer holds
-        await reserveToken["burn(address,uint256)"](repricingToken.address, 500);
+        await reserveToken.burn(repricingToken.address, 500);
         await expect(repricingToken.connect(alan).redeemReservesFromShares(100, alan.getAddress(), 0))
             .to.revertedWithCustomError(repricingToken, "InsufficientBalance");
         
@@ -435,7 +435,7 @@ describe("Repricing Token", async () => {
         expect(await reserveToken.balanceOf(repricingToken.address)).eq(reservesAmount);
 
         // Burn some of the reserve tokens, so the invariant on balance check no longer holds
-        await reserveToken["burn(address,uint256)"](repricingToken.address, ethers.utils.parseEther("10"));
+        await reserveToken.burn(repricingToken.address, ethers.utils.parseEther("10"));
         await reserveToken.mint(operator.getAddress(), reservesAmount);
         await reserveToken.connect(operator).approve(repricingToken.address, reservesAmount);
         await expect(repricingToken.connect(operator).addPendingReserves(reservesAmount))

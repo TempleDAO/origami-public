@@ -253,7 +253,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
 
         // Ignore any portions we will be retaining as fees.
         amounts[0] = nativeAmount;
-        amounts[1] = esGmxAmount.subtractBps(oGmxRewardsFeeRate);
+        amounts[1] = esGmxAmount.subtractBps(oGmxRewardsFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         // amounts[2] is reserved for oGLP while compounding
     }
 
@@ -276,7 +276,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
 
         // Ignore any portions we will be retaining as fees.
         amounts[0] = primaryNativeRewardRate + secondaryNativeRewardRate;
-        amounts[1] = primaryEsGmxRewardRate.subtractBps(oGmxRewardsFeeRate);
+        amounts[1] = primaryEsGmxRewardRate.subtractBps(oGmxRewardsFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         // amounts[2] is reserved for oGLP while compounding
     }
 
@@ -308,14 +308,14 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
         {
             // Any rewards claimed from staked GMX/esGMX/mult points => GMX Rewards Aggregator
             if (claimed.esGmxFromGmx != 0) {
-                (_rewards, _fees) = claimed.esGmxFromGmx.splitSubtractBps(oGmxRewardsFeeRate);
+                (_rewards, _fees) = claimed.esGmxFromGmx.splitSubtractBps(oGmxRewardsFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
                 totalFees += _fees;
                 if (_rewards != 0) oGmxToken.mint(gmxRewardsAggregator, _rewards);
             }
 
             // Any rewards claimed from staked GLP => GLP Rewards Aggregator
             if (claimed.esGmxFromGlp != 0) {
-                (_rewards, _fees) = claimed.esGmxFromGlp.splitSubtractBps(oGmxRewardsFeeRate);
+                (_rewards, _fees) = claimed.esGmxFromGlp.splitSubtractBps(oGmxRewardsFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
                 totalFees += _fees;
                 if (_rewards != 0) oGmxToken.mint(glpRewardsAggregator, _rewards);
             }
@@ -473,7 +473,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
         quoteData.toToken = toToken;
         quoteData.maxSlippageBps = maxSlippageBps;
         quoteData.deadline = deadline;
-        quoteData.expectedToTokenAmount = investmentTokenAmount.subtractBps(_sellFeeRate);
+        quoteData.expectedToTokenAmount = investmentTokenAmount.subtractBps(_sellFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         quoteData.minToTokenAmount = quoteData.expectedToTokenAmount;
         // No extra underlyingInvestmentQuoteData
 
@@ -495,7 +495,10 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
         if (_paused.gmxExitsPaused) revert CommonEventsAndErrors.IsPaused();
         if (quoteData.toToken != address(gmxToken)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
 
-        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(sellFeeRate);
+        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(
+            sellFeeRate, 
+            OrigamiMath.Rounding.ROUND_DOWN
+        );
         toTokenAmount = nonFees;
 
         // Send the oGlp fees to the fee collector
@@ -542,7 +545,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
                     quote, 
                     (OrigamiMath.BASIS_POINTS_DIVISOR - slippageBps),
                     OrigamiMath.BASIS_POINTS_DIVISOR,
-                    OrigamiMath.Rounding.ROUND_DOWN
+                    OrigamiMath.Rounding.ROUND_UP
                 ) : 0;
         }
     }
@@ -658,7 +661,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
         uint256 _sellFeeRate = sellFeeRate;
         exitFeeBps = new uint256[](2);  // [Origami's exit fee, GMX's exit fee]
         exitFeeBps[0] = _sellFeeRate;
-        uint256 glpAmount = investmentTokenAmount.subtractBps(_sellFeeRate);
+        uint256 glpAmount = investmentTokenAmount.subtractBps(_sellFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         if (glpAmount == 0) return (quoteData, exitFeeBps);
 
         if (toToken == address(primaryEarnAccount.stakedGlp())) {
@@ -696,7 +699,10 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
     ) external override onlyElevatedAccess returns (uint256 toTokenAmount, uint256 toBurnAmount) {
         if (_paused.glpExitsPaused) revert CommonEventsAndErrors.IsPaused();
 
-        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(sellFeeRate);
+        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(
+            sellFeeRate, 
+            OrigamiMath.Rounding.ROUND_DOWN
+        );
 
         // Send the oGlp fees to the fee collector
         if (fees != 0) {
@@ -746,7 +752,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
             true  // true for buy, false for sell
         );
 
-        uint256 amountAfterFees = fromAmount.subtractBps(feeBasisPoints);
+        uint256 amountAfterFees = fromAmount.subtractBps(feeBasisPoints, OrigamiMath.Rounding.ROUND_DOWN);
         usdgAmountOut = gmxVault.adjustForDecimals(amountAfterFees * price / pricePrecision, fromToken, usdg);
     }
 
@@ -767,7 +773,7 @@ contract OrigamiGmxManager is IOrigamiGmxManager, OrigamiElevatedAccess {
             false  // true for buy, false for sell
         );
 
-        amountOut = redemptionAmount.subtractBps(feeBasisPoints);
+        amountOut = redemptionAmount.subtractBps(feeBasisPoints, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     function getFeeBasisPoints(address _token, uint256 _usdgDelta, bool _increment) internal view returns (uint256) {

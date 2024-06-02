@@ -28,7 +28,7 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
     /**
      * @notice The Aave/Spark pool contract
      */
-    IAavePool public override immutable aavePool;
+    IAavePool public override aavePool;
 
     /**
      * @notice The token supplied as collateral
@@ -135,21 +135,31 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
     }
 
     /**
+     * @notice Update the Aave/Spark pool
+     */
+    function setAavePool(address pool) external override onlyElevatedAccess {
+        if (pool == address(0)) revert CommonEventsAndErrors.InvalidAddress(pool);
+        emit AavePoolSet(pool);
+        aavePool = IAavePool(pool);
+    }
+
+    /**
      * @notice Supply tokens as collateral
      */
     function supply(
         uint256 supplyAmount
-    ) external override onlyPositionOwner {
+    ) external override onlyPositionOwnerOrElevated {
         _supply(supplyAmount);
     }
 
     /**
      * @notice Withdraw collateral tokens to recipient
+     * @dev Set `withdrawAmount` to type(uint256).max in order to withdraw the whole balance
      */
     function withdraw(
         uint256 withdrawAmount, 
         address recipient
-    ) external override onlyPositionOwner returns (uint256 amountWithdrawn) {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 amountWithdrawn) {
         amountWithdrawn = _withdraw(withdrawAmount, recipient);
     }
 
@@ -159,31 +169,36 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
     function borrow(
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwner {
+    ) external override onlyPositionOwnerOrElevated {
         _borrow(borrowAmount, recipient);
     }
 
     /**
      * @notice Repay debt. 
-     * @dev `debtRepaidAmount` return parameter will be capped to the outstanding debt amount.
+     * @dev If `repayAmount` is set higher than the actual outstanding debt balance, it will be capped
+     * to that outstanding debt balance
+     * `debtRepaidAmount` return parameter will be capped to the outstanding debt balance.
      * Any surplus debtTokens (if debt fully repaid) will remain in this contract
      */
     function repay(
         uint256 repayAmount
-    ) external override onlyPositionOwner returns (uint256 debtRepaidAmount) {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 debtRepaidAmount) {
         debtRepaidAmount = _repay(repayAmount);
     }
 
     /**
      * @notice Repay debt and withdraw collateral in one step
-     * @dev `debtRepaidAmount` return parameter will be capped to the outstanding debt amount.
+     * @dev If `repayAmount` is set higher than the actual outstanding debt balance, it will be capped
+     * to that outstanding debt balance
+     * Set `withdrawAmount` to type(uint256).max in order to withdraw the whole balance
+     * `debtRepaidAmount` return parameter will be capped to the outstanding debt amount.
      * Any surplus debtTokens (if debt fully repaid) will remain in this contract
      */
     function repayAndWithdraw(
         uint256 repayAmount, 
         uint256 withdrawAmount, 
         address recipient
-    ) external override onlyPositionOwner returns (uint256 debtRepaidAmount, uint256 withdrawnAmount) {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 debtRepaidAmount, uint256 withdrawnAmount) {
         debtRepaidAmount = _repay(repayAmount);
         withdrawnAmount = _withdraw(withdrawAmount, recipient);
     }
@@ -195,39 +210,31 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         uint256 supplyAmount, 
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwner {
+    ) external override onlyPositionOwnerOrElevated {
         _supply(supplyAmount);
         _borrow(borrowAmount, recipient);
     }
 
     /**
-     * @notice Reclaim surplus borrowToken
-     * @dev Only callable if the Aave/Spark debt balance is zero
-     */
-    function reclaimSurplusDebt(uint256 amount, address recipient) external override onlyPositionOwner {
-        uint256 _bal = debtBalance();
-        if (_bal != 0) revert CommonEventsAndErrors.InvalidAmount(borrowToken, _bal);
-        IERC20(borrowToken).safeTransfer(recipient, amount);
-        emit SurplusDebtReclaimed(amount, recipient);
-    }
-
-    /**
-     * @notice Recover accidental donations. `collateralSupplyToken` can only be recovered for amounts greater than the 
-     * internally tracked balance.
+     * @notice Recover accidental donations, or surplus aaveAToken borrowToken.
+     * `aaveAToken` can only be recovered for amounts greater than the internally tracked balance of shares.
+     * `borrowToken` are only expected on shutdown if there are surplus tokens after full repayment.
      * @param token Token to recover
      * @param to Recipient address
      * @param amount Amount to recover
      */
-    function recoverToken(address token, address to, uint256 amount) external onlyElevatedAccess {       
-        // If the token to recover is the aaveAtoken, can only remove any *surplus* reserves (ie donation reserves).
-        // It can't dip into the actual user added reserves. 
-        if (token == address(aaveAToken)) {
-            uint256 bal = aaveAToken.balanceOf(address(this));
-            if (amount > (bal - suppliedBalance())) revert CommonEventsAndErrors.InvalidAmount(token, amount);
-        }
-
+    function recoverToken(address token, address to, uint256 amount) external onlyElevatedAccess {
         emit CommonEventsAndErrors.TokenRecovered(to, token, amount);
         IERC20(token).safeTransfer(to, amount);
+
+        if (token == address(aaveAToken)) {
+            // Ensure there are still enough aToken shares to cover the internally tracked
+            // balance
+            uint256 _sharesAfter = aaveAToken.scaledBalanceOf(address(this));
+            if (_aTokenShares > _sharesAfter) {
+                revert CommonEventsAndErrors.InvalidAmount(token, amount);
+            }
+        }
     }
     
     /**
@@ -263,15 +270,25 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
 
         // Convert the Aave LTV to A/L (with 1e18 precision) and compare
         // The A/L is considered safe if it's higher or equal to the upstream aave A/L
-        return alRatio >= LTV_TO_AL_FACTOR / _aaveLtv;
+        unchecked {
+            return alRatio >= LTV_TO_AL_FACTOR / _aaveLtv;
+        }
     }
 
     /**
      * @notice How many `supplyToken` are available to withdraw from collateral
-     * from the entire protocol
+     * from the entire protocol, assuming this contract has fully paid down its debt
      */
     function availableToWithdraw() external override view returns (uint256) {
         return IERC20(supplyToken).balanceOf(address(aaveAToken));
+    }
+
+    /**
+     * @notice How many `borrowToken` are available to borrow
+     * from the entire protocol
+     */
+    function availableToBorrow() external override view returns (uint256) {
+        return IERC20(borrowToken).balanceOf(aavePool.getReserveData(borrowToken).aTokenAddress);
     }
 
     /**
@@ -279,7 +296,6 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
      */
     function availableToSupply() external override view returns (
         uint256 supplyCap,
-        uint256 utilised,
         uint256 available
     ) {
         AaveDataTypes.ReserveData memory _reserveData = aavePool.getReserveData(supplyToken);
@@ -289,7 +305,7 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
 
         // The utilised amount is the scaledTotalSupply + any fees accrued to treasury
         // Then scaled by the normalised income.
-        utilised = AaveWadRayMath.rayMul(
+        uint256 _utilised = AaveWadRayMath.rayMul(
             aavePool.getReserveNormalizedIncome(supplyToken),
             (
                 aaveAToken.scaledTotalSupply() +
@@ -298,7 +314,7 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         );
 
         unchecked {
-            available = supplyCap > utilised ? supplyCap - utilised : 0;
+            available = supplyCap > _utilised ? supplyCap - _utilised : 0;
         }
     }
 
@@ -325,7 +341,7 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
     function _supply(uint256 supplyAmount) internal {
         uint256 sharesBefore = aaveAToken.scaledBalanceOf(address(this));
         aavePool.supply(supplyToken, supplyAmount, address(this), referralCode);
-        _aTokenShares += aaveAToken.scaledBalanceOf(address(this)) - sharesBefore;
+        _aTokenShares = _aTokenShares + aaveAToken.scaledBalanceOf(address(this)) - sharesBefore;
     }
 
     function _withdraw(uint256 withdrawAmount, address recipient) internal returns (uint256 amountWithdrawn) {
@@ -345,9 +361,13 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         }
     }
 
-    modifier onlyPositionOwner() {
-        if (msg.sender != address(positionOwner)) revert CommonEventsAndErrors.InvalidAccess();
+    /**
+     * @dev Only the positionOwner or Elevated Access is allowed to call.
+     */
+    modifier onlyPositionOwnerOrElevated() {
+        if (msg.sender != address(positionOwner)) {
+            if (!isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
+        }
         _;
     }
-
 }

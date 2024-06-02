@@ -26,21 +26,11 @@ contract OrigamiWstEthToEthOracle is OrigamiOracleBase {
     IOrigamiOracle public immutable stEthToEthOracle;
 
     constructor (
-        string memory _description,
-        address _wstEthAddress,
-        uint8 _wstEthDecimals,
-        address _ethAddress,
-        uint8 _ethDecimals,
+        BaseOracleParams memory baseParams,
         address _stEth,
         address _stEthToEthOracle
     ) 
-        OrigamiOracleBase(
-            _description, 
-            _wstEthAddress, 
-            _wstEthDecimals, 
-            _ethAddress, 
-            _ethDecimals
-        )
+        OrigamiOracleBase(baseParams)
     {
         stEth = IStETH(_stEth);
         stEthToEthOracle = IOrigamiOracle(_stEthToEthOracle);

@@ -8,6 +8,7 @@
   test = 'test/foundry'
   cache_path = 'cache-foundry'
   gas_reports = ["*"]
+  evm_version = 'cancun'
 
 [profile.default.fuzz]
   max_test_rejects = 1_000_000 # Number of times `vm.assume` can fail

@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
 import { IOrigamiManagerPausable } from "contracts/interfaces/investments/util/IOrigamiManagerPausable.sol";
+import { DynamicFees } from "contracts/libraries/DynamicFees.sol";
 
 /**
  * @title Origami oToken Manager (no native ETH/AVAX/etc)
@@ -11,7 +12,8 @@ import { IOrigamiManagerPausable } from "contracts/interfaces/investments/util/I
  * into the underlying protocol
  */
 interface IOrigamiOTokenManager is IOrigamiManagerPausable {
-
+    event InKindFees(DynamicFees.FeeType feeType, uint256 feeBps, uint256 feeAmount);
+    
     /**
      * @notice The underlying token this investment wraps. 
      * @dev For informational purposes only, eg integrations/FE

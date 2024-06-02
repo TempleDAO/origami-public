@@ -42,15 +42,18 @@ contract OrigamiCrossRateOracleTestBase is OrigamiTest {
         // 18 decimals for baseAsset and quoteAsset
         oOracle1 = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            "TOKEN1/USD",
-            token1,
-            18,
-            INTERNAL_USD_ADDRESS,
-            18,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN1/USD",
+                token1,
+                18,
+                INTERNAL_USD_ADDRESS,
+                18
+            ),
             1e18,
             address(oracle1),
             100 days,
-            Range.Data(0.95e18, 1.05e18)
+            Range.Data(0.95e18, 1.05e18),
+            true
         );
 
         // 18 decimals
@@ -68,15 +71,18 @@ contract OrigamiCrossRateOracleTestBase is OrigamiTest {
         // 6 decimals for baseAsset, 18 decimals for quoteAsset
         oOracle2 = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            "TOKEN2/USD",
-            token2,
-            6,
-            INTERNAL_USD_ADDRESS,
-            18,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN2/USD",
+                token2,
+                6,
+                INTERNAL_USD_ADDRESS,
+                18
+            ),
             333e18,
             address(oracle2),
             100 days,
-            Range.Data(0.90e18, 1.10e18)
+            Range.Data(0.90e18, 1.10e18),
+            true
         );
 
         // 24 decimals
@@ -94,37 +100,44 @@ contract OrigamiCrossRateOracleTestBase is OrigamiTest {
         // 18 decimals for baseAsset, 6 decimals for quoteAsset
         oOracle3 = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            "TOKEN3/USD",
-            token3,
-            18,
-            INTERNAL_USD_ADDRESS,
-            6,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN3/USD",
+                token3,
+                18,
+                INTERNAL_USD_ADDRESS,
+                6
+            ),
             0.99e18,
             address(oracle3),
             200 days,
-            Range.Data(0.90e18, 1.10e18)
+            Range.Data(0.90e18, 1.10e18),
+            true
         );
 
         // cross rate from 1 to 2
         crOracle_1_2 = new OrigamiCrossRateOracle(
-            "TOKEN1/TOKEN2",
-            token1,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN1/TOKEN2",
+                token1,
+                18,
+                token2,
+                6
+            ),
             address(oOracle1),
-            18,
-            token2,
-            address(oOracle2),
-            6
+            address(oOracle2)
         );
 
         // cross rate from 2 to 3
         crOracle_2_3 = new OrigamiCrossRateOracle(
-            "TOKEN2/TOKEN3",
-            token2,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN2/TOKEN3",
+                token2,
+                6,
+                token3,
+                6
+            ),
             address(oOracle2),
-            6,
-            token3,
-            address(oOracle3),
-            6
+            address(oOracle3)
         );
     }
 

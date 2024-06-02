@@ -14,8 +14,23 @@ pragma solidity 0.8.19;
 interface IOrigamiCircuitBreaker {
 
     /**
-     * @notice Verify the new amount requested for the sender does not breach the
-     * cap in this rolling period.
+     * @notice Verify the new amount requested does not breach the
+     * limits.
      */
-    function preCheck(address onBehalfOf, uint256 amount) external;
+    function preCheck(uint256 amount) external;
+
+    /**
+     * @notice The maximum allowed amount to be transacted
+     */
+    function cap() external view returns (uint256);
+
+    /**
+     * @notice The total utilised out of the cap so far
+     */
+    function currentUtilisation() external view returns (uint256 amount);
+
+    /**
+     * @notice The unutilised amount
+     */
+    function available() external view returns (uint256);
 }

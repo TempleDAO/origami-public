@@ -60,12 +60,25 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
      */
     IOrigamiLendingClerk public override lendingClerk;
 
+    /**
+     * @notice The address used to collect the Origami fees.
+     */
+    address public override feeCollector;
+
+    /**
+     * @notice The proportion of fees retained when users exit their position.
+     * @dev represented in basis points
+     */
+    uint96 public override exitFeeBps;
+
     constructor(
         address _initialOwner,
         address _asset,
         address _oToken,
         address _ovToken,
-        address _circuitBreakerProxy
+        address _circuitBreakerProxy,
+        address _feeCollector,
+        uint96 _exitFeeBps
     ) OrigamiElevatedAccess(_initialOwner) {
         asset = IERC20Metadata(_asset);
 
@@ -81,6 +94,8 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
         oToken = _oToken;
         ovToken = _ovToken;
         circuitBreakerProxy = IOrigamiCircuitBreakerProxy(_circuitBreakerProxy);
+        feeCollector = _feeCollector;
+        exitFeeBps = _exitFeeBps;
     }
 
     /**
@@ -98,6 +113,25 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
 
         emit LendingClerkSet(_lendingClerk);
         lendingClerk = IOrigamiLendingClerk(_lendingClerk);
+    }
+
+    /**
+     * @notice Set the Origami fee collector address
+     */
+    function setFeeCollector(address _feeCollector) external override onlyElevatedAccess {
+        if (_feeCollector == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
+        emit FeeCollectorSet(_feeCollector);
+        feeCollector = _feeCollector;
+    }
+
+    /**
+     * @notice Set the proportion of fees retained when users exit their position.
+     * @dev represented in basis points
+     */
+    function setExitFeeBps(uint96 feeBps) external onlyElevatedAccess {
+        if (feeBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
+        emit ExitFeeBpsSet(feeBps);
+        exitFeeBps = feeBps;
     }
 
     /**
@@ -126,7 +160,9 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
         if (quoteData.fromToken != address(asset)) revert CommonEventsAndErrors.InvalidToken(quoteData.fromToken);
 
         // Only the ovToken (which does it's own checks) and explicitly allowed contracts are allowed
-        if (account != ovToken && !_isAllowed(account)) revert CommonEventsAndErrors.InvalidAccess();
+        if (account != ovToken) {
+            if (!_isAllowed(account)) revert CommonEventsAndErrors.InvalidAccess();
+        }
 
         lendingClerk.deposit(quoteData.fromTokenAmount);
 
@@ -144,7 +180,7 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
       * @return toBurnAmount The number of oToken to be burnt after exiting this position
       */
     function exitToToken(
-        address account,
+        address /*account*/,
         IOrigamiInvestment.ExitQuoteData calldata quoteData,
         address recipient
     ) external override onlyOToken returns (
@@ -157,17 +193,27 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
         // Ensure that this exit doesn't break the circuit breaker limits for oToken
         circuitBreakerProxy.preCheck(
             address(oToken),
-            account,
             quoteData.investmentTokenAmount
         );
 
-        // No exit fees, receive `asset` 1:1
-        // This scaleDown intentionally rounds down (so it's not in the user's benefit)
-        toBurnAmount = quoteData.investmentTokenAmount;
-        toTokenAmount = quoteData.investmentTokenAmount.scaleDown(_assetScalar, OrigamiMath.Rounding.ROUND_DOWN);
+        // Exit fees are taken from the sender's oToken amount.
+        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(
+            exitFeeBps, 
+            OrigamiMath.Rounding.ROUND_DOWN
+        );
+        toBurnAmount = nonFees;
 
-        if (toTokenAmount != 0) {
-            lendingClerk.withdraw(toTokenAmount, recipient);
+        // Collect the fees
+        if (fees != 0) {
+            IERC20Metadata(oToken).safeTransfer(feeCollector, fees);
+        }
+
+        if (nonFees != 0) {
+            // This scaleDown intentionally rounds down (so it's not in the user's benefit)
+            toTokenAmount = nonFees.scaleDown(_assetScalar, OrigamiMath.Rounding.ROUND_DOWN);
+            if (toTokenAmount != 0) {
+                lendingClerk.withdraw(toTokenAmount, recipient);
+            }
         }
     }
 
@@ -252,7 +298,7 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
      * @param maxSlippageBps The maximum acceptable slippage of the received `toToken`
      * @param deadline The maximum deadline to execute the exit.
      * @return quoteData The quote data, including any params required for the underlying investment type.
-     * @return exitFeeBps Any fees expected when exiting the investment to the nominated token, either from Origami or from the underlying investment.
+     * @return _exitFeeBps Any fees expected when exiting the investment to the nominated token, either from Origami or from the underlying investment.
      */
     function exitQuote(
         uint256 investmentAmount,
@@ -261,14 +307,18 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
         uint256 deadline
     ) external view returns (
         IOrigamiInvestment.ExitQuoteData memory quoteData, 
-        uint256[] memory exitFeeBps
+        uint256[] memory _exitFeeBps
     ) {
         if (investmentAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (toToken != address(asset)) revert CommonEventsAndErrors.InvalidToken(toToken);
 
-        // oToken is sold 1:1 to the borrowableAsset, no slippage, no exit fee
+        // Exit fees are taken from the sender's oToken amount. 
+        // Calculate the remainder rounding down
+        uint256 _feeBps = exitFeeBps;
+        uint256 toExitAmount = investmentAmount.subtractBps(_feeBps, OrigamiMath.Rounding.ROUND_DOWN);
+
         // This scaleDown intentionally rounds down (so it's not in the user's benefit)
-        uint256 amountOut = investmentAmount.scaleDown(_assetScalar, OrigamiMath.Rounding.ROUND_DOWN);
+        uint256 amountOut = toExitAmount.scaleDown(_assetScalar, OrigamiMath.Rounding.ROUND_DOWN);
         quoteData.investmentTokenAmount = investmentAmount;
         quoteData.toToken = toToken;
         quoteData.maxSlippageBps = maxSlippageBps;
@@ -277,7 +327,8 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
         quoteData.minToTokenAmount = amountOut;
         // No extra underlyingInvestmentQuoteData
 
-        exitFeeBps = new uint256[](0);
+        _exitFeeBps = new uint256[](1);
+        _exitFeeBps[0] = _feeBps;
     }
 
     modifier onlyOToken() {
@@ -304,9 +355,20 @@ contract OrigamiLendingSupplyManager is IOrigamiLendingSupplyManager, OrigamiEle
      */
     function maxExit(address toToken) external override view returns (uint256 amount) {
         if (toToken == address(asset)) {
-            // No exit fees, receive `asset` 1:1.
+            // Capacity is bound by the available remaining in the circuit breaker (18dp)
+            amount = circuitBreakerProxy.available(address(oToken), address(this));
+
+            // And also by what's available in the lendingClerk.
             // Convert from the underlying asset to the oToken decimals
-            amount = lendingClerk.totalAvailableToWithdraw().scaleUp(_assetScalar);
+            uint256 amountFromLendingClerk = lendingClerk.totalAvailableToWithdraw().scaleUp(_assetScalar);
+            if (amountFromLendingClerk < amount) {
+                amount = amountFromLendingClerk;
+            }
+
+            // Since exit fees are taken when exiting,
+            // reverse out the fees
+            // Round down to be the inverse of when they're applied (and rounded up) when exiting
+            amount = amount.inverseSubtractBps(exitFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
         }
     }
 }

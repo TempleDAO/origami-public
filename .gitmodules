@@ -6,3 +6,9 @@
 	path = apps/protocol/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
 	branch = v1.3.0
+[submodule "apps/protocol/lib/morpho-org/morpho-blue-oracles"]
+	path = apps/protocol/lib/morpho-org/morpho-blue-oracles
+	url = https://github.com/morpho-org/morpho-blue-oracles
+[submodule "apps/protocol/lib/morpho-org/morpho-blue-irm"]
+	path = apps/protocol/lib/morpho-org/morpho-blue-irm
+	url = https://github.com/morpho-org/morpho-blue-irm

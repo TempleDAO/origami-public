@@ -39,7 +39,7 @@ contract OrigamiAaveV3IdleStrategy is OrigamiAbstractIdleStrategy {
     }
 
     /**
-     * @notice Allocate any idle funds in this contract, into the underlying protocol
+     * @notice Allocate funds into the underlying protocol
      * In this case, it supplies into the Aave market
      */
     function allocate(uint256 amount) external override onlyElevatedAccess {

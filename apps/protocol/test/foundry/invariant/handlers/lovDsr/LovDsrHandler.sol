@@ -114,7 +114,10 @@ contract LovDsrHandler is BaseHandler {
             lovTokenContracts.lovDsr.maxExit(address(externalContracts.daiToken))
         );
         amount = _bound(amount, 0, maxAvailableToExit);
-        if (amount == 0) {
+        
+        // Very small amounts may run into AL validation issues where the ratioAfter < ratioBefore
+        // because of upstream ERC-4626 interest accrual.
+        if (amount < 10) {
             stateStore.setFinishedEarly();
             return 0;
         }
@@ -316,8 +319,8 @@ contract LovDsrHandler is BaseHandler {
             })
         );
 
-        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps));
-        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps));
+        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
     }
 
     /// @dev Since there are large time jumps between calls, the debt needs
@@ -383,7 +386,7 @@ contract LovDsrHandler is BaseHandler {
             })
         );
 
-        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps));
-        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps));
+        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
     }
 }

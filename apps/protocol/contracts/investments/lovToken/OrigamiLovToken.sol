@@ -35,15 +35,20 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
     IOrigamiLovTokenManager internal lovManager;
 
     /**
-     * @notice The performance fee which Origami takes from harvested rewards before compounding into reserves.
-     * @dev Represented in basis points
-     */
-    uint256 public override performanceFee;
-
-    /**
      * @notice The address used to collect the Origami performance fees.
      */
     address public override feeCollector;
+
+    /**
+     * @notice The annual performance fee which Origami takes from harvested rewards before compounding into reserves.
+     * @dev Represented in basis points
+     */
+    uint48 public override annualPerformanceFeeBps;
+
+    /**
+     * @notice The last time the performance fee was collected
+     */
+    uint48 public override lastPerformanceFeeTime;
 
     /**
      * @notice The helper contract to retrieve Origami USD prices
@@ -52,27 +57,27 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
     ITokenPrices public tokenPrices;
 
     /**
-     * @notice How frequently the performance fee can be collected
+     * @notice The maximum allowed supply of this token for user investments
+     * @dev The actual totalSupply() may be greater than `maxTotalSupply`
+     * in order to start organically shrinking supply or from performance fees
      */
-    uint32 public override constant PERFORMANCE_FEE_FREQUENCY = 7 days;
-
-    /**
-     * @notice The last time the performance fee was collected
-     */
-    uint32 public override lastPerformanceFeeTime;
+    uint256 public override maxTotalSupply;
 
     constructor(
         address _initialOwner,
         string memory _name,
         string memory _symbol,
-        uint256 _performanceFee,
+        uint48 _annualPerformanceFeeBps,
         address _feeCollector,
-        address _tokenPrices
+        address _tokenPrices,
+        uint256 _maxTotalSupply
     ) OrigamiInvestment(_name, _symbol, _initialOwner) {
-        if (_performanceFee > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
-        performanceFee = _performanceFee;
+        if (_annualPerformanceFeeBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
+        annualPerformanceFeeBps = _annualPerformanceFeeBps;
+        lastPerformanceFeeTime = uint48(block.timestamp);
         feeCollector = _feeCollector;
         tokenPrices = ITokenPrices(_tokenPrices);
+        maxTotalSupply = _maxTotalSupply;
     }
 
     /**
@@ -85,13 +90,25 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
     }
 
     /**
-     * @notice Set the vault performance fee
+     * @notice Set the vault annual performance fee
      * @dev Represented in basis points
      */
-    function setPerformanceFee(uint256 _performanceFee) external override onlyElevatedAccess {
-        if (_performanceFee > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
-        emit PerformanceFeeSet(_performanceFee);
-        performanceFee = _performanceFee;
+    function setAnnualPerformanceFee(uint48 _annualPerformanceFeeBps) external override onlyElevatedAccess {
+        if (_annualPerformanceFeeBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
+
+        // Harvest on the old rate prior to updating the fee
+        _collectPerformanceFees();
+
+        emit PerformanceFeeSet(_annualPerformanceFeeBps);
+        annualPerformanceFeeBps = _annualPerformanceFeeBps;
+    }
+
+    /**
+     * @notice Set the max total supply allowed for investments into this lovToken
+     */
+    function setMaxTotalSupply(uint256 _maxTotalSupply) external onlyElevatedAccess {
+        maxTotalSupply = _maxTotalSupply;
+        emit MaxTotalSupplySet(_maxTotalSupply);
     }
 
     /**
@@ -132,6 +149,9 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
         // Mint the lovToken for the user
         if (investmentAmount != 0) {
             _mint(msg.sender, investmentAmount);
+            if (totalSupply() > maxTotalSupply) {
+                revert CommonEventsAndErrors.BreachedMaxTotalSupply(totalSupply(), maxTotalSupply);
+            }
         }
     }
 
@@ -150,18 +170,14 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (recipient == address(0)) revert CommonEventsAndErrors.InvalidAddress(recipient);
 
-        // Send the lovToken to the manager
-        IOrigamiLovTokenManager _manager = lovManager;
-        _transfer(msg.sender, address(_manager), quoteData.investmentTokenAmount);
-
         uint256 lovTokenToBurn;
-        (toTokenAmount, lovTokenToBurn) = _manager.exitToToken(msg.sender, quoteData, recipient);
+        (toTokenAmount, lovTokenToBurn) = lovManager.exitToToken(msg.sender, quoteData, recipient);
         
         emit Exited(msg.sender, quoteData.investmentTokenAmount, quoteData.toToken, toTokenAmount, recipient);
         
         // Burn the lovToken
         if (lovTokenToBurn != 0) {
-            _burn(address(_manager), lovTokenToBurn);
+            _burn(msg.sender, lovTokenToBurn);
         }
     }
 
@@ -189,16 +205,7 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
      * @notice Collect the performance fees to the Origami Treasury
      */
     function collectPerformanceFees() external override onlyElevatedAccess returns (uint256 amount) {
-        if (block.timestamp < (lastPerformanceFeeTime + PERFORMANCE_FEE_FREQUENCY)) revert TooSoon();
-
-        address _feeCollector = feeCollector;
-        amount = performanceFeeAmount();
-        if (amount != 0) {
-            emit PerformanceFeesCollected(_feeCollector, amount);
-            _mint(_feeCollector, amount);
-        }
-
-        lastPerformanceFeeTime = uint32(block.timestamp);
+        return _collectPerformanceFees();
     }
 
     /**
@@ -381,17 +388,32 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
     }
     
     /**
-     * @notice The performance fee amount which would be minted as of now, 
+     * @notice The accrued performance fee amount which would be minted as of now, 
      * based on the total supply
      */
-    function performanceFeeAmount() public override view returns (uint256) {
-        // totalSupply * feeBps * 7 days / 365 days / 10_000
+    function accruedPerformanceFee() public override view returns (uint256) {
+        // totalSupply * feeBps * timeDelta / 365 days / 10_000
         // Round down (protocol takes less of a fee)
+        uint256 _timeDelta = block.timestamp - lastPerformanceFeeTime;
         return OrigamiMath.mulDiv(
             totalSupply(), 
-            performanceFee * PERFORMANCE_FEE_FREQUENCY, 
+            annualPerformanceFeeBps * _timeDelta, 
             OrigamiMath.BASIS_POINTS_DIVISOR * 365 days, 
             OrigamiMath.Rounding.ROUND_DOWN
         );
+    }
+
+    function _collectPerformanceFees() internal returns (uint256 amount) {
+        amount = accruedPerformanceFee();
+        if (amount != 0) {
+            address _feeCollector = feeCollector;
+            emit PerformanceFeesCollected(_feeCollector, amount);
+
+            // Do not need to check vs maxTotalSupply here as it is
+            // only for new user investments
+            _mint(_feeCollector, amount);
+        }
+
+        lastPerformanceFeeTime = uint48(block.timestamp);
     }
 }

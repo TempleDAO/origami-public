@@ -52,7 +52,7 @@ contract OrigamiCircuitBreakerProxyTest is OrigamiTest {
         // Alice isn't mapped - so this will revert
         vm.startPrank(alice);
         vm.expectRevert();
-        circuitBreakerProxy.preCheck(address(templeToken), address(0), 100);
+        circuitBreakerProxy.preCheck(address(templeToken), 100);
     }
 
     function test_setIdentifierForCaller_failBadAddress() public {
@@ -85,12 +85,25 @@ contract OrigamiCircuitBreakerProxyTest is OrigamiTest {
         circuitBreakerProxy.setCircuitBreaker(EXTERNAL_ALL_USERS, address(templeToken), address(0));
     }
 
-    function test_setCircuitBreaker_failNoCircuitBreaker() public {
-        vm.startPrank(origamiMultisig);
-        circuitBreakerProxy.setIdentifierForCaller(caller, "EXTERNAL_USER");
+    function test_setCircuitBreaker_disable() public {
+        setupProxy();
+        vm.startPrank(caller);
+        circuitBreakerProxy.preCheck(address(daiToken), 250e18);
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        circuitBreakerProxy.setCircuitBreaker(EXTERNAL_ALL_USERS, address(templeToken), address(0));
+        assertEq(address(circuitBreakerProxy.circuitBreakers(EXTERNAL_ALL_USERS, address(daiToken))), address(daiCircuitBreaker));
+        assertEq(circuitBreakerProxy.cap(address(daiToken), caller), 1_000e18);
+        assertEq(circuitBreakerProxy.currentUtilisation(address(daiToken), caller), 250e18);
+        assertEq(circuitBreakerProxy.available(address(daiToken), caller), 750e18);
+
+        // Remove
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(circuitBreakerProxy));
+        emit CircuitBreakerSet(EXTERNAL_ALL_USERS, address(daiToken), address(0));
+        circuitBreakerProxy.setCircuitBreaker(EXTERNAL_ALL_USERS, address(daiToken), address(0));
+        assertEq(address(circuitBreakerProxy.circuitBreakers(EXTERNAL_ALL_USERS, address(daiToken))), address(0));
+        assertEq(circuitBreakerProxy.cap(address(daiToken), caller), 0);
+        assertEq(circuitBreakerProxy.currentUtilisation(address(daiToken), caller), 0);
+        assertEq(circuitBreakerProxy.available(address(daiToken), caller), 0);
     }
 
     function test_setCircuitBreaker_success() public {
@@ -117,7 +130,7 @@ contract OrigamiCircuitBreakerProxyTest is OrigamiTest {
 
         vm.startPrank(alice);
         vm.expectRevert();
-        circuitBreakerProxy.preCheck(address(daiToken), alice, 100);
+        circuitBreakerProxy.preCheck(address(daiToken), 100);
     }
 
     function test_preCheck_unknownToken() public {
@@ -125,23 +138,40 @@ contract OrigamiCircuitBreakerProxyTest is OrigamiTest {
 
         vm.startPrank(caller);
         vm.expectRevert();
-        circuitBreakerProxy.preCheck(bob, alice, 100);
+        circuitBreakerProxy.preCheck(bob, 100);
     }
 
     function test_preCheck_success() public {
         setupProxy();
         vm.startPrank(caller);
-        circuitBreakerProxy.preCheck(address(daiToken), alice, 1_000e18);
+        
+        circuitBreakerProxy.preCheck(address(daiToken), 250e18);
+        assertEq(circuitBreakerProxy.cap(address(daiToken), caller), 1_000e18);
+        assertEq(circuitBreakerProxy.currentUtilisation(address(daiToken), caller), 250e18);
+        assertEq(circuitBreakerProxy.available(address(daiToken), caller), 750e18);
+
+        circuitBreakerProxy.preCheck(address(daiToken), 750e18);
+        assertEq(circuitBreakerProxy.cap(address(daiToken), caller), 1_000e18);
+        assertEq(circuitBreakerProxy.currentUtilisation(address(daiToken), caller), 1_000e18);
+        assertEq(circuitBreakerProxy.available(address(daiToken), caller), 0);
 
         // Can't borrow any more dai
         vm.expectRevert(abi.encodeWithSelector(OrigamiCircuitBreakerAllUsersPerPeriod.CapBreached.selector, 2_000e18, 1_000e18));
-        circuitBreakerProxy.preCheck(address(daiToken), alice, 1_000e18);
+        circuitBreakerProxy.preCheck(address(daiToken), 1_000e18);
 
         // Can borrow temple though
-        circuitBreakerProxy.preCheck(address(templeToken), alice, 1_000e18);
+        circuitBreakerProxy.preCheck(address(templeToken), 1_000e18);
 
         // Can borrow more after waiting...
         vm.warp(block.timestamp + 2 days);
-        circuitBreakerProxy.preCheck(address(daiToken), alice, 1_000e18);
+        circuitBreakerProxy.preCheck(address(daiToken), 1_000e18);
+    }
+
+    function test_unmapped_views() public {
+        // Alice isn't mapped, so returns zero
+        vm.startPrank(alice);
+        assertEq(circuitBreakerProxy.cap(address(daiToken), alice), 0);
+        assertEq(circuitBreakerProxy.currentUtilisation(address(daiToken), alice), 0);
+        assertEq(circuitBreakerProxy.available(address(daiToken), alice), 0);
     }
 }

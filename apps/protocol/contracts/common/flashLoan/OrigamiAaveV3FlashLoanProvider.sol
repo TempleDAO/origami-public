@@ -28,6 +28,8 @@ contract OrigamiAaveV3FlashLoanProvider is IOrigamiFlashLoanProvider, IFlashLoan
 
     /**
      * @dev The Aave/Spark pool, required for IFlashLoanReceiver
+     * In the very unlikely event that Aave/Spark changes the pool address
+     * this contract can easily be redeployed since it's stateless
      */
     IPool public immutable override POOL;
 
@@ -49,7 +51,7 @@ contract OrigamiAaveV3FlashLoanProvider is IOrigamiFlashLoanProvider, IFlashLoan
      * The loaned amount is always repaid to Aave/Spark within the same transaction.
      * @dev Upon FL success, Aave/Spark will call the `executeOperation()` callback
      */
-    function flashLoan(IERC20 token, uint256 amount, bytes memory params) external override {
+    function flashLoan(IERC20 token, uint256 amount, bytes calldata params) external override {
         address[] memory _tokens = new address[](1);
         _tokens[0] = address(token);
         uint256[] memory _amounts = new uint256[](1);

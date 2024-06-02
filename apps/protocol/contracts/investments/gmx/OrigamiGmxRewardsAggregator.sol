@@ -205,7 +205,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, OrigamiElevat
         if (subtractPerformanceFees) {
             uint256 feeRate = ovToken.performanceFee();
             for (i=0; i < _length; ++i) {
-                amounts[i] = amounts[i].subtractBps(feeRate);
+                amounts[i] = amounts[i].subtractBps(feeRate, OrigamiMath.Rounding.ROUND_DOWN);
             }
         } 
     }
@@ -283,7 +283,7 @@ contract OrigamiGmxRewardsAggregator is IOrigamiInvestmentManager, OrigamiElevat
     function _addReserves(address reserveToken, uint256 totalReservesAmount) internal {
         // Collect performance fees
         uint256 feeRate = ovToken.performanceFee();
-        (uint256 reserves, uint256 fees) = totalReservesAmount.splitSubtractBps(feeRate);
+        (uint256 reserves, uint256 fees) = totalReservesAmount.splitSubtractBps(feeRate, OrigamiMath.Rounding.ROUND_DOWN);
         
         if (fees != 0) {
             emit PerformanceFeesCollected(reserveToken, fees, performanceFeeCollector);

@@ -19,7 +19,10 @@ library CompoundedInterest {
         uint256 elapsed, 
         uint96 interestRate
     ) internal pure returns (uint256) {
-        uint256 exponent = elapsed * interestRate / ONE_YEAR;
+        uint256 exponent = elapsed * interestRate;
+        unchecked {
+            exponent = exponent / ONE_YEAR;
+        }
         return ud(principal).mul(
             ud(exponent).exp()
         ).unwrap();

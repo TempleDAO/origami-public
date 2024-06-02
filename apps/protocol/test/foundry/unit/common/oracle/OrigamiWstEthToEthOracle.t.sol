@@ -43,71 +43,112 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
 
         oStEthToEthOracle = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            "stETH/ETH",
-            address(stEthToken),
-            18,
-            address(wEthToken),
-            18,
+            IOrigamiOracle.BaseOracleParams(
+                "stETH/ETH",
+                address(stEthToken),
+                18,
+                address(wEthToken),
+                18
+            ),
             STETH_ETH_HISTORIC_RATE,
             address(clStEthToEthOracle),
             100 days,
-            Range.Data(0.99e18, 1.01e18)
+            Range.Data(0.99e18, 1.01e18),
+            true
         );
 
         oWstEthToEthOracle = new OrigamiWstEthToEthOracle(
-            "wstETH/ETH",
-            address(wstEthToken),
-            18, 
-            address(wEthToken),
-            18,
+            IOrigamiOracle.BaseOracleParams(
+                "wstETH/ETH",
+                address(wstEthToken),
+                18, 
+                address(wEthToken),
+                18
+            ),
             address(stEthToken),
             address(oStEthToEthOracle)
         );
+
+        // Kick off the stETH accrual
+        {
+            vm.startPrank(overlord);
+            deal(overlord, 10_000e18);
+            stEthToken.submit{value: 10_000e18}(address(0));
+
+            // Skip forward in time so wstETH:stETH increases
+            skip(365 days);
+        }
     }
 
     function test_latestPrice_spot_roundDown() public {
+        uint256 ratio = stEthToken.getPooledEthByShares(1e18);
+        uint256 expectedRate = 1.042518534162195584e18;
+        assertEq(expectedRate, ratio * STETH_ETH_ORACLE_RATE / 1e18);
+
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
-            STETH_ETH_ORACLE_RATE
+            expectedRate
         );
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            STETH_ETH_ORACLE_RATE
+            expectedRate + 1
         );
 
         vm.warp(block.timestamp + 365 days);
-        uint256 ratio = stEthToken.getPooledEthByShares(1e18);
+        ratio = stEthToken.getPooledEthByShares(1e18);
+        expectedRate = 1.085064522651268518e18;
+        assertEq(expectedRate, ratio * STETH_ETH_ORACLE_RATE / 1e18);
 
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
-            ratio * STETH_ETH_ORACLE_RATE / 1e18
+            expectedRate
         );
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            ratio * STETH_ETH_ORACLE_RATE / 1e18
+            expectedRate + 1
         );
     }
 
     function test_latestPrice_historic() public {
+        uint256 ratio = stEthToken.getPooledEthByShares(1e18);
+        uint256 expectedRate = 1.040810774192388226e18;
+        assertEq(expectedRate, ratio * STETH_ETH_HISTORIC_RATE / 1e18);
+
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
-            STETH_ETH_HISTORIC_RATE
+            expectedRate
         );
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            STETH_ETH_HISTORIC_RATE
+            expectedRate
         );
 
         vm.warp(block.timestamp + 365 days);
-        uint256 ratio = stEthToken.getPooledEthByShares(1e18);
+        ratio = stEthToken.getPooledEthByShares(1e18);
+        expectedRate = 1.083287067674958553e18;
+        assertEq(expectedRate, ratio * STETH_ETH_HISTORIC_RATE / 1e18);
 
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
-            ratio * STETH_ETH_HISTORIC_RATE / 1e18
+            expectedRate
         );
         assertEq(
             oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            ratio * STETH_ETH_HISTORIC_RATE / 1e18
+            expectedRate
         );
+    }
+
+    function test_latestPrices() public {
+        (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oWstEthToEthOracle.latestPrices(
+            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            OrigamiMath.Rounding.ROUND_UP,
+            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            OrigamiMath.Rounding.ROUND_DOWN
+        );
+        // Based off the wstETH/ETH price, so includes the wstETH/stETH ratio
+        assertEq(spot, 1.042518534162195585e18);
+        assertEq(hist, 1.040810774192388226e18);
+        assertEq(baseAsset, address(wstEthToken));
+        assertEq(quoteAsset, wEthToken);
     }
 }

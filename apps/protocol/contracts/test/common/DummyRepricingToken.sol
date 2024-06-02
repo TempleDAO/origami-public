@@ -13,7 +13,7 @@ contract DummyRepricingToken is RepricingToken {
         string memory _name,
         string memory _symbol,
         address _reserveToken,
-        uint256 _reservesActualisationDuration
+        uint48 _reservesActualisationDuration
     ) RepricingToken(_name, _symbol, _reserveToken, _reservesActualisationDuration, _initialOwner) {}
 
     function mint(address _to, uint256 _amount) external {

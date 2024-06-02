@@ -8,3 +8,4 @@ forge-std/=lib/forge-std/src/
 hardhat/=node_modules/hardhat/
 contracts/=contracts/
 test/=test/
+@morpho-org=node_modules/@morpho-org

@@ -1,0 +1,7 @@
+// sepolia: OV_USDC.SUPPLY.AAVE_V3_IDLE_STRATEGY=0x70a627727a165B97Df4A82083baE3A21034D47C8
+// yarn hardhat verify --network sepolia 0x70a627727a165B97Df4A82083baE3A21034D47C8 --constructor-args scripts/deploys/sepolia/deploymentArgs/0x70a627727a165B97Df4A82083baE3A21034D47C8.js
+module.exports = [
+  "0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526",
+  "0x2B412AE45D95BDDdB7b9B15f5aadfaE883b1fF43",
+  10000
+];

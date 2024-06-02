@@ -10,6 +10,7 @@ import { OrigamiStableChainlinkOracle } from "contracts/common/oracle/OrigamiSta
 import { OrigamiWstEthToEthOracle } from "contracts/common/oracle/OrigamiWstEthToEthOracle.sol";
 import { DummyOracle } from "contracts/test/common/DummyOracle.sol";
 import { Range } from "contracts/libraries/Range.sol";
+import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 
 contract MockBorrowAndLendTestBase is OrigamiTest {
     MockWrappedEther internal wethToken;
@@ -51,23 +52,28 @@ contract MockBorrowAndLendTestBase is OrigamiTest {
 
         oStEthToEthOracle = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            "stETH/ETH",
-            address(stEthToken),
-            18,
-            address(wethToken),
-            18,
+            IOrigamiOracle.BaseOracleParams(
+                "stETH/ETH",
+                address(stEthToken),
+                18,
+                address(wethToken),
+                18
+            ),
             STETH_ETH_HISTORIC_RATE,
             address(clStEthToEthOracle),
             100 days,
-            Range.Data(0.99e18, 1.01e18)
+            Range.Data(0.99e18, 1.01e18),
+            true // Chainlink does use roundId
         );
 
         oWstEthToEthOracle = new OrigamiWstEthToEthOracle(
-            "wstETH/ETH",
-            address(wstEthToken),
-            18, 
-            address(wethToken),
-            18,
+            IOrigamiOracle.BaseOracleParams(
+                "wstETH/ETH",
+                address(wstEthToken),
+                18, 
+                address(wethToken),
+                18
+            ),
             address(stEthToken),
             address(oStEthToEthOracle)
         );
@@ -271,11 +277,9 @@ contract MockBorrowAndLendTest is MockBorrowAndLendTestBase {
         assertEq(borrowLend.availableToWithdraw(), wstEthAmount);
         (
             uint256 _supplyCap,
-            uint256 utilised,
             uint256 available
         ) = borrowLend.availableToSupply();
         assertEq(_supplyCap, MAX_SUPPLY);
-        assertEq(utilised, wstEthAmount);
         assertEq(available, _supplyCap-wstEthAmount);
 
         (

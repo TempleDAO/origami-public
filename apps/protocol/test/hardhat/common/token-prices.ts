@@ -10,6 +10,7 @@ import {
     DummyMintableToken__factory,
     TokenPrices, TokenPrices__factory, DummyOracle,
     MockSDaiToken__factory,
+    MockStEthToken__factory,
 } from "../../../typechain";
 import { 
     blockTimestamp, 
@@ -60,7 +61,8 @@ describe("Token Prices", async () => {
     const encodedAliasFor = (sourceToken: string): string => encodeFunction("aliasFor", sourceToken);
     const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
     const encodedErc4626TokenPrice = (vault: string): string => encodeFunction("erc4626TokenPrice", vault);
-    
+    const encodedWstEthRatio = (stEthToken: string): string => encodeFunction("wstEthRatio", stEthToken);
+
     describe("Arbitrum", async () => {
         const addresses = {
             weth: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
@@ -471,6 +473,75 @@ describe("Token Prices", async () => {
             // Works if at the threshold
             expect(await tokenPrices.oraclePrice(reserveTokenOracle.address, 100))
                 .to.eq(ethers.utils.parseUnits(ethers.utils.formatUnits(price.toString(), 8), 30));
+        });
+
+        it("wstEth/ETH ratio", async () => {
+            const stEth = await new MockStEthToken__factory(owner).deploy(
+                await owner.getAddress(),
+                ethers.utils.parseEther("0.04") // 4%
+            );
+
+            await stEth.connect(alan).submit(ZERO_ADDRESS, {value: ethers.utils.parseEther("10")});
+            await mineForwardSeconds(365 * 86400);
+            const wstEthRatioToken = "0x1000000000000000000000000000000000000001";
+
+            await tokenPrices.setTokenPriceFunction(
+                wstEthRatioToken,
+                encodedWstEthRatio(stEth.address)
+            );
+            expect(await tokenPrices.tokenPrice(wstEthRatioToken))
+                .to.eq(ethers.utils.parseUnits("1.040810775512543952", 30));
+        });
+
+        it("wstEth/USD price", async () => {
+            const stEth = await new MockStEthToken__factory(owner).deploy(
+                await owner.getAddress(),
+                ethers.utils.parseEther("0.04") // 4%
+            );
+
+            const stEthToEthOracle = await new DummyOracle__factory(owner).deploy(
+                {
+                    roundId: 10,
+                    answer: ethers.utils.parseUnits("0.9998", 18),
+                    startedAt: await blockTimestamp(),
+                    updatedAtLag: 1,
+                    answeredInRound: 10
+                }, 
+                18
+            );
+            const ethToUsdOracle = await new DummyOracle__factory(owner).deploy(
+                {
+                    roundId: 10,
+                    answer: ethers.utils.parseUnits("2500", 18),
+                    startedAt: await blockTimestamp(),
+                    updatedAtLag: 1,
+                    answeredInRound: 10
+                }, 
+                18
+            );
+
+            await stEth.connect(alan).submit(ZERO_ADDRESS, {value: ethers.utils.parseEther("10")});
+            await mineForwardSeconds(365 * 86400);
+            const wstEthToken = "0x1000000000000000000000000000000000000001";
+            
+            await tokenPrices.setTokenPriceFunction(
+                wstEthToken,
+                encodedMulPrice(
+                    encodedWstEthRatio(stEth.address),
+                    encodedMulPrice(
+                        encodedOraclePrice(stEthToEthOracle.address, 86400 * 365 * 10),
+                        encodedOraclePrice(ethToUsdOracle.address, 86400 * 365 * 10),
+                    ),
+                )
+            );
+            expect(await tokenPrices.tokenPrice(wstEthToken))
+                .to.eq(
+                    ethers.utils.parseUnits("1.040810775512543952", 18).mul(
+                        ethers.utils.parseUnits("0.9998", 6).mul(
+                            ethers.utils.parseUnits("2500", 6)
+                        )
+                    )
+                );
         });
     });
 

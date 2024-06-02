@@ -53,6 +53,7 @@ contract OrigamiAaveV3BorrowAndLendTestBase is OrigamiTest {
 contract OrigamiAaveV3BorrowAndLendTestAdmin is OrigamiAaveV3BorrowAndLendTestBase {
     event ReferralCodeSet(uint16 code);
     event PositionOwnerSet(address indexed account);
+    event AavePoolSet(address indexed pool);
 
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
     event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
@@ -182,87 +183,145 @@ contract OrigamiAaveV3BorrowAndLendTestAdmin is OrigamiAaveV3BorrowAndLendTestBa
         borrowLend.setEModeCategory(0);
     }
 
-    function test_reclaimSurplusDebt_fail() public {
-        uint256 amount = 50e18;
-        supply(amount);
-        borrowLend.borrow(10e18, posOwner);
-      
-        vm.startPrank(posOwner);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(wethToken), 10e18));
-        borrowLend.reclaimSurplusDebt(123e18, alice);
-    }
+    function test_setAavePool() public {
+        vm.startPrank(origamiMultisig);
+        
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, 0));
+        borrowLend.setAavePool(address(0));
 
-    function test_reclaimSurplusDebt_success() public {
-        uint256 amount = 50e18;
-        supply(amount);
-        borrowLend.borrow(10e18, posOwner);
-      
-        // Over repay
-        deal(address(wethToken), address(borrowLend), 11e18);
-        uint256 amountRepaid = borrowLend.repay(11e18);
-        assertEq(amountRepaid, 10e18);
-
-        // Weth error when transferring too much
-        vm.expectRevert();
-        borrowLend.reclaimSurplusDebt(123e18, alice);
-
-        borrowLend.reclaimSurplusDebt(1e18, alice);
-        assertEq(wethToken.balanceOf(alice), 1e18);
-        assertEq(wethToken.balanceOf(address(borrowLend)), 0);
-        assertEq(borrowLend.debtBalance(), 0);
+        vm.expectEmit(address(borrowLend));
+        emit AavePoolSet(alice);
+        borrowLend.setAavePool(alice);
+        assertEq(address(borrowLend.aavePool()), alice);
     }
 
     function test_recoverToken_nonAToken() public {
         check_recoverToken(address(borrowLend));
     }
 
-    function test_recoverToken_fail_aTokenOver() public {
+    function test_suppliedBalance_externalSupply() public {
         uint256 amount = 50e18;
+        uint256 externalSupply = 3e18;
+
         supply(amount);
 
-        // Mint just less than the amount as a donation
-        uint256 donationAmount = amount-1;
         vm.startPrank(alice);
-        doMint(wstEthToken, address(alice), donationAmount);
-        wstEthToken.approve(address(borrowLend.aavePool()), donationAmount);
-        borrowLend.aavePool().supply(address(wstEthToken), donationAmount, address(borrowLend), 0);
-        
-        uint256 balanceBefore = IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend));
-        uint256 suppliedBalance = borrowLend.suppliedBalance();
-        assertEq(balanceBefore, amount + donationAmount);
-        assertEq(suppliedBalance, amount);
+        doMint(wstEthToken, address(alice), externalSupply);
+        wstEthToken.approve(address(borrowLend.aavePool()), externalSupply);
+        borrowLend.aavePool().supply(address(wstEthToken), externalSupply, address(alice), 0);
 
-        vm.startPrank(origamiMultisig);
-        
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, SPARK_WSTETH_A_TOKEN, amount));
-        borrowLend.recoverToken(SPARK_WSTETH_A_TOKEN, alice, amount);
+        uint256 balanceBefore = IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend));
+        assertEq(balanceBefore, amount);
+
+        uint256 suppliedBalance = borrowLend.suppliedBalance();
+        assertEq(suppliedBalance, amount);
     }
 
-    function test_recoverToken_success_aTokenOverUnder() public {
+    function test_suppliedBalance_donation() public {
         uint256 amount = 50e18;
+        uint256 donationAmount = 3e18;
+
         supply(amount);
 
-        // Mint the exact amount as a donation
-        uint256 donationAmount = amount;
         vm.startPrank(alice);
         doMint(wstEthToken, address(alice), donationAmount);
         wstEthToken.approve(address(borrowLend.aavePool()), donationAmount);
         borrowLend.aavePool().supply(address(wstEthToken), donationAmount, address(borrowLend), 0);
 
-        uint256 balanceBefore = IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend));
+        // Note: The actual balanceOf() gets rounded up over the total
+        uint256 actualBalance = IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend));
+        assertEq(actualBalance, amount + donationAmount + 1);
+
+        // but our suppliedBalance stays correct
         uint256 suppliedBalance = borrowLend.suppliedBalance();
-        assertEq(balanceBefore, amount + donationAmount);
         assertEq(suppliedBalance, amount);
+    }
+
+    function test_recoverToken_aToken() public {
+        uint256 amount = 50e18;
+        uint256 donationAmount = 3e18;
+
+        // bootstrap and donate
+        {
+            supply(amount);
+
+            vm.startPrank(alice);
+            doMint(wstEthToken, address(alice), donationAmount);
+            wstEthToken.approve(address(borrowLend.aavePool()), donationAmount);
+            borrowLend.aavePool().supply(address(wstEthToken), donationAmount, address(borrowLend), 0);
+
+            // Note: The actual balanceOf() gets rounded up over the total
+            uint256 balanceBefore = IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend));
+            assertEq(balanceBefore, amount + donationAmount + 1);
+
+            // but our suppliedBalance stays correct
+            uint256 suppliedBalance = borrowLend.suppliedBalance();
+            assertEq(suppliedBalance, amount);
+        }
 
         vm.startPrank(origamiMultisig);
 
+        // Under the donated amount
+        uint256 recoverAmount = 3e18-1;
         vm.expectEmit();
-        emit CommonEventsAndErrors.TokenRecovered(bob, SPARK_WSTETH_A_TOKEN, amount);
-        borrowLend.recoverToken(SPARK_WSTETH_A_TOKEN, bob, amount);
+        emit CommonEventsAndErrors.TokenRecovered(bob, SPARK_WSTETH_A_TOKEN, recoverAmount);
+        borrowLend.recoverToken(SPARK_WSTETH_A_TOKEN, bob, recoverAmount);
 
-        assertEq(IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(bob), amount);
-        assertEq(IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend)), amount);
-        assertEq(borrowLend.suppliedBalance(), amount);
+        // Exactly the donated amount
+        recoverAmount = 1;
+        vm.expectEmit();
+        emit CommonEventsAndErrors.TokenRecovered(bob, SPARK_WSTETH_A_TOKEN, recoverAmount);
+        borrowLend.recoverToken(SPARK_WSTETH_A_TOKEN, bob, recoverAmount);
+
+        // Over the donatd amount
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, SPARK_WSTETH_A_TOKEN, recoverAmount));
+        borrowLend.recoverToken(SPARK_WSTETH_A_TOKEN, bob, recoverAmount);
+    }
+
+    function test_recoverToken_rounding() public {
+        uint256 RAY = 1e27;
+        uint256 index = borrowLend.aavePool().getReserveNormalizedIncome(address(wstEthToken));
+        
+        uint256 B = 5.555555555555555500e18;
+        uint256 amount1 = (B * index + RAY / 2) / RAY;
+        supply(amount1);
+
+        uint256 expectedSuppliedBalance = 5.555776811883226757e18;
+        assertEq(borrowLend.aaveAToken().scaledBalanceOf(address(borrowLend)), B);
+        assertEq(borrowLend.suppliedBalance(), expectedSuppliedBalance);
+        assertEq(borrowLend.aaveAToken().balanceOf(address(borrowLend)), expectedSuppliedBalance);
+
+        // Alice donates
+        uint256 A = 3e18;   
+        {
+            uint256 amount2 = (A * index + RAY / 2) / RAY;
+            vm.startPrank(alice);
+            doMint(wstEthToken, address(alice), amount2);
+            wstEthToken.approve(address(borrowLend.aavePool()), amount2);
+            borrowLend.aavePool().supply(address(wstEthToken), amount2, address(borrowLend), 0);
+        }
+
+        assertEq(borrowLend.aaveAToken().scaledBalanceOf(address(borrowLend)), B + A);
+        assertEq(borrowLend.suppliedBalance(), expectedSuppliedBalance);
+        assertEq(borrowLend.aaveAToken().balanceOf(address(borrowLend)), 8.555896290300169237e18);
+
+        uint256 recoverTokenAmount = IERC20(SPARK_WSTETH_A_TOKEN).balanceOf(address(borrowLend)) - borrowLend.suppliedBalance();
+        assertEq(recoverTokenAmount, 3.000119478416942480e18);
+
+        vm.startPrank(origamiMultisig);
+        borrowLend.recoverToken(SPARK_WSTETH_A_TOKEN, bob, recoverTokenAmount-1);
+
+        assertEq(borrowLend.aaveAToken().scaledBalanceOf(address(borrowLend)), B);
+        assertEq(borrowLend.suppliedBalance(), expectedSuppliedBalance);
+        assertEq(borrowLend.aaveAToken().balanceOf(address(borrowLend)), expectedSuppliedBalance);
+
+        vm.startPrank(borrowLend.positionOwner());
+        borrowLend.withdraw(borrowLend.suppliedBalance(), feeCollector);
+
+        assertEq(borrowLend.aaveAToken().scaledBalanceOf(address(borrowLend)), 0);
+        assertEq(borrowLend.suppliedBalance(), 0);
+        assertEq(borrowLend.aaveAToken().balanceOf(address(borrowLend)), 0);
+        assertEq(wstEthToken.balanceOf(feeCollector), expectedSuppliedBalance);
     }
 }
 
@@ -288,39 +347,85 @@ contract OrigamiAaveV3BorrowAndLendTestAccess is OrigamiAaveV3BorrowAndLendTestB
         borrowLend.setEModeCategory(5);
     }
 
+    function test_access_setAavePool() public {
+        expectElevatedAccess();
+        borrowLend.setAavePool(alice);
+    }
+
     function test_access_supply() public {
         expectElevatedAccess();
+        borrowLend.supply(5);
+
+        vm.prank(posOwner);
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        borrowLend.supply(5);
+
+        vm.prank(origamiMultisig);
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
         borrowLend.supply(5);
     }
 
     function test_access_withdraw() public {
         expectElevatedAccess();
         borrowLend.withdraw(5, alice);
+
+        vm.prank(posOwner);
+        vm.expectRevert(bytes(AaveErrors.NOT_ENOUGH_AVAILABLE_USER_BALANCE));
+        borrowLend.withdraw(5, alice);
+
+        vm.prank(origamiMultisig);
+        vm.expectRevert(bytes(AaveErrors.NOT_ENOUGH_AVAILABLE_USER_BALANCE));
+        borrowLend.withdraw(5, alice);
     }
 
     function test_access_borrow() public {
         expectElevatedAccess();
+        borrowLend.borrow(5, alice);
+
+        vm.prank(posOwner);
+        vm.expectRevert(bytes(AaveErrors.COLLATERAL_BALANCE_IS_ZERO));
+        borrowLend.borrow(5, alice);
+
+        vm.prank(origamiMultisig);
+        vm.expectRevert(bytes(AaveErrors.COLLATERAL_BALANCE_IS_ZERO));
         borrowLend.borrow(5, alice);
     }
 
     function test_access_repay() public {
         expectElevatedAccess();
         borrowLend.repay(5);
+
+        vm.prank(posOwner);
+        borrowLend.repay(5);
+
+        vm.prank(origamiMultisig);
+        borrowLend.repay(5);
     }
 
     function test_access_repayAndWithdraw() public {
         expectElevatedAccess();
+        borrowLend.repayAndWithdraw(5, 5, alice);
+
+        vm.prank(posOwner);
+        vm.expectRevert(bytes(AaveErrors.NOT_ENOUGH_AVAILABLE_USER_BALANCE));
+        borrowLend.repayAndWithdraw(5, 5, alice);
+
+        vm.prank(origamiMultisig);
+        vm.expectRevert(bytes(AaveErrors.NOT_ENOUGH_AVAILABLE_USER_BALANCE));
         borrowLend.repayAndWithdraw(5, 5, alice);
     }
 
     function test_access_supplyAndBorrow() public {
         expectElevatedAccess();
         borrowLend.supplyAndBorrow(5, 5, alice);
-    }
 
-    function test_access_reclaimSurplusDebt() public {
-        expectElevatedAccess();
-        borrowLend.reclaimSurplusDebt(5, alice);
+        vm.prank(posOwner);
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        borrowLend.supplyAndBorrow(5, 5, alice);
+
+        vm.prank(origamiMultisig);
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        borrowLend.supplyAndBorrow(5, 5, alice);
     }
 
     function test_access_recoverToken() public {
@@ -411,15 +516,22 @@ contract OrigamiAaveV3BorrowAndLendTestViews is OrigamiAaveV3BorrowAndLendTestBa
         assertEq(borrowLend.availableToWithdraw(), 690_501.266537189612160058e18);
     }
 
+    function test_availableToBorrow() public {
+        assertEq(borrowLend.availableToBorrow(), 114_870.698797517399176768e18);
+
+        uint256 amount = 50e18;
+        supply(amount);
+        borrowLend.borrow(40e18, posOwner);
+        assertEq(borrowLend.availableToBorrow(), 114_830.698797517399176768e18);
+    }
+
     function test_availableToSupply() public {
         (
             uint256 supplyCap,
-            uint256 utilised,
             uint256 available
         ) = borrowLend.availableToSupply();
 
         assertEq(supplyCap, 800_000e18);
-        assertEq(utilised, 690_559.235387228092502738e18);
         assertEq(available, 109_440.764612771907497262e18);
 
         uint256 amount = 50e18;
@@ -428,12 +540,10 @@ contract OrigamiAaveV3BorrowAndLendTestViews is OrigamiAaveV3BorrowAndLendTestBa
 
         (
             supplyCap,
-            utilised,
             available
         ) = borrowLend.availableToSupply();
 
         assertEq(supplyCap, 800_000e18);
-        assertEq(utilised, 690_609.235396598281869611e18);
         assertEq(available, 109_390.764603401718130389e18);
     }
 
@@ -568,7 +678,8 @@ contract OrigamiAaveV3BorrowAndLendTestSupply is OrigamiAaveV3BorrowAndLendTestB
         assertEq(wethToken.balanceOf(address(borrowLend)), 60e18);
         assertEq(wethToken.balanceOf(address(alice)), 50e18);
 
-        borrowLend.reclaimSurplusDebt(60e18, alice);
+        vm.startPrank(origamiMultisig);
+        borrowLend.recoverToken(address(wethToken), alice, 60e18);
         assertEq(wethToken.balanceOf(address(borrowLend)), 0);
         assertEq(wethToken.balanceOf(address(alice)), 110e18);
     }

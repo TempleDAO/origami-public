@@ -159,11 +159,11 @@ contract OrigamiIdleStrategyManager is IOrigamiIdleStrategyManager, OrigamiEleva
             if (withdrawnFromIdleStrategy != 0) {
                 // So there aren't lots of small withdrawals, pull the amount required for this transaction
                 // plus the threshold amount. Then future borrows don't need to withdraw from base every time.
-                withdrawnFromIdleStrategy += withdrawalBuffer;
+                withdrawnFromIdleStrategy = withdrawnFromIdleStrategy + withdrawalBuffer;
 
                 // Pull the asset into this contract. The amount actually withdrawn may be less than requested
                 // as it's capped to any actual remaining balance in the underlying
-                _balance += _idleStrategy.withdraw(withdrawnFromIdleStrategy, address(this));
+                _balance = _balance + _idleStrategy.withdraw(withdrawnFromIdleStrategy, address(this));
             }
         }
 

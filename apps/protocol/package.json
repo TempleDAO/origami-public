@@ -9,6 +9,9 @@
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/bytes": "^5.7.0",
     "@ethersproject/providers": "^5.7.2",
+    "@morpho-org/morpho-blue": "^1.0.0",
+    "@morpho-org/morpho-blue-irm": "link:./lib/morpho-org/morpho-blue-irm",
+    "@morpho-org/morpho-blue-oracles": "link:./lib/morpho-org/morpho-blue-oracles",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.5",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
@@ -54,6 +57,7 @@
     "uuid": "^9.0.0"
   },
   "scripts": {
+    "prepare": "cp ./lib/morpho-org/morpho-blue-irm/package.json ./lib/morpho-org/morpho-blue-oracles/",
     "compile": "hardhat compile",
     "typechain": "hardhat typechain",
     "clean": "hardhat clean",
@@ -76,7 +80,7 @@
     "forge-invariant:lite": "export FOUNDRY_FUZZ_SEED=$(date +%s) && echo \"USING SEED: $FOUNDRY_FUZZ_SEED\" && FOUNDRY_PROFILE=lite forge test --match-path \"test/foundry/invariant/**/*.sol\"",
     "forge-invariant:untilfail": "export FOUNDRY_FUZZ_SEED=$(date +%s) && echo \"USING SEED: $FOUNDRY_FUZZ_SEED\" && FOUNDRY_INVARIANT_DEPTH=90 FOUNDRY_INVARIANT_RUNS=500 FOUNDRY_PROFILE=lite ././scripts/untilfail forge test --match-path \"test/foundry/invariant/**/*.sol\"",
     "legacy-hardhat-gas": "NOCOLOR=1 REPORT_GAS=true hardhat test test/hardhat/common/access/elevated-access.ts test/hardhat/common/token-prices.ts test/hardhat/common/repricing-token.ts test/hardhat/investments/origami-investment-vault.ts test/hardhat/investments/origami-investment.ts",
-    "forge-gas": "NOCOLOR=1 forge test --nmt invariant --gas-report > forge-gas-report.txt 2>&1",
+    "forge-gas": "NOCOLOR=1 forge test --nmt invariant --gas-report --disable-block-gas-limit --offline > forge-gas-report.txt 2>&1",
     "calc-gas": "python scripts/gas-report/total-avg-gas.py",
     "gas-avg": "yarn legacy-hardhat-gas && yarn forge-gas && yarn calc-gas"
   },

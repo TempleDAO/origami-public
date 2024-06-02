@@ -65,8 +65,8 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
 
     uint16 internal constant MIN_DEPOSIT_FEE_BPS = 10;
     uint16 internal constant MIN_EXIT_FEE_BPS = 50;
-    uint16 internal constant FEE_LEVERAGE_FACTOR = 15;
-    uint256 internal constant PERFORMANCE_FEE_BPS = 500;
+    uint24 internal constant FEE_LEVERAGE_FACTOR = 15e4;
+    uint48 internal constant PERFORMANCE_FEE_BPS = 500;
 
     uint256 internal constant TARGET_AL = 1.1236e18; // 89% LTV
 
@@ -86,7 +86,15 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
         flProvider = new OrigamiAaveV3FlashLoanProvider(SPARK_POOL_ADDRESS_PROVIDER);
 
         tokenPrices = new TokenPrices(30);
-        lovToken = new OrigamiLovToken(origamiMultisig, "Origami lovStEth", "lovStEth", PERFORMANCE_FEE_BPS, feeCollector, address(tokenPrices));
+        lovToken = new OrigamiLovToken(
+            origamiMultisig, 
+            "Origami lovStEth", 
+            "lovStEth", 
+            PERFORMANCE_FEE_BPS, 
+            feeCollector, 
+            address(tokenPrices),
+            type(uint256).max
+        );
 
         borrowLend = new OrigamiAaveV3BorrowAndLend(
             origamiMultisig,
@@ -99,7 +107,8 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
         manager = new OrigamiLovTokenFlashAndBorrowManager(
             origamiMultisig, 
             address(wstEthToken), 
-            address(wethToken), 
+            address(wethToken),
+            address(stEthToken),
             address(lovToken),
             address(flProvider),
             address(borrowLend)
@@ -112,22 +121,27 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
 
             stEthToEthOracle = new OrigamiStableChainlinkOracle(
                 origamiMultisig,
-                "stETH/ETH",
-                address(stEthToken),
-                18,
-                address(wethToken),
-                18,
+                IOrigamiOracle.BaseOracleParams(
+                    "stETH/ETH",
+                    address(stEthToken),
+                    18,
+                    address(wethToken),
+                    18
+                ),
                 STETH_ETH_HISTORIC_STABLE_PRICE,
                 address(clStEthToEthOracle),
                 STETH_ETH_STALENESS_THRESHOLD,
-                Range.Data(STETH_ETH_MIN_THRESHOLD, STETH_ETH_MAX_THRESHOLD)
+                Range.Data(STETH_ETH_MIN_THRESHOLD, STETH_ETH_MAX_THRESHOLD),
+                true
             );
             wstEthToEthOracle = new OrigamiWstEthToEthOracle(
-                "wstETH/ETH",
-                address(wstEthToken),
-                18,
-                address(wethToken),
-                18,
+                IOrigamiOracle.BaseOracleParams(
+                    "wstETH/ETH",
+                    address(wstEthToken),
+                    18,
+                    address(wethToken),
+                    18
+                ),
                 address(stEthToken),
                 address(stEthToEthOracle)
             );
@@ -138,7 +152,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
         lovToken.setManager(address(manager));
         manager.setFeeConfig(MIN_DEPOSIT_FEE_BPS, MIN_EXIT_FEE_BPS, FEE_LEVERAGE_FACTOR);
         manager.setSwapper(address(swapper));
-        manager.setOracle(address(wstEthToEthOracle));
+        manager.setOracles(address(wstEthToEthOracle), address(stEthToEthOracle));
 
         userALRange = Range.Data(1.12e18, 1.16e18);
         rebalanceALRange = Range.Data(1.112e18, 1.18e18);
@@ -212,9 +226,9 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
             buyTokenAmount: reservesAmount
         }));
 
-        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps));
-        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps));
-        params.minExpectedReserveToken = OrigamiMath.subtractBps(reservesAmount, swapSlippageBps);
+        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
+        params.minExpectedReserveToken = OrigamiMath.subtractBps(reservesAmount, swapSlippageBps, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     function doRebalanceDownFor(
@@ -235,7 +249,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
 
         params.minNewAL = 0;
         params.maxNewAL = type(uint128).max;
-        params.minExpectedReserveToken = OrigamiMath.subtractBps(reservesAmount, slippageBps);
+        params.minExpectedReserveToken = OrigamiMath.subtractBps(reservesAmount, slippageBps, OrigamiMath.Rounding.ROUND_DOWN);
 
         doMint(wstEthToken, address(swapper), reservesAmount);
         vm.startPrank(origamiMultisig);
@@ -287,21 +301,22 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
         // Apply slippage to the amount what's actually flashloaned is the lowest amount which
         // we would get when converting the collateral [wstETH] to the flashloan asset [wETH].
         // We need to be sure it can be paid off. Any remaining wETH is repaid on the wETH debt in Spark
-        params.flashLoanAmount = params.flashLoanAmount.subtractBps(swapSlippageBps);
+        params.flashLoanAmount = params.flashLoanAmount.subtractBps(swapSlippageBps, OrigamiMath.Rounding.ROUND_DOWN);
 
         // When to sweep surplus balances and repay
         params.repaySurplusThreshold = repaySurplusThreshold;
 
-        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps));
-        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps));
+        params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
     }
 
 }
 
 contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAndBorrowManagerTestBase {
-    event OracleSet(address indexed oracle);
+    event OraclesSet(address indexed debtTokenToReserveTokenOracle, address indexed dynamicFeePriceOracle);
     event SwapperSet(address indexed swapper);
     event FlashLoanProviderSet(address indexed provider);
+    event BorrowLendSet(address indexed addr);
 
     function test_initialization() public {
         assertEq(manager.owner(), origamiMultisig);
@@ -310,18 +325,19 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
         assertEq(manager.baseToken(), address(wstEthToken));
         assertEq(manager.reserveToken(), address(wstEthToken));
         assertEq(manager.debtToken(), address(wethToken));
+        assertEq(manager.dynamicFeeOracleBaseToken(), address(stEthToken));
         assertEq(address(borrowLend.aavePool()), 0xC13e21B648A5Ee794902342038FF3aDAB66BE987);
         assertEq(address(borrowLend.aaveAToken()), SPARK_A_WSTETH_ADDRESS);
         assertEq(address(borrowLend.aaveDebtToken()), 0x2e7576042566f8D6990e07A1B61Ad1efd86Ae70d);
         assertEq(address(manager.flashLoanProvider()), address(flProvider));
         assertEq(address(manager.swapper()), address(swapper));      
         assertEq(address(manager.debtTokenToReserveTokenOracle()), address(wstEthToEthOracle));
+        assertEq(address(manager.dynamicFeePriceOracle()), address(stEthToEthOracle));
 
         (uint64 minDepositFee, uint64 minExitFee, uint64 feeLeverageFactor) = manager.getFeeConfig();
         assertEq(minDepositFee, MIN_DEPOSIT_FEE_BPS);
         assertEq(minExitFee, MIN_EXIT_FEE_BPS);
         assertEq(feeLeverageFactor, FEE_LEVERAGE_FACTOR);
-        assertEq(manager.redeemableReservesBufferBps(), 10_000);
 
         (uint128 floor, uint128 ceiling) = manager.userALRange();
         assertEq(floor, 1.12e18);
@@ -359,6 +375,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
                 origamiMultisig, 
                 USDC_ADDRESS, // 6dp 
                 address(wethToken), 
+                address(stEthToken),
                 address(lovToken),
                 address(flProvider),
                 address(borrowLend)
@@ -372,6 +389,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
                 origamiMultisig, 
                 address(wstEthToken), 
                 USDC_ADDRESS, // 6dp 
+                address(stEthToken),
                 address(lovToken),
                 address(flProvider),
                 address(borrowLend)
@@ -408,20 +426,77 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
     function test_setOracleConfig_fail() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        manager.setOracle(address(0));
+        manager.setOracles(address(0), address(stEthToEthOracle));
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
+        manager.setOracles(address(wstEthToEthOracle), address(0));
+
+        OrigamiWstEthToEthOracle badOracle = new OrigamiWstEthToEthOracle(
+            IOrigamiOracle.BaseOracleParams(
+                "wstETH/alice",
+                address(wstEthToken),
+                18,
+                alice,
+                18
+            ),
+            address(stEthToken),
+            address(stEthToEthOracle)
+        );
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        manager.setOracles(address(badOracle), address(stEthToEthOracle));
+
+        badOracle = new OrigamiWstEthToEthOracle(
+            IOrigamiOracle.BaseOracleParams(
+                "alice/ETH",
+                alice,
+                18,
+                address(wethToken),
+                18
+            ),
+            address(stEthToken),
+            address(stEthToEthOracle)
+        );
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        manager.setOracles(address(badOracle), address(stEthToEthOracle));
     }
 
-    function test_setOracle() public {
+    function test_setOracles() public {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(manager));
-        emit OracleSet(address(wstEthToEthOracle));
-        manager.setOracle(address(wstEthToEthOracle));
+        emit OraclesSet(address(wstEthToEthOracle), address(stEthToEthOracle));
+        manager.setOracles(address(wstEthToEthOracle), address(stEthToEthOracle));
         assertEq(address(manager.debtTokenToReserveTokenOracle()), address(wstEthToEthOracle));
+        assertEq(address(manager.dynamicFeePriceOracle()), address(stEthToEthOracle));
+
+        OrigamiWstEthToEthOracle oracle1 = new OrigamiWstEthToEthOracle(
+            IOrigamiOracle.BaseOracleParams(
+                "wstETH/ETH",
+                address(wstEthToken),
+                18,
+                address(wethToken),
+                18
+            ),
+            address(stEthToken),
+            address(stEthToEthOracle)
+        );
+
+        OrigamiWstEthToEthOracle oracle2 = new OrigamiWstEthToEthOracle(
+            IOrigamiOracle.BaseOracleParams(
+                "stETH/ETH",
+                address(stEthToken),
+                18,
+                address(wethToken),
+                18
+            ),
+            address(stEthToken),
+            address(stEthToEthOracle)
+        );
 
         vm.expectEmit(address(manager));
-        emit OracleSet(alice);
-        manager.setOracle(alice);
-        assertEq(address(manager.debtTokenToReserveTokenOracle()), alice);
+        emit OraclesSet(address(oracle1), address(oracle2));
+        manager.setOracles(address(oracle1), address(oracle2));
+        assertEq(address(manager.debtTokenToReserveTokenOracle()), address(oracle1));
+        assertEq(address(manager.dynamicFeePriceOracle()), address(oracle2));
     }
 
     function test_setFlashLoanProvider_fail() public {
@@ -436,6 +511,20 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
         emit FlashLoanProviderSet(alice);
         manager.setFlashLoanProvider(alice);
         assertEq(address(manager.flashLoanProvider()), alice);
+    }
+
+    function test_setBorrowLend_fail() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
+        manager.setBorrowLend(address(0));
+    }
+
+    function test_setBorrowLend_success() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(manager));
+        emit BorrowLendSet(alice);
+        manager.setBorrowLend(alice);
+        assertEq(address(manager.borrowLend()), alice);
     }
 
     function test_setUserAlRange_failValidate() public {
@@ -523,9 +612,14 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAccess is OrigamiLovTokenFlashA
         manager.setSwapper(alice);
     }
 
+    function test_access_setBorrowLend() public {
+        expectElevatedAccess();
+        manager.setBorrowLend(alice);
+    }
+
     function test_access_setOracle() public {
         expectElevatedAccess();
-        manager.setOracle(alice);
+        manager.setOracles(alice, alice);
     }
 
     function test_access_setFlashLoanProvider() public {
@@ -644,38 +738,43 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestViews is OrigamiLovTokenFlashAn
             // Hack to get the reciprocal ETH/wstETH
             DummyOracle clOne = new DummyOracle(
                 DummyOracle.Answer({
-                    roundId: 0,
+                    roundId: 1,
                     answer: 1e18,
                     startedAt: 1706225627,
-                    updatedAtLag: 1706225627,
+                    updatedAtLag: 1,
                     answeredInRound: 1
                 }),
                 18
             );
             OrigamiStableChainlinkOracle oOne = new OrigamiStableChainlinkOracle(
                 origamiMultisig, 
-                "ONE/ONE", 
-                address(0),
-                18,
-                address(0),
-                18,
+                IOrigamiOracle.BaseOracleParams(
+                    "ONE/ONE", 
+                    address(0),
+                    18,
+                    address(0),
+                    18
+                ),
                 1e18, 
                 address(clOne), 
                 365 days, 
-                Range.Data(1e18, 1e18)
+                Range.Data(1e18, 1e18),
+                false
             );
 
             OrigamiCrossRateOracle ethToWstEth = new OrigamiCrossRateOracle(
-                "ETH/wstETH",
-                address(wethToken),
+                IOrigamiOracle.BaseOracleParams(
+                    "ETH/wstETH",
+                    address(wethToken),
+                    18,
+                    address(wstEthToken),
+                    18
+                ),
                 address(oOne), 
-                18,
-                address(wstEthToken),
-                address(wstEthToEthOracle),
-                18
+                address(wstEthToEthOracle)
             );
 
-            manager.setOracle(address(ethToWstEth));
+            manager.setOracles(address(ethToWstEth), address(stEthToEthOracle));
         }
 
         uint256 amount = 50e18;
@@ -707,7 +806,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
         // No token supply no reserves
         // Capped to the remaining space in the spark supply.
         // max 800k, already supplied 407k = 393k remaining space
-        (,,uint256 expectedAvailable) = borrowLend.availableToSupply();
+        (, uint256 expectedAvailable) = borrowLend.availableToSupply();
         {
             assertEq(expectedAvailable, 109_440.764612771907497262e18);
             assertEq(manager.reservesBalance(), 0);
@@ -725,7 +824,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
             
             // Almost exactly 10. Aave took a tiny fee.
-            (,,expectedAvailable) = borrowLend.availableToSupply();
+            (, expectedAvailable) = borrowLend.availableToSupply();
             assertEq(expectedAvailable, 109_430.764603401718130390e18);
             assertEq(manager.maxInvest(address(wstEthToken)), expectedAvailable);
         }
@@ -741,6 +840,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
         }
 
         // Rebalance down properly
+        uint256 expectedMaxInvest = 2.944983818770226536e18;
         {
             uint256 targetAl = TARGET_AL;
             doRebalanceDown(targetAl, 0, 50);
@@ -749,12 +849,130 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
             assertEq(manager.reservesBalance(), expectedReserves);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), expectedLiabilities);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 80.881871103825404504e18);
-            assertEq(manager.maxInvest(address(wstEthToken)), 2.944983818770226453e18);
+            assertEq(manager.maxInvest(address(wstEthToken)), expectedMaxInvest);
+        }
+
+        {
+            uint256 investAmount = expectedMaxInvest + 100;
+            doMint(wstEthToken, alice, investAmount);
+            vm.startPrank(alice);
+            wstEthToken.approve(address(lovToken), investAmount);
+
+            (IOrigamiInvestment.InvestQuoteData memory quoteData, ) = lovToken.investQuote(
+                investAmount,
+                address(wstEthToken),
+                0,
+                0
+            );
+
+            vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooHigh.selector, 1.1236e18, 1.160000000000000001e18, 1.16e18));           
+            lovToken.investWithToken(quoteData);
+        }
+
+        // Can invest with that amount
+        {
+            uint256 amountOut = investLovStEth(alice, expectedMaxInvest);
+            assertEq(manager.maxInvest(address(wstEthToken)), 0);
+            exitLovStEth(alice, amountOut, alice);
         }
 
         // Do an external huge deposit into spark to max out the available supply, except 1 eth
         {
-            (,,uint256 available) = borrowLend.availableToSupply();
+            (, uint256 available) = borrowLend.availableToSupply();
+            uint256 extAmount = available - 1e18;
+            deal(address(wstEthToken), bob, extAmount);
+            vm.startPrank(bob);
+            wstEthToken.approve(address(borrowLend.aavePool()), extAmount);
+            borrowLend.aavePool().supply(address(wstEthToken), extAmount, bob, 0);
+        }
+
+        assertEq(manager.maxInvest(address(wstEthToken)), 1e18);
+    }
+
+    function test_maxInvest_reserveToken_withMaxTotalSupply() public {
+        vm.startPrank(origamiMultisig);
+        manager.setFeeConfig(500, 0, FEE_LEVERAGE_FACTOR);
+        uint256 maxTotalSupply = 100_000e18;
+        lovToken.setMaxTotalSupply(maxTotalSupply);
+
+        // No token supply no reserves
+        // Capped to the remaining space in the spark supply.
+        // max 800k, already supplied 407k = 393k remaining space
+        (,uint256 expectedAvailable) = borrowLend.availableToSupply();
+        {
+            assertEq(expectedAvailable, 109_440.764612771907497262e18);
+            assertEq(manager.reservesBalance(), 0);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 0);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
+            // share price = 1, +fees
+            assertEq(manager.maxInvest(address(wstEthToken)), 105_263.157894736842105263e18);
+        }
+
+        // with reserves, no liabilities
+        // available drops by 10
+        {
+            investLovStEth(alice, 10e18);
+            assertEq(manager.reservesBalance(), 10e18);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 0);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
+            
+            // Almost exactly 10. Aave took a tiny fee.
+            (,expectedAvailable) = borrowLend.availableToSupply();
+            assertEq(expectedAvailable, 109_430.764603401718130390e18);
+            // share price > 1, +fees
+            assertEq(manager.maxInvest(address(wstEthToken)), 109_430.764603401718130390e18);
+        }
+
+        // Only rebalance a little. A/L is still 11
+        {
+            doRebalanceDownFor(1e18, 0);
+            uint256 expectedReserves = 10e18 + 1e18;
+            assertEq(manager.reservesBalance(), expectedReserves);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 1e18);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0.999699926843282e18);
+            assertEq(manager.maxInvest(address(wstEthToken)), 0);
+        }
+
+        // Rebalance down properly
+        uint256 expectedMaxInvest = 2.944983818770226536e18;
+        {
+            uint256 targetAl = TARGET_AL;
+            doRebalanceDown(targetAl, 0, 50);
+            uint256 expectedReserves = 90.906148867313915858e18;
+            uint256 expectedLiabilities = 80.906148867313915857e18;
+            assertEq(manager.reservesBalance(), expectedReserves);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), expectedLiabilities);
+            assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 80.881871103825404504e18);
+            assertEq(manager.maxInvest(address(wstEthToken)), expectedMaxInvest);
+        }
+
+        {
+            uint256 investAmount = expectedMaxInvest + 100;
+            doMint(wstEthToken, alice, investAmount);
+            vm.startPrank(alice);
+            wstEthToken.approve(address(lovToken), investAmount);
+
+            (IOrigamiInvestment.InvestQuoteData memory quoteData, ) = lovToken.investQuote(
+                investAmount,
+                address(wstEthToken),
+                0,
+                0
+            );
+
+            vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooHigh.selector, 1.1236e18, 1.160000000000000001e18, 1.16e18));           
+            lovToken.investWithToken(quoteData);
+        }
+
+        // Can invest with that amount
+        {
+            uint256 amountOut = investLovStEth(alice, expectedMaxInvest);
+            assertEq(manager.maxInvest(address(wstEthToken)), 0);
+            exitLovStEth(alice, amountOut, alice);
+        }
+
+        // Do an external huge deposit into spark to max out the available supply, except 1 eth
+        {
+            (,uint256 available) = borrowLend.availableToSupply();
             uint256 extAmount = available - 1e18;
             deal(address(wstEthToken), bob, extAmount);
             vm.startPrank(bob);
@@ -927,7 +1145,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
             assertEq(manager.reservesBalance(), expectedReserves);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), expectedLiabilities);
             assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 80.881871103825404504e18);
-            assertEq(manager.maxExit(address(wstEthToken)), 0.306591722023505366e18);
+            assertEq(manager.maxExit(address(wstEthToken)), 0.306591722023505365e18);
         }
 
         {
@@ -968,7 +1186,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
 
             // Now the max exit is the max amount which can be withdrawn from aave
             // but converted to lovStEth shares and with fees
-            assertEq(manager.maxExit(address(wstEthToken)), 8.187134484210526333e18);
+            assertEq(manager.maxExit(address(wstEthToken)), 8.187134484210526332e18);
         }
     }
 
@@ -1091,13 +1309,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
 contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceDown is OrigamiLovTokenFlashAndBorrowManagerTestBase {
     using OrigamiMath for uint256;
 
-    event RebalanceDown(
-        uint256 debtTokenFlashAmount,
-        uint256 collateralSupplied,
-        uint256 debtTokenBorrowed,
-        uint256 alRatioBefore, // The asset/liability ratio before the rebalance
-        uint256 alRatioAfter, // The asset/liability ratio after the rebalance
-        bool forceRebalance
+    event Rebalance(
+        int256 collateralChange,
+        int256 debtChange,
+        uint256 alRatioBefore,
+        uint256 alRatioAfter
     );
 
     function test_rebalanceDown_fail_fresh() public {
@@ -1255,13 +1471,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceDown is OrigamiLovToke
 
         uint256 expectedCollateralAdded = 404.530744336569579289e18;
         vm.expectEmit(address(manager));
-        emit RebalanceDown(
-            params.flashLoanAmount,
-            expectedCollateralAdded,
-            params.flashLoanAmount,
+        emit Rebalance(
+            int256(expectedCollateralAdded),
+            int256(params.flashLoanAmount),
             type(uint128).max,
-            targetAL-1,
-            false
+            targetAL-1
         );
         manager.rebalanceDown(params);
 
@@ -1294,13 +1508,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceDown is OrigamiLovToke
 
         uint256 expectedCollateralAdded = 404.530744336569579289e18;
         vm.expectEmit(address(manager));
-        emit RebalanceDown(
-            params.flashLoanAmount,
-            expectedCollateralAdded,
-            params.flashLoanAmount,
+        emit Rebalance(
+            int256(expectedCollateralAdded),
+            int256(params.flashLoanAmount),
             type(uint128).max,
-            targetAL-1,
-            true
+            targetAL-1
         );
         manager.forceRebalanceDown(params);
 
@@ -1335,13 +1547,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceDown is OrigamiLovToke
 
         uint256 expectedCollateralSupplied = 404.530744336569579289e18;
         vm.expectEmit(address(manager));
-        emit RebalanceDown(
-            params.flashLoanAmount,
-            expectedCollateralSupplied,
-            params.flashLoanAmount*1.001e18/1e18,
+        emit Rebalance(
+            int256(expectedCollateralSupplied),
+            int256(params.flashLoanAmount*1.001e18/1e18),
             type(uint128).max,
-            1.122477522477522477e18,
-            false
+            1.122477522477522477e18
         );
         manager.rebalanceDown(params);
 
@@ -1360,13 +1570,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceDown is OrigamiLovToke
 contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenFlashAndBorrowManagerTestBase {
     using OrigamiMath for uint256;
 
-    event RebalanceUp(
-        uint256 debtTokenFlashAmount,
-        uint256 collateralWithdrawn,
-        uint256 debtTokenRepaid,
-        uint256 alRatioBefore, // The asset/liability ratio before the rebalance
-        uint256 alRatioAfter, // The asset/liability ratio after the rebalance
-        bool forceRebalance
+    event Rebalance(
+        int256 collateralChange,
+        int256 debtChange,
+        uint256 alRatioBefore,
+        uint256 alRatioAfter
     );
 
     function test_rebalanceUp_fail_noAaveDebt() public {
@@ -1411,6 +1619,36 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         manager.rebalanceUp(params);
     }
 
+    function test_rebalanceUp_fail_withdrawMaxCollateral() public {
+        uint256 amount = 50e18;
+        investLovStEth(alice, amount);
+
+        doRebalanceDown(TARGET_AL, 0, 50);
+
+        IOrigamiLovTokenFlashAndBorrowManager.RebalanceUpParams memory params;
+        {
+            params.collateralToWithdraw = 405e18;
+            params.flashLoanAmount = wstEthToEthOracle.convertAmount(
+                address(wstEthToken),
+                params.collateralToWithdraw,
+                IOrigamiOracle.PriceType.SPOT_PRICE,
+                OrigamiMath.Rounding.ROUND_UP
+            );
+            params.swapData = abi.encode(DummyLovTokenSwapper.SwapData({
+                buyTokenAmount: params.flashLoanAmount
+            }));
+            params.minNewAL = 0;
+            params.maxNewAL = type(uint128).max;
+        }
+        params.collateralToWithdraw = type(uint256).max;
+
+        deal(address(wethToken), address(swapper), 500e18);
+
+        vm.startPrank(origamiMultisig);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(wstEthToken), type(uint256).max));
+        manager.forceRebalanceUp(params);
+    }
+
     function test_rebalanceUp_success_forceRepayTooMuch_noSurplus() public {
         uint256 amount = 50e18;
         investLovStEth(alice, amount);
@@ -1418,8 +1656,9 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         uint256 targetAL = TARGET_AL;
         doRebalanceDown(TARGET_AL, 0, 50);
 
+        uint256 currentDebt = IERC20(SPARK_D_WETH_ADDRESS).balanceOf(address(borrowLend));
         assertEq(IERC20(SPARK_A_WSTETH_ADDRESS).balanceOf(address(borrowLend)), 454.530744336569579289e18);
-        assertEq(IERC20(SPARK_D_WETH_ADDRESS).balanceOf(address(borrowLend)), 467.986509655154274272e18);
+        assertEq(currentDebt, 467.986509655154274272e18);
 
         IOrigamiLovTokenFlashAndBorrowManager.RebalanceUpParams memory params;
         {
@@ -1441,13 +1680,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
 
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(manager));
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(currentDebt),
             targetAL-1,
-            type(uint128).max,
-            true
+            type(uint128).max
         );
         manager.forceRebalanceUp(params);
 
@@ -1494,13 +1731,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(manager));
 
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(params.flashLoanAmount),
             targetAL-1,
-            1_627.315789473702684703e18,
-            true
+            1_627.315789473702684703e18
         );
         manager.forceRebalanceUp(params);
 
@@ -1625,13 +1860,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         IOrigamiLovTokenFlashAndBorrowManager.RebalanceUpParams memory params = rebalanceUpParams(targetAL, 0, 50);
 
         vm.expectEmit(address(manager));
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(params.flashLoanAmount),
             TARGET_AL-1,
-            targetAL,
-            false
+            targetAL
         );
         manager.rebalanceUp(params);
 
@@ -1661,13 +1894,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         manager.rebalanceUp(params);
 
         vm.expectEmit(address(manager));
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(params.flashLoanAmount),
             TARGET_AL-1,
-            targetAL,
-            true
+            targetAL
         );
         manager.forceRebalanceUp(params);
     }
@@ -1692,13 +1923,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         IOrigamiLovTokenFlashAndBorrowManager.RebalanceUpParams memory params = rebalanceUpParams(targetAL, 0, 50);
 
         vm.expectEmit(address(manager));
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount + 1,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(params.flashLoanAmount + 1),
             oldAl,
-            1.173110829265901134e18,
-            false
+            1.173110829265901134e18
         );
         manager.rebalanceUp(params);
 
@@ -1729,13 +1958,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         uint256 expectedSurplus = 0.269577482520250159e18;
 
         vm.expectEmit(address(manager));
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(params.flashLoanAmount),
             oldAl,
-            1.172651253031527890e18,
-            false
+            1.172651253031527890e18
         );
         manager.rebalanceUp(params);
 
@@ -1766,13 +1993,11 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         uint256 expectedSurplus = 0.269577482520250159e18;
 
         vm.expectEmit(address(manager));
-        emit RebalanceUp(
-            params.flashLoanAmount,
-            params.collateralToWithdraw,
-            params.flashLoanAmount + expectedSurplus,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(params.flashLoanAmount + expectedSurplus),
             oldAl,
-            targetAL,
-            false
+            targetAL
         );
         manager.rebalanceUp(params);
 

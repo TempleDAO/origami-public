@@ -33,6 +33,7 @@ import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSw
 import { IAggregatorV3Interface } from "contracts/interfaces/external/chainlink/IAggregatorV3Interface.sol";
 import { OrigamiAbstractIdleStrategy } from "contracts/investments/lending/idleStrategy/OrigamiAbstractIdleStrategy.sol";
 import { IOrigamiElevatedAccess } from "contracts/interfaces/common/access/IOrigamiElevatedAccess.sol";
+import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 
 import { OrigamiLovTokenTestConstants as Constants } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
 
@@ -266,7 +267,9 @@ contract OrigamiLovTokenTestDeployer {
             address(usdcToken), 
             address(oUsdc),
             address(ovUsdc),
-            address(cbProxy)
+            address(cbProxy),
+            feeCollector,
+            Constants.OUSDC_EXIT_FEE_BPS
         );
 
         cbUsdcBorrow = new OrigamiCircuitBreakerAllUsersPerPeriod(
@@ -327,6 +330,10 @@ contract OrigamiLovTokenTestDeployer {
         // Hook up the lendingClerk to the supplyManager
         supplyManager.setLendingClerk(address(lendingClerk));
 
+        // Set the fee collector for the oUSDC exit fees to be the ovUSDC rewards minter
+        // Exit fees are recycled into pending rewards for remaining vault users.
+        supplyManager.setFeeCollector(address(rewardsMinter));
+
         // Hook up the supplyManager to oUsdc
         oUsdc.setManager(address(supplyManager));
 
@@ -372,57 +379,76 @@ contract OrigamiLovTokenTestDeployer {
     function _setupLovDsr() private {
         origamiDaiUsdOracle = new OrigamiStableChainlinkOracle(
             owner,
-            "DAI/USD",
-            address(daiToken),
-            Constants.DAI_DECIMALS,
-            Constants.INTERNAL_USD_ADDRESS,
-            Constants.USD_DECIMALS,
+            IOrigamiOracle.BaseOracleParams(
+                "DAI/USD",
+                address(daiToken),
+                Constants.DAI_DECIMALS,
+                Constants.INTERNAL_USD_ADDRESS,
+                Constants.USD_DECIMALS
+            ),
             Constants.DAI_USD_HISTORIC_STABLE_PRICE,
             address(clDaiUsdOracle),
             Constants.DAI_USD_STALENESS_THRESHOLD,
-            Range.Data(Constants.DAI_USD_MIN_THRESHOLD, Constants.DAI_USD_MAX_THRESHOLD)
+            Range.Data(Constants.DAI_USD_MIN_THRESHOLD, Constants.DAI_USD_MAX_THRESHOLD),
+            true // Chainlink does use roundId
         );
         origamiUsdcUsdOracle = new OrigamiStableChainlinkOracle(
             owner,
-            "USDC/USD",
-            address(usdcToken),
-            Constants.USDC_DECIMALS,
-            Constants.INTERNAL_USD_ADDRESS,
-            Constants.USD_DECIMALS,
+            IOrigamiOracle.BaseOracleParams(
+                "USDC/USD",
+                address(usdcToken),
+                Constants.USDC_DECIMALS,
+                Constants.INTERNAL_USD_ADDRESS,
+                Constants.USD_DECIMALS
+            ),
             Constants.USDC_USD_HISTORIC_STABLE_PRICE,
             address(clUsdcUsdOracle),
             Constants.USDC_USD_STALENESS_THRESHOLD,
-            Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD)
+            Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD),
+            true // Chainlink does use roundId
         );
         origamiIUsdcUsdOracle = new OrigamiStableChainlinkOracle(
             owner,
-            "iUSDC/USD",
-            address(usdcToken),
-            Constants.IUSDC_DECIMALS,
-            Constants.INTERNAL_USD_ADDRESS,
-            Constants.USD_DECIMALS,
+            IOrigamiOracle.BaseOracleParams(
+                "iUSDC/USD",
+                // Intentionally uses the USDC token address
+                // iUSDC oracle is just a proxy for the USDC price, 
+                // but with 18dp instead of 6
+                address(usdcToken),
+                Constants.IUSDC_DECIMALS,
+                Constants.INTERNAL_USD_ADDRESS,
+                Constants.USD_DECIMALS
+            ),
             Constants.USDC_USD_HISTORIC_STABLE_PRICE,
             address(clUsdcUsdOracle),
             Constants.USDC_USD_STALENESS_THRESHOLD,
-            Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD)
+            Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD),
+            true
         );
         daiUsdcOracle = new OrigamiCrossRateOracle(
-            "DAI/USDC",
-            address(daiToken),
+            IOrigamiOracle.BaseOracleParams(
+                "DAI/USDC",
+                address(daiToken),
+                Constants.DAI_DECIMALS,
+                address(usdcToken),
+                Constants.USDC_DECIMALS
+            ),
             address(origamiDaiUsdOracle),
-            Constants.DAI_DECIMALS,
-            address(usdcToken),
-            address(origamiUsdcUsdOracle),
-            Constants.USDC_DECIMALS
+            address(origamiUsdcUsdOracle)
         );
         daiIUsdcOracle = new OrigamiCrossRateOracle(
-            "DAI/iUSDC",
-            address(daiToken),
+            IOrigamiOracle.BaseOracleParams(
+                "DAI/iUSDC",
+                address(daiToken),
+                Constants.DAI_DECIMALS,
+                // Intentionally uses the USDC token address
+                // iUSDC oracle is just a proxy for the USDC price, 
+                // but with 18dp instead of 6
+                address(usdcToken),
+                Constants.IUSDC_DECIMALS
+            ),
             address(origamiDaiUsdOracle),
-            Constants.DAI_DECIMALS,
-            address(usdcToken),
-            address(origamiIUsdcUsdOracle),
-            Constants.IUSDC_DECIMALS
+            address(origamiIUsdcUsdOracle)
         );
 
         lovDsr = new OrigamiLovToken(
@@ -431,7 +457,8 @@ contract OrigamiLovTokenTestDeployer {
             "lovDSR",
             Constants.LOV_DSR_PERFORMANCE_FEE_BPS,
             feeCollector,
-            address(tokenPrices)
+            address(tokenPrices),
+            type(uint256).max
         );
         lovDsrManager = new OrigamiLovTokenErc4626Manager(
             owner,
@@ -461,7 +488,6 @@ contract OrigamiLovTokenTestDeployer {
         lovDsrManager.setOracle(address(daiIUsdcOracle));
         lovDsrManager.setUserALRange(userALRange.floor, userALRange.ceiling);
         lovDsrManager.setRebalanceALRange(rebalanceALRange.floor, rebalanceALRange.ceiling);
-        lovDsrManager.setRedeemableReservesBufferBps(Constants.LOV_DSR_REDEEMABLE_RESERVES_BUFFER);
         lovDsrManager.setSwapper(address(swapper));
         lovDsrManager.setFeeConfig(
             Constants.LOV_DSR_MIN_DEPOSIT_FEE_BPS, 

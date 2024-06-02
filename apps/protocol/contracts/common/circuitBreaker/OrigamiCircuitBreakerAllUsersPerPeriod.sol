@@ -42,7 +42,7 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
     /**
      * @notice The maximum allowed amount to be transacted within each period
      */
-    uint128 public cap;
+    uint128 private _cap;
 
     /**
      * @notice How many buckets to split the periodDuration into. 
@@ -86,17 +86,20 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
         address _proxy,
         uint32 _periodDuration,
         uint32 _nBuckets,
-        uint128 _cap
+        uint128 __cap
     ) OrigamiElevatedAccess(_initialOwner) {
         proxy = _proxy;
-        _setConfig(_periodDuration, _nBuckets, _cap);
+        _setConfig(_periodDuration, _nBuckets, __cap);
     }
 
     /**
      * @notice Verify the new amount requested does not breach the cap in this rolling period.
      */
-    function preCheck(address /*onBehalfOf*/, uint256 amount) external override onlyProxy {
-        uint32 _nextBucketIndex = uint32(block.timestamp / secondsPerBucket);
+    function preCheck(uint256 amount) external override onlyProxy {
+        uint32 _nextBucketIndex;
+        unchecked {
+            _nextBucketIndex = uint32(block.timestamp / secondsPerBucket);
+        }
         uint32 _currentBucketIndex = bucketIndex;
         uint32 _nBuckets = nBuckets;
         
@@ -116,7 +119,7 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
         }
 
         uint256 _newUtilisation = _currentUtilisation(_nBuckets) + amount;
-        if (_newUtilisation > cap) revert CapBreached(_newUtilisation, cap);
+        if (_newUtilisation > _cap) revert CapBreached(_newUtilisation, _cap);
 
         // Unchecked is safe since we know the total new utilisation is under the cap.
         unchecked {
@@ -131,15 +134,15 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
      * @dev Since this resets the buckets, it should be executed via flashbots protect
      * such that it can't be frontrun (where the caps could be filled twice)
      */
-    function setConfig(uint32 _periodDuration, uint32 _nBuckets, uint128 _cap) external onlyElevatedAccess {
-        _setConfig(_periodDuration, _nBuckets, _cap);
+    function setConfig(uint32 _periodDuration, uint32 _nBuckets, uint128 __cap) external onlyElevatedAccess {
+        _setConfig(_periodDuration, _nBuckets, __cap);
     }
 
     /**
      * @notice Update the cap for this circuit breaker
      */
     function updateCap(uint128 newCap) external onlyElevatedAccess {
-        cap = newCap;
+        _cap = newCap;
         emit CapSet(newCap);
     }
 
@@ -154,10 +157,20 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
     }
 
     /**
+     * @notice The maximum allowed amount to be transacted within each period
+     */
+    function cap() external override view returns (uint256) {
+        return _cap;
+    }
+
+    /**
      * @notice What is the total utilisation so far in this `periodDuration`
      */
-    function currentUtilisation() external view returns (uint256 amount) {
-        uint32 _nextBucketIndex = uint32(block.timestamp / secondsPerBucket);
+    function currentUtilisation() public override view returns (uint256 amount) {
+        uint32 _nextBucketIndex;
+        unchecked {
+            _nextBucketIndex = uint32(block.timestamp / secondsPerBucket);
+        }
         uint32 _currentBucketIndex = bucketIndex;
         uint32 _nBuckets = nBuckets;
         
@@ -177,19 +190,26 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
         amount = utilisation;
     }
 
+    /**
+     * @notice Return the available amount which can be utilised in the circuit breaker
+     */
+    function available() external override view returns (uint256) {
+        return uint256(_cap) - currentUtilisation();
+    }
+
     function _currentUtilisation(uint32 _nBuckets) internal view returns (uint256 amount) {
         // Unchecked is safe here because we know previous entries are under the cap.
         unchecked {
             for (uint256 i; i < _nBuckets; ++i) {
-                amount += buckets[i];
+                amount = amount + buckets[i];
             }
 
             // Remove the dust
-            amount -= _nBuckets;
+            amount = amount - _nBuckets;
         }
     }
 
-    function _setConfig(uint32 _periodDuration, uint32 _nBuckets, uint128 _cap) internal {
+    function _setConfig(uint32 _periodDuration, uint32 _nBuckets, uint128 __cap) internal {
         if (_periodDuration == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (_periodDuration % _nBuckets != 0) revert CommonEventsAndErrors.InvalidParam();
         if (_nBuckets > MAX_BUCKETS) revert CommonEventsAndErrors.InvalidParam();
@@ -197,7 +217,7 @@ contract OrigamiCircuitBreakerAllUsersPerPeriod is IOrigamiCircuitBreaker, Origa
         nBuckets = _nBuckets;
         periodDuration = _periodDuration;
         secondsPerBucket = _periodDuration / _nBuckets;
-        cap = _cap;
+        _cap = __cap;
         bucketIndex = 0;
 
         // No need to clear all buckets - they won't be used until they're required

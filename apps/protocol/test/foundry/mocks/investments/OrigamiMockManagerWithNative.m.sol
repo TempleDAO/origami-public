@@ -52,7 +52,7 @@ contract OrigamiMockManagerWithNative is OrigamiMockManager, IOrigamiOTokenManag
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.toToken != address(0)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
 
-        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(sellFeeRate);
+        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(sellFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         toTokenAmount = toBurnAmount = nonFees;
 
         if (fees != 0) {

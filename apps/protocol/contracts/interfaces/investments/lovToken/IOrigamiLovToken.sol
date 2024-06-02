@@ -18,9 +18,8 @@ import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInv
 interface IOrigamiLovToken is IOrigamiInvestment {
     event PerformanceFeesCollected(address indexed feeCollector, uint256 mintAmount);
     event FeeCollectorSet(address indexed feeCollector);
+    event MaxTotalSupplySet(uint256 maxTotalSupply);
 
-    error TooSoon();
-    
     /**
      * @notice The token used to track reserves for this investment
      */
@@ -41,7 +40,12 @@ interface IOrigamiLovToken is IOrigamiInvestment {
      * @notice Set the vault performance fee
      * @dev Represented in basis points
      */
-    function setPerformanceFee(uint256 _performanceFee) external;
+    function setAnnualPerformanceFee(uint48 _annualPerformanceFeeBps) external;
+
+    /**
+     * @notice Set the max total supply allowed for investments into this lovToken
+     */
+    function setMaxTotalSupply(uint256 _maxTotalSupply) external;
 
     /**
      * @notice Set the Origami performance fee collector address
@@ -83,6 +87,13 @@ interface IOrigamiLovToken is IOrigamiInvestment {
     function totalReserves() external view returns (uint256);
 
     /**
+     * @notice The maximum allowed supply of this token for user investments
+     * @dev The actual totalSupply() may be greater than `maxTotalSupply`
+     * in order to start organically shrinking supply or from performance fees
+     */
+    function maxTotalSupply() external view returns (uint256);
+
+    /**
      * @notice Retrieve the current assets, liabilities and calculate the ratio
      * @dev Implementations must use the Oracle 'SPOT_PRICE' to value any debt in terms of the reserve token
      */
@@ -114,29 +125,24 @@ interface IOrigamiLovToken is IOrigamiInvestment {
     function getDynamicFeesBps() external view returns (uint256 depositFeeBps, uint256 exitFeeBps);
 
     /**
-     * @notice The performance fee to Origami treasury
-     * Represented in basis points
-     */
-    function performanceFee() external view returns (uint256);
-
-    /**
      * @notice The address used to collect the Origami performance fees.
      */
     function feeCollector() external view returns (address);
 
     /**
-     * @notice How frequently the performance fee can be collected
+     * @notice The annual performance fee to Origami treasury
+     * Represented in basis points
      */
-    function PERFORMANCE_FEE_FREQUENCY() external view returns (uint32);
+    function annualPerformanceFeeBps() external view returns (uint48);
 
     /**
      * @notice The last time the performance fee was collected
      */
-    function lastPerformanceFeeTime() external view returns (uint32);
+    function lastPerformanceFeeTime() external view returns (uint48);
 
     /**
      * @notice The performance fee amount which would be collected as of now, 
      * based on the total supply
      */
-    function performanceFeeAmount() external view returns (uint256);
+    function accruedPerformanceFee() external view returns (uint256);
 }

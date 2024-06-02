@@ -46,24 +46,33 @@ module.exports = {
     },
     solidity: {
         compilers: [
-        {
-            version: '0.8.19',
-            settings: {
-            optimizer: {
-                enabled: true,
-                runs: 10_000,
+            {
+                version: '0.8.21',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 10_000,
+                    },
+                },
             },
+            {
+                version: '0.8.19',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 10_000,
+                    },
+                },
             },
-        },
-        {
-            version: '0.6.12',
-            settings: {
-            optimizer: {
-                enabled: true,
-                runs: 1, // Inline with GMX.io's deploys - required to get the contract size < 32 bytes
+            {
+                version: '0.6.12',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1, // Inline with GMX.io's deploys - required to get the contract size < 32 bytes
+                    },
+                },
             },
-            },
-        },
         ],
     },
     typechain: {

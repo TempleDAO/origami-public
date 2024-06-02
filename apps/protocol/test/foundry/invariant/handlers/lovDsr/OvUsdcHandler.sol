@@ -8,9 +8,12 @@ import { BaseHandler } from "test/foundry/invariant/handlers/BaseHandler.sol";
 import { ExternalContracts, OUsdcContracts, LovTokenContracts } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestDeployer.t.sol";
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
 import { OrigamiLovTokenTestConstants as Constants } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
+import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 /// @notice Invariant Handler ovUSDC
 contract OvUsdcHandler is BaseHandler {
+    using OrigamiMath for uint256;
+
     ExternalContracts public externalContracts;
     OUsdcContracts public oUsdcContracts;
     LovTokenContracts public lovTokenContracts;
@@ -59,15 +62,15 @@ contract OvUsdcHandler is BaseHandler {
 
         amountOut = oUsdcContracts.ovUsdc.investWithToken(quoteData);
 
-        assertEq(amountOut, amount * 1e12, "Invariant violation: investOusdc(usdc) unexpected amountOut");
-        assertEq(oUsdcContracts.ovUsdc.totalSupply(), oUsdcContracts.ovUsdc.totalReserves(), "Invariant violation: investOusdc(usdc) totalSupply != totalReserves");
+        assertEq(amountOut, amount * 1e12, "Invariant violation: investOvUsdc(usdc) unexpected amountOut");
+        assertEq(oUsdcContracts.ovUsdc.totalSupply(), oUsdcContracts.ovUsdc.totalReserves(), "Invariant violation: investOvUsdc(usdc) totalSupply != totalReserves");
     }
 
     function getMaxAvailalbleToExit() internal view returns (uint256 maxAvailableToExit) {
         // Min amount of user balance and the remaining circuit breaker capacity
         uint256 maxActorAmount = min(
             oUsdcContracts.ovUsdc.balanceOf(msg.sender),
-            Constants.CB_DAILY_OUSDC_EXIT_LIMIT - oUsdcContracts.cbOUsdcExit.currentUtilisation()
+            oUsdcContracts.cbOUsdcExit.available()
         );
         if (maxActorAmount == 0) return 0;
 
@@ -116,7 +119,11 @@ contract OvUsdcHandler is BaseHandler {
 
         totalUsdcExits += amountOut;
 
-        assertEq(amountOut, amount / 1e12, "Invariant violation: exitOvUsdc(usdc) unexpected amountOut");
+        uint256 expectedAmountOut = amount
+            .subtractBps(Constants.OUSDC_EXIT_FEE_BPS, OrigamiMath.Rounding.ROUND_DOWN)
+            .scaleDown(1e12, OrigamiMath.Rounding.ROUND_DOWN);
+
+        assertEq(amountOut, expectedAmountOut, "Invariant violation: exitOvUsdc(usdc) unexpected amountOut");
         assertEq(oUsdcContracts.ovUsdc.totalSupply(), oUsdcContracts.ovUsdc.totalReserves(), "Invariant violation: exitOvUsdc(usdc) totalSupply != totalReserves");
     }
 }

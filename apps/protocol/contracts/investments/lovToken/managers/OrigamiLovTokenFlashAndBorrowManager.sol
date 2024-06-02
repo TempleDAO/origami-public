@@ -1,6 +1,6 @@
 pragma solidity 0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Origami (investments/lovToken/managers/IOrigamiLovTokenFlashAndBorrowManager.sol)
+// Origami (investments/lovToken/managers/OrigamiLovTokenFlashAndBorrowManager.sol)
 
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -43,6 +43,11 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     IERC20 private immutable _debtToken;
 
     /**
+     * @notice The base asset used when retrieving the prices for dynamic fee calculations.
+     */
+    address public immutable override dynamicFeeOracleBaseToken;
+
+    /**
      * @notice The contract responsible for borrow/lend via external markets
      */
     IOrigamiBorrowAndLend public borrowLend;
@@ -60,7 +65,12 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     /**
      * @notice The oracle to convert `debtToken` <--> `reserveToken`
      */
-    IOrigamiOracle public debtTokenToReserveTokenOracle;
+    IOrigamiOracle public override debtTokenToReserveTokenOracle;
+
+    /**
+     * @notice The oracle to use when observing prices which are used for the dynamic fee calculations
+     */
+    IOrigamiOracle public override dynamicFeePriceOracle;
 
     /**
      * @dev Internal struct used to abi.encode params through a flashloan request
@@ -74,12 +84,14 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
         address _initialOwner,
         address _reserveToken_,
         address _debtToken_,
+        address _dynamicFeeOracleBaseToken,
         address _lovToken,
         address _flashLoanProvider,
         address _borrowLend
     ) OrigamiAbstractLovTokenManager(_initialOwner, _lovToken) {
         _reserveToken = IERC20(_reserveToken_);
         _debtToken = IERC20(_debtToken_);
+        dynamicFeeOracleBaseToken = _dynamicFeeOracleBaseToken;
         flashLoanProvider = IOrigamiFlashLoanProvider(_flashLoanProvider);
         borrowLend = IOrigamiBorrowAndLend(_borrowLend);
 
@@ -113,10 +125,10 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     /**
      * @notice Set the `debtToken` <--> `reserveToken` oracle configuration 
      */
-    function setOracle(address oracle) external override onlyElevatedAccess {
-        if (oracle == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        debtTokenToReserveTokenOracle = IOrigamiOracle(oracle);
-        emit OracleSet(oracle);
+    function setOracles(address _debtTokenToReserveTokenOracle, address _dynamicFeePriceOracle) external override onlyElevatedAccess {
+        debtTokenToReserveTokenOracle = _validatedOracle(_debtTokenToReserveTokenOracle, address(_reserveToken), address(_debtToken));
+        dynamicFeePriceOracle = _validatedOracle(_dynamicFeePriceOracle, dynamicFeeOracleBaseToken, address(_debtToken));
+        emit OraclesSet(_debtTokenToReserveTokenOracle, _dynamicFeePriceOracle);
     }
 
     /**
@@ -348,12 +360,16 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
             _debtToken.safeTransfer(address(_borrowLend), flashLoanAmount);
             // No need to check the withdrawnAmount returned, the amount passed in can never be type(uint256).max, so this will
             // be the exact `amount`
-            (uint256 amountRepaid, /*uint256 withdrawnAmount*/) = _borrowLend.repayAndWithdraw(flashLoanAmount, params.collateralToWithdraw, address(this));
+            (uint256 amountRepaid, uint256 withdrawnAmount) = _borrowLend.repayAndWithdraw(flashLoanAmount, params.collateralToWithdraw, address(this));
+            if (withdrawnAmount != params.collateralToWithdraw) {
+                revert CommonEventsAndErrors.InvalidAmount(address(_reserveToken), params.collateralToWithdraw);
+            }
 
             // Repaying less than what was asked is only allowed in force mode.
             // This will only happen when there is no more debt in the money market, ie we are fully delevered
-            if (!force) {
-                if (amountRepaid != flashLoanAmount) revert CommonEventsAndErrors.InvalidAmount(address(_debtToken), flashLoanAmount);
+            if (amountRepaid != flashLoanAmount) {
+               if (!force) revert CommonEventsAndErrors.InvalidAmount(address(_debtToken), flashLoanAmount);
+               totalDebtRepaid = amountRepaid;
             }
         }
         
@@ -377,7 +393,7 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
                 if (surplusAfterSwap != 0) {
                     _debtToken.safeTransfer(address(_borrowLend), surplusAfterSwap);
                 }
-                totalDebtRepaid += _borrowLend.repay(totalSurplus);
+                totalDebtRepaid = totalDebtRepaid + _borrowLend.repay(totalSurplus);
             }
         }
 
@@ -391,13 +407,11 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
             force
         );
 
-        emit RebalanceUp(
-            flashLoanAmount,
-            params.collateralToWithdraw,
-            totalDebtRepaid,
+        emit Rebalance(
+            -int256(params.collateralToWithdraw),
+            -int256(totalDebtRepaid),
             alRatioBefore,
-            alRatioAfter,
-            force
+            alRatioAfter
         );
     }
 
@@ -425,9 +439,11 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
 
         // Supply `reserveToken` into the money market, and borrow `debtToken`
         uint256 borrowAmount = flashLoanAmount + fee;
-        _reserveToken.safeTransfer(address(borrowLend), collateralSupplied);
-        borrowLend.supplyAndBorrow(collateralSupplied, borrowAmount, address(this));
+        IOrigamiBorrowAndLend _borrowLend = borrowLend;
+        _reserveToken.safeTransfer(address(_borrowLend), collateralSupplied);
+        _borrowLend.supplyAndBorrow(collateralSupplied, borrowAmount, address(this));
 
+        // Validate that the new A/L is still within the `rebalanceALRange` and expected slippage range
         uint128 alRatioAfter = _validateAfterRebalance(
             cache, 
             alRatioBefore, 
@@ -437,13 +453,11 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
             force
         );
 
-        emit RebalanceDown(
-            flashLoanAmount,
-            collateralSupplied,
-            borrowAmount,
+        emit Rebalance(
+            int256(collateralSupplied),
+            int256(borrowAmount),
             alRatioBefore,
-            alRatioAfter,
-            force
+            alRatioAfter
         );
     }
 
@@ -456,8 +470,8 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     function _dynamicDepositFeeBps() internal override view returns (uint256) {
         return DynamicFees.dynamicFeeBps(
             DynamicFees.FeeType.DEPOSIT_FEE,
-            debtTokenToReserveTokenOracle,
-            address(_reserveToken),
+            dynamicFeePriceOracle,
+            dynamicFeeOracleBaseToken,
             _minDepositFeeBps,
             _feeLeverageFactor
         );
@@ -472,8 +486,8 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     function _dynamicExitFeeBps() internal override view returns (uint256) {
         return DynamicFees.dynamicFeeBps(
             DynamicFees.FeeType.EXIT_FEE,
-            debtTokenToReserveTokenOracle,
-            address(_reserveToken),
+            dynamicFeePriceOracle,
+            dynamicFeeOracleBaseToken,
             _minExitFeeBps,
             _feeLeverageFactor
         );
@@ -488,8 +502,9 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
             newReservesAmount = fromTokenAmount;
 
             // Supply into the money market
-            _reserveToken.safeTransfer(address(borrowLend), fromTokenAmount);
-            borrowLend.supply(fromTokenAmount);
+            IOrigamiBorrowAndLend _borrowLend = borrowLend;
+            _reserveToken.safeTransfer(address(_borrowLend), fromTokenAmount);
+            _borrowLend.supply(fromTokenAmount);
         } else {
             revert CommonEventsAndErrors.InvalidToken(fromToken);
         }
@@ -509,7 +524,7 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
      */
     function _maxDepositIntoReserves(address fromToken) internal override view returns (uint256 fromTokenAmount) {
         if (fromToken == address(_reserveToken)) {
-            (uint256 _supplyCap,, uint256 _available) = borrowLend.availableToSupply();
+            (uint256 _supplyCap, uint256 _available) = borrowLend.availableToSupply();
             return _supplyCap == 0 ? MAX_TOKEN_AMOUNT : _available;
         }
 
@@ -531,9 +546,8 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     function _redeemFromReserves(uint256 reservesAmount, address toToken, address recipient) internal override returns (uint256 toTokenAmount) {
         if (toToken == address(_reserveToken)) {
             toTokenAmount = reservesAmount;
-            // No need to check the return amount, the amount passed in can never be type(uint256).max, so this will
-            // be the exact `amount`
-            borrowLend.withdraw(reservesAmount, recipient);
+            uint256 _amountWithdrawn = borrowLend.withdraw(reservesAmount, recipient);
+            if (_amountWithdrawn != reservesAmount) revert CommonEventsAndErrors.InvalidAmount(toToken, reservesAmount);
         } else {
             revert CommonEventsAndErrors.InvalidToken(toToken);
         }
@@ -550,6 +564,8 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     /**
      * @notice Maximum amount of `reserveToken` that can be redeemed to `toToken`
      * This vault only accepts where `fromToken` == `reserveToken`
+     * @dev If the A/L is now unsafe (eg if the money market Liquidation LTV is now lower than the floor)
+     * Then this will return zero
      */
     function _maxRedeemFromReserves(address toToken) internal override view returns (uint256 reservesAmount) {
         // If the A/L range is invalid, then return 0
@@ -569,64 +585,23 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     }
 
     /**
-     * @notice Calculate the max number of reserves allowed before the user debt ceiling is hit, 
-     * taking into consideration any current liabiltiies
-     * @dev Use the Oracle `debtPriceType` to value any debt in terms of the reserve token
-     */
-    function _maxUserReserves(IOrigamiOracle.PriceType debtPriceType) internal override view returns (uint256) {
-        // In [debtToken] terms - eg Aave's debtToken variable debt token
-        uint256 debt = borrowLend.debtBalance();
-
-        // If no debt, then unlimited reserves can be added
-        if (debt == 0) return MAX_TOKEN_AMOUNT;
-
-        // Convert the [debtToken] into the [reserveToken] terms
-        // Round down so max available liabilities are always conservatively lower
-        // The cross rate oracle price should be rounded down if the numerator, up if the denominator
-        uint256 debtInReserveToken = debtTokenToReserveTokenOracle.convertAmount(
-            address(_debtToken),
-            debt,
-            debtPriceType, 
-            OrigamiMath.Rounding.ROUND_DOWN
-        );
-
-        // Calc how many reserves to hit the user AL ceiling
-        // Round down for the remaining reserves capacity
-        return debtInReserveToken.mulDiv(
-            userALRange.ceiling, 
-            PRECISION, 
-            OrigamiMath.Rounding.ROUND_DOWN
-        );
-    }
-
-    function _validateAfterRebalance(
-        Cache memory cache, 
-        uint128 alRatioBefore, 
-        uint128 minNewAL, 
-        uint128 maxNewAL,
-        AlValidationMode alValidationMode,
-        bool force
-    ) private returns (uint128 alRatioAfter) {
-        // Validate that the new A/L is still within the `rebalanceALRange`
-        // Need to recalculate both the assets and liabilities in the cache
-        cache.assets = borrowLend.suppliedBalance();
-        cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
-        alRatioAfter = _assetToLiabilityRatio(cache);
-
-        // Ensure the A/L is within the expected slippage range
-        {
-            if (alRatioAfter < minNewAL) revert ALTooLow(alRatioBefore, alRatioAfter, minNewAL);
-            if (alRatioAfter > maxNewAL) revert ALTooHigh(alRatioBefore, alRatioAfter, maxNewAL);
-        }
-
-        if (!force)
-            _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, alValidationMode);
-    }
-
-    /**
      * @dev Revert if the range is invalid comparing to upstrea Aave/Spark
      */
     function _validateAlRange(Range.Data storage range) internal override view {
         if (!borrowLend.isSafeAlRatio(range.floor)) revert Range.InvalidRange(range.floor, range.ceiling);
+    }
+
+    function _validatedOracle(
+        address oracleAddress, 
+        address baseAsset, 
+        address quoteAsset
+    ) private view returns (IOrigamiOracle oracle) {
+        if (oracleAddress == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
+        oracle = IOrigamiOracle(oracleAddress);
+
+        // Validate the assets on the oracle match what this lovToken needs
+        if (!oracle.matchAssets(baseAsset, quoteAsset)) {
+            revert CommonEventsAndErrors.InvalidParam();
+        }
     }
 }

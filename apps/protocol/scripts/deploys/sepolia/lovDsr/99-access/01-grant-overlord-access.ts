@@ -29,6 +29,13 @@ async function setAccess(overlordAddr: string, grantAccess: boolean) {
     ["rebalanceUp", "rebalanceDown"],
     grantAccess
   );
+  
+  await setExplicitAccess(
+    INSTANCES.LOV_DSR.LOV_DSR_TOKEN, 
+    overlordAddr,
+    ["collectPerformanceFees"],
+    grantAccess
+  );
 }
 
 async function main() {

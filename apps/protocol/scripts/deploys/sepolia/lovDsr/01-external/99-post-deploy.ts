@@ -4,7 +4,7 @@ import {
   ensureExpectedEnvvars,
   mine,
 } from '../../../helpers';
-import { connectToContracts } from '../contract-addresses';
+import { connectToContracts, getDeployedContracts } from '../contract-addresses';
 import { DEFAULT_SETTINGS } from '../default-settings';
 
 async function main() {
@@ -12,6 +12,7 @@ async function main() {
   
   const [owner] = await ethers.getSigners();
   const INSTANCES = connectToContracts(owner);
+  const ADDRS = getDeployedContracts();
   await mine(INSTANCES.EXTERNAL.MAKER_DAO.SDAI_TOKEN.setInterestRate(DEFAULT_SETTINGS.EXTERNAL.SDAI_INTEREST_RATE));
 
   await mine(
@@ -19,10 +20,20 @@ async function main() {
       INSTANCES.EXTERNAL.MAKER_DAO.DAI_TOKEN.owner()
     )
   );
+  await mine(
+    INSTANCES.EXTERNAL.MAKER_DAO.DAI_TOKEN.addMinter(
+      ADDRS.CORE.MULTISIG
+    )
+  );
 
   await mine(
     INSTANCES.EXTERNAL.CIRCLE.USDC_TOKEN.addMinter(
       INSTANCES.EXTERNAL.CIRCLE.USDC_TOKEN.owner()
+    )
+  );
+  await mine(
+    INSTANCES.EXTERNAL.CIRCLE.USDC_TOKEN.addMinter(
+      ADDRS.CORE.MULTISIG
     )
   );
 }

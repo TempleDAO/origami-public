@@ -21,8 +21,7 @@ async function forTestnet() {
   await mine(
     INSTANCES.EXTERNAL.MAKER_DAO.DAI_TOKEN.mint(
       ADDRS.EXTERNAL.MAKER_DAO.SDAI_TOKEN,
-      ethers.utils.parseEther((100_000_000).toString()),
-      {gasLimit:5000000}
+      ethers.utils.parseEther((100_000_000).toString())
     )
   );
 }
@@ -93,6 +92,11 @@ async function main() {
   // Hook up the lendingClerk to the supplyManager
   await mine(
     INSTANCES.OV_USDC.SUPPLY.SUPPLY_MANAGER.setLendingClerk(ADDRS.OV_USDC.BORROW.LENDING_CLERK)
+  );
+
+  // Set the exit fee collector to be the rewards minter to recycle into ovUSDC yield.
+  await mine(
+    INSTANCES.OV_USDC.SUPPLY.SUPPLY_MANAGER.setFeeCollector(ADDRS.OV_USDC.SUPPLY.REWARDS_MINTER)
   );
 
   // Hook up the supplyManager to oUsdc

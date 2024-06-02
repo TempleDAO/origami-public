@@ -14,6 +14,7 @@ library CommonEventsAndErrors {
     error IsPaused();
     error UnknownExecuteError(bytes returndata);
     error InvalidAccess();
+    error BreachedMaxTotalSupply(uint256 totalSupply, uint256 maxTotalSupply);
 
     event TokenRecovered(address indexed to, address indexed token, uint256 amount);
 }

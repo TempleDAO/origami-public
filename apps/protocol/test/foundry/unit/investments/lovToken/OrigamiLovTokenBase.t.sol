@@ -28,12 +28,14 @@ contract OrigamiLovTokenTestBase is OrigamiTest {
     uint256 public constant VAULT_PREMIUM = 10;
     uint16 public constant MIN_DEPOSIT_FEE_BPS = 10;
     uint16 public constant MIN_EXIT_FEE_BPS = 50;
-    uint16 public constant FEE_LEVERAGE_FACTOR = 15;
-    uint256 public constant PERFORMANCE_FEE_BPS = 500;
+    uint24 public constant FEE_LEVERAGE_FACTOR = 15e4;
+    uint48 public constant PERFORMANCE_FEE_BPS = 500;
 
     // 5% APR = 4.879% APY
     uint96 public constant SDAI_INTEREST_RATE = 0.05e18;
     address public constant INTERNAL_USD_ADDRESS = 0x000000000000000000000000000000000000115d;
+
+    uint256 internal constant MAX_TOTAL_SUPPLY = 10_000_000e18;
 
     Range.Data public userALRange;
     Range.Data public rebalanceALRange;
@@ -45,13 +47,20 @@ contract OrigamiLovTokenTestBase is OrigamiTest {
         doMint(daiToken, address(sDaiToken), 100_000_000e18);
 
         tokenPrices = new TokenPrices(30);
-        lovToken = new OrigamiLovToken(origamiMultisig, "Origami LOV TOKEN", "lovToken", PERFORMANCE_FEE_BPS, feeCollector, address(tokenPrices));
+        lovToken = new OrigamiLovToken(
+            origamiMultisig, 
+            "Origami LOV TOKEN", 
+            "lovToken", 
+            PERFORMANCE_FEE_BPS, 
+            feeCollector, 
+            address(tokenPrices),
+            MAX_TOTAL_SUPPLY
+        );
         manager = new OrigamiMockLovTokenManager(origamiMultisig, address(daiToken), address(sDaiToken), address(lovToken));
 
         vm.startPrank(origamiMultisig);
         lovToken.setManager(address(manager));
         manager.setFeeConfig(MIN_DEPOSIT_FEE_BPS, MIN_EXIT_FEE_BPS, FEE_LEVERAGE_FACTOR);
-        manager.setRedeemableReservesBufferBps(0);
 
         userALRange = Range.Data(1.001e18, type(uint128).max);
         rebalanceALRange = Range.Data(1.05e18, 1.15e18);
@@ -79,6 +88,9 @@ contract OrigamiLovTokenTestBase is OrigamiTest {
         // Move forward a year to accrue 5% to share price
         vm.warp(block.timestamp + 365 days);
 
+        vm.startPrank(origamiMultisig);
+        lovToken.collectPerformanceFees();
+
         sharePrice = sDaiToken.convertToAssets(10 ** sDaiToken.decimals());
     }
 
@@ -102,7 +114,6 @@ contract OrigamiLovTokenTestBase is OrigamiTest {
     function investWithDai(uint256 daiAmount, address to) internal returns (uint256) {
         doMint(daiToken, to, daiAmount);
         vm.startPrank(to);
-
         daiToken.approve(address(lovToken), daiAmount);
 
         (IOrigamiInvestment.InvestQuoteData memory quoteData,) = lovToken.investQuote(
@@ -112,7 +123,6 @@ contract OrigamiLovTokenTestBase is OrigamiTest {
             0
         );
 
-        vm.startPrank(to);
         return lovToken.investWithToken(quoteData);
     }
 

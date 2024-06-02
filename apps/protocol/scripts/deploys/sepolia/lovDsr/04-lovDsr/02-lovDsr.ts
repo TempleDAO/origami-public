@@ -19,11 +19,12 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    "Origami lovDSR",
-    "lovDSR",
+    "Origami lov-DSR-10x",
+    "lov-DSR-10x",
     DEFAULT_SETTINGS.LOV_DSR.LOV_DSR_PERFORMANCE_FEE_BPS,
     ADDRS.CORE.FEE_COLLECTOR,
     ADDRS.CORE.TOKEN_PRICES,
+    DEFAULT_SETTINGS.LOV_DSR.INITIAL_MAX_TOTAL_SUPPLY,
   );
 }
 

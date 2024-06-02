@@ -52,7 +52,7 @@ contract OrigamiOToken is OrigamiInvestment, IOrigamiOToken {
      * @notice Protocol mint for AMO capabilities
      */
     function amoMint(address _to, uint256 _amount) external override onlyElevatedAccess {
-        amoMinted += _amount;
+        amoMinted = amoMinted + _amount;
         emit AmoMint(_to, _amount);
         _mint(_to, _amount);
     }
@@ -140,6 +140,15 @@ contract OrigamiOToken is OrigamiInvestment, IOrigamiOToken {
         ExitQuoteData calldata /*quoteData*/, address payable /*recipient*/
     ) external virtual override returns (uint256 /*nativeAmount*/) {
         revert Unsupported();
+    }
+
+    /**
+     * @notice Override to check when burning, the circulatingSupply cannot
+     * go negative
+     */
+    function _afterTokenTransfer(address /*from*/, address to, uint256 amount) internal virtual override {
+        // to == address(0) when burning
+        if (to == address(0) && amoMinted > totalSupply()) revert CommonEventsAndErrors.InvalidAmount(address(this), amount);
     }
 
     /**

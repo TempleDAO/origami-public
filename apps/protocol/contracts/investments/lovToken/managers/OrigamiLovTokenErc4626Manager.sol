@@ -39,7 +39,7 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
     /**
      * @notice The asset which lovToken borrows to increase the A/L ratio
      */
-    IERC20Metadata public immutable _debtAsset;
+    IERC20Metadata private immutable _debtAsset;
 
     /**
      * @notice The ERC-4626 reserves that this lovToken levers up on
@@ -135,7 +135,14 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
      */
     function setOracle(address oracle) external override onlyElevatedAccess {
         if (oracle == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        debtAssetToDepositAssetOracle = IOrigamiOracle(oracle);
+        IOrigamiOracle _debtAssetToDepositAssetOracle = IOrigamiOracle(oracle);
+
+        // Validate the assets on the oracle match what this lovToken needs
+        if (!_debtAssetToDepositAssetOracle.matchAssets(address(_debtAsset), address(depositAsset))) {
+            revert CommonEventsAndErrors.InvalidParam();
+        }
+
+        debtAssetToDepositAssetOracle = _debtAssetToDepositAssetOracle;
         emit OracleSet(oracle);
     }
 
@@ -318,7 +325,7 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
 
         // Get the current A/L to check for oracle prices, and so we can compare that the new A/L is higher after the rebalance
         uint128 alRatioBefore = _assetToLiabilityRatio(cache);
-        uint256 _reservesAmount = _internalReservesBalance;
+        uint256 _reservesAmount = cache.assets;
 
         // Withdraw `depositAsset` from the ERC4626 `reserveToken`
         // With ERC-4626, the exact amount of depositAsset can be specified (so we get the exact amount), but then
@@ -344,32 +351,24 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
         // Update the amount of reserves
         // unchecked is fine because it's verified above
         unchecked {
-            _reservesAmount -= reserveAssetSharesWithdrawn;
+            _internalReservesBalance = _reservesAmount - reserveAssetSharesWithdrawn;
         }
 
-        // Validate that the new A/L is still within the `rebalanceALRange`
-        // Need to recalculate both the assets and liabilities in the cache
-        _internalReservesBalance = cache.assets = _reservesAmount;
-        cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
-        alRatioAfter = _assetToLiabilityRatio(cache);
-
-        // Ensure the A/L is within the expected slippage range
-        {
-            if (alRatioAfter < params.minNewAL) revert ALTooLow(alRatioBefore, alRatioAfter, params.minNewAL);
-            if (alRatioAfter > params.maxNewAL) revert ALTooHigh(alRatioBefore, alRatioAfter, params.maxNewAL);
-        }
-
-        if (!force)
-            _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, AlValidationMode.HIGHER_THAN_BEFORE);
-
-        emit RebalanceUp(
-            params.depositAssetsToWithdraw,
-            reserveAssetSharesWithdrawn,
-            debtAmountToRepay,
-            amountRepaid,
-            alRatioBefore,
-            alRatioAfter,
+        // Validate that the new A/L is still within the `rebalanceALRange` and expected slippage range
+        alRatioAfter = _validateAfterRebalance(
+            cache, 
+            alRatioBefore, 
+            params.minNewAL, 
+            params.maxNewAL, 
+            AlValidationMode.HIGHER_THAN_BEFORE, 
             force
+        );
+
+        emit Rebalance(
+            -int256(reserveAssetSharesWithdrawn),
+            -int256(amountRepaid),
+            alRatioBefore,
+            alRatioAfter
         );
     }
 
@@ -394,30 +393,24 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
             revert CommonEventsAndErrors.Slippage(params.minReservesOut, reserveTokensReceived);
         }
 
-        _reservesAmount += reserveTokensReceived;
+        // Update the amount of reserves
+        _internalReservesBalance = _reservesAmount + reserveTokensReceived;
         
-        // Validate that the new A/L is still within the `rebalanceALRange`
-        // Need to recalculate both the assets and liabilities in the cache
-        _internalReservesBalance = cache.assets = _reservesAmount;
-        cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
-        alRatioAfter = _assetToLiabilityRatio(cache);
-
-        // Ensure the A/L is within the expected slippage range
-        {
-            if (alRatioAfter < params.minNewAL) revert ALTooLow(alRatioBefore, alRatioAfter, params.minNewAL);
-            if (alRatioAfter > params.maxNewAL) revert ALTooHigh(alRatioBefore, alRatioAfter, params.maxNewAL);
-        }
-
-        if (!force)
-            _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, AlValidationMode.LOWER_THAN_BEFORE);
-
-        emit RebalanceDown(
-            params.borrowAmount,
-            depositAssetReceived,
-            reserveTokensReceived,
-            alRatioBefore,
-            alRatioAfter,
+        // Validate that the new A/L is still within the `rebalanceALRange`       
+        alRatioAfter = _validateAfterRebalance(
+            cache, 
+            alRatioBefore, 
+            params.minNewAL, 
+            params.maxNewAL, 
+            AlValidationMode.LOWER_THAN_BEFORE, 
             force
+        );
+
+        emit Rebalance(
+            int256(reserveTokensReceived),
+            int256(params.borrowAmount),
+            alRatioBefore,
+            alRatioAfter
         );
     }
 
@@ -439,7 +432,7 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
         }
 
         // Increase the counter of reserves
-        _internalReservesBalance += newReservesAmount;
+        _internalReservesBalance = _internalReservesBalance + newReservesAmount;
     }
 
     /**
@@ -502,7 +495,7 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
         }
 
         // Decrease the counter of reserves
-        _internalReservesBalance -= reservesAmount;
+        _internalReservesBalance = _internalReservesBalance - reservesAmount;
     }
 
     /**
@@ -541,35 +534,5 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
         }
 
         // Anything else returns 0
-    }
-
-    /**
-     * @notice Calculate the max number of reserves allowed before the user debt ceiling is hit, 
-     * taking into consideration any current liabiltiies
-     * @dev Use the Oracle `debtPriceType` to value any debt in terms of the reserve token
-     */
-    function _maxUserReserves(IOrigamiOracle.PriceType debtPriceType) internal override view returns (uint256) {
-        uint256 debt = lendingClerk.borrowerDebt(address(this));
-
-        // If no debt, then unlimited reserves can be added
-        if (debt == 0) return MAX_TOKEN_AMOUNT;
-
-        uint256 debtInDepositAsset = debtAssetToDepositAssetOracle.convertAmount(
-            address(_debtAsset),
-            debt,
-            debtPriceType, 
-            OrigamiMath.Rounding.ROUND_DOWN
-        );
-
-        // Calculate the max reserves given the debt (in [depositAsset] terms)
-        // Treat as a deposit in order to round down
-        uint256 _liabilities = _reserveToken.previewDeposit(debtInDepositAsset);
-
-        // Round down for the remaining reserves capacity
-        return _liabilities.mulDiv(
-            userALRange.ceiling, 
-            PRECISION, 
-            OrigamiMath.Rounding.ROUND_DOWN
-        );
     }
 }

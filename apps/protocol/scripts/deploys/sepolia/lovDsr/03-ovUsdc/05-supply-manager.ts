@@ -6,6 +6,7 @@ import {
   ensureExpectedEnvvars,
 } from '../../../helpers';
 import { getDeployedContracts } from '../contract-addresses';
+import { DEFAULT_SETTINGS } from '../default-settings';
 
 async function main() {
   ensureExpectedEnvvars();
@@ -22,6 +23,8 @@ async function main() {
     ADDRS.OV_USDC.TOKENS.O_USDC_TOKEN,
     ADDRS.OV_USDC.TOKENS.OV_USDC_TOKEN,
     ADDRS.CORE.CIRCUIT_BREAKER_PROXY,
+    ADDRS.CORE.FEE_COLLECTOR,
+    DEFAULT_SETTINGS.OV_USDC.OUSDC_EXIT_FEE_BPS,
   );
 }
 

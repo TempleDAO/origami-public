@@ -8,6 +8,10 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 /**
  * @notice A helper library to safely query prices from Chainlink oracles and scale them 
+ * 
+ * @dev Note this Chainlink lib is only suitable for mainnet. If a Chainlink Oracle is required on
+ * an L2, then it should also take the sequencer staleness into consideration.
+ * eg: https://docs.chain.link/data-feeds/l2-sequencer-feeds#example-code
  */
 library Chainlink {
     using OrigamiMath for uint256;
@@ -16,6 +20,8 @@ library Chainlink {
         IAggregatorV3Interface oracle;
         bool scaleDown;
         uint128 scalar;
+        uint256 stalenessThreshold;
+        bool validateRoundId;
     }
 
     /**
@@ -24,17 +30,20 @@ library Chainlink {
      */
     function price(
         Config memory self,
-        uint256 stalenessThreshold,
         OrigamiMath.Rounding roundingMode
     ) internal view returns (uint256) {
-        (uint80 roundId, int256 feedValue, , uint256 lastUpdatedAt, uint80 answeredInRound) = self.oracle.latestRoundData();
+        (uint80 roundId, int256 feedValue, , uint256 lastUpdatedAt,) = self.oracle.latestRoundData();
 
-        // Check for staleness
-		if (
-            answeredInRound <= roundId && 
-            block.timestamp - lastUpdatedAt > stalenessThreshold
-        ) {
-            revert IOrigamiOracle.StalePrice(address(self.oracle), lastUpdatedAt, feedValue);
+        // Invalid chainlink parameters
+        if (self.validateRoundId && roundId == 0) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
+        if (lastUpdatedAt == 0) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
+
+        // Check for future time or if it's too stale
+        if (lastUpdatedAt > block.timestamp) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
+        unchecked {
+            if (block.timestamp - lastUpdatedAt > self.stalenessThreshold) {
+                revert IOrigamiOracle.StalePrice(address(self.oracle), lastUpdatedAt, feedValue);
+            }
         }
 
         // Check for negative price

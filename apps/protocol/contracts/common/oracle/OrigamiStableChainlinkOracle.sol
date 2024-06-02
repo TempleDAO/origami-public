@@ -14,6 +14,10 @@ import { Chainlink } from "contracts/libraries/Chainlink.sol";
  * @notice The historic price is fixed to an expected value (eg 1 for DAI/USD).
  * The spot price references a Chainlink Oracle
  * If the spot price falls outside of a policy-expected price range, then the price lookup will revert.
+ * 
+ * @dev Note the Chainlink lib is only suitable for mainnet. If a Chainlink Oracle is required on
+ * an L2, then it should also take the sequencer staleness into consideration.
+ * eg: https://docs.chain.link/data-feeds/l2-sequencer-feeds#example-code
  */
 contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAccess {
     using Range for Range.Data;
@@ -47,29 +51,26 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
     uint128 public immutable spotPriceStalenessThreshold;
 
     /**
+     * @notice When using Redstone 'chainlink-like' oracle interfaces, the roundId
+     * returned may be unused, and so validation isn't required in that case.
+     */
+    bool public immutable validateRoundId;
+
+    /**
      * @notice The lowest valid price range for the spot price. Anything outside of this will revert when queried
      */
     Range.Data public validSpotPriceRange;
 
     constructor (
         address _initialOwner,
-        string memory _description,
-        address _baseAssetAddress,
-        uint8 _baseAssetDecimals,
-        address _quoteTokenAddress,
-        uint8 _quoteAssetDecimals,
+        BaseOracleParams memory baseParams,
         uint256 _stableHistoricPrice,
         address _spotPriceOracle,
         uint128 _spotPriceStalenessThreshold,
-        Range.Data memory _validSpotPriceRange
+        Range.Data memory _validSpotPriceRange,
+        bool _validateRoundId
     )
-        OrigamiOracleBase(
-            _description, 
-            _baseAssetAddress, 
-            _baseAssetDecimals, 
-            _quoteTokenAddress, 
-            _quoteAssetDecimals
-        )
+        OrigamiOracleBase(baseParams)
         OrigamiElevatedAccess(_initialOwner)
     {
         stableHistoricPrice = _stableHistoricPrice;
@@ -79,6 +80,7 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
             spotPriceOracle, 
             decimals
         );
+        validateRoundId = _validateRoundId;
         validSpotPriceRange.set(_validSpotPriceRange.floor, _validSpotPriceRange.ceiling);
     }
 
@@ -107,12 +109,18 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
     ) public override view returns (uint256 price) {
         if (priceType == PriceType.SPOT_PRICE) {
             price = Chainlink.price(
-                Chainlink.Config(spotPriceOracle, spotPricePrecisionScaleDown, spotPricePrecisionScalar), 
-                spotPriceStalenessThreshold, 
+                Chainlink.Config(
+                    spotPriceOracle, 
+                    spotPricePrecisionScaleDown, 
+                    spotPricePrecisionScalar,
+                    spotPriceStalenessThreshold, 
+                    validateRoundId
+                ),
                 roundingMode
             );
-            if (price < validSpotPriceRange.floor) revert BelowMinValidRange(address(spotPriceOracle), price, validSpotPriceRange.floor);
-            if (price > validSpotPriceRange.ceiling) revert AboveMaxValidRange(address(spotPriceOracle), price, validSpotPriceRange.ceiling);
+            Range.Data memory _validSpotPriceRange = validSpotPriceRange;
+            if (price < _validSpotPriceRange.floor) revert BelowMinValidRange(address(spotPriceOracle), price, _validSpotPriceRange.floor);
+            if (price > _validSpotPriceRange.ceiling) revert AboveMaxValidRange(address(spotPriceOracle), price, _validSpotPriceRange.ceiling);
         } else if (priceType == PriceType.HISTORIC_PRICE) {
             return stableHistoricPrice;
         } else {

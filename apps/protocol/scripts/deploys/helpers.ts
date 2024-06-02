@@ -7,6 +7,7 @@ import { stringify as qsStringify } from 'qs';
 import { OrigamiGmxRewardsAggregator, IOrigamiElevatedAccess, TokenPrices__factory } from "../../typechain";
 import * as fs from 'fs';
 import * as path from 'path';
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 /**
  * Current block timestamp
@@ -304,11 +305,24 @@ const encodeFunction = (fn: string, ...args: TokenPricesArg[]): string => {
     return tokenPricesInterface.encodeFunctionData(fn, args);
 }
 
+// For local fork testing/impersonation in anvil
+export async function impersonateAndFund(owner: SignerWithAddress, address: string) {
+  await mine(owner.sendTransaction({
+    to: address,
+    value: ethers.utils.parseEther("0.1"),
+  }));
+  const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
+  await provider.send('anvil_impersonateAccount', [address]);
+  return provider.getSigner(address);
+}
+
 export const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
 export const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
 export const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
 export const encodedUniV3Price = (pool: string, inQuotedOrder: boolean): string => encodeFunction("univ3Price", pool, inQuotedOrder);
+export const encodedMulPrice = (v1: string, v2: string): string => encodeFunction("mul", v1, v2);
 export const encodedDivPrice = (numerator: string, denominator: string): string => encodeFunction("div", numerator, denominator);
 export const encodedAliasFor = (sourceToken: string): string => encodeFunction("aliasFor", sourceToken);
 export const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
 export const encodedErc4626TokenPrice = (vault: string): string => encodeFunction("erc4626TokenPrice", vault);
+export const encodedWstEthRatio = (stEthToken: string): string => encodeFunction("wstEthRatio", stEthToken);

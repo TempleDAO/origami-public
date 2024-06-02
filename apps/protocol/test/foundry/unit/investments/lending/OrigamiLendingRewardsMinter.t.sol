@@ -215,8 +215,8 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
         uint256 amount = 100e18;
 
         uint256 expectedInterest = TWO_PCT_365DAY - amount;
-        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps);
-        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps);
+        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps, OrigamiMath.Rounding.ROUND_DOWN);
+        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
         uint256 expectedFees = expectedMinted - expectedReserves;
         
         debtToken.mint(alice, amount);
@@ -245,8 +245,8 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
         uint256 amount = 100e18;
 
         uint256 expectedInterest = TWO_PCT_365DAY - amount;
-        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps);
-        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps);
+        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps, OrigamiMath.Rounding.ROUND_DOWN);
+        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
         uint256 expectedFees = expectedMinted - expectedReserves;
         
         debtToken.mint(alice, amount);
@@ -271,7 +271,7 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
         uint256 amount = 100e18;
 
         uint256 expectedInterest = TWO_PCT_365DAY - amount;
-        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps);
+        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps, OrigamiMath.Rounding.ROUND_DOWN);
         uint256 expectedFees = expectedMinted;
         uint256 expectedReserves = 0;
         
@@ -293,7 +293,7 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
         uint256 amount = 100e18;
 
         uint256 expectedInterest = TWO_PCT_365DAY - amount;
-        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps);
+        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps, OrigamiMath.Rounding.ROUND_DOWN);
         uint256 expectedFees = 0;
         uint256 expectedReserves = expectedMinted;
         
@@ -337,7 +337,7 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
 
         uint256 expectedInterest = TWO_PCT_365DAY - amount;
         uint256 expectedMinted = expectedInterest;
-        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps);
+        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
         uint256 expectedFees = expectedMinted - expectedReserves;
         
         debtToken.mint(alice, amount);
@@ -362,8 +362,8 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
     }
 
     function makeExpected(uint256 expectedInterest) internal view returns (Expected memory) {
-        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps);
-        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps);
+        uint256 expectedMinted = expectedInterest.subtractBps(carryOverBps, OrigamiMath.Rounding.ROUND_DOWN);
+        uint256 expectedReserves = expectedMinted.subtractBps(performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
         uint256 expectedFees = expectedMinted - expectedReserves;
         return Expected(expectedInterest, expectedMinted, expectedFees, expectedReserves);
     }
@@ -402,5 +402,63 @@ contract OrigamiLendingRewardsMinterTestMint is OrigamiLendingRewardsMinterTestB
         assertEq(rewardsMinter.cumulativeInterestCheckpoint(), expected1.minted + expected2.minted + expected3.minted);
         assertEq(oToken.balanceOf(feeCollector), expected1.fees + expected2.fees + expected3.fees);
         assertEq(oToken.balanceOf(address(ovToken)), expected1.reserves + expected2.reserves + expected3.reserves);
+    }
+
+    function test_checkpointDebtAndMintRewards_extraBalance() public {
+        address[] memory debtors = new address[](1);
+        debtors[0] = alice;
+        uint256 amount = 100e18;
+
+        Expected memory expected1 = makeExpected(TWO_PCT_365DAY - amount);
+        
+        debtToken.mint(alice, amount);
+        vm.warp(block.timestamp + 365 days);
+
+        rewardsMinter.checkpointDebtAndMintRewards(debtors);
+        assertEq(oToken.totalSupply(), expected1.minted);
+        assertEq(rewardsMinter.cumulativeInterestCheckpoint(), expected1.minted);
+        assertEq(oToken.balanceOf(feeCollector), expected1.fees);
+        assertEq(oToken.balanceOf(address(ovToken)), expected1.reserves);
+
+        // Deal extra rewards into the rewardsMinter. This is also added
+        // (fee free) to the ovToken
+        uint256 extraTokens = 1.23e18;
+        deal(address(oToken), address(rewardsMinter), extraTokens, true);
+
+        // After another immediate call, another 10% is minted
+        Expected memory expected2 = makeExpected(expected1.interest - expected1.minted);
+        rewardsMinter.checkpointDebtAndMintRewards(debtors);
+        assertEq(oToken.totalSupply(), expected1.minted + expected2.minted + extraTokens);
+        assertEq(rewardsMinter.cumulativeInterestCheckpoint(), expected1.minted + expected2.minted);
+        assertEq(oToken.balanceOf(feeCollector), expected1.fees + expected2.fees);
+        assertEq(oToken.balanceOf(address(ovToken)), expected1.reserves + expected2.reserves + extraTokens);
+
+        // A change after another year    
+        Expected memory expected3 = makeExpected((TWO_PCT_730DAY-TWO_PCT_365DAY) + (expected2.interest-expected2.minted) - 1);
+
+        vm.warp(block.timestamp + 365 days);
+        rewardsMinter.checkpointDebtAndMintRewards(debtors);
+        assertEq(oToken.totalSupply(), expected1.minted + expected2.minted + extraTokens + expected3.minted);
+        assertEq(rewardsMinter.cumulativeInterestCheckpoint(), expected1.minted + expected2.minted + expected3.minted);
+        assertEq(oToken.balanceOf(feeCollector), expected1.fees + expected2.fees + expected3.fees);
+        assertEq(oToken.balanceOf(address(ovToken)), expected1.reserves + expected2.reserves + extraTokens + expected3.reserves);
+    }
+
+    function test_checkpointDebtAndMintRewards_freshExtraBalance() public {
+        address[] memory debtors = new address[](1);
+        debtors[0] = alice;
+        rewardsMinter.checkpointDebtAndMintRewards(debtors);
+        assertEq(oToken.totalSupply(), 0);
+        assertEq(rewardsMinter.cumulativeInterestCheckpoint(), 0);
+        assertEq(oToken.balanceOf(feeCollector), 0);
+        assertEq(oToken.balanceOf(address(ovToken)), 0);
+
+        uint256 extraTokens = 1.23e18;
+        deal(address(oToken), address(rewardsMinter), extraTokens, true);
+        rewardsMinter.checkpointDebtAndMintRewards(debtors);
+        assertEq(oToken.totalSupply(), extraTokens);
+        assertEq(rewardsMinter.cumulativeInterestCheckpoint(), 0);
+        assertEq(oToken.balanceOf(feeCollector), 0);
+        assertEq(oToken.balanceOf(address(ovToken)), extraTokens);
     }
 }

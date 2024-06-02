@@ -44,18 +44,12 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
      */
     string public override description;
 
-    constructor(
-        string memory _description,
-        address _baseAssetAddress,
-        uint8 _baseAssetDecimals,
-        address _quoteAssetAddress,
-        uint8 _quoteAssetDecimals
-    ) {
-        description = _description;
-        baseAsset = _baseAssetAddress;
-        quoteAsset = _quoteAssetAddress;
-        if (_quoteAssetDecimals > decimals + _baseAssetDecimals) revert CommonEventsAndErrors.InvalidParam();
-        assetScalingFactor = 10 ** (decimals + _baseAssetDecimals - _quoteAssetDecimals);
+    constructor(BaseOracleParams memory params) {
+        description = params.description;
+        baseAsset = params.baseAssetAddress;
+        quoteAsset = params.quoteAssetAddress;
+        if (params.quoteAssetDecimals > decimals + params.baseAssetDecimals) revert CommonEventsAndErrors.InvalidParam();
+        assetScalingFactor = 10 ** (decimals + params.baseAssetDecimals - params.quoteAssetDecimals);
     }
 
     /**
@@ -70,18 +64,18 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
     ) public virtual override view returns (uint256 price);
 
     /**
-     * @notice Same as `latestPrice()` but for two separate prices from this oracle
+     * @notice Same as `latestPrice()` but for two separate prices from this oracle	
      */
     function latestPrices(
         PriceType priceType1, 
         OrigamiMath.Rounding roundingMode1,
         PriceType priceType2, 
         OrigamiMath.Rounding roundingMode2
-    ) external override view returns (
+    ) external virtual override view returns (
         uint256 /*price1*/, 
         uint256 /*price2*/, 
-        address /*baseAsset*/,
-        address /*quoteAsset*/
+        address /*oracleBaseAsset*/,
+        address /*oracleQuoteAsset*/
     ) {
         return (
             latestPrice(priceType1, roundingMode1),
@@ -121,6 +115,7 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
                 roundingMode == OrigamiMath.Rounding.ROUND_UP ? OrigamiMath.Rounding.ROUND_DOWN : OrigamiMath.Rounding.ROUND_UP
             );
 
+            if (_price == 0) revert InvalidPrice(address(this), int256(_price));
             return fromAssetAmount.mulDiv(
                 assetScalingFactor,
                 _price,
@@ -129,5 +124,15 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
         }
 
         revert CommonEventsAndErrors.InvalidToken(fromAsset);
+    }
+
+    /**
+     * @notice Match whether a pair of assets match the base and quote asset on this oracle, in either order
+     */
+    function matchAssets(address asset1, address asset2) external view returns (bool) {
+        return (
+            (asset1 == baseAsset && asset2 == quoteAsset) ||
+            (asset2 == baseAsset && asset1 == quoteAsset)
+        );
     }
 }

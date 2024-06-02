@@ -102,16 +102,65 @@ curl -X GET \
     function test_execute_fail_badBalance() public {
         bytes memory data = getQuoteData();
 
-        // Send some extra buy tokens into the swapper
-        deal(address(USDC), address(swapper), 100e6, true);
-
         uint256 sellTokenAmount = 1_000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
 
+        // Swap expecting a different token (sDAI) vs what the swap data say
+        // to swap to
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
         swapper.execute(DAI, sellTokenAmount, SDAI, data);
+    }
+
+    function test_execute_success_donateBuyToken() public {
+        bytes memory data = getQuoteData();
+
+        // Send some extra buy tokens into the swapper
+        uint256 donateAmount = 100e6;
+        deal(address(USDC), address(swapper), donateAmount, false);
+
+        uint256 sellTokenAmount = 1_000e18;
+        vm.startPrank(alice);
+        deal(address(DAI), alice, sellTokenAmount, false);
+        DAI.approve(address(swapper), sellTokenAmount);
+
+        uint256 expectedBuyTokenAmount = 999.903956e6;
+        vm.expectEmit(address(swapper));
+        emit Swap(address(DAI), sellTokenAmount, address(USDC), expectedBuyTokenAmount);
+        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, data);
+
+        assertEq(buyTokenAmount, expectedBuyTokenAmount);
+        assertEq(DAI.balanceOf(alice), 0);
+        assertEq(DAI.balanceOf(address(swapper)), 0);
+
+        assertEq(USDC.balanceOf(alice), expectedBuyTokenAmount);
+        assertEq(USDC.balanceOf(address(swapper)), donateAmount);
+    }
+
+    function test_execute_success_donateSellToken() public {
+        bytes memory data = getQuoteData();
+
+        // Send some extra sell tokens into the swapper
+        uint256 donateAmount = 100e18;
+        deal(address(DAI), address(swapper), donateAmount, false);
+
+        uint256 sellTokenAmount = 1_000e18;
+        vm.startPrank(alice);
+        deal(address(DAI), alice, sellTokenAmount, false);
+        DAI.approve(address(swapper), sellTokenAmount);
+
+        uint256 expectedBuyTokenAmount = 999.903956e6;
+        vm.expectEmit(address(swapper));
+        emit Swap(address(DAI), sellTokenAmount, address(USDC), expectedBuyTokenAmount);
+        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, data);
+
+        assertEq(buyTokenAmount, expectedBuyTokenAmount);
+        assertEq(DAI.balanceOf(alice), 0);
+        assertEq(DAI.balanceOf(address(swapper)), donateAmount);
+
+        assertEq(USDC.balanceOf(alice), expectedBuyTokenAmount);
+        assertEq(USDC.balanceOf(address(swapper)), 0);
     }
 
     function test_execute_failure_approvalsAtWrapper() public {

@@ -18,11 +18,24 @@ import { IOrigamiLendingClerk } from "contracts/interfaces/investments/lending/I
  */
 interface IOrigamiLendingSupplyManager is IOrigamiOTokenManager, IWhitelisted {
     event LendingClerkSet(address indexed lendingClerk);
+    event FeeCollectorSet(address indexed feeCollector);
+    event ExitFeeBpsSet(uint256 feeBps);
 
     /**
      * @notice Set the clerk responsible for managing borrows, repays and debt of borrowers
      */
     function setLendingClerk(address _lendingClerk) external;
+
+    /**
+     * @notice Set the Origami fee collector address
+     */
+    function setFeeCollector(address _feeCollector) external;
+
+    /**
+     * @notice Set the proportion of fees retained when users exit their position.
+     * @dev represented in basis points
+     */
+    function setExitFeeBps(uint96 feeBps) external;
 
     /**
      * @notice The asset which users supply
@@ -50,4 +63,15 @@ interface IOrigamiLendingSupplyManager is IOrigamiOTokenManager, IWhitelisted {
      * @notice The clerk responsible for managing borrows, repays and debt of borrowers
      */
     function lendingClerk() external view returns (IOrigamiLendingClerk);
+
+    /**
+     * @notice The address used to collect the Origami fees.
+     */
+    function feeCollector() external view returns (address);
+
+    /**
+     * @notice The proportion of fees retained when users exit their position.
+     * @dev represented in basis points
+     */
+    function exitFeeBps() external view returns (uint96);
 }

@@ -31,8 +31,8 @@ contract OrigamiLovTokenTestBase_6dp is OrigamiTest {
     uint256 public constant VAULT_PREMIUM = 10;
     uint16 public constant MIN_DEPOSIT_FEE_BPS = 10;
     uint16 public constant MIN_EXIT_FEE_BPS = 50;
-    uint16 public constant FEE_LEVERAGE_FACTOR = 15;
-    uint256 public constant PERFORMANCE_FEE_BPS = 500;
+    uint24 public constant FEE_LEVERAGE_FACTOR = 15e4;
+    uint48 public constant PERFORMANCE_FEE_BPS = 500;
 
     // 5% APR = 4.879% APY
     uint96 public constant SUSDC_INTEREST_RATE = 0.05e18;
@@ -48,13 +48,20 @@ contract OrigamiLovTokenTestBase_6dp is OrigamiTest {
         doMint(usdcToken, address(sUsdcToken), 100_000_000e6);
 
         tokenPrices = new TokenPrices(30);
-        lovToken = new OrigamiLovToken(origamiMultisig, "Origami LOV TOKEN", "lovToken", PERFORMANCE_FEE_BPS, feeCollector, address(tokenPrices));
+        lovToken = new OrigamiLovToken(
+            origamiMultisig, 
+            "Origami LOV TOKEN", 
+            "lovToken", 
+            PERFORMANCE_FEE_BPS, 
+            feeCollector, 
+            address(tokenPrices),
+            type(uint256).max
+        );
         manager = new OrigamiMockLovTokenManager(origamiMultisig, address(usdcToken), address(sUsdcToken), address(lovToken));
 
         vm.startPrank(origamiMultisig);
         lovToken.setManager(address(manager));
         manager.setFeeConfig(MIN_DEPOSIT_FEE_BPS, MIN_EXIT_FEE_BPS, FEE_LEVERAGE_FACTOR);
-        manager.setRedeemableReservesBufferBps(0);
 
         userALRange = Range.Data(1.001e18, type(uint128).max);
         rebalanceALRange = Range.Data(1.05e18, 1.15e18);

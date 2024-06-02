@@ -137,7 +137,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
 
     function test_ovUsdc_invest_single() public {
         uint256 amount = 155e6;
-        uint256 amountOut = investOusdc(alice, amount);
+        uint256 amountOut = investOvUsdc(alice, amount);
 
         assertEq(amountOut, 155e18);
         assertEq(externalContracts.usdcToken.balanceOf(alice), 0);
@@ -150,7 +150,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
         // Check that if oUDSC isn't backed 1:1 (eg we over minted, exploit, etc),
         // then we can donate USDC back in.
         uint256 amount = 155e6;
-        investOusdc(alice, amount);
+        investOvUsdc(alice, amount);
 
         // Drain funds
         {
@@ -168,7 +168,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
         // Can't exit it all
         {
             vm.startPrank(alice);
-            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InsufficientBalance.selector, address(externalContracts.usdcToken), 150e6, 56e6));
+            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InsufficientBalance.selector, address(externalContracts.usdcToken), 149.85e6, 56e6));
             oUsdcContracts.ovUsdc.exitToToken(quoteData, alice);
         }
 
@@ -185,7 +185,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
     function test_ovUsdc_invest_multiple() public {
         // Alice invests
         uint256 amount = 155e6;
-        uint256 amountOut = investOusdc(alice, amount);
+        uint256 amountOut = investOvUsdc(alice, amount);
         
         {
             assertEq(amountOut, 155e18);
@@ -234,7 +234,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
         assertEq(oUsdcContracts.ovUsdc.reservesPerShare(), 1.023866695363039190e18);
 
         // Now Bob invests the same amount
-        amountOut = investOusdc(bob, amount);
+        amountOut = investOvUsdc(bob, amount);
 
         {
             assertEq(amountOut, 151.386895092862283411e18);
@@ -250,17 +250,24 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
     function test_ovUsdc_exit_multiple() public {
         // Alice invests
         uint256 amount = 155e6;
-        investOusdc(alice, amount);
+        investOvUsdc(alice, amount);
         vm.warp(block.timestamp + 365 days);
-        uint256 bobOvUsdc = investOusdc(bob, amount);
+        uint256 bobOvUsdc = investOvUsdc(bob, amount);
 
-        assertEq(oUsdcContracts.ovUsdc.maxExit(address(externalContracts.usdcToken)), 155e18 * 2);
-        
+        assertEq(oUsdcContracts.ovUsdc.maxExit(address(externalContracts.usdcToken)), 155e18 * 2 + 0.310310310310310310e18);
+        uint256 expectedTotalSupply = 310e18;
+        uint256 expectedFees = 0;
+
         {
             address[] memory debtors = new address[](1);
             debtors[0] = address(oUsdcContracts.idleStrategyManager);
             vm.startPrank(origamiMultisig);
+            assertEq(oUsdcContracts.oUsdc.totalSupply(), 310e18);
             oUsdcContracts.rewardsMinter.checkpointDebtAndMintRewards(debtors);
+            expectedTotalSupply += 7.398675562542148947e18 + 0.150993378827390795e18;
+            assertEq(oUsdcContracts.oUsdc.totalSupply(), expectedTotalSupply);
+            assertEq(oUsdcContracts.oUsdc.balanceOf(feeCollector), 0.150993378827390795e18);
+            assertEq(oUsdcContracts.oUsdc.balanceOf(address(oUsdcContracts.rewardsMinter)), expectedFees);
 
             vm.warp(block.timestamp + 1 days);
             assertEq(oUsdcContracts.ovUsdc.reservesPerShare(), 1.011933347681519595e18);
@@ -268,30 +275,38 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
 
         // Total USDC = 311.47, but converted to ovUSDC shares = 307.8
         assertEq(aToken.balanceOf(address(oUsdcContracts.idleStrategy)), 213.197627e6);
-        assertEq(oUsdcContracts.ovUsdc.maxExit(address(externalContracts.usdcToken)), 309.504205704436400053e18);
+        assertEq(oUsdcContracts.ovUsdc.maxExit(address(externalContracts.usdcToken)), 309.814019724160560613e18);
 
         // Bob exits some
-        uint256 amountOut = exitOusdc(bob, 150e18);
+        uint256 amountOut = exitOvUsdc(bob, 150e18);
+        expectedTotalSupply -= 151.638212150075711321e18;
+        expectedFees += 0.151790002152227940e18;
 
         {
-            assertEq(amountOut, 151.790002e6);
+            assertEq(amountOut, 151.638212e6);
             assertEq(externalContracts.usdcToken.balanceOf(bob), amountOut);
             assertEq(oUsdcContracts.ovUsdc.balanceOf(bob), bobOvUsdc - 150e18);
             assertEq(externalContracts.usdcToken.balanceOf(address(oUsdcContracts.idleStrategyManager)), 100e6);
-            assertEq(aToken.balanceOf(address(oUsdcContracts.idleStrategy)), 61.407624e6);
-            assertEq(oUsdcContracts.iUsdc.balanceOf(address(oUsdcContracts.idleStrategyManager)), 166.200575307890007622e18);
+            assertEq(aToken.balanceOf(address(oUsdcContracts.idleStrategy)), 61.559415e6);
+            assertEq(oUsdcContracts.iUsdc.balanceOf(address(oUsdcContracts.idleStrategyManager)), 166.352365307890007622e18);
+            assertEq(oUsdcContracts.oUsdc.balanceOf(address(oUsdcContracts.rewardsMinter)), expectedFees);
+            assertEq(oUsdcContracts.oUsdc.totalSupply(), expectedTotalSupply);
         }
 
         // Bob exists the remainder
-        amountOut = exitOusdc(bob, oUsdcContracts.ovUsdc.balanceOf(bob));
+        amountOut = exitOvUsdc(bob, oUsdcContracts.ovUsdc.balanceOf(bob));
+        expectedTotalSupply -= 5.054607071669190377e18;
+        expectedFees += 0.005059666738407598e18;
 
         {
-            assertEq(amountOut, 5.059666e6);
-            assertEq(externalContracts.usdcToken.balanceOf(bob), 156.849668e6);
+            assertEq(amountOut, 5.054607e6);
+            assertEq(externalContracts.usdcToken.balanceOf(bob), 156.692819e6);
             assertEq(oUsdcContracts.ovUsdc.balanceOf(bob), 0);
-            assertEq(externalContracts.usdcToken.balanceOf(address(oUsdcContracts.idleStrategyManager)), 94.940334e6);
-            assertEq(aToken.balanceOf(address(oUsdcContracts.idleStrategy)), 61.407624e6);
-            assertEq(oUsdcContracts.iUsdc.balanceOf(address(oUsdcContracts.idleStrategyManager)), 161.140909307890007622e18);
+            assertEq(externalContracts.usdcToken.balanceOf(address(oUsdcContracts.idleStrategyManager)), 94.945393e6);
+            assertEq(aToken.balanceOf(address(oUsdcContracts.idleStrategy)), 61.559415e6);
+            assertEq(oUsdcContracts.iUsdc.balanceOf(address(oUsdcContracts.idleStrategyManager)), 161.297758307890007622e18);
+            assertEq(oUsdcContracts.oUsdc.balanceOf(address(oUsdcContracts.rewardsMinter)), expectedFees);
+            assertEq(oUsdcContracts.oUsdc.totalSupply(), expectedTotalSupply);
         }
 
         // Alice can't exit it all immediately - have to wait until the remaining vests
@@ -303,20 +318,24 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
                 0,
                 0
             );
-            vm.expectRevert(stdError.arithmeticError);
+            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InsufficientBalance.selector, address(externalContracts.usdcToken), 156.692819e6, 156.504808e6));
             oUsdcContracts.ovUsdc.exitToToken(quoteData, alice);
         }
 
         // Can checkpoint and then exit max
         vm.warp(block.timestamp + 2 days);
-        oUsdcContracts.ovUsdc.checkpointReserves();
         uint256 maxExit = oUsdcContracts.ovUsdc.maxExit(address(externalContracts.usdcToken));
-        assertEq(maxExit, 150.972421800983505347e18);
-        amountOut = exitOusdc(alice, maxExit);
-        assertEq(amountOut, 156.377240e6);
+        assertEq(maxExit, 151.275195348793024632e18);
+        amountOut = exitOvUsdc(alice, maxExit);
+        assertEq(amountOut, 156.534162e6);
+        expectedTotalSupply -= 156.534162999999999998e18;
 
-        // Tiny residual left in the contract, expected because dai->usdc is rounded down
+        // Tiny residual left in the contract because of the oToken fees taken
         assertEq(oUsdcContracts.idleStrategyManager.availableToWithdraw(), 1);
+        assertEq(oUsdcContracts.oUsdc.balanceOf(address(oUsdcContracts.rewardsMinter)), 0.313540522744489392e18);
+        assertEq(oUsdcContracts.oUsdc.balanceOf(address(oUsdcContracts.ovUsdc)), 3.858152818052757859e18);
+        assertEq(oUsdcContracts.oUsdc.totalSupply(), expectedTotalSupply);
+        assertEq(expectedTotalSupply, 0.464533901571880187e18 + 3.858152818052757859e18);
     }
 
     function test_ovUsdc_fail_circuitBreaker() public {
@@ -324,7 +343,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
         oUsdcContracts.cbOUsdcExit.updateCap(2_000_000e18);
 
         uint256 amount = 2_500_000e6;
-        investOusdc(alice, amount);
+        investOvUsdc(alice, amount);
 
         (IOrigamiInvestment.ExitQuoteData memory quoteData,) = oUsdcContracts.ovUsdc.exitQuote(
             2_000_000e18,
@@ -333,8 +352,8 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
             0
         );
         uint256 amountOut = oUsdcContracts.ovUsdc.exitToToken(quoteData, bob);
-        assertEq(amountOut, 2_000_000e6);
-        assertEq(externalContracts.usdcToken.balanceOf(bob), 2_000_000e6);
+        assertEq(amountOut, 1_998_000e6);
+        assertEq(externalContracts.usdcToken.balanceOf(bob), 1_998_000e6);
         assertEq(externalContracts.usdcToken.balanceOf(alice), 0);
 
         (quoteData,) = oUsdcContracts.ovUsdc.exitQuote(
@@ -349,7 +368,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
 
     function test_ovUsdc_migrate_idle_strategy() public {
         uint256 amount = 10_000e6;
-        investOusdc(alice, amount);
+        investOvUsdc(alice, amount);
 
         uint256 idleStrategyBalance = oUsdcContracts.idleStrategy.totalBalance();
         {
@@ -378,7 +397,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
             assertEq(assetBalances[0].balance, amount);
         }
 
-        investOusdc(alice, amount);
+        investOvUsdc(alice, amount);
 
         {
             assertEq(externalContracts.usdcToken.balanceOf(address(oUsdcContracts.idleStrategyManager)), 2*amount);
@@ -406,7 +425,7 @@ contract OrigamiLovTokenIntegrationTest_Lending is OrigamiLovTokenIntegrationTes
             oUsdcContracts.idleStrategyManager.setDepositsEnabled(true);
         }
 
-        investOusdc(alice, amount);
+        investOvUsdc(alice, amount);
 
         {
             assertEq(externalContracts.usdcToken.balanceOf(address(oUsdcContracts.idleStrategyManager)), 100e6);
@@ -427,8 +446,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         {
             assertEq(address(lovTokenContracts.lovDsr.owner()), origamiMultisig);
             assertEq(address(lovTokenContracts.lovDsr.manager()), address(lovTokenContracts.lovDsrManager));
-            assertEq(lovTokenContracts.lovDsr.performanceFee(), Constants.LOV_DSR_PERFORMANCE_FEE_BPS);
-            assertEq(lovTokenContracts.lovDsr.PERFORMANCE_FEE_FREQUENCY(), 7 days);
+            assertEq(lovTokenContracts.lovDsr.annualPerformanceFeeBps(), Constants.LOV_DSR_PERFORMANCE_FEE_BPS);
         }
 
         {
@@ -442,8 +460,6 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             assertEq(minDepositFeeBps, Constants.LOV_DSR_MIN_DEPOSIT_FEE_BPS);
             assertEq(minExitFeeBps, Constants.LOV_DSR_MIN_EXIT_FEE_BPS);
             assertEq(feeLeverageFactor, Constants.LOV_DSR_FEE_LEVERAGE_FACTOR);
-
-            assertEq(lovTokenContracts.lovDsrManager.redeemableReservesBufferBps(), 10_050);
 
             (uint128 floor, uint128 ceiling) = lovTokenContracts.lovDsrManager.userALRange();
             assertEq(floor, Constants.USER_AL_FLOOR);
@@ -512,7 +528,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         (uint256 depositFee, ) = lovTokenContracts.lovDsr.getDynamicFeesBps();
         uint256 amountOut = investLovDsr(alice, amount);
         assertEq(depositFee, 32);
-        assertEq(amountOut, OrigamiMath.subtractBps(expectedSDai, depositFee));
+        assertEq(amountOut, OrigamiMath.subtractBps(expectedSDai, depositFee, OrigamiMath.Rounding.ROUND_DOWN));
 
         {
             assertEq(lovTokenContracts.lovDsr.balanceOf(alice), amountOut);
@@ -540,7 +556,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             lovTokenContracts.lovDsrManager.rebalanceDown(params);
         }
 
-        investOusdc(bob, 100_000e6);
+        investOvUsdc(bob, 100_000e6);
         assertEq(oUsdcContracts.lendingClerk.availableToBorrow(address(lovTokenContracts.lovDsrManager)), 100_000e6);
         {
             vm.startPrank(origamiMultisig);
@@ -554,23 +570,12 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             assertEq(lovTokenContracts.lovDsrManager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 86_894.875386824506455812e18);
             assertEq(lovTokenContracts.lovDsrManager.reservesBalance(), 96_445.966754870805870910e18);
             assertEq(externalContracts.sDaiToken.balanceOf(address(lovTokenContracts.lovDsrManager)), 96_445.966754870805870910e18);
-            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), 9_098.091380223968034981e18);
-            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_116.616991112176882818e18);
-
-            // If those balances are redeemed, what's the new AL - should match the 0.05% buffer
-            uint256 newAl = uint256(96_445.966754870805870910e18 - 9_098.091380223968034981e18) * 1e18 / 86_913.308830494366005899e18;
-            assertEq(newAl, 1.005e18);
-        }
-
-        // Set the buffer to zero and check again
-        {
-            lovTokenContracts.lovDsrManager.setRedeemableReservesBufferBps(0);
-            assertEq(lovTokenContracts.lovDsrManager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 86_913.308830494366005899e18);
-            assertEq(lovTokenContracts.lovDsrManager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 86_894.875386824506455812e18);
-            assertEq(lovTokenContracts.lovDsrManager.reservesBalance(), 96_445.966754870805870910e18);
-            assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.109680071471767688e18);
             assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), 9_532.657924376439865011e18);
             assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_551.091368046299415098e18);
+
+            // If those balances are redeemed, what's the new AL - should be back to 1e18
+            uint256 newAl = uint256(96_445.966754870805870910e18 - 9_532.657924376439865011e18) * 1e18 / 86_913.308830494366005899e18;
+            assertEq(newAl, 1e18);
         }
 
         investLovDsr(alice, 1_000e18);
@@ -580,7 +585,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         uint256 amount = 10_000e18;
         uint256 slippage = 20; // 0.2%
         investLovDsr(alice, amount);
-        investOusdc(bob, 100_000e6);
+        investOvUsdc(bob, 100_000e6);
         doRebalanceDown(1.11e18, slippage, slippage);
 
         {
@@ -599,12 +604,12 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             assertEq(lovTokenContracts.lovDsrManager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 73_310.953973853421205217e18);
             assertEq(lovTokenContracts.lovDsrManager.reservesBalance(), 82_860.795804195208057402e18);
             assertEq(externalContracts.sDaiToken.balanceOf(address(lovTokenContracts.lovDsrManager)), 82_860.795804195208057402e18);
-            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), 9_167.657482765927810110e18);
-            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_183.287060472519746158e18);
+            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), 9_534.290011728262537709e18);
+            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_549.841830341786852185e18);
 
-            // If those balances are redeemed, what's the new AL - should match the 0.05% buffer
-            uint256 newAl = uint256(82_860.795804195208057402e18 - 9_167.657482765927810110e18) * 1e18 / 73_326.505792466945519693e18;
-            assertEq(newAl, 1.005e18);
+            // If those balances are redeemed, what's the new AL - should be back to 1e18
+            uint256 newAl = uint256(82_860.795804195208057402e18 - 9_534.290011728262537709e18) * 1e18 / 73_326.505792466945519693e18;
+            assertEq(newAl, 1e18);
         }
 
         {
@@ -621,7 +626,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         uint256 amount = 10_000e18;
         uint256 slippage = 20; // 0.2%
         investLovDsr(alice, amount);
-        investOusdc(bob, 100_000e6);
+        investOvUsdc(bob, 100_000e6);
 
         vm.startPrank(origamiMultisig);
         uint256 targetAL = 1.11e18;
@@ -631,7 +636,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
     }
 
     function test_lovDsr_fail_exit_staleOracle() public {
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         investLovDsr(alice, amount);
@@ -653,7 +658,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         vm.prank(origamiMultisig);
         lovTokenContracts.lovDsrManager.setUserALRange(1.05e18, 1.13e18);
 
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         uint256 aliceBalance = investLovDsr(alice, amount);
@@ -663,12 +668,10 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         assertEq(lovTokenContracts.lovDsr.reservesPerShare(), 1.004817981643824340e18);
 
         // The rebalance down introduces a debt.
-        // We also hold a buffer % back (0.05%), so the reservesPerShare drops
-        // In practice this will be very low.
         doRebalanceDown(1.11e18, 20, 20);
-        assertEq(lovTokenContracts.lovDsr.reservesPerShare(), 0.958169050348988436e18);
-        assertEq(lovTokenContracts.lovDsrManager.sharesToReserves(1e18, IOrigamiOracle.PriceType.HISTORIC_PRICE), 0.958169050348988436e18);
-        assertEq(lovTokenContracts.lovDsrManager.sharesToReserves(1e18, IOrigamiOracle.PriceType.SPOT_PRICE), 0.956221983031232832e18);
+        assertEq(lovTokenContracts.lovDsr.reservesPerShare(), 1.003832908066581368e18);
+        assertEq(lovTokenContracts.lovDsrManager.sharesToReserves(1e18, IOrigamiOracle.PriceType.HISTORIC_PRICE), 1.003832908066581368e18);
+        assertEq(lovTokenContracts.lovDsrManager.sharesToReserves(1e18, IOrigamiOracle.PriceType.SPOT_PRICE), 1.001895527650904150e18);
 
         {
             assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.109680071471767688e18);
@@ -676,8 +679,8 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             assertEq(lovTokenContracts.lovDsrManager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 86_894.875386824506455812e18);
             assertEq(lovTokenContracts.lovDsrManager.reservesBalance(), 96_445.966754870805870909e18);
             assertEq(externalContracts.sDaiToken.balanceOf(address(lovTokenContracts.lovDsrManager)), 96_445.966754870805870909e18);
-            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), 9_098.091380223968034980e18);
-            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_116.616991112176882817e18);
+            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.SPOT_PRICE), 9_532.657924376439865010e18);
+            assertEq(lovTokenContracts.lovDsrManager.userRedeemableReserves(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_551.091368046299415097e18);
         }
 
         vm.warp(block.timestamp + 30 days);
@@ -687,36 +690,44 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             vm.startPrank(origamiMultisig);
             lovTokenContracts.daiUsdOracle = new OrigamiStableChainlinkOracle(
                 origamiMultisig,
-                "DAI/USD",
-                address(externalContracts.daiToken),
-                Constants.DAI_DECIMALS,
-                Constants.INTERNAL_USD_ADDRESS,
-                Constants.USD_DECIMALS,
+                IOrigamiOracle.BaseOracleParams(
+                    "DAI/USD",
+                    address(externalContracts.daiToken),
+                    Constants.DAI_DECIMALS,
+                    Constants.INTERNAL_USD_ADDRESS,
+                    Constants.USD_DECIMALS
+                ),
                 Constants.DAI_USD_HISTORIC_STABLE_PRICE,
                 address(externalContracts.clDaiUsdOracle),
                 1_000 days,
-                Range.Data(Constants.DAI_USD_MIN_THRESHOLD, Constants.DAI_USD_MAX_THRESHOLD)
+                Range.Data(Constants.DAI_USD_MIN_THRESHOLD, Constants.DAI_USD_MAX_THRESHOLD),
+                true // Chainlink does use roundId
             );
             lovTokenContracts.iUsdcUsdOracle = new OrigamiStableChainlinkOracle(
                 origamiMultisig,
-                "IUSDC/USD",
-                address(externalContracts.usdcToken),
-                Constants.IUSDC_DECIMALS,
-                Constants.INTERNAL_USD_ADDRESS,
-                Constants.USD_DECIMALS,
+                IOrigamiOracle.BaseOracleParams(
+                    "IUSDC/USD",
+                    address(externalContracts.usdcToken),
+                    Constants.IUSDC_DECIMALS,
+                    Constants.INTERNAL_USD_ADDRESS,
+                    Constants.USD_DECIMALS
+                ),
                 Constants.USDC_USD_HISTORIC_STABLE_PRICE,
                 address(externalContracts.clUsdcUsdOracle),
                 1_000 days,
-                Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD)
+                Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD),
+                true // Chainlink does use roundId
             );
             lovTokenContracts.daiIUsdcOracle = new OrigamiCrossRateOracle(
-                "DAI/IUSDC",
-                address(externalContracts.daiToken),
+                IOrigamiOracle.BaseOracleParams(
+                    "DAI/IUSDC",
+                    address(externalContracts.daiToken),
+                    Constants.DAI_DECIMALS,
+                    address(externalContracts.usdcToken),
+                    Constants.IUSDC_DECIMALS
+                ),
                 address(lovTokenContracts.daiUsdOracle),
-                Constants.DAI_DECIMALS,
-                address(externalContracts.usdcToken),
-                address(lovTokenContracts.iUsdcUsdOracle),
-                Constants.IUSDC_DECIMALS
+                address(lovTokenContracts.iUsdcUsdOracle)
             );
             lovTokenContracts.lovDsrManager.setOracle(address(lovTokenContracts.daiIUsdcOracle));
         }
@@ -731,7 +742,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             0
         );
 
-        uint256 expectedDai = 4_807.129732213021114492e18;
+        uint256 expectedDai = 5_034.309287327971383876e18;
         uint256 amountOut = lovTokenContracts.lovDsr.exitToToken(quoteData, recipient);
         assertEq(amountOut, expectedDai);
         {
@@ -742,11 +753,11 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             assertEq(externalContracts.daiToken.balanceOf(bob), 0);
             assertEq(externalContracts.daiToken.balanceOf(recipient), amountOut);
 
-            assertEq(externalContracts.sDaiToken.balanceOf(address(lovTokenContracts.lovDsrManager)), 91_868.520795788536414078e18);
-            assertEq(lovTokenContracts.lovDsrManager.reservesBalance(), 91_868.520795788536414078e18);
-            assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.058080262477360285e18);
-            assertEq(lovTokenContracts.lovDsrManager.effectiveExposure(IOrigamiOracle.PriceType.SPOT_PRICE), 18.217553043769395495e18);
-            assertEq(lovTokenContracts.lovDsrManager.effectiveExposure(IOrigamiOracle.PriceType.HISTORIC_PRICE), 18.151270578560024040e18);
+            assertEq(externalContracts.sDaiToken.balanceOf(address(lovTokenContracts.lovDsrManager)), 91_652.195837970452912838e18);
+            assertEq(lovTokenContracts.lovDsrManager.reservesBalance(), 91_652.195837970452912838e18);
+            assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.055588776099155157e18);
+            assertEq(lovTokenContracts.lovDsrManager.effectiveExposure(IOrigamiOracle.PriceType.SPOT_PRICE), 18.989242976248906386e18);
+            assertEq(lovTokenContracts.lovDsrManager.effectiveExposure(IOrigamiOracle.PriceType.HISTORIC_PRICE), 18.917067957752309842e18);
             assertEq(oUsdcContracts.lendingClerk.availableToBorrow(address(lovTokenContracts.lovDsrManager)), 909_110.190001e6);
         }
     }
@@ -755,15 +766,13 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
         vm.prank(origamiMultisig);
         lovTokenContracts.lovDsrManager.setUserALRange(1.05e18, 1.13e18);
 
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         uint256 aliceBalance = investLovDsr(alice, amount);
         investLovDsr(bob, amount);
         
         // The rebalance down introduces a debt.
-        // We also hold a buffer % back (0.05%), so the reservesPerShare drops
-        // In practice this will be very low.
         doRebalanceDown(1.11e18, 20, 20);
         assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.109680071471767688e18);
 
@@ -777,7 +786,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             );
 
             lovTokenContracts.lovDsr.exitToToken(quoteData, alice);
-            assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.057518277043478000e18);
+            assertEq(lovTokenContracts.lovDsrManager.assetToLiabilityRatio(), 1.055026790665272871e18);
         }
 
         vm.startPrank(origamiMultisig);
@@ -792,13 +801,13 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
                 0
             );
 
-            vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooLow.selector, 1.057518277043478000e18, 1.046516356137777911e18, 1.05e18));
+            vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooLow.selector, 1.055026790665272871e18, 1.043499367591346459e18, 1.05e18));
             lovTokenContracts.lovDsr.exitToToken(quoteData, alice);
         }
     }
 
     function test_lovDsr_shutdown() public {
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         uint256 aliceBalance = investLovDsr(alice, amount);
@@ -823,7 +832,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
                 depositAssetsToWithdraw, 
                 reservesAmount, 
                 swapData, 
-                OrigamiMath.subtractBps(minDebtAmountToRepay, slippage),
+                OrigamiMath.subtractBps(minDebtAmountToRepay, slippage, OrigamiMath.Rounding.ROUND_DOWN),
                 0,
                 type(uint128).max
             )
@@ -874,7 +883,7 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
 contract OrigamiLovTokenIntegrationTest_PegControls is OrigamiLovTokenIntegrationTestBase {
 
     function test_lovDsr_rebalanceDown_fail_peg_controls() public {
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         investLovDsr(alice, amount);
@@ -896,7 +905,7 @@ contract OrigamiLovTokenIntegrationTest_PegControls is OrigamiLovTokenIntegratio
     }
 
     function test_lovDsr_invest_fail_peg_controls() public {
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         investLovDsr(alice, amount);
@@ -925,7 +934,7 @@ contract OrigamiLovTokenIntegrationTest_PegControls is OrigamiLovTokenIntegratio
     }
 
     function test_lovDsr_exit_fail_peg_controls() public {
-        investOusdc(bob, 1_000_000e6);
+        investOvUsdc(bob, 1_000_000e6);
 
         uint256 amount = 5_000e18;
         uint256 aliceBalance = investLovDsr(alice, amount);

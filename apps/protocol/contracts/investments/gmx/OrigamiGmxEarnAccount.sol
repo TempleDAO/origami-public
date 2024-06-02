@@ -346,7 +346,10 @@ contract OrigamiGmxEarnAccount is IOrigamiGmxEarnAccount, Initializable, Origami
 
             if (totalEsGmxClaimed != 0) {
                 uint256 esGmxReinvested;
-                (esGmxReinvested, esGmxVesting) = totalEsGmxClaimed.splitSubtractBps(_esGmxVestingRate);
+                (esGmxReinvested, esGmxVesting) = totalEsGmxClaimed.splitSubtractBps(
+                    _esGmxVestingRate, 
+                    OrigamiMath.Rounding.ROUND_DOWN
+                );
 
                 // Vest a portion of esGMX
                 if (esGmxVesting != 0) {

@@ -314,7 +314,7 @@ contract OrigamiLendingClerkTestAdmin is OrigamiLendingClerkTestBase {
             origamiMultisig,
             0.123e18,
             0.789e18,
-            0.5e18,
+            0.75e18,
             0.5e18
         );
 
@@ -350,11 +350,11 @@ contract OrigamiLendingClerkTestAdmin is OrigamiLendingClerkTestBase {
             origamiMultisig,
             0.123e18,
             0.789e18,
-            0.5e18,
+            0.75e18,
             0.5e18
         );
 
-        uint96 expectedIr = 0.731413824755502049e18; // >90% UR, so close to the max
+        uint96 expectedIr = 0.673827649511004098e18; // >90% UR, so close to the max
 
         vm.warp(block.timestamp + 1 days);
 
@@ -576,5 +576,32 @@ contract OrigamiLendingClerkTestAccess is OrigamiLendingClerkTestBase {
         vm.prank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         lendingClerk.withdraw(100e6, alice);
+    }
+
+    function test_access_repay_fail() public {
+        expectElevatedAccess();
+        lendingClerk.repay(100e6, alice);
+    }
+
+    function test_access_repay_success_borrower() public {
+        doDeposit(5_000_000e6);
+        addBorrower(5_000_000e18);
+        vm.startPrank(address(borrower));
+        lendingClerk.borrow(2_000_000e6, address(borrower));
+
+        vm.startPrank(address(borrower));
+        usdcToken.approve(address(lendingClerk), 100e6);
+        lendingClerk.repay(100e6, address(borrower));
+    }
+
+    function test_access_repay_success_elevatedAccess() public {
+        doDeposit(5_000_000e6);
+        addBorrower(5_000_000e18);
+        vm.startPrank(address(borrower));
+        lendingClerk.borrow(2_000_000e6, origamiMultisig);
+
+        vm.startPrank(origamiMultisig);
+        usdcToken.approve(address(lendingClerk), 100e6);
+        lendingClerk.repay(100e6, address(borrower));
     }
 }

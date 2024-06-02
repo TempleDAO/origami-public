@@ -25,7 +25,7 @@ contract DummyIdleStrategy is OrigamiAbstractIdleStrategy {
     }
 
     /**
-     * @notice Allocate any idle funds in this contract, into the underlying protocol
+     * @notice Allocate funds into the underlying protocol
      */
     function allocate(uint256 amount) external override {
         emit Allocated(amount);
@@ -68,7 +68,8 @@ contract DummyIdleStrategy is OrigamiAbstractIdleStrategy {
      */
     function availableToWithdraw() public override view returns (uint256 available) {
         (,available) = totalBalance().splitSubtractBps(
-            availableSplit
+            availableSplit,
+            OrigamiMath.Rounding.ROUND_DOWN
         );
     }
 
@@ -78,5 +79,9 @@ contract DummyIdleStrategy is OrigamiAbstractIdleStrategy {
      */
     function totalBalance() public override view returns (uint256) {
         return asset.balanceOf(address(this));
+    }
+
+    function setAvailableSplit(uint256 split) public {
+        availableSplit = split;
     }
 }

@@ -63,7 +63,7 @@ contract OrigamiMockManager is IOrigamiOTokenManager, OrigamiManagerPausable {
         if (quoteData.investmentTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (quoteData.toToken != address(depositToken)) revert CommonEventsAndErrors.InvalidToken(quoteData.toToken);
 
-        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(sellFeeRate);
+        (uint256 nonFees, uint256 fees) = quoteData.investmentTokenAmount.splitSubtractBps(sellFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         toTokenAmount = nonFees;
 
         if (fees != 0) {
@@ -151,7 +151,7 @@ contract OrigamiMockManager is IOrigamiOTokenManager, OrigamiManagerPausable {
         quoteData.toToken = toToken;
         quoteData.maxSlippageBps = maxSlippageBps;
         quoteData.deadline = deadline;
-        quoteData.expectedToTokenAmount = investmentTokenAmount.subtractBps(_sellFeeRate);
+        quoteData.expectedToTokenAmount = investmentTokenAmount.subtractBps(_sellFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
         quoteData.minToTokenAmount = quoteData.expectedToTokenAmount;
         // No extra underlyingInvestmentQuoteData
 

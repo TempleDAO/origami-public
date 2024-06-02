@@ -15,6 +15,7 @@ import { IOrigamiBorrowAndLend } from "contracts/interfaces/common/borrowAndLend
  */
 interface IOrigamiAaveV3BorrowAndLend is IOrigamiBorrowAndLend {
     event ReferralCodeSet(uint16 code);
+    event AavePoolSet(address indexed pool);
 
     /**
      * @notice Set the Aave/Spark referral code
@@ -30,6 +31,11 @@ interface IOrigamiAaveV3BorrowAndLend is IOrigamiBorrowAndLend {
      * @notice Update the e-mode category for the pool
      */
     function setEModeCategory(uint8 categoryId) external;
+
+    /**
+     * @notice Update the Aave/Spark pool
+     */
+    function setAavePool(address pool) external;
 
     /**
      * @notice The Aave/Spark pool contract

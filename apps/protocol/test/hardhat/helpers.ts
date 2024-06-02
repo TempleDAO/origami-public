@@ -430,7 +430,14 @@ export const testErc20Permit = async (
 export const applySlippage = (
     expectedAmount: BigNumberish, 
     slippageBps: number
-) => BigNumber.from(expectedAmount).mul(10_000 - slippageBps).div(10_000);
+) => {
+  const numerator = BigNumber.from(expectedAmount).mul(10_000 - slippageBps);
+  let answer = numerator.div(10_000);
+  if (!numerator.mod(10_000).isZero()) {
+    answer = answer.add(1);
+  }
+  return answer;
+}
 
 export async function setExplicitAccess(contract: Contract, allowedCaller: string, fnNames: string[], value: boolean) {
   const access: IOrigamiElevatedAccess.ExplicitAccessStruct[] = fnNames.map(fn => {

@@ -7,7 +7,7 @@ export const DEFAULT_SETTINGS = {
     LOV_DSR: {
       LOV_DSR_MIN_DEPOSIT_FEE_BPS: 0, // 0%
       LOV_DSR_MIN_EXIT_FEE_BPS: 50, // 0.5%
-      LOV_DSR_FEE_LEVERAGE_FACTOR: 15, // targetting ~EE of the REBALANCE_AL_FLOOR
+      LOV_DSR_FEE_LEVERAGE_FACTOR: 15e4, // targetting ~EE of the REBALANCE_AL_FLOOR
       LOV_DSR_REDEEMABLE_RESERVES_BUFFER: 0,
       LOV_DSR_PERFORMANCE_FEE_BPS: 500, // 5%
       LOV_DSR_IUSDC_BORROW_CAP: ethers.utils.parseEther((2_000_000).toString()), // 2mm lovDSR/day
@@ -21,6 +21,8 @@ export const DEFAULT_SETTINGS = {
       BORROWER_IR_AT_0_UR: ethers.utils.parseEther("0.04"), // 4%
       BORROWER_IR_AT_KINK: ethers.utils.parseEther("0.04"), // 4%
       BORROWER_IR_AT_100_UR: ethers.utils.parseEther("0.045"), // 4.5%
+
+      INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("10000000"),
     },
 
     /**
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS = {
       GLOBAL_IR_AT_100_UR: ethers.utils.parseEther("0.06"), // 6%
 
       IDLE_STRATEGY_IR: ethers.utils.parseEther("0.05"), // 5%
+      OUSDC_EXIT_FEE_BPS: 10, // 0.1%
       OUSDC_PERFORMANCE_FEE_BPS: 200, // 2%
       OUSDC_CARRY_OVER_BPS: 500, // 5%
       REWARDS_VEST_SECONDS: 2 * 86_400, // 2 days

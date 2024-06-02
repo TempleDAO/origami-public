@@ -21,6 +21,7 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
  */
 interface IOrigamiOracle {
     error InvalidPrice(address oracle, int256 price);
+    error InvalidOracleData(address oracle);
     error StalePrice(address oracle, uint256 lastUpdatedAt, int256 price);
     error UnknownPriceType(uint8 priceType);
     error BelowMinValidRange(address oracle, uint256 price, uint128 floor);
@@ -36,6 +37,17 @@ interface IOrigamiOracle {
         /// It may be a fixed expectation (eg DAI/USD would be fixed to 1)
         /// or use a TWAP or some other moving average, etc.
         HISTORIC_PRICE
+    }
+
+    /**
+     * @dev Wrapped in a struct to remove stack-too-deep constraints
+     */
+    struct BaseOracleParams {
+        string description;
+        address baseAssetAddress;
+        uint8 baseAssetDecimals;
+        address quoteAssetAddress;
+        uint8 quoteAssetDecimals;
     }
 
     /**
@@ -75,7 +87,7 @@ interface IOrigamiOracle {
     ) external view returns (uint256 price);
 
     /**
-     * @notice Same as `latestPrice()` but for two separate prices from this oracle
+     * @notice Same as `latestPrice()` but for two separate prices from this oracle	
      */
     function latestPrices(
         PriceType priceType1, 
@@ -85,8 +97,8 @@ interface IOrigamiOracle {
     ) external view returns (
         uint256 price1, 
         uint256 price2, 
-        address baseAsset,
-        address quoteAsset
+        address oracleBaseAsset,
+        address oracleQuoteAsset
     );
 
     /**
@@ -100,4 +112,9 @@ interface IOrigamiOracle {
         PriceType priceType,
         OrigamiMath.Rounding roundingMode
     ) external view returns (uint256 toAssetAmount);
+
+    /**
+     * @notice Match whether a pair of assets match the base and quote asset on this oracle, in either order
+     */
+    function matchAssets(address asset1, address asset2) external view returns (bool);
 }

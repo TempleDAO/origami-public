@@ -2,12 +2,12 @@ pragma solidity 0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/lovToken/managers/OrigamiAbstractLovTokenManager.sol)
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
 import { IOrigamiLovTokenManager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenManager.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
+import { IOrigamiLovToken } from "contracts/interfaces/investments/lovToken/IOrigamiLovToken.sol";
 
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
@@ -15,6 +15,7 @@ import { OrigamiManagerPausable } from "contracts/investments/util/OrigamiManage
 import { Range } from "contracts/libraries/Range.sol";
 import { Whitelisted } from "contracts/common/access/Whitelisted.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
+import { DynamicFees } from "contracts/libraries/DynamicFees.sol";
 
 /**
  * @title Abstract Origami lovToken Manager
@@ -28,7 +29,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
     /**
      * @notice lovToken contract - eg lovDSR
      */
-    IERC20 public immutable override lovToken;
+    IOrigamiLovToken public immutable override lovToken;
 
     /**
      * @notice The minimum fee (in basis points) when users deposit into from the lovToken. 
@@ -47,15 +48,9 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
      * @notice The nominal leverage factor applied to the difference between the
      * oracle SPOT_PRICE vs the HISTORIC_PRICE. Used within the fee calculation.
      * eg: depositFee = 15 * (HISTORIC_PRICE - SPOT_PRICE) [when spot < historic]
+     * @dev feeLeverageFactor has 4dp precision
      */
     uint64 internal _feeLeverageFactor;
-
-    /**
-     * @notice A buffer added to the amount of debt (in the reserveToken terms)
-     * held back from user redeemable reserves, in order to protect from bad debt.
-     * @dev stored as 1+buffer% in basis points
-     */
-    uint64 public override redeemableReservesBufferBps;
 
     /**
      * @notice The valid lower and upper bounds of A/L allowed when users deposit/exit into lovToken
@@ -98,18 +93,18 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         address _initialOwner,
         address _lovToken
     ) OrigamiElevatedAccess(_initialOwner) {
-        lovToken = IERC20(_lovToken);
-        redeemableReservesBufferBps = uint64(OrigamiMath.BASIS_POINTS_DIVISOR);
+        lovToken = IOrigamiLovToken(_lovToken);
     }
 
     /**
      * @notice Set the minimum fee (in basis points) of lovToken's for deposit and exit,
      * and also the nominal leverage factor applied within the fee calculations
+     * @dev feeLeverageFactor has 4dp precision
      */
     function setFeeConfig(
         uint16 minDepositFeeBps, 
         uint16 minExitFeeBps, 
-        uint16 feeLeverageFactor
+        uint24 feeLeverageFactor
     ) external override onlyElevatedAccess {
         if (minDepositFeeBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
         if (minExitFeeBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
@@ -121,25 +116,10 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
 
     /**
      * @notice The min deposit/exit fee and feeLeverageFactor configuration
+     * @dev feeLeverageFactor has 4dp precision
      */
     function getFeeConfig() external override view returns (uint64, uint64, uint64) {
         return (_minDepositFeeBps, _minExitFeeBps, _feeLeverageFactor);
-    }
-
-    /**
-     * @notice Set the amount of reserves buffer that is held proportionate to the debt
-     * @dev represented in basis points
-     * Since this will change the lovToken share price, it should be executed with a private mempool
-     * or it could get front run
-     */
-    function setRedeemableReservesBufferBps(uint16 buffer) external override onlyElevatedAccess {
-        if (buffer > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
-
-        // Set to 100+buffer% now to save the addition later.
-        buffer += uint16(OrigamiMath.BASIS_POINTS_DIVISOR);
-        emit RedeemableReservesBufferSet(buffer);
-
-        redeemableReservesBufferBps = buffer;
     }
 
     /**
@@ -199,7 +179,10 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // The number of shares is calculated based off this `newReservesAmount`
         // However not all of these shares are minted and given to the user -- the deposit fee is removed
         investmentAmount = _reservesToShares(cache, newReservesAmount);
-        investmentAmount = investmentAmount.subtractBps(_dynamicDepositFeeBps());
+        uint256 feeAmount;
+        uint256 feeBps = _dynamicDepositFeeBps();
+        (investmentAmount, feeAmount) = investmentAmount.splitSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_DOWN);
+        emit InKindFees(DynamicFees.FeeType.DEPOSIT_FEE, feeBps, feeAmount);
 
         // Verify the amount
         if (investmentAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -211,13 +194,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // This needs to be validated so it doesn't go above the ceiling
         // Not required if there are not yet any liabilities (where A/L would be uint128.max)
         if (cache.liabilities != 0) {
-            // Need to recalculate the assets in the cache
-            cache.assets = reservesBalance();
-
-            // The underlying debt (in reserveToken terms) may have changed as more was deposited into reserves
-            cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
-
-            uint128 newAL = _assetToLiabilityRatio(cache);
+            uint128 newAL = refreshCacheAL(cache, IOrigamiOracle.PriceType.SPOT_PRICE);
             _validateALRatio(userALRange, oldAL, newAL, AlValidationMode.HIGHER_THAN_BEFORE);
         }
     }
@@ -247,7 +224,9 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // The entire amount of lovTokens will be burned
         // But only the non-fee portion is redeemed to reserves and sent to the user
         toBurnAmount = quoteData.investmentTokenAmount;
-        uint256 reservesAmount = toBurnAmount.subtractBps(_dynamicExitFeeBps());
+        uint256 feeBps = _dynamicExitFeeBps();
+        (uint256 reservesAmount, uint256 feeAmount) = toBurnAmount.splitSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_DOWN);
+        emit InKindFees(DynamicFees.FeeType.EXIT_FEE, feeBps, feeAmount);
 
         // Given the number of redeemable lovToken's calculate how many reserves this equates to
         // at the current share price and the reserve supply prior to exiting
@@ -263,13 +242,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // This needs to be validated so it doesn't go below the floor
         // Not required if there are not yet any liabilities (where A/L would be uint128.max)
         if (cache.liabilities != 0) {
-            // Need to recalculate the assets in the cache
-            cache.assets = reservesBalance();
-
-            // The underlying debt (in reserveToken terms) may have changed as more was redeemed from reserves
-            cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
-
-            uint128 newAL = _assetToLiabilityRatio(cache);
+            uint128 newAL = refreshCacheAL(cache, IOrigamiOracle.PriceType.SPOT_PRICE);
             _validateALRatio(userALRange, oldAL, newAL, AlValidationMode.LOWER_THAN_BEFORE);
         }
     }
@@ -301,14 +274,14 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // However not all of these shares are minted and given to the user -- the deposit fee is removed
         uint256 _investmentAmount = _reservesToShares(cache, _newReservesAmount);
         uint256 _depositFeeRate = _dynamicDepositFeeBps();
-        _investmentAmount = _investmentAmount.subtractBps(_depositFeeRate);
+        _investmentAmount = _investmentAmount.subtractBps(_depositFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
 
         quoteData.fromToken = fromToken;
         quoteData.fromTokenAmount = fromTokenAmount;
         quoteData.maxSlippageBps = maxSlippageBps;
         quoteData.deadline = deadline;
         quoteData.expectedInvestmentAmount = _investmentAmount;
-        quoteData.minInvestmentAmount = _investmentAmount.subtractBps(maxSlippageBps);
+        quoteData.minInvestmentAmount = _investmentAmount.subtractBps(maxSlippageBps, OrigamiMath.Rounding.ROUND_UP);
         // quoteData.underlyingInvestmentQuoteData remains as bytes(0)
 
         investFeeBps = new uint256[](1);
@@ -322,28 +295,28 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
      *    2/ Any other constraints of the underlying implementation
      */
     function maxInvest(address fromToken) external override view returns (uint256 fromTokenAmount) {
+        Cache memory cache = populateCache(IOrigamiOracle.PriceType.SPOT_PRICE);
+
         // First get the underlying implementation's max allowed
         fromTokenAmount = _maxDepositIntoReserves(fromToken);
 
-        // Also bound by the max amount of reserves which can be added before the A/L ceiling is hit
-        uint256 _maxReserves = _maxUserReserves(IOrigamiOracle.PriceType.SPOT_PRICE);
-        if (_maxReserves < MAX_TOKEN_AMOUNT) {
-            uint256 _currentReserves = reservesBalance();
-            uint256 _remainingCapacity;
+        // Use the minimum number of reserves from both the lovToken.maxTotalSupply and userAL.ceiling restrictions
+        uint256 _minRemainingCapacity = _reservesCapacityFromTotalSupply(cache);
+        uint256 _remainingCapacityForAlCeiling = _reservesCapacityFromAlCeiling(cache);
 
-            if (_maxReserves > _currentReserves) {
-                unchecked {
-                    _remainingCapacity = _maxReserves - _currentReserves;
-                }
-                // Convert to the fromToken. Use previewMint as this amount of fromToken's
-                // should return the exact shares when invested
-                _remainingCapacity = _previewMintReserves(fromToken, _remainingCapacity);
-            }
+        if (_remainingCapacityForAlCeiling < _minRemainingCapacity) {
+            _minRemainingCapacity = _remainingCapacityForAlCeiling;
+        }
 
-            // Finally, use the minimum of the underlying implementation's max allowed, and this A/L capped max amount
-            if (_remainingCapacity < fromTokenAmount) {
-                fromTokenAmount = _remainingCapacity;
-            }
+        // Convert to the fromToken. Use previewMint as this amount of fromToken's
+        // should return the exact shares when invested
+        if (_minRemainingCapacity < type(uint256).max) {
+            _minRemainingCapacity = _previewMintReserves(fromToken, _minRemainingCapacity);
+        }
+
+        // Finally, use this remaining capcity if it's less than the underlying implementation's max allowed of fromToken
+        if (_minRemainingCapacity < fromTokenAmount) {
+            fromTokenAmount = _minRemainingCapacity;
         }
     }
 
@@ -369,7 +342,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
 
         // Exit fees are taken from the lovToken amount, so get the non-fee amount to actually exit
         uint256 _exitFeeRate = _dynamicExitFeeBps();
-        uint256 toExitAmount = investmentAmount.subtractBps(_exitFeeRate);
+        uint256 toExitAmount = investmentAmount.subtractBps(_exitFeeRate, OrigamiMath.Rounding.ROUND_DOWN);
 
         Cache memory cache = populateCache(IOrigamiOracle.PriceType.SPOT_PRICE);
 
@@ -385,7 +358,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         quoteData.maxSlippageBps = maxSlippageBps;
         quoteData.deadline = deadline;
         quoteData.expectedToTokenAmount = toExitAmount;
-        quoteData.minToTokenAmount = toExitAmount.subtractBps(maxSlippageBps);
+        quoteData.minToTokenAmount = toExitAmount.subtractBps(maxSlippageBps, OrigamiMath.Rounding.ROUND_UP);
         // quoteData.underlyingInvestmentQuoteData remains as bytes(0)
 
         exitFeeBps = new uint256[](1);
@@ -432,7 +405,8 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
 
             // Since exit fees are taken when exiting (so these reserves aren't actually redeemed),
             // reverse out the fees
-            sharesAmount = sharesAmount.inverseSubtractBps(_dynamicExitFeeBps());
+            // Round down to be the inverse of when they're applied (and rounded up) when exiting
+            sharesAmount = sharesAmount.inverseSubtractBps(_dynamicExitFeeBps(), OrigamiMath.Rounding.ROUND_DOWN);
 
             // Finally use the min of the derived amount and the lovToken total supply
             if (sharesAmount > cache.totalSupply) {
@@ -535,9 +509,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
 
     /**
      * @notice The amount of reserves that users may redeem their lovTokens as of this block
-     * A small buffer amount is added to the current debt to protect from variations in
-     * debt calculation
-     * @dev = reserves - (1 + buffer%) * liabilities
+     * @dev = reserves - liabilities
      * Use the Oracle `debtPriceType` to value any debt in terms of the reserve token
      */
     function userRedeemableReserves(IOrigamiOracle.PriceType debtPriceType) external override view returns (uint256) {
@@ -575,6 +547,12 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         cache.totalSupply = lovToken.totalSupply();
     }
 
+    function refreshCacheAL(Cache memory cache, IOrigamiOracle.PriceType debtPriceType) internal view returns (uint128) {
+        cache.assets = reservesBalance();
+        cache.liabilities = liabilities(debtPriceType);
+        return _assetToLiabilityRatio(cache);
+    }
+
     /**
      * @notice The current deposit fee based on market conditions.
      * Deposit fees are applied to the portion of lovToken shares the depositor 
@@ -600,20 +578,10 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
      */
     function _validateAlRange(Range.Data storage range) internal virtual view {}
 
-    function _userRedeemableReserves(Cache memory cache) internal view returns (uint256) {
-        // Round up for liabilities with buffer
-        uint256 _bufferBps = redeemableReservesBufferBps;
-        uint256 _liabilitiesWithBuffer = _bufferBps == OrigamiMath.BASIS_POINTS_DIVISOR
-            ? cache.liabilities
-            : cache.liabilities.mulDiv(
-                _bufferBps, 
-                OrigamiMath.BASIS_POINTS_DIVISOR,
-                OrigamiMath.Rounding.ROUND_UP
-            );
-
+    function _userRedeemableReserves(Cache memory cache) internal pure returns (uint256) {
         unchecked {
-            return cache.assets > _liabilitiesWithBuffer
-                ? cache.assets - _liabilitiesWithBuffer
+            return cache.assets > cache.liabilities
+                ? cache.assets - cache.liabilities
                 : 0;
         }
     }
@@ -704,13 +672,6 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
     function _maxRedeemFromReserves(address toToken) internal virtual view returns (uint256 reservesAmount);
 
     /**
-     * @notice Calculate the max number of reserves allowed before the user debt ceiling is hit, 
-     * taking into consideration any current liabiltiies
-     * @dev Use the Oracle `debtPriceType` to value any debt in terms of the reserve token
-     */
-    function _maxUserReserves(IOrigamiOracle.PriceType debtPriceType) internal virtual view returns (uint256 reservesAmount);
-
-    /**
      * @notice Validate that the A/L ratio hasn't moved beyond the given A/L range.
      */
     function _validateALRatio(Range.Data storage validRange, uint128 ratioBefore, uint128 ratioAfter, AlValidationMode alMode) internal virtual {
@@ -733,6 +694,83 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
             // fluctuating
             if (ratioAfter > validRange.ceiling) revert ALTooHigh(ratioBefore, ratioAfter, validRange.ceiling);
         }
+    }
+
+    /**
+     * @dev Recalculate the A/L and validate that it is still within the `rebalanceALRange`
+     */
+    function _validateAfterRebalance(
+        Cache memory cache, 
+        uint128 alRatioBefore, 
+        uint128 minNewAL, 
+        uint128 maxNewAL,
+        AlValidationMode alValidationMode,
+        bool force
+    ) internal returns (uint128 alRatioAfter) {
+        // Need to recalculate both the assets and liabilities in the cache
+        alRatioAfter = refreshCacheAL(cache, IOrigamiOracle.PriceType.SPOT_PRICE);
+
+        // Ensure the A/L is within the expected slippage range
+        {
+            if (alRatioAfter < minNewAL) revert ALTooLow(alRatioBefore, alRatioAfter, minNewAL);
+            if (alRatioAfter > maxNewAL) revert ALTooHigh(alRatioBefore, alRatioAfter, maxNewAL);
+        }
+
+        if (!force)
+            _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, alValidationMode);
+    }
+
+    /**
+     * @dev Calculate the free capacity for new reserves, given the lovToken maxTotalSupply restriction
+     */
+    function _reservesCapacityFromTotalSupply(Cache memory cache) internal view returns (uint256) {
+        uint256 _maxTotalSupply = lovToken.maxTotalSupply();
+
+        if (_maxTotalSupply == type(uint256).max) {
+            return type(uint256).max;
+        }
+
+        // Number of lovToken shares available
+        uint256 _availableShares;
+        unchecked {
+            _availableShares = _maxTotalSupply > cache.totalSupply
+                ? _maxTotalSupply - cache.totalSupply
+                : 0;
+        }
+
+        // Take deposit fees into account
+        // Round down to be the inverse of when they're applied when depositing
+        _availableShares = _availableShares.inverseSubtractBps(_dynamicDepositFeeBps(), OrigamiMath.Rounding.ROUND_DOWN);
+
+        // Convert to reserve tokens
+        return _sharesToReserves(cache, _availableShares);
+    }
+
+    /**
+     * @dev Calculate the free capacity for new reserves, given the A/L ceiling restriction
+     */
+    function _reservesCapacityFromAlCeiling(Cache memory cache) internal view returns (uint256) {
+        if (cache.liabilities == 0) {
+            return type(uint256).max;
+        }
+
+        // This is ever so slightly conservative, as it calculates maxReserves which would result in
+        // an A/L strictly less than (<) the `userALRange.ceiling`, rather than exacly less-than-or-equal (<=)
+        // This is intentional to provide a slightly more conservative max amount which can be deposited.
+        // To get it exact, the userALRange.ceiling would need to be incremented by 1 (if not already type(uint128).max)
+        uint256 _maxReservesForAlCeiling = cache.liabilities.mulDiv(
+            userALRange.ceiling,
+            PRECISION, 
+            OrigamiMath.Rounding.ROUND_DOWN
+        );
+
+        if (_maxReservesForAlCeiling > cache.assets) {
+            unchecked {
+                return _maxReservesForAlCeiling - cache.assets;
+            }
+        }
+
+        return 0;
     }
 
     modifier onlyLovToken() {

@@ -133,7 +133,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
      */
     function supply(
         uint256 supplyAmount
-    ) external override onlyPositionOwner {
+    ) external override onlyPositionOwnerOrElevated {
         _supply(supplyAmount);
     }
 
@@ -143,7 +143,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
     function withdraw(
         uint256 withdrawAmount, 
         address recipient
-    ) external override onlyPositionOwner returns (uint256 amountWithdrawn) {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 amountWithdrawn) {
         amountWithdrawn = _withdraw(withdrawAmount, recipient);
     }
 
@@ -153,7 +153,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
     function borrow(
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwner {
+    ) external override onlyPositionOwnerOrElevated {
         _borrow(borrowAmount, recipient);
     }
 
@@ -164,7 +164,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
      */
     function repay(
         uint256 repayAmount
-    ) external override onlyPositionOwner returns (uint256 debtRepaidAmount) {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 debtRepaidAmount) {
         debtRepaidAmount = _repay(repayAmount);
     }
 
@@ -177,7 +177,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         uint256 repayAmount, 
         uint256 withdrawAmount, 
         address recipient
-    ) external override onlyPositionOwner returns (uint256 debtRepaidAmount, uint256 withdrawnAmount) {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 debtRepaidAmount, uint256 withdrawnAmount) {
         debtRepaidAmount = _repay(repayAmount);
         withdrawnAmount = _withdraw(withdrawAmount, recipient);
     }
@@ -189,24 +189,14 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         uint256 supplyAmount, 
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwner {
+    ) external override onlyPositionOwnerOrElevated {
         _supply(supplyAmount);
         _borrow(borrowAmount, recipient);
     }
 
-    /**
-     * @notice Reclaim surplus borrowToken
-     * @dev Only callable if the Aave/Spark debt balance is zero
-     */
-    function reclaimSurplusDebt(uint256 amount, address recipient) external override onlyPositionOwner {
-        uint256 _bal = debtBalance();
-        if (_bal != 0) revert CommonEventsAndErrors.InvalidAmount(borrowToken, _bal);
-        IERC20(borrowToken).safeTransfer(recipient, amount);
-        emit SurplusDebtReclaimed(amount, recipient);
-    }
-
-    function recoverToken(address token, address /*to*/, uint256 /*amount*/) external view onlyElevatedAccess {       
-        revert CommonEventsAndErrors.InvalidToken(token);
+    function recoverToken(address token, address to, uint256 amount) external onlyElevatedAccess {       
+        emit CommonEventsAndErrors.TokenRecovered(to, token, amount);
+        IERC20(token).safeTransfer(to, amount);
     }
     
     /**
@@ -229,15 +219,25 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
      */
     function isSafeAlRatio(uint256 alRatio) external override view returns (bool) {
         // Convert the Aave LTV to A/L (with 1e18 precision) and compare
-        return alRatio <= LTV_TO_AL_FACTOR / maxLtvBps;
+        unchecked {
+            return alRatio >= LTV_TO_AL_FACTOR / maxLtvBps;
+        }
     }
 
     /**
      * @notice How many `supplyToken` are available to withdraw from collateral
-     * from the entire protocol
+     * from the entire protocol, assuming this contract has fully paid down its debt
      */
     function availableToWithdraw() external override view returns (uint256) {
         return IERC20(supplyToken).balanceOf(address(escrow));
+    }
+
+    /**
+     * @notice How many `borrowToken` are available to borrow
+     * from the entire protocol
+     */
+    function availableToBorrow() external override view returns (uint256) {
+        return IERC20(borrowToken).balanceOf(address(escrow));
     }
 
     /**
@@ -245,12 +245,21 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
      */
     function availableToSupply() external override view returns (
         uint256 _supplyCap,
-        uint256 utilised,
         uint256 available
     ) {
         _supplyCap = supplyCap;
-        utilised = IERC20(supplyToken).balanceOf(address(escrow));
-        available = _supplyCap - utilised;
+        uint256 _utilised = IERC20(supplyToken).balanceOf(address(escrow));
+        unchecked {
+            available = _supplyCap > _utilised ? _supplyCap - _utilised : 0;
+        }
+    }
+
+    function getSupplyCache() external view returns (AccumulatorData memory c) {
+        (c,) = _getCache(supplyAccumulatorData);
+    }
+
+    function getBorrowCache() external view returns (AccumulatorData memory c) {
+        (c,) = _getCache(borrowAccumulatorData);
     }
 
     function _getCache(AccumulatorData storage data) internal view returns (AccumulatorData memory cache, bool dirty) {
@@ -302,6 +311,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
 
     function _checkLtv(uint256 supplyBal, uint256 debtBal) internal view {
         if (debtBal == 0) return;
+        if (supplyBal == 0) revert ExceededLtv(type(uint256).max, maxLtvBps);
 
         // Convert the supplied amount (eg wstETH) into the debt terms (eg wETH)
         uint256 suppliedAsDebt = oracle.convertAmount(
@@ -329,7 +339,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
 
     function _withdraw(uint256 withdrawAmount, address recipient) internal returns (uint256 amountWithdrawn) {
         uint256 newSupplyBalance = _checkpoint(supplyAccumulatorData);
-        amountWithdrawn = withdrawAmount == type(uint256).max ? newSupplyBalance : withdrawAmount;
+        amountWithdrawn = withdrawAmount > newSupplyBalance ? newSupplyBalance : withdrawAmount;
 
         newSupplyBalance -= amountWithdrawn;
         supplyAccumulatorData.checkpoint = newSupplyBalance;
@@ -360,9 +370,11 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         IERC20(borrowToken).safeTransfer(address(escrow), debtRepaidAmount);
     }
 
-    modifier onlyPositionOwner() {
-        if (msg.sender != address(positionOwner)) revert CommonEventsAndErrors.InvalidAccess();
+    /**
+     * @dev Only the positionOwner or Elevated Access is allowed to call.
+     */
+    modifier onlyPositionOwnerOrElevated() {
+        if (msg.sender != address(positionOwner) && !isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
         _;
     }
-
 }
