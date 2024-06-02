@@ -462,3 +462,58 @@ contract OrigamiLovStEthIntegrationTest_PriceDeviationAttacks_C is OrigamiLovStE
         run(true);  
     }
 }
+
+
+/// Attacker max invests when stETH/ETH oracle and dex price = $1
+/// Oracle remains at 1, dex price drops to 0.995
+/// Attacker exits all (needs multiple rebalances to do this)
+///
+/// RESULT: Attacker loses funds, vault share price increases.
+contract OrigamiLovStEthIntegrationTest_PriceDeviationAttacks_D is OrigamiLovStEthIntegrationTest_PriceDeviationAttacksBase {
+    uint256 public constant SWAP_SLIPPAGE = 30; // 0.3%
+    uint256 public constant AL_SLIPPAGE = 10; // 0.1%
+
+    function run(uint256 oraclePriceAtInvest, uint256 dexPriceAtInvest) internal {
+        bootstrap();
+
+        // Set both the oracle and the dex price to be 0.995
+        vm.mockCall(
+            address(externalContracts.clStEthToEthOracle),
+            abi.encodeWithSelector(IAggregatorV3Interface.latestRoundData.selector),
+            abi.encode(921, 0.995e18, 1708008239, 1708008239, 921)
+        );
+        uint256 dexPrice = 0.995e18;
+
+        // Rebalance to a very low A/L, simulating users existing. This means
+        // there's a larger amount which is free, which allows the attacker to 
+        // deposit a larger amount
+        doRebalance(1.113e18, SWAP_SLIPPAGE, AL_SLIPPAGE, dexPrice);
+        logLovTokenMetrics();
+
+        vm.mockCall(
+            address(externalContracts.clStEthToEthOracle),
+            abi.encodeWithSelector(IAggregatorV3Interface.latestRoundData.selector),
+            abi.encode(921, oraclePriceAtInvest, 1708008239, 1708008239, 921)
+        );
+        dexPrice = dexPriceAtInvest;
+
+        // Attacker max invests
+        address attacker = makeAddr("attacker");
+        uint256 depositAmount = lovTokenContracts.lovStEth.maxInvest(address(externalContracts.wstEthToken));
+        console.log("\tattacker invested [wstETH]:", depositAmount);
+        uint256 attackerBalance = investLovStEth(attacker, depositAmount);
+        console.log("\tattacker balance [lovStEth]:", attackerBalance);
+
+        console.log("-----------------------------------------------");
+        logLovTokenMetrics();
+    }
+
+    function test_PriceDeviationAttacks_d_noAttack() public {
+        run(0.995e18, 0.995e18);
+    }
+
+    function test_PriceDeviationAttacks_d_withAttack() public {
+        // dexPrice movs up 0.48%, chainlink price is still 0.995e18;
+        run(0.999975e18, 0.999975e18);  
+    }
+}
