@@ -49,11 +49,18 @@ contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
      */
     bool public immutable validateRoundId;
 
+    /**
+     * @notice When using Origami 'chainlink-like' oracle interfaces, the lastUpdatedAt
+     * returned may be unused, and so validation isn't required in that case.
+     */
+    bool public immutable validateLastUpdatedAt;
+
     constructor (
         BaseOracleParams memory baseParams,
         address _priceOracle,
         uint128 _priceStalenessThreshold,
-        bool _validateRoundId
+        bool _validateRoundId,
+        bool _validateLastUpdatedAt
     )
         OrigamiOracleBase(baseParams)
     {
@@ -64,6 +71,7 @@ contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
             decimals
         );
         validateRoundId = _validateRoundId;
+        validateLastUpdatedAt = _validateLastUpdatedAt;
     }
 
     /**
@@ -81,7 +89,8 @@ contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
                 pricePrecisionScaleDown, 
                 pricePrecisionScalar,
                 priceStalenessThreshold, 
-                validateRoundId
+                validateRoundId,
+                validateLastUpdatedAt
             ),
             roundingMode
         );

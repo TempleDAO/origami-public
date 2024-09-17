@@ -33,7 +33,8 @@ async function main() {
       floor: DEFAULT_SETTINGS.ORACLES.USDE_DAI.MIN_THRESHOLD,
       ceiling: DEFAULT_SETTINGS.ORACLES.USDE_DAI.MAX_THRESHOLD
     },
-    false // Redstone does not use roundId
+    false, // Redstone does not use roundId
+    true  // It does use the lastUpdatedAt
   );
 }
 

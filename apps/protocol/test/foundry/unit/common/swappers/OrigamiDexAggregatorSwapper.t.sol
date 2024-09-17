@@ -6,6 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
 import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
+import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
 /* solhint-disable func-name-mixedcase, contract-name-camelcase, not-rely-on-time */
 contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
@@ -17,15 +18,23 @@ contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
     IERC20 public constant SDAI = IERC20(0x83F20F44975D03b1b09e64809B757c47f942BEeA);
 
     event Swap(address indexed sellToken, uint256 sellTokenAmount, address indexed buyToken, uint256 buyTokenAmount);
+    event RouterWhitelisted(address indexed router, bool allowed);
 
     function setUp() public {
         fork("mainnet", 18725488);
-        swapper = new OrigamiDexAggregatorSwapper(origamiMultisig, router);
+        swapper = new OrigamiDexAggregatorSwapper(origamiMultisig);
+
+        vm.prank(origamiMultisig);
+        swapper.whitelistRouter(router, true);
     }
 
     function test_initialization() public {
         assertEq(swapper.owner(), origamiMultisig);
-        assertEq(swapper.router(), router);
+    }
+
+    function test_access_whitelistRouter() public {
+        expectElevatedAccess();
+        swapper.whitelistRouter(alice, true);
     }
 
     function test_access_recoverToken() public {
@@ -33,8 +42,30 @@ contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
         swapper.recoverToken(alice, alice, 100e18);
     }
 
+    function test_whitelistRouter() public {
+        vm.startPrank(origamiMultisig);
+        assertEq(swapper.whitelistedRouters(alice), false);
+
+        vm.expectEmit(address(swapper));
+        emit RouterWhitelisted(alice, true);
+        swapper.whitelistRouter(alice, true);
+        assertEq(swapper.whitelistedRouters(alice), true);
+
+        vm.expectEmit(address(swapper));
+        emit RouterWhitelisted(alice, false);
+        swapper.whitelistRouter(alice, false);
+        assertEq(swapper.whitelistedRouters(alice), false);
+    }
+
     function test_recoverToken() public {
         check_recoverToken(address(swapper));
+    }
+
+    function encode(bytes memory data) internal pure returns (bytes memory) {
+        return abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+            router: router,
+            data: data
+        }));
     }
 
     function getQuoteData() internal pure returns (bytes memory) {
@@ -66,6 +97,24 @@ curl -X GET \
         return hex"e449022e00000000000000000000000000000000000000000000003635c9adc5dea00000000000000000000000000000000000000000000000000000000000003b4d08c6000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000005777d92f208679db4b9778590fa3cab3ac9e21688b1ccac8";
     }
 
+    function test_execute_fail_invalidRouter() public {
+        bytes memory data = getQuoteData();
+
+        uint256 sellTokenAmount = 1_000e18;
+        vm.startPrank(alice);
+        deal(address(DAI), alice, sellTokenAmount, true);
+        DAI.approve(address(swapper), sellTokenAmount);
+
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidRouter.selector, alice));        
+        swapper.execute(
+            DAI, sellTokenAmount, USDC, 
+            abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+                router: alice,
+                data: data
+            }))
+        );
+    }
+
     function test_execute_success() public {
         bytes memory data = getQuoteData();
 
@@ -77,7 +126,7 @@ curl -X GET \
         uint256 expectedBuyTokenAmount = 999.903956e6;
         vm.expectEmit(address(swapper));
         emit Swap(address(DAI), sellTokenAmount, address(USDC), expectedBuyTokenAmount);
-        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, data);
+        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
 
         assertEq(buyTokenAmount, expectedBuyTokenAmount);
         assertEq(DAI.balanceOf(alice), 0);
@@ -96,7 +145,19 @@ curl -X GET \
         DAI.approve(address(swapper), sellTokenAmount);
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
-        swapper.execute(DAI, sellTokenAmount, USDC, data);
+        swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
+    }
+
+    function test_execute_fail_zeroSellAmount() public {
+        bytes memory data = getQuoteData();
+
+        uint256 sellTokenAmount = 0;
+        vm.startPrank(alice);
+        deal(address(DAI), alice, sellTokenAmount, true);
+        DAI.approve(address(swapper), sellTokenAmount);
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 
     function test_execute_fail_badBalance() public {
@@ -110,7 +171,7 @@ curl -X GET \
         // Swap expecting a different token (sDAI) vs what the swap data say
         // to swap to
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
-        swapper.execute(DAI, sellTokenAmount, SDAI, data);
+        swapper.execute(DAI, sellTokenAmount, SDAI, encode(data));
     }
 
     function test_execute_success_donateBuyToken() public {
@@ -128,7 +189,7 @@ curl -X GET \
         uint256 expectedBuyTokenAmount = 999.903956e6;
         vm.expectEmit(address(swapper));
         emit Swap(address(DAI), sellTokenAmount, address(USDC), expectedBuyTokenAmount);
-        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, data);
+        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
 
         assertEq(buyTokenAmount, expectedBuyTokenAmount);
         assertEq(DAI.balanceOf(alice), 0);
@@ -153,7 +214,7 @@ curl -X GET \
         uint256 expectedBuyTokenAmount = 999.903956e6;
         vm.expectEmit(address(swapper));
         emit Swap(address(DAI), sellTokenAmount, address(USDC), expectedBuyTokenAmount);
-        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, data);
+        uint256 buyTokenAmount = swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
 
         assertEq(buyTokenAmount, expectedBuyTokenAmount);
         assertEq(DAI.balanceOf(alice), 0);
@@ -173,7 +234,7 @@ curl -X GET \
         // 1 less for approvals
         DAI.approve(address(swapper), sellTokenAmount-1);
         vm.expectRevert("Dai/insufficient-allowance");
-        swapper.execute(DAI, sellTokenAmount, USDC, data);
+        swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 
     function test_execute_failure_balance() public {
@@ -186,7 +247,7 @@ curl -X GET \
         // The underlying quote is to swap for more than this amount
         DAI.approve(address(swapper), sellTokenAmount);
         vm.expectRevert("Dai/insufficient-balance");
-        swapper.execute(DAI, sellTokenAmount, USDC, data);
+        swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 
     function test_execute_failure_customError() public {
@@ -199,12 +260,10 @@ curl -X GET \
         DAI.approve(address(swapper), sellTokenAmount);
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.UnknownSwapError.selector, ""));
-        swapper.execute(DAI, sellTokenAmount, USDC, data);
+        swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 
     function test_execute_failure_unknownError() public {
-        // Set the proxy to another contract (DAI) to force an unknown error from the `call()`
-        swapper = new OrigamiDexAggregatorSwapper(origamiMultisig, address(DAI));
         bytes memory data = hex"12345678";
 
         uint256 sellTokenAmount = 1_000e18;
@@ -213,6 +272,6 @@ curl -X GET \
         DAI.approve(address(swapper), sellTokenAmount);
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.UnknownSwapError.selector, ""));
-        swapper.execute(DAI, sellTokenAmount, USDC, data);
+        swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 }

@@ -6,6 +6,7 @@ import { OrigamiVolatileChainlinkOracle } from "contracts/common/oracle/OrigamiV
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 import { DummyOracle } from "contracts/test/common/DummyOracle.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
+import { IAggregatorV3Interface } from "contracts/interfaces/external/chainlink/IAggregatorV3Interface.sol";
 
 /* solhint-disable func-name-mixedcase, contract-name-camelcase, not-rely-on-time */
 contract OrigamiVolatileChainlinkOracleTestBase is OrigamiTest {
@@ -45,6 +46,7 @@ contract OrigamiVolatileChainlinkOracleTestBase is OrigamiTest {
             ),
             address(oracle1),
             100 days,
+            true,
             true
         );
         vm.stopPrank();
@@ -64,6 +66,8 @@ contract OrigamiVolatileChainlinkOracleTestInit is OrigamiVolatileChainlinkOracl
         assertEq(oOracle1.pricePrecisionScalar(), uint128(1e10)); // 10 ** (18 - 8)
         assertEq(oOracle1.priceStalenessThreshold(), 100 days);
         assertEq(oOracle1.validateRoundId(), true);
+        assertEq(oOracle1.validateLastUpdatedAt(), true);
+        
     }
 }
 
@@ -136,5 +140,36 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
         assertEq(hist, 1.00044127e18);
         assertEq(baseAsset, address(token1));
         assertEq(quoteAsset, INTERNAL_USD_ADDRESS);
+    }
+
+    function test_latestPrice_noValidation() public {
+        vm.mockCall(
+            address(oracle1),
+            abi.encodeWithSelector(IAggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 1e8, 0, 0, 0)
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.InvalidOracleData.selector, address(oracle1)));
+        oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
+
+        // Again with no validation
+        oOracle1 = new OrigamiVolatileChainlinkOracle(
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN1/USD",
+                token1,
+                18,
+                INTERNAL_USD_ADDRESS,
+                18
+            ),
+            address(oracle1),
+            100 days,
+            false,
+            false
+        );
+
+        assertEq(
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            1e18
+        );
     }
 }

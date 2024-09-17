@@ -531,15 +531,16 @@ contract OrigamiMorphoBorrowAndLend is IOrigamiMorphoBorrowAndLend, IMorphoSuppl
         uint256 _debtBalance = debtBalance();
 
         if (_debtBalance != 0) {
-            // If the repayment amount is more than the current balance, then repay 100% of the debt.
-            if (repayAmount > _debtBalance) {
-                // Calculate the current morpho shares owed, and repay via the shares (not amount)
-                uint256 _repayShares = morpho.position(marketId, address(this)).borrowShares;
-                (debtRepaidAmount, ) = morpho.repay(marketParams, 0, _repayShares, address(this), data);
-            } else {
+            // If the repayment amount gte the current balance, then repay 100% of the debt.
+            if (repayAmount < _debtBalance) {
                 // Repay via the amount (not shares)
                 (debtRepaidAmount, ) = morpho.repay(marketParams, repayAmount, 0, address(this), data);
-            }                          
+            } else {
+                // Calculate the current morpho shares owed, and repay via the shares (not amount)
+                // Do this when equal to the debt balance to avoid Morpho rounding underflow
+                uint256 _repayShares = morpho.position(marketId, address(this)).borrowShares;
+                (debtRepaidAmount, ) = morpho.repay(marketParams, 0, _repayShares, address(this), data);
+            }
         }
     }
 

@@ -59,6 +59,10 @@ contract OrigamiLovTokenTestBase_6dp is OrigamiTest {
         );
         manager = new OrigamiMockLovTokenManager(origamiMultisig, address(usdcToken), address(sUsdcToken), address(lovToken));
 
+        tokenPrices.setTokenPriceFunction(address(usdcToken), abi.encodeCall(TokenPrices.scalar, (1e30)));
+        tokenPrices.setTokenPriceFunction(address(sUsdcToken), abi.encodeCall(TokenPrices.erc4626TokenPrice, (address(sUsdcToken))));
+        tokenPrices.setTokenPriceFunction(address(lovToken), abi.encodeCall(TokenPrices.repricingTokenPrice, (address(lovToken))));
+
         vm.startPrank(origamiMultisig);
         lovToken.setManager(address(manager));
         manager.setFeeConfig(MIN_DEPOSIT_FEE_BPS, MIN_EXIT_FEE_BPS, FEE_LEVERAGE_FACTOR);

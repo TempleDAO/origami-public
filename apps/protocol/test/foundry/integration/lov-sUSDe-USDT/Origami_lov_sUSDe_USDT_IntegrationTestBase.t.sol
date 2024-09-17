@@ -12,6 +12,8 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { ExternalContracts, LovTokenContracts, Origami_lov_sUSDe_USDT_TestDeployer } from "test/foundry/deploys/lov-sUSDe-USDT/Origami_lov_sUSDe_USDT_TestDeployer.t.sol";
 import { LovTokenHelpers } from "test/foundry/libraries/LovTokenHelpers.t.sol";
 import { IMorpho } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
+import { Origami_lov_sUSDe_USDT_TestConstants as Constants } from "test/foundry/deploys/lov-sUSDe-USDT/Origami_lov_sUSDe_USDT_TestConstants.t.sol";
 
 contract Origami_lov_sUSDe_USDT_IntegrationTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -160,6 +162,13 @@ contract Origami_lov_sUSDe_USDT_IntegrationTestBase is OrigamiTest {
         lovTokenContracts.lovTokenManager.rebalanceUp(params);
     }
 
+    function encode(bytes memory data) internal pure returns (bytes memory) {
+        return abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+            router: Constants.ONE_INCH_ROUTER,
+            data: data
+        }));
+    }
+
     function swapBorrowTokenToReserveTokenQuote(uint256 borrowAmount) internal pure returns (uint256 reservesAmount, bytes memory swapData) {
         // @note Ensure sDAI is listed as a connector token
 
@@ -187,6 +196,8 @@ contract Origami_lov_sUSDe_USDT_IntegrationTestBase is OrigamiTest {
         } else {
             revert UnknownSwapAmount_BorrowToReserve(borrowAmount);
         }
+
+        swapData = encode(swapData);
     }
 
     function swapReserveTokenToBorrowTokenQuote(uint256 reservesAmount) internal pure returns (uint256 borrowAmount, bytes memory swapData) {
@@ -210,5 +221,7 @@ contract Origami_lov_sUSDe_USDT_IntegrationTestBase is OrigamiTest {
         } else {
             revert UnknownSwapAmount_ReserveToBorrow(reservesAmount);
         }
+
+        swapData = encode(swapData);
     }
 }

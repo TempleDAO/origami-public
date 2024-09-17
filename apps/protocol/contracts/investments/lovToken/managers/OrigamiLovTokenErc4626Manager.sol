@@ -517,7 +517,7 @@ contract OrigamiLovTokenErc4626Manager is IOrigamiLovTokenErc4626Manager, Origam
      * @notice Maximum amount of `reserveToken` that can be redeemed to `toToken`
      * For an ERC-4626 based lovToken, use the max redeemable from that vault
      */
-    function _maxRedeemFromReserves(address toToken) internal override view returns (uint256 reservesAmount) {
+    function _maxRedeemFromReserves(address toToken, Cache memory /*cache*/) internal override view returns (uint256 reservesAmount) {
         if (toToken == address(depositAsset)) {
             // The standard ERC-4626 implementation uses the balance of reserveToken's that this contract holds.
             // But could also constrain in other ways depending on the implementation

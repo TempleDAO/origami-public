@@ -54,6 +54,7 @@ contract OrigamiStableChainlinkOracleTestBase is OrigamiTest {
             address(oracle1),
             100 days,
             Range.Data(0.95e18, 1.05e18),
+            true,
             true
         );
 
@@ -83,6 +84,7 @@ contract OrigamiStableChainlinkOracleTestBase is OrigamiTest {
             address(oracle2),
             100 days,
             Range.Data(0.95e18, 1.05e18),
+            true,
             true
         );
 
@@ -112,6 +114,7 @@ contract OrigamiStableChainlinkOracleTestBase is OrigamiTest {
             address(oracle3),
             200 days,
             Range.Data(0.95e18, 1.05e18),
+            true,
             true
         );
 
@@ -136,6 +139,8 @@ contract OrigamiStableChainlinkOracleTestInit is OrigamiStableChainlinkOracleTes
         (uint128 floor, uint128 ceiling) = oOracle1.validSpotPriceRange();
         assertEq(floor, 0.95e18);
         assertEq(ceiling, 1.05e18);
+        assertEq(oOracle1.validateRoundId(), true);
+        assertEq(oOracle1.validateLastUpdatedAt(), true);
     }
 
     function test_initialization2() public {
@@ -154,6 +159,8 @@ contract OrigamiStableChainlinkOracleTestInit is OrigamiStableChainlinkOracleTes
         (uint128 floor, uint128 ceiling) = oOracle2.validSpotPriceRange();
         assertEq(floor, 0.95e18);
         assertEq(ceiling, 1.05e18);
+        assertEq(oOracle1.validateRoundId(), true);
+        assertEq(oOracle1.validateLastUpdatedAt(), true);
     }
 
     function test_initialization3() public {
@@ -172,6 +179,8 @@ contract OrigamiStableChainlinkOracleTestInit is OrigamiStableChainlinkOracleTes
         (uint128 floor, uint128 ceiling) = oOracle3.validSpotPriceRange();
         assertEq(floor, 0.95e18);
         assertEq(ceiling, 1.05e18);
+        assertEq(oOracle1.validateRoundId(), true);
+        assertEq(oOracle1.validateLastUpdatedAt(), true);
     }
 }
 
@@ -224,6 +233,35 @@ contract OrigamiStableChainlinkOracle1_LatestPrice is OrigamiStableChainlinkOrac
     function setUp() public {
         _setUp();
         vm.startPrank(origamiMultisig);
+    }
+
+    function test_latestPrice_noValidation() public {
+        oOracle1 = new OrigamiStableChainlinkOracle(
+            origamiMultisig,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN1/USD",
+                token1,
+                18,
+                INTERNAL_USD_ADDRESS,
+                18
+            ),
+            1e18,
+            address(oracle1),
+            100 days,
+            Range.Data(0.95e18, 1.05e18),
+            false,
+            false
+        );
+
+        vm.mockCall(
+            address(oracle1),
+            abi.encodeWithSelector(IAggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 1e8, 0, 0, 0)
+        );
+        assertEq(
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            1e18
+        );
     }
 
     function test_latestPrice_fail_invalidRoundId() public {
@@ -286,7 +324,8 @@ contract OrigamiStableChainlinkOracle1_LatestPrice is OrigamiStableChainlinkOrac
             address(oracle1),
             100 days,
             Range.Data(0.95e18, 1.05e18),
-            false // no check
+            false, // no check
+            true
         );
         oracle1.setAnswer(DummyOracle.Answer({
             roundId: 0,
@@ -541,6 +580,35 @@ contract OrigamiStableChainlinkOracle2_LatestPrice is OrigamiStableChainlinkOrac
         vm.startPrank(origamiMultisig);
     }
 
+    function test_latestPrice_noValidation() public {
+        oOracle2 = new OrigamiStableChainlinkOracle(
+            origamiMultisig,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN2/USD",
+                token2,
+                6,
+                INTERNAL_USD_ADDRESS,
+                18
+            ),
+            333e18,
+            address(oracle2),
+            100 days,
+            Range.Data(0.95e18, 1.05e18),
+            false,
+            false
+        );
+
+        vm.mockCall(
+            address(oracle2),
+            abi.encodeWithSelector(IAggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 1e18, 0, 0, 0)
+        );
+        assertEq(
+            oOracle2.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            1e18
+        );
+    }
+
     function test_latestPrice_fail_stale() public {
         // 100 days old and was answered in this round
         oracle2.setAnswer(DummyOracle.Answer({
@@ -741,6 +809,35 @@ contract OrigamiStableChainlinkOracle3_LatestPrice is OrigamiStableChainlinkOrac
     function setUp() public {
         _setUp();
         vm.startPrank(origamiMultisig);
+    }
+
+    function test_latestPrice_noValidation() public {
+        oOracle3 = new OrigamiStableChainlinkOracle(
+            origamiMultisig,
+            IOrigamiOracle.BaseOracleParams(
+                "TOKEN3/USD",
+                token3,
+                18,
+                INTERNAL_USD_ADDRESS,
+                6
+            ),
+            0.99e18,
+            address(oracle3),
+            200 days,
+            Range.Data(0.95e18, 1.05e18),
+            false,
+            false
+        );
+
+        vm.mockCall(
+            address(oracle3),
+            abi.encodeWithSelector(IAggregatorV3Interface.latestRoundData.selector),
+            abi.encode(0, 1e24, 0, 0, 0)
+        );
+        assertEq(
+            oOracle3.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            1e18
+        );
     }
 
     function test_latestPrice_fail_stale() public {

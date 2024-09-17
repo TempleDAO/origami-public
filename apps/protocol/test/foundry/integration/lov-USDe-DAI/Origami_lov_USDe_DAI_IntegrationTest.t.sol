@@ -14,7 +14,6 @@ import { IOrigamiLovTokenMorphoManager } from "contracts/interfaces/investments/
 import { Id as MorphoMarketId } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
-import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
 
 contract Origami_lov_USDe_DAI_IntegrationTest is Origami_lov_USDe_DAI_IntegrationTestBase {
     using OrigamiMath for uint256;
@@ -63,10 +62,6 @@ contract Origami_lov_USDe_DAI_IntegrationTest is Origami_lov_USDe_DAI_Integratio
             (uint128 min, uint128 max) = lovTokenContracts.usdeToDaiOracle.validSpotPriceRange();
             assertEq(min, Constants.USDE_USD_MIN_THRESHOLD);
             assertEq(max, Constants.USDE_USD_MAX_THRESHOLD);
-        }
-
-        {
-            assertEq(OrigamiDexAggregatorSwapper(address(lovTokenContracts.swapper)).router(), Constants.ONE_INCH_ROUTER);
         }
 
         {

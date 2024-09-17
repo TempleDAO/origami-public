@@ -21,6 +21,7 @@
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "4.9.3",
     "@openzeppelin/hardhat-upgrades": "1.28.0",
+    "@pendle/core-v2": "^4.7.2",
     "@prb/math": "4.0.1",
     "@typechain/ethers-v5": "^10.2.0",
     "@typechain/hardhat": "^6.1.5",
@@ -75,16 +76,20 @@
     "local-fork:test:gmx": "hardhat run --network localhost scripts/deploys/localhost/gmx/999-localhost-fork-test.ts",
     "local-fork:mainnet": "hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/AorwfDdHDsEjIX4HPwS70zkVjWqjv5vZ --fork-block-number 17625800",
     "forge-test": "forge test",
-    "forge-coverage": "forge coverage",
-    "forge-coverage-html": "forge coverage --nmt invariant --report summary --report lcov && lcov --remove lcov.info 'contracts/investments/gmx/*' 'contracts/test/*' 'test/*' 'script/*' 'node_modules/*' --output-file lcov.info --rc lcov_branch_coverage=1 && genhtml lcov.info -o report --branch-coverage --legend",
+    "forge-coverage": "forge coverage --offline --no-match-path \"test/foundry/invariant/**/*\" --no-match-test \"fuzz\"",
+    "forge-coverage-html-1": "forge coverage --offline --no-match-path \"test/foundry/invariant/**/*\" --no-match-test \"fuzz\" --report summary --report lcov",
+    "forge-coverage-html-2": "lcov --remove lcov.info 'contracts/investments/gmx/*' 'contracts/test/*' 'test/*' 'script/*' 'node_modules/*' 'contracts/external/*' --output-file lcov.info --rc branch_coverage=1 --rc derive_function_end_line=0 --ignore-errors unused",
+    "forge-coverage-html-3": "genhtml lcov.info -o report --branch-coverage --rc branch_coverage=1 --rc derive_function_end_line=0 --legend --ignore-errors inconsistent --ignore-errors category",
+    "forge-coverage-html": "yarn forge-coverage-html-1 && yarn forge-coverage-html-2 && yarn forge-coverage-html-3",
     "forge-invariant:lite": "export FOUNDRY_FUZZ_SEED=$(date +%s) && echo \"USING SEED: $FOUNDRY_FUZZ_SEED\" && FOUNDRY_PROFILE=lite forge test --match-path \"test/foundry/invariant/**/*.sol\"",
     "forge-invariant:untilfail": "export FOUNDRY_FUZZ_SEED=$(date +%s) && echo \"USING SEED: $FOUNDRY_FUZZ_SEED\" && FOUNDRY_INVARIANT_DEPTH=90 FOUNDRY_INVARIANT_RUNS=500 FOUNDRY_PROFILE=lite ././scripts/untilfail forge test --match-path \"test/foundry/invariant/**/*.sol\"",
     "legacy-hardhat-gas": "NOCOLOR=1 REPORT_GAS=true hardhat test test/hardhat/common/access/elevated-access.ts test/hardhat/common/token-prices.ts test/hardhat/common/repricing-token.ts test/hardhat/investments/origami-investment-vault.ts test/hardhat/investments/origami-investment.ts",
-    "forge-gas": "NOCOLOR=1 forge test --nmt invariant --gas-report --disable-block-gas-limit --offline > forge-gas-report.txt 2>&1",
+    "forge-gas": "NOCOLOR=1 forge test --offline --no-match-path \"test/foundry/invariant/**/*\" --no-match-test \"fuzz\" --gas-report --disable-block-gas-limit --offline > forge-gas-report.txt 2>&1",
+    "forge-snapshot": "forge snapshot --offline --no-match-path \"test/foundry/invariant/**/*\" --no-match-test \"fuzz\"",
     "calc-gas": "python scripts/gas-report/total-avg-gas.py",
     "gas-avg": "yarn legacy-hardhat-gas && yarn forge-gas && yarn calc-gas"
   },
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   }
 }

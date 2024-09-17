@@ -129,7 +129,8 @@ contract Origami_lov_USDe_DAI_TestDeployer {
             daiToken = IERC20(Constants.DAI_ADDRESS);
             usdeToken = IERC20(Constants.USDE_ADDRESS);
 
-            swapper = new OrigamiDexAggregatorSwapper(owner, Constants.ONE_INCH_ROUTER);
+            swapper = new OrigamiDexAggregatorSwapper(owner);
+            OrigamiDexAggregatorSwapper(address(swapper)).whitelistRouter(Constants.ONE_INCH_ROUTER, true);
 
             // https://docs.redstone.finance/docs/smart-contract-devs/price-feeds#available-on-chain-classic-model
             redstoneUsdeToUsdOracle = IAggregatorV3Interface(Constants.USDE_USD_ORACLE);
@@ -153,7 +154,8 @@ contract Origami_lov_USDe_DAI_TestDeployer {
             address(redstoneUsdeToUsdOracle),
             Constants.USDE_USD_STALENESS_THRESHOLD,
             Range.Data(Constants.USDE_USD_MIN_THRESHOLD, Constants.USDE_USD_MAX_THRESHOLD),
-            false // Redstone does not use roundId
+            false, // Redstone does not use roundId
+            true // It does use lastUpdatedAt
         );
 
         lovToken = new OrigamiLovToken(

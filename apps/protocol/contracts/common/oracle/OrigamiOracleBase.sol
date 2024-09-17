@@ -129,7 +129,7 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
     /**
      * @notice Match whether a pair of assets match the base and quote asset on this oracle, in either order
      */
-    function matchAssets(address asset1, address asset2) external view returns (bool) {
+    function matchAssets(address asset1, address asset2) public view returns (bool) {
         return (
             (asset1 == baseAsset && asset2 == quoteAsset) ||
             (asset2 == baseAsset && asset1 == quoteAsset)

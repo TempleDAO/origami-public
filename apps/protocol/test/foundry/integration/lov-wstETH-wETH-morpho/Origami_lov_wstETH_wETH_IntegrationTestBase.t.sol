@@ -9,6 +9,8 @@ import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { ExternalContracts, LovTokenContracts, Origami_lov_wstETH_wETH_TestDeployer } from "test/foundry/deploys/lov-wstETH-wETH-morpho/Origami_lov_wstETH_wETH_TestDeployer.t.sol";
 import { LovTokenHelpers } from "test/foundry/libraries/LovTokenHelpers.t.sol";
+import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
+import { Origami_lov_wstETH_wETH_TestConstants as Constants } from "test/foundry/deploys/lov-wstETH-wETH-morpho/Origami_lov_wstETH_wETH_TestConstants.t.sol";
 
 contract Origami_lov_wstETH_wETH_IntegrationTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -141,6 +143,13 @@ contract Origami_lov_wstETH_wETH_IntegrationTestBase is OrigamiTest {
         lovTokenContracts.lovWstEthManager.rebalanceUp(params);
     }
 
+    function encode(bytes memory data) internal pure returns (bytes memory) {
+        return abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+            router: Constants.ONE_INCH_ROUTER,
+            data: data
+        }));
+    }
+
     function swapWEthToWstEthQuote(uint256 ethAmount) internal pure returns (uint256 wstEthAmount, bytes memory swapData) {
         // REQUEST:
         /*
@@ -163,6 +172,8 @@ contract Origami_lov_wstETH_wETH_IntegrationTestBase is OrigamiTest {
         } else {
             revert UnknownSwapAmount(ethAmount);
         }
+
+        swapData = encode(swapData);
     }
 
     function swapWstEthToWEthQuote(uint256 wstEthAmount) internal pure returns (uint256 wEthAmount, bytes memory swapData) {
@@ -188,5 +199,7 @@ contract Origami_lov_wstETH_wETH_IntegrationTestBase is OrigamiTest {
         } else {
             revert UnknownSwapAmount(wstEthAmount);
         }
+
+        swapData = encode(swapData);
     }
 }

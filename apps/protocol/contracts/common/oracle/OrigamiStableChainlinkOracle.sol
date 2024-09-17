@@ -57,6 +57,12 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
     bool public immutable validateRoundId;
 
     /**
+     * @notice When using Origami 'chainlink-like' oracle interfaces, the lastUpdatedAt
+     * returned may be unused, and so validation isn't required in that case.
+     */
+    bool public immutable validateLastUpdatedAt;
+
+    /**
      * @notice The lowest valid price range for the spot price. Anything outside of this will revert when queried
      */
     Range.Data public validSpotPriceRange;
@@ -68,7 +74,8 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
         address _spotPriceOracle,
         uint128 _spotPriceStalenessThreshold,
         Range.Data memory _validSpotPriceRange,
-        bool _validateRoundId
+        bool _validateRoundId,
+        bool _validateLastUpdatedAt
     )
         OrigamiOracleBase(baseParams)
         OrigamiElevatedAccess(_initialOwner)
@@ -81,6 +88,7 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
             decimals
         );
         validateRoundId = _validateRoundId;
+        validateLastUpdatedAt = _validateLastUpdatedAt;
         validSpotPriceRange.set(_validSpotPriceRange.floor, _validSpotPriceRange.ceiling);
     }
 
@@ -114,7 +122,8 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
                     spotPricePrecisionScaleDown, 
                     spotPricePrecisionScalar,
                     spotPriceStalenessThreshold, 
-                    validateRoundId
+                    validateRoundId,
+                    validateLastUpdatedAt
                 ),
                 roundingMode
             );

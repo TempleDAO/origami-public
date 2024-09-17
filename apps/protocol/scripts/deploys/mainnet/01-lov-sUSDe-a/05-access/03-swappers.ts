@@ -15,7 +15,7 @@ async function main() {
   const ADDRS = getDeployedContracts();
   INSTANCES = connectToContracts(owner);
 
-  await mine(INSTANCES.SWAPPERS.ERC4626_AND_1INCH_SWAPPER.proposeNewOwner(ADDRS.CORE.MULTISIG));
+  await mine(INSTANCES.SWAPPERS.SUSDE_SWAPPER.proposeNewOwner(ADDRS.CORE.MULTISIG));
 }
 
 main()

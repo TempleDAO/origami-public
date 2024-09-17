@@ -12,7 +12,6 @@ import { IAggregatorV3Interface } from "contracts/interfaces/external/chainlink/
 import { IOrigamiLovTokenFlashAndBorrowManager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenFlashAndBorrowManager.sol";
 
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
-import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
 import { Errors as AaveErrors } from "@aave/core-v3/contracts/protocol/libraries/helpers/Errors.sol";
 
 contract Origami_lov_wstETH_wETH_IntegrationTest is Origami_lov_wstETH_wETH_IntegrationTestBase {
@@ -73,10 +72,6 @@ contract Origami_lov_wstETH_wETH_IntegrationTest is Origami_lov_wstETH_wETH_Inte
 
             assertEq(address(lovTokenContracts.wstEthToEthOracle.stEth()), Constants.STETH_ADDRESS);
             assertEq(address(lovTokenContracts.wstEthToEthOracle.stEthToEthOracle()), address(lovTokenContracts.stEthToEthOracle));
-        }
-
-        {
-            assertEq(OrigamiDexAggregatorSwapper(address(lovTokenContracts.swapper)).router(), Constants.ONE_INCH_ROUTER);
         }
 
         {

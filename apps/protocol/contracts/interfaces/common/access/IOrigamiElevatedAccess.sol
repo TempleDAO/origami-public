@@ -19,13 +19,19 @@ interface IOrigamiElevatedAccess {
     /**
      * @notice The address of the current owner.
      */ 
-    function owner() external returns (address);
+    function owner() external view returns (address);
 
     /**
      * @notice Explicit approval for an address to execute a function.
      * allowedCaller => function selector => true/false
      */
-    function explicitFunctionAccess(address contractAddr, bytes4 functionSelector) external returns (bool);
+    function explicitFunctionAccess(address contractAddr, bytes4 functionSelector) external view returns (bool);
+
+    /**
+     * @notice Revoke ownership. Be very certain before calling this, as no
+     * further elevated access can be called.
+     */
+    function revokeOwnership() external;
 
     /**
      * @notice Proposes a new Owner.

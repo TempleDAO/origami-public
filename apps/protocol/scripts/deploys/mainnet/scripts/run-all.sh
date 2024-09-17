@@ -39,3 +39,13 @@ deploy_and_test scripts/deploys/mainnet/scripts/04-lov-ezETH-a
 deploy_and_test scripts/deploys/mainnet/scripts/05-lov-wstETH-a
 deploy_and_test scripts/deploys/mainnet/scripts/06-lov-sUSDe-b
 deploy_and_test scripts/deploys/mainnet/scripts/07-lov-USDe-b
+deploy_and_test scripts/deploys/mainnet/scripts/08-lov-woETH-a
+deploy_and_test scripts/deploys/mainnet/scripts/09-new-tokenPrices
+deploy_and_test scripts/deploys/mainnet/scripts/09.1-tokenPrices-v3
+deploy_and_test scripts/deploys/mainnet/scripts/10-lov-wETH-DAI-long-a
+deploy_and_test scripts/deploys/mainnet/scripts/11-lov-wBTC-DAI-long-a
+deploy_and_test scripts/deploys/mainnet/scripts/12-lov-wETH-wBTC-long-a
+deploy_and_test scripts/deploys/mainnet/scripts/13-lov-wETH-sDAI-short-a
+deploy_and_test scripts/deploys/mainnet/scripts/14-lov-wBTC-sDAI-short-a
+deploy_and_test scripts/deploys/mainnet/scripts/15-lov-wETH-wBTC-short-a
+deploy_and_test scripts/deploys/mainnet/scripts/16-lov-PT-sUSDe-Oct24-a

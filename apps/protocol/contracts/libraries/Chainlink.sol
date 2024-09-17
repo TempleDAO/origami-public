@@ -22,6 +22,7 @@ library Chainlink {
         uint128 scalar;
         uint256 stalenessThreshold;
         bool validateRoundId;
+        bool validateLastUpdatedAt;
     }
 
     /**
@@ -36,13 +37,15 @@ library Chainlink {
 
         // Invalid chainlink parameters
         if (self.validateRoundId && roundId == 0) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
-        if (lastUpdatedAt == 0) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
+        if (self.validateLastUpdatedAt) {
+            if (lastUpdatedAt == 0) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
 
-        // Check for future time or if it's too stale
-        if (lastUpdatedAt > block.timestamp) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
-        unchecked {
-            if (block.timestamp - lastUpdatedAt > self.stalenessThreshold) {
-                revert IOrigamiOracle.StalePrice(address(self.oracle), lastUpdatedAt, feedValue);
+            // Check for future time or if it's too stale
+            if (lastUpdatedAt > block.timestamp) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
+            unchecked {
+                if (block.timestamp - lastUpdatedAt > self.stalenessThreshold) {
+                    revert IOrigamiOracle.StalePrice(address(self.oracle), lastUpdatedAt, feedValue);
+                }
             }
         }
 

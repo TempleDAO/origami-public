@@ -12,3 +12,6 @@
 [submodule "apps/protocol/lib/morpho-org/morpho-blue-irm"]
 	path = apps/protocol/lib/morpho-org/morpho-blue-irm
 	url = https://github.com/morpho-org/morpho-blue-irm
+[submodule "apps/protocol/lib/erc4626-tests"]
+	path = apps/protocol/lib/erc4626-tests
+	url = https://github.com/a16z/erc4626-tests

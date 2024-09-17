@@ -82,7 +82,7 @@ contract OrigamiMockLovTokenManager is OrigamiAbstractLovTokenManager {
         cache.assets = reservesBalance();
         cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
         uint128 alRatioAfter = _assetToLiabilityRatio(cache);
-        _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, AlValidationMode.LOWER_THAN_BEFORE);
+        _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, AlValidationMode.LOWER_THAN_BEFORE, cache);
     }
 
     function rebalanceUp(uint256 repayReservesAmount) external {
@@ -100,7 +100,7 @@ contract OrigamiMockLovTokenManager is OrigamiAbstractLovTokenManager {
         cache.assets = reservesBalance();
         cache.liabilities = liabilities(IOrigamiOracle.PriceType.SPOT_PRICE);
         uint128 alRatioAfter = _assetToLiabilityRatio(cache);
-        _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, AlValidationMode.HIGHER_THAN_BEFORE);
+        _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, AlValidationMode.HIGHER_THAN_BEFORE, cache);
     }
 
     /**
@@ -310,7 +310,7 @@ contract OrigamiMockLovTokenManager is OrigamiAbstractLovTokenManager {
      * @notice Calculate the maximum amount of lovToken shares to a particular toToken
      * For an ERC-4626 based lovToken, use the max redeemable from that vault
      */
-    function _maxRedeemFromReserves(address toToken) internal override view returns (uint256 reservesAmount) {
+    function _maxRedeemFromReserves(address toToken, Cache memory /*cache*/) internal override view returns (uint256 reservesAmount) {
         if (test__MaxRedeemAmt != 0) return test__MaxRedeemAmt;
 
         if (toToken == address(depositAsset)) {

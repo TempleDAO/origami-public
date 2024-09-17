@@ -17,7 +17,6 @@ import { OrigamiCircuitBreakerAllUsersPerPeriod } from "contracts/common/circuit
 import { OrigamiAaveV3IdleStrategy } from "contracts/investments/lending/idleStrategy/OrigamiAaveV3IdleStrategy.sol";
 import { OrigamiIdleStrategyManager } from "contracts/investments/lending/idleStrategy/OrigamiIdleStrategyManager.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
-import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
 import { OrigamiLovTokenTestConstants as Constants } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
 import { Range } from "contracts/libraries/Range.sol";
 
@@ -516,10 +515,6 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
             assertEq(address(lovTokenContracts.daiUsdcOracle.baseAssetOracle()), address(lovTokenContracts.daiUsdOracle));
             assertEq(address(lovTokenContracts.daiUsdcOracle.quoteAssetOracle()), address(lovTokenContracts.usdcUsdOracle));
         }
-
-        {
-            assertEq(OrigamiDexAggregatorSwapper(address(lovTokenContracts.swapper)).router(), Constants.ONE_INCH_ROUTER);
-        }
     }
 
     function test_lovDsr_invest_success() public {
@@ -701,7 +696,8 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
                 address(externalContracts.clDaiUsdOracle),
                 1_000 days,
                 Range.Data(Constants.DAI_USD_MIN_THRESHOLD, Constants.DAI_USD_MAX_THRESHOLD),
-                true // Chainlink does use roundId
+                true, // Chainlink does use roundId
+                true // It does use lastUpdatedAt
             );
             lovTokenContracts.iUsdcUsdOracle = new OrigamiStableChainlinkOracle(
                 origamiMultisig,
@@ -716,7 +712,8 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
                 address(externalContracts.clUsdcUsdOracle),
                 1_000 days,
                 Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD),
-                true // Chainlink does use roundId
+                true, // Chainlink does use roundId
+                true // It does use lastUpdatedAt
             );
             lovTokenContracts.daiIUsdcOracle = new OrigamiCrossRateOracle(
                 IOrigamiOracle.BaseOracleParams(
@@ -727,7 +724,8 @@ contract OrigamiLovTokenIntegrationTest_Borrowing is OrigamiLovTokenIntegrationT
                     Constants.IUSDC_DECIMALS
                 ),
                 address(lovTokenContracts.daiUsdOracle),
-                address(lovTokenContracts.iUsdcUsdOracle)
+                address(lovTokenContracts.iUsdcUsdOracle),
+                address(0)
             );
             lovTokenContracts.lovDsrManager.setOracle(address(lovTokenContracts.daiIUsdcOracle));
         }

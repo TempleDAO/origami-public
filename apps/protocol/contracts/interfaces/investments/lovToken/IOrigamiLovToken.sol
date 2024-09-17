@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 
 import { IOrigamiOTokenManager } from "contracts/interfaces/investments/IOrigamiOTokenManager.sol";
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
+import { ITokenPrices } from "contracts/interfaces/common/ITokenPrices.sol";
 
 /**
  * @title Origami lovToken
@@ -139,6 +140,12 @@ interface IOrigamiLovToken is IOrigamiInvestment {
      * @notice The last time the performance fee was collected
      */
     function lastPerformanceFeeTime() external view returns (uint48);
+
+    /**
+     * @notice The helper contract to retrieve Origami USD prices
+     * @dev Required for off-chain/subgraph integration
+     */
+    function tokenPrices() external view returns (ITokenPrices);
 
     /**
      * @notice The performance fee amount which would be collected as of now, 

@@ -20,16 +20,22 @@ contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
     using DexAggregator for address;
 
-    /**
-     * @notice The address of the 1Inch/0x/etc router
-     */
-    address public immutable router;
+    struct RouteData {
+        address router;
+        bytes data;
+    }
+
+    /// @notice Approved router contracts for swaps
+    mapping(address router => bool allowed) public whitelistedRouters;
 
     constructor(
-        address _initialOwner,
-        address _router
+        address _initialOwner
     ) OrigamiElevatedAccess(_initialOwner) {
-        router = _router;
+    }
+
+    function whitelistRouter(address router, bool allowed) external onlyElevatedAccess {
+        whitelistedRouters[router] = allowed;
+        emit RouterWhitelisted(router, allowed);
     }
 
     /**
@@ -54,7 +60,13 @@ contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     ) external override returns (uint256 buyTokenAmount) {
         sellToken.safeTransferFrom(msg.sender, address(this), sellTokenAmount);
 
-        buyTokenAmount = router.swap(sellToken, sellTokenAmount, buyToken, swapData);
+        RouteData memory routeData = abi.decode(
+            swapData, (RouteData)
+        );
+
+        if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
+
+        buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, buyToken, routeData.data);
 
         // Transfer back to the caller
         buyToken.safeTransfer(msg.sender, buyTokenAmount);

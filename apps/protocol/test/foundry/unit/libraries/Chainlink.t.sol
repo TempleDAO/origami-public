@@ -60,9 +60,9 @@ contract ChainlinkTest is OrigamiTest {
         assertEq(scaleDown, true);
     }
 
-    function test_price_failStaleRound() public {
+    function test_price_failStaleRound_withValidation() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, true);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, true, true);
 
         vm.warp(1000000);
         vm.mockCall(
@@ -75,9 +75,26 @@ contract ChainlinkTest is OrigamiTest {
         chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
+    function test_price_zeroLastUpdatedAt_noValidation() public {
+        (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, false, false);
+
+        vm.warp(1000000);
+        vm.mockCall(
+            address(oracle),
+            abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
+            abi.encode(0, 1e8, 0, 0, 0)
+        );
+
+        assertEq(
+            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN),
+            1e18
+        );
+    }
+
     function test_price_zeroRoundId_noValidation() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, false);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, false, true);
 
         vm.warp(1000000);
         vm.mockCall(
@@ -94,7 +111,7 @@ contract ChainlinkTest is OrigamiTest {
 
     function test_price_zeroRoundId_withValidation() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, true);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, true, true);
 
         vm.warp(1000000);
         vm.mockCall(
@@ -109,7 +126,7 @@ contract ChainlinkTest is OrigamiTest {
 
     function test_price_okThreshold() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
         vm.warp(1000000);
         vm.mockCall(
@@ -126,7 +143,7 @@ contract ChainlinkTest is OrigamiTest {
 
     function test_price_negativePrice() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
         vm.warp(1000000);
         vm.mockCall(
@@ -142,7 +159,7 @@ contract ChainlinkTest is OrigamiTest {
     function test_price_scaleDown() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 6);
         assertEq(scaleDown, true);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
         vm.warp(1000000);
         vm.mockCall(
@@ -164,7 +181,7 @@ contract ChainlinkTest is OrigamiTest {
     function test_price_scaleUp() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         assertEq(scaleDown, false);
-        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true);
+        Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
         vm.warp(1000000);
         vm.mockCall(

@@ -13,6 +13,8 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { ExternalContracts, OUsdcContracts, LovTokenContracts, OrigamiLovTokenTestDeployer } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestDeployer.t.sol";
 
 import { OrigamiAaveV3IdleStrategy } from "contracts/investments/lending/idleStrategy/OrigamiAaveV3IdleStrategy.sol";
+import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
+import { OrigamiLovTokenTestConstants as Constants } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
 
 contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -203,6 +205,13 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
         return params.minReserveAssetShares;
     }
 
+    function encode(bytes memory data) internal pure returns (bytes memory) {
+        return abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+            router: Constants.ONE_INCH_ROUTER,
+            data: data
+        }));
+    }
+
     function swapDaiToUsdcQuote(uint256 daiAmount) internal pure returns (uint256 usdcAmount, bytes memory swapData) {
         // REQUEST:
         /*
@@ -222,6 +231,8 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
         } else {
             revert UnknownSwapAmount(daiAmount);
         }
+
+        swapData = encode(swapData);
     }
 
     function swapUsdcToDaiQuote(uint256 usdcAmount) internal pure returns (uint256 daiAmount, bytes memory swapData) {
@@ -240,5 +251,7 @@ contract OrigamiLovTokenIntegrationTestBase is OrigamiTest {
         } else {
             revert UnknownSwapAmount(usdcAmount);
         }
+
+        swapData = encode(swapData);
     }
 }

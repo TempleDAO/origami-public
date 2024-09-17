@@ -14,7 +14,7 @@ let INSTANCES: ContractInstances;
 
 async function setupPrices() { 
   // $lov-sUSDe
-  await mine(INSTANCES.CORE.TOKEN_PRICES.setTokenPriceFunction(
+  await mine(INSTANCES.CORE.TOKEN_PRICES.V1.setTokenPriceFunction(
     ADDRS.LOV_SUSDE_A.TOKEN,
     encodedRepricingTokenPrice(ADDRS.LOV_SUSDE_A.TOKEN)
   ));
@@ -33,7 +33,7 @@ async function main() {
   );
   await mine(
     INSTANCES.LOV_SUSDE_A.MORPHO_BORROW_LEND.setSwapper(
-      ADDRS.SWAPPERS.ERC4626_AND_1INCH_SWAPPER
+      ADDRS.SWAPPERS.SUSDE_SWAPPER
     )
   );
 
@@ -68,6 +68,12 @@ async function main() {
   await mine(
     INSTANCES.LOV_SUSDE_A.TOKEN.setManager(
       ADDRS.LOV_SUSDE_A.MANAGER
+    )
+  );
+  
+  await mine(
+    INSTANCES.LOV_SUSDE_A.MANAGER.setAllowAll(
+      true
     )
   );
 

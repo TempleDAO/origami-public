@@ -316,6 +316,16 @@ export async function impersonateAndFund(owner: SignerWithAddress, address: stri
   return provider.getSigner(address);
 }
 
+export enum PriceType {
+  SPOT_PRICE,
+  HISTORIC_PRICE
+}
+
+export enum RoundingMode {
+  ROUND_DOWN,
+  ROUND_UP
+}
+
 export const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
 export const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
 export const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
@@ -326,3 +336,6 @@ export const encodedAliasFor = (sourceToken: string): string => encodeFunction("
 export const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
 export const encodedErc4626TokenPrice = (vault: string): string => encodeFunction("erc4626TokenPrice", vault);
 export const encodedWstEthRatio = (stEthToken: string): string => encodeFunction("wstEthRatio", stEthToken);
+export const encodedOrigamiOraclePrice = (oracleAddress: string, priceType: PriceType, roundingMode: RoundingMode): string => 
+  encodeFunction("origamiOraclePrice", oracleAddress, priceType, roundingMode);
+export const encodedScalar = (amount: BigNumberish): string => encodeFunction("scalar", amount);

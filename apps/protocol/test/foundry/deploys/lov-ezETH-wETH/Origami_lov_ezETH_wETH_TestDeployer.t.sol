@@ -136,7 +136,8 @@ contract Origami_lov_ezETH_wETH_TestDeployer {
             wEthToken = IERC20(Constants.WETH_ADDRESS);
             ezEthToken = IERC20(Constants.EZETH_ADDRESS);
 
-            swapper = new OrigamiDexAggregatorSwapper(owner, Constants.ONE_INCH_ROUTER);
+            swapper = new OrigamiDexAggregatorSwapper(owner);
+            OrigamiDexAggregatorSwapper(address(swapper)).whitelistRouter(Constants.ONE_INCH_ROUTER, true);
 
             // https://docs.redstone.finance/docs/smart-contract-devs/price-feeds#available-on-chain-classic-model
             redstoneEzEthToEthOracle = IAggregatorV3Interface(Constants.REDSTONE_EZETH_ETH_ORACLE);

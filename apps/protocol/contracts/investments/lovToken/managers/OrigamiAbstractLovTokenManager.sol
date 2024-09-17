@@ -195,7 +195,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // Not required if there are not yet any liabilities (where A/L would be uint128.max)
         if (cache.liabilities != 0) {
             uint128 newAL = refreshCacheAL(cache, IOrigamiOracle.PriceType.SPOT_PRICE);
-            _validateALRatio(userALRange, oldAL, newAL, AlValidationMode.HIGHER_THAN_BEFORE);
+            _validateALRatio(userALRange, oldAL, newAL, AlValidationMode.HIGHER_THAN_BEFORE, cache);
         }
     }
 
@@ -243,7 +243,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // Not required if there are not yet any liabilities (where A/L would be uint128.max)
         if (cache.liabilities != 0) {
             uint128 newAL = refreshCacheAL(cache, IOrigamiOracle.PriceType.SPOT_PRICE);
-            _validateALRatio(userALRange, oldAL, newAL, AlValidationMode.LOWER_THAN_BEFORE);
+            _validateALRatio(userALRange, oldAL, newAL, AlValidationMode.LOWER_THAN_BEFORE, cache);
         }
     }
 
@@ -377,7 +377,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         Cache memory cache = populateCache(IOrigamiOracle.PriceType.SPOT_PRICE);
 
         uint256 _minReserves = cache.liabilities.mulDiv(
-            userALRange.floor, 
+            convertedAL(userALRange.floor, cache), 
             PRECISION, 
             OrigamiMath.Rounding.ROUND_UP
         );
@@ -392,7 +392,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
             }
 
             // Check the underlying implementation's max reserves that can be redeemed
-            uint256 _underlyingAmount = _maxRedeemFromReserves(toToken);
+            uint256 _underlyingAmount = _maxRedeemFromReserves(toToken, cache);
 
             // Use the minimum of both the underlying implementation max and
             // the capacity based on the A/L floor
@@ -539,6 +539,9 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         uint256 assets;
         uint256 liabilities;
         uint256 totalSupply;
+
+        // This slot can be used by an underlying implementation if required.
+        uint256 implData;
     }
 
     function populateCache(IOrigamiOracle.PriceType debtPriceType) internal view returns (Cache memory cache) {
@@ -551,6 +554,14 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         cache.assets = reservesBalance();
         cache.liabilities = liabilities(debtPriceType);
         return _assetToLiabilityRatio(cache);
+    }
+
+    /**
+     * @dev If necessary, an implementation may convert the A/L. 
+     * For example if the money market liquidation LTV is defined in one way and needs converting to a 'market priced' LTV 
+     */
+    function convertedAL(uint128 al, Cache memory /*cache*/) internal virtual view returns (uint128) {
+        return al;
     }
 
     /**
@@ -669,12 +680,12 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
     /**
      * @notice Maximum amount of `reserveToken` that can be redeemed to `toToken`
      */
-    function _maxRedeemFromReserves(address toToken) internal virtual view returns (uint256 reservesAmount);
+    function _maxRedeemFromReserves(address toToken, Cache memory cache) internal virtual view returns (uint256 reservesAmount);
 
     /**
      * @notice Validate that the A/L ratio hasn't moved beyond the given A/L range.
      */
-    function _validateALRatio(Range.Data storage validRange, uint128 ratioBefore, uint128 ratioAfter, AlValidationMode alMode) internal virtual {
+    function _validateALRatio(Range.Data storage validRange, uint128 ratioBefore, uint128 ratioAfter, AlValidationMode alMode, Cache memory cache) internal virtual {
         if (alMode == AlValidationMode.LOWER_THAN_BEFORE) {
             // A/L needs to be decreasing (may be equal if a very small amount is deposited/exited)
             if (ratioAfter > ratioBefore) revert ALTooHigh(ratioBefore, ratioAfter, ratioBefore);
@@ -683,7 +694,8 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
             // In this mode, the A/L may be above the ceiling still, but should be decreasing
             // Note: The A/L may not be strictly decreasing in this mode since the liabilities (in reserve terms) is also
             // fluctuating
-            if (ratioAfter < validRange.floor) revert ALTooLow(ratioBefore, ratioAfter, validRange.floor);
+            uint128 convertedAlFloor = convertedAL(validRange.floor, cache);
+            if (ratioAfter < convertedAlFloor) revert ALTooLow(ratioBefore, ratioAfter, convertedAlFloor);
         } else {
             // A/L needs to be increasing (may be equal if a very small amount is deposited/exited)
             if (ratioAfter < ratioBefore) revert ALTooLow(ratioBefore, ratioAfter, ratioBefore);
@@ -692,7 +704,8 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
             // In this mode, the A/L may be below the floor still, but should be increasing
             // Note: The A/L may not be strictly increasing in this mode since the liabilities (in reserve terms) is also
             // fluctuating
-            if (ratioAfter > validRange.ceiling) revert ALTooHigh(ratioBefore, ratioAfter, validRange.ceiling);
+            uint128 convertedAlCeiling = convertedAL(validRange.ceiling, cache);
+            if (ratioAfter > convertedAlCeiling) revert ALTooHigh(ratioBefore, ratioAfter, convertedAlCeiling);
         }
     }
 
@@ -712,12 +725,16 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
 
         // Ensure the A/L is within the expected slippage range
         {
-            if (alRatioAfter < minNewAL) revert ALTooLow(alRatioBefore, alRatioAfter, minNewAL);
-            if (alRatioAfter > maxNewAL) revert ALTooHigh(alRatioBefore, alRatioAfter, maxNewAL);
+            // The `minNewAL` and `maxNewAL` are specified in the borrow lend terms
+            // Convert them to 'market' so it's in the same terms as the `alRatioAfter`
+            uint128 _convertedAL = convertedAL(minNewAL, cache);
+            if (alRatioAfter < _convertedAL) revert ALTooLow(alRatioBefore, alRatioAfter, _convertedAL);
+            _convertedAL = convertedAL(maxNewAL, cache);
+            if (alRatioAfter > _convertedAL) revert ALTooHigh(alRatioBefore, alRatioAfter, _convertedAL);
         }
 
         if (!force)
-            _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, alValidationMode);
+            _validateALRatio(rebalanceALRange, alRatioBefore, alRatioAfter, alValidationMode, cache);
     }
 
     /**
@@ -759,7 +776,7 @@ abstract contract OrigamiAbstractLovTokenManager is IOrigamiLovTokenManager, Ori
         // This is intentional to provide a slightly more conservative max amount which can be deposited.
         // To get it exact, the userALRange.ceiling would need to be incremented by 1 (if not already type(uint128).max)
         uint256 _maxReservesForAlCeiling = cache.liabilities.mulDiv(
-            userALRange.ceiling,
+            convertedAL(userALRange.ceiling, cache),
             PRECISION, 
             OrigamiMath.Rounding.ROUND_DOWN
         );

@@ -23,10 +23,25 @@ abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
     /// @dev Track proposed owner
     address private _proposedNewOwner;
 
+    /// @dev propose this as the new owner before revoking, for 2 step approval
+    address private constant PROPOSED_DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+
     function _init(address initialOwner) internal {
         if (owner != address(0)) revert CommonEventsAndErrors.InvalidAccess();
         if (initialOwner == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         owner = initialOwner;
+    }
+
+    /**
+     * @notice Revoke ownership. 
+     * @dev To enforce a two-step revoke, it must first propose to 0x000...dEaD prior to calling.
+     * This cannot be undone.
+     */
+    function revokeOwnership() external override onlyElevatedAccess {
+        if (_proposedNewOwner != PROPOSED_DEAD_ADDRESS) revert CommonEventsAndErrors.InvalidAddress(_proposedNewOwner);
+
+        emit NewOwnerAccepted(owner, address(0));
+        owner = address(0);
     }
 
     /**

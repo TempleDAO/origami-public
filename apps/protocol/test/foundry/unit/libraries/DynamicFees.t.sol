@@ -80,7 +80,8 @@ contract DynamicFeesTest is OrigamiTest {
             address(clOracle),
             100 days,
             Range.Data(0.99e18, 1.01e18),
-            false
+            false,
+            true
         );
 
         oOracleInverted = new OrigamiStableChainlinkOracle(
@@ -96,7 +97,8 @@ contract DynamicFeesTest is OrigamiTest {
             address(clOracle),
             100 days,
             Range.Data(0.99e18, 1.01e18),
-            false
+            false,
+            true
         );
 
         dynamicFeesMock = new DynamicFeesMock();

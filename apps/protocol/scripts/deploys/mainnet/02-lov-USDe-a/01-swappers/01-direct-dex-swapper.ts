@@ -14,11 +14,10 @@ async function main() {
 
   const factory = new OrigamiDexAggregatorSwapper__factory(owner);
   await deployAndMine(
-    'SWAPPERS.DIRECT_1INCH_SWAPPER',
+    'SWAPPERS.DIRECT_SWAPPER',
     factory,
     factory.deploy,
-    await owner.getAddress(),
-    ADDRS.EXTERNAL.ONE_INCH.ROUTER_V6,
+    await owner.getAddress()
   );
 }
 

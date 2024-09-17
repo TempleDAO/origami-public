@@ -101,7 +101,6 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
             address(wstEthToken),
             address(wethToken),
             SPARK_POOL,
-            lovToken.decimals(),
             SPARK_EMODE_ETH
         );
         manager = new OrigamiLovTokenFlashAndBorrowManager(
@@ -132,6 +131,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
                 address(clStEthToEthOracle),
                 STETH_ETH_STALENESS_THRESHOLD,
                 Range.Data(STETH_ETH_MIN_THRESHOLD, STETH_ETH_MAX_THRESHOLD),
+                true,
                 true
             );
             wstEthToEthOracle = new OrigamiWstEthToEthOracle(
@@ -365,36 +365,6 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
         tokens = manager.acceptedExitTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], address(wstEthToken));
-    }
-
-    function test_constructor_fail() public {
-        // 6dp reserves
-        {
-            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, USDC_ADDRESS));
-            manager = new OrigamiLovTokenFlashAndBorrowManager(
-                origamiMultisig, 
-                USDC_ADDRESS, // 6dp 
-                address(wethToken), 
-                address(stEthToken),
-                address(lovToken),
-                address(flProvider),
-                address(borrowLend)
-            );
-        }
-
-        // 6dp debt
-        {
-            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, USDC_ADDRESS));
-            manager = new OrigamiLovTokenFlashAndBorrowManager(
-                origamiMultisig, 
-                address(wstEthToken), 
-                USDC_ADDRESS, // 6dp 
-                address(stEthToken),
-                address(lovToken),
-                address(flProvider),
-                address(borrowLend)
-            );
-        }
     }
 
     function test_setSwapper_fail() public {
@@ -750,16 +720,17 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestViews is OrigamiLovTokenFlashAn
                 origamiMultisig, 
                 IOrigamiOracle.BaseOracleParams(
                     "ONE/ONE", 
-                    address(0),
+                    address(wethToken),
                     18,
-                    address(0),
+                    address(wethToken),
                     18
                 ),
                 1e18, 
                 address(clOne), 
                 365 days, 
                 Range.Data(1e18, 1e18),
-                false
+                false,
+                true
             );
 
             OrigamiCrossRateOracle ethToWstEth = new OrigamiCrossRateOracle(
@@ -771,7 +742,8 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestViews is OrigamiLovTokenFlashAn
                     18
                 ),
                 address(oOne), 
-                address(wstEthToEthOracle)
+                address(wstEthToEthOracle),
+                address(0)
             );
 
             manager.setOracles(address(ethToWstEth), address(stEthToEthOracle));
