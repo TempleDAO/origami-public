@@ -18,11 +18,10 @@ interface IOrigamiDelegated4626VaultManager is IERC165 {
     event FeeCollectorSet(address indexed feeCollector);
 
     /// @notice Deposit tokens into the underlying protocol
-    /// @dev Assumes the tokens have already been sent to this contract
-    /// It will utilise the current balance (including donations) to apply
-    /// into the underlying protocol
-    function deposit() external returns (
-        uint256 amountDeposited
+    /// @dev Implementation may assume the tokens have already been sent to this contract
+    /// type(uint256).max is accepted, meaning the entire balance
+    function deposit(uint256 assetsAmount) external returns (
+        uint256 assetsDeposited
     );
 
     /// @notice Withdraw tokens from the underlying protocol to a given receiver
@@ -30,9 +29,9 @@ interface IOrigamiDelegated4626VaultManager is IERC165 {
     /// - Fails if it can't withdraw that amount
     /// - type(uint256).max is accepted, meaning the entire balance
     function withdraw(
-        uint256 amountToWithdraw,
+        uint256 assetsAmount,
         address receiver
-    ) external returns (uint256 amountWithdrawn);
+    ) external returns (uint256 assetsWithdrawn);
 
     /// @notice The Origami vault this is managing
     function vault() external view returns (IOrigamiDelegated4626Vault);
@@ -49,4 +48,10 @@ interface IOrigamiDelegated4626VaultManager is IERC165 {
     /// - MUST be inclusive of any fees that are charged against assets in the Vault.
     /// - MUST NOT revert.
     function totalAssets() external view returns (uint256 totalManagedAssets);
+
+    /// @notice Whether deposits and mints are currently paused
+    function areDepositsPaused() external view returns (bool);
+
+    /// @notice Whether withdrawals and redemptions are currently paused
+    function areWithdrawalsPaused() external view returns (bool);
 }

@@ -65,4 +65,10 @@ interface IOrigamiErc4626 is
 
     /// @notice The current maximum total supply of vault tokens.
     function maxTotalSupply() external view returns (uint256);
+
+    /// @notice Whether deposit/mint is currently paused
+    function areDepositsPaused() external view returns (bool);
+
+    /// @notice Whether withdrawal/redeem is currently paused
+    function areWithdrawalsPaused() external view returns (bool);
 }

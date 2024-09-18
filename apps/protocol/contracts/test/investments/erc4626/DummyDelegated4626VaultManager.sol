@@ -71,7 +71,7 @@ contract DummyDelegated4626VaultManager is
 
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function deposit() external override view onlyVault returns (uint256 /*usdsDeposited*/) {
+    function deposit(uint256 /*assetsAmount*/) external override view onlyVault returns (uint256 /*usdsDeposited*/) {
         if (_paused.investmentsPaused) revert CommonEventsAndErrors.IsPaused();
         return _asset.balanceOf(address(this)); // This is incorrect, but fine for dummy
     }
@@ -95,6 +95,16 @@ contract DummyDelegated4626VaultManager is
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     function totalAssets() external override view returns (uint256 /*totalManagedAssets*/) {
         return _asset.balanceOf(address(this));
+    }
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    function areDepositsPaused() external virtual override view returns (bool) {
+        return _paused.investmentsPaused;
+    }
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    function areWithdrawalsPaused() external virtual override view returns (bool) {
+        return _paused.exitsPaused;
     }
 
     /// @inheritdoc IERC165

@@ -149,6 +149,8 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
         assertEq(vault.previewMint(1e18), 1e18); // no fees
         assertEq(vault.previewWithdraw(1e18), 1e18); // no fees
         assertEq(vault.previewRedeem(1e18), 1e18); // no fees
+        assertEq(vault.areDepositsPaused(), false);
+        assertEq(vault.areWithdrawalsPaused(), false);
     }
 
     function test_setManager_fail() public {

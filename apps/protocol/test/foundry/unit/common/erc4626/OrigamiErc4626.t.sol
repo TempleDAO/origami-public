@@ -158,6 +158,8 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
         assertEq(vault.previewRedeem(1e18), 1e18);
         // Dependent on the address, so changes
         assertEq(vault.DOMAIN_SEPARATOR(), bytes32(0xd2e843a44a91122d6c30863b00ef4f6cef005ce2bdfbe801e527b67fd3cc222c));
+        assertEq(vault.areDepositsPaused(), false);
+        assertEq(vault.areWithdrawalsPaused(), false);
     }
 
     function test_initialization() public {
@@ -186,6 +188,8 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
         assertEq(vault.previewRedeem(1e18), 0.98e18); // 200bps fee
 
         assertEq(vault.DOMAIN_SEPARATOR(), bytes32(0xf07a1e21026e15847c4f454c9eb8f87a35787510bc37aee10796c2c8aa85ff16));
+        assertEq(vault.areDepositsPaused(), false);
+        assertEq(vault.areWithdrawalsPaused(), false);
     }
 
     function test_supportsInterface() public {

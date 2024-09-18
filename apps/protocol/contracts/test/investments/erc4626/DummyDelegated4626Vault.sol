@@ -124,7 +124,7 @@ contract DummyDelegated4626Vault is
     /// @dev Pull freshly deposited sUSDS and deposit into the manager
     function _depositHook(address caller, uint256 assets) internal override {
         SafeERC20.safeTransferFrom(_asset, caller, address(_manager), assets);
-        _manager.deposit();
+        _manager.deposit(type(uint256).max);
     }
 
     /// @dev Pull sUSDS from the manager which also sends to the receiver

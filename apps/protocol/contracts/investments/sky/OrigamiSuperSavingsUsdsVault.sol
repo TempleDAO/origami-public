@@ -10,6 +10,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
 import { IOrigamiSuperSavingsUsdsManager } from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
 import { ITokenPrices } from "contracts/interfaces/common/ITokenPrices.sol";
+import { IOrigamiErc4626 } from "contracts/interfaces/common/IOrigamiErc4626.sol";
 import { OrigamiErc4626 } from "contracts/common/OrigamiErc4626.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
@@ -60,6 +61,16 @@ contract OrigamiSuperSavingsUsdsVault is
         return _manager.totalAssets();
     }
 
+    /// @inheritdoc IOrigamiErc4626
+    function areDepositsPaused() external virtual override(IOrigamiErc4626, OrigamiErc4626) view returns (bool) {
+        return _manager.areDepositsPaused();
+    }
+
+    /// @inheritdoc IOrigamiErc4626
+    function areWithdrawalsPaused() external virtual override(IOrigamiErc4626, OrigamiErc4626) view returns (bool) {
+        return _manager.areWithdrawalsPaused();
+    }
+
     /// @inheritdoc IOrigamiDelegated4626Vault
     function manager() external override view returns (address) {
         return address(_manager);
@@ -75,7 +86,7 @@ contract OrigamiSuperSavingsUsdsVault is
     /// @dev Pull freshly deposited sUSDS and deposit into the manager
     function _depositHook(address caller, uint256 assets) internal override {
         SafeERC20.safeTransferFrom(_asset, caller, address(_manager), assets);
-        _manager.deposit();
+        _manager.deposit(type(uint256).max);
     }
 
     /// @dev Pull sUSDS from the manager which also sends to the receiver

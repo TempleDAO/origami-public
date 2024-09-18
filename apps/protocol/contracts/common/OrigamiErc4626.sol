@@ -251,6 +251,11 @@ contract OrigamiErc4626 is
         return assets;
     }
 
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*              EXT. IMPLEMENTATIONS TO OVERRIDE              */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+
     /// @inheritdoc IOrigamiErc4626
     function depositFeeBps() public virtual override view returns (uint256) {
         return 0;
@@ -264,6 +269,16 @@ contract OrigamiErc4626 is
     /// @inheritdoc IOrigamiErc4626
     function maxTotalSupply() public virtual override view returns (uint256) {
         return type(uint256).max;
+    }
+
+    /// @inheritdoc IOrigamiErc4626
+    function areDepositsPaused() external virtual override view returns (bool) {
+        return false;
+    }
+
+    /// @inheritdoc IOrigamiErc4626
+    function areWithdrawalsPaused() external virtual override view returns (bool) {
+        return false;
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

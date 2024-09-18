@@ -197,15 +197,15 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function deposit() external override returns (uint256 usdsDeposited) {
+    function deposit(uint256 assetsAmount) external override returns (uint256 assetsDeposited) {
         // Note: Intentionally permisionless since donations are allowed anyway
         if (_paused.investmentsPaused) revert CommonEventsAndErrors.IsPaused();
         uint32 _currentFarmIndex = currentFarmIndex;
 
         // Deposit all at hand, including any donations.
-        usdsDeposited = (_currentFarmIndex == 0)
-            ? _depositIntoSavings()
-            : _depositIntoFarm(_currentFarmIndex);
+        assetsDeposited = (_currentFarmIndex == 0)
+            ? _depositIntoSavings(assetsAmount)
+            : _depositIntoFarm(assetsAmount, _currentFarmIndex);
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
@@ -238,8 +238,8 @@ contract OrigamiSuperSavingsUsdsManager is
             : _withdrawFromFarm(_currentFarmIndex, MAX_AMOUNT, address(this));
         
         amountDeposited = (newFarmIndex == 0)
-            ? _depositIntoSavings()
-            : _depositIntoFarm(newFarmIndex);
+            ? _depositIntoSavings(MAX_AMOUNT)
+            : _depositIntoFarm(MAX_AMOUNT, newFarmIndex);
 
         emit SwitchedFarms(_currentFarmIndex, newFarmIndex, amountWithdrawn, amountDeposited);
         currentFarmIndex = newFarmIndex;
@@ -332,6 +332,16 @@ contract OrigamiSuperSavingsUsdsManager is
         return _farms[farmIndex];
     }
 
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    function areDepositsPaused() external virtual override view returns (bool) {
+        return _paused.investmentsPaused;
+    }
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    function areWithdrawalsPaused() external virtual override view returns (bool) {
+        return _paused.exitsPaused;
+    }
+
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public override pure returns (bool) {
         return interfaceId == type(IOrigamiSuperSavingsUsdsManager).interfaceId
@@ -413,17 +423,23 @@ contract OrigamiSuperSavingsUsdsManager is
         }
     }
 
-    function _depositIntoSavings() private returns (uint256 amountDeposited) {
-        amountDeposited = USDS.balanceOf(address(this));
+    function _depositIntoSavings(uint256 assetsAmount) private returns (uint256 amountDeposited) {
+        amountDeposited = assetsAmount == MAX_AMOUNT 
+            ? USDS.balanceOf(address(this))
+            : assetsAmount;
+
         if (amountDeposited > 0) {
             sUSDS.deposit(amountDeposited, address(this));
         }
     }
     
-    function _depositIntoFarm(uint32 farmIndex) private returns (uint256 amountDeposited) {
+    function _depositIntoFarm(uint256 assetsAmount, uint32 farmIndex) private returns (uint256 amountDeposited) {
         Farm storage farm = _getFarm(farmIndex);
 
-        amountDeposited = USDS.balanceOf(address(this));
+        amountDeposited = assetsAmount == type(uint256).max
+            ? USDS.balanceOf(address(this))
+            : assetsAmount;
+            
         if (amountDeposited > 0) {
             uint16 referral = farm.referral;
             if (referral == 0) {

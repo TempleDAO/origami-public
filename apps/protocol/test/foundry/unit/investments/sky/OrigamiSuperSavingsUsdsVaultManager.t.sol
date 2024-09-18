@@ -16,7 +16,7 @@ import { IOrigamiManagerPausable } from "contracts/interfaces/investments/util/I
 import { stdError } from "forge-std/StdError.sol";
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestBase is OrigamiTest {
+contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
     using OrigamiMath for uint256;
 
     DummyMintableToken public asset;
@@ -94,9 +94,13 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestBase is OrigamiTest {
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(1);
     }
+
+    function depositAll() internal returns (uint256) {
+        return manager.deposit(type(uint256).max);
+    }
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestAdmin is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManagerTestBase {
     event PerformanceFeeSet(uint256 fee);
     event FeeCollectorSet(address indexed feeCollector);
     event SwitchFarmCooldownSet(uint32 cooldown);
@@ -352,8 +356,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestAdmin is OrigamiSuperSavingsUsds
         // Stake (into 2)
         {
             deal(address(asset), address(manager), 100e18);
-            vm.startPrank(address(vault));
-            manager.deposit();
+            depositAll();
         }
 
         // Also prank staking into 1
@@ -461,7 +464,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestAdmin is OrigamiSuperSavingsUsds
 
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestAccess is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestAccess is OrigamiSuperSavingsUsdsManagerTestBase {
     function test_setPerformanceFees_access() public {
         expectElevatedAccess();
         manager.setPerformanceFees(1, 1);
@@ -528,29 +531,61 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestAccess is OrigamiSuperSavingsUsd
     }
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestDeposit is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsManagerTestBase {
     event Staked(address indexed user, uint256 amount);
     event Referral(uint16 indexed referral, address indexed user, uint256 amount);
 
     function test_deposit_failPaused() public {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
-        manager.setPaused(IOrigamiManagerPausable.Paused(true, true));
+        manager.setPaused(IOrigamiManagerPausable.Paused(true, false));
 
+        assertEq(manager.areDepositsPaused(), true);
+        assertEq(manager.areWithdrawalsPaused(), false);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
-        manager.deposit();
+        depositAll();
     }
 
     function test_deposit_successNothing() public {
-        vm.startPrank(origamiMultisig);
-        assertEq(manager.deposit(), 0);
+        assertEq(depositAll(), 0);
     }
 
-    function test_deposit_successSUsds() public {
+    function test_deposit_fail_tooMuch() public {
+        vm.expectRevert("ERC20: transfer amount exceeds balance");
+        manager.deposit(100e18);
+    }
+
+    function test_deposit_successLimitedSUsds() public {
         vm.startPrank(origamiMultisig);
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(manager.deposit(25e18), 25e18);
+        assertEq(sUSDS.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(manager)), 75e18);
+        assertEq(manager.totalAssets(), 100e18);
+
+        skip(SWITCH_FARM_COOLDOWN);
+        (
+            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
+            uint256 stakedBalance,
+            uint256 totalSupply,
+            uint256 rewardRate,
+            uint256 unclaimedRewards
+        ) = manager.farmDetails(0);
+        assertEq(address(farm.staking), address(0));
+        assertEq(address(farm.rewardsToken), address(0));
+        assertEq(farm.referral, 0);
+        assertEq(stakedBalance, 25e18);
+        assertEq(totalSupply, 25e18);
+        assertEq(rewardRate, 0.05e18);
+        assertEq(unclaimedRewards, 0);
+    }
+
+    function test_deposit_successMaxSUsds() public {
+        vm.startPrank(origamiMultisig);
+        deal(address(asset), address(manager), 100e18);
+        assertEq(depositAll(), 100e18);
         assertEq(sUSDS.balanceOf(address(manager)), 100e18);
+        assertEq(asset.balanceOf(address(manager)), 0);
         assertEq(manager.totalAssets(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
@@ -575,7 +610,40 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestDeposit is OrigamiSuperSavingsUs
         assertEq(manager.addFarm(address(skyFarm1), 123), 1);
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(1);
-        assertEq(manager.deposit(), 0);
+        assertEq(depositAll(), 0);
+    }
+
+    function test_deposit_successSkyFarm1_limited() public {
+        vm.startPrank(origamiMultisig);
+        assertEq(manager.addFarm(address(skyFarm1), 0), 1);
+        skip(SWITCH_FARM_COOLDOWN);
+        manager.switchFarms(1);
+
+        deal(address(asset), address(manager), 100e18);
+
+        vm.expectEmit(address(skyFarm1));
+        emit Staked(address(manager), 25e18);
+        assertEq(manager.deposit(25e18), 25e18);
+        assertEq(asset.balanceOf(address(manager)), 75e18);
+        assertEq(sUSDS.balanceOf(address(manager)), 0);
+        assertEq(skyFarm1.balanceOf(address(manager)), 25e18);
+        assertEq(manager.totalAssets(), 100e18);
+
+        skip(SWITCH_FARM_COOLDOWN);
+        (
+            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
+            uint256 stakedBalance,
+            uint256 totalSupply,
+            uint256 rewardRate,
+            uint256 unclaimedRewards
+        ) = manager.farmDetails(1);
+        assertEq(address(farm.staking), address(skyFarm1));
+        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
+        assertEq(farm.referral, 0);
+        assertEq(stakedBalance, 25e18);
+        assertEq(totalSupply, 25e18);
+        assertEq(rewardRate, 0.016534391534391534e18);
+        assertEq(unclaimedRewards, 1428.571428571428537600e18);
     }
 
     function test_deposit_successSkyFarm1_noReferral() public {
@@ -588,7 +656,8 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestDeposit is OrigamiSuperSavingsUs
 
         vm.expectEmit(address(skyFarm1));
         emit Staked(address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
+        assertEq(asset.balanceOf(address(manager)), 0);
         assertEq(sUSDS.balanceOf(address(manager)), 0);
         assertEq(skyFarm1.balanceOf(address(manager)), 100e18);
         assertEq(manager.totalAssets(), 100e18);
@@ -622,7 +691,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestDeposit is OrigamiSuperSavingsUs
         emit Staked(address(manager), 100e18);
         vm.expectEmit(address(skyFarm1));
         emit Referral(123, address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
         assertEq(sUSDS.balanceOf(address(manager)), 0);
         assertEq(skyFarm1.balanceOf(address(manager)), 100e18);
         assertEq(manager.totalAssets(), 100e18);
@@ -645,12 +714,14 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestDeposit is OrigamiSuperSavingsUs
     }
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsManagerTestBase {
     function test_withdraw_failPaused() public {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
-        manager.setPaused(IOrigamiManagerPausable.Paused(true, true));
+        manager.setPaused(IOrigamiManagerPausable.Paused(false, true));
 
+        assertEq(manager.areDepositsPaused(), false);
+        assertEq(manager.areWithdrawalsPaused(), true);
         vm.startPrank(address(vault));
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
         manager.withdraw(100, alice);
@@ -669,7 +740,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
 
     function test_withdraw_sUSDS_success() public {
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.startPrank(address(vault));
@@ -697,7 +768,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
 
     function test_withdraw_sUSDS_maxSuccess() public {
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.startPrank(address(vault));
@@ -725,7 +796,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
 
     function test_withdraw_sUSDS_successSameReceiver() public {
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.startPrank(address(vault));
@@ -769,7 +840,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
     function test_withdraw_farm_success() public {
         setupAndSwitchFarm();
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.startPrank(address(vault));
@@ -798,7 +869,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
     function test_withdraw_farm_maxSuccess() public {
         setupAndSwitchFarm();
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.startPrank(address(vault));
@@ -827,7 +898,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
     function test_withdraw_farm_successSameReceiver() public {
         setupAndSwitchFarm();
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.startPrank(address(vault));
@@ -854,7 +925,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestWithdraw is OrigamiSuperSavingsU
     }
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestSwitch is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsManagerTestBase {
     event SwitchedFarms(
         uint32 indexed oldFarmIndex, 
         uint32 indexed newFarmIndex, 
@@ -904,7 +975,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestSwitch is OrigamiSuperSavingsUsd
         assertEq(manager.addFarm(address(skyFarm1), 123), 1);
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.expectEmit(address(manager));
@@ -953,7 +1024,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestSwitch is OrigamiSuperSavingsUsd
         assertEq(manager.addFarm(address(skyFarm1), 123), 1);
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         // Slide in another donation
         deal(address(asset), address(manager), 100e18);
@@ -1020,7 +1091,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestSwitch is OrigamiSuperSavingsUsd
         manager.switchFarms(1);
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.expectEmit(address(manager));
@@ -1072,7 +1143,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestSwitch is OrigamiSuperSavingsUsd
         manager.switchFarms(1);
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
         vm.expectEmit(address(manager));
@@ -1117,7 +1188,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestSwitch is OrigamiSuperSavingsUsd
     }
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestRewards is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsManagerTestBase {
     event ClaimedReward(
         uint32 indexed farmIndex, 
         address indexed rewardsToken, 
@@ -1149,7 +1220,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestRewards is OrigamiSuperSavingsUs
         setupAndSwitchFarm();
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
         skip(SWITCH_FARM_COOLDOWN);
 
         vm.startPrank(alice);
@@ -1178,8 +1249,9 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestRewards is OrigamiSuperSavingsUs
         manager.switchFarms(1);
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
         skip(SWITCH_FARM_COOLDOWN);
+        vm.startPrank(origamiMultisig);
         manager.switchFarms(2);
         skip(SWITCH_FARM_COOLDOWN);
 
@@ -1221,7 +1293,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestRewards is OrigamiSuperSavingsUs
         manager.switchFarms(1);
 
         deal(address(asset), address(manager), 100e18);
-        assertEq(manager.deposit(), 100e18);
+        assertEq(depositAll(), 100e18);
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(2);
         skip(SWITCH_FARM_COOLDOWN);
@@ -1259,7 +1331,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestRewards is OrigamiSuperSavingsUs
     }
 }
 
-contract OrigamiSuperSavingsUsdsVaultManagerTestViews is OrigamiSuperSavingsUsdsVaultManagerTestBase {
+contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManagerTestBase {
     function test_supportsInterface() public {
         assertEq(manager.supportsInterface(type(IOrigamiSuperSavingsUsdsManager).interfaceId), true);
         assertEq(manager.supportsInterface(type(IERC165).interfaceId), true);
@@ -1282,7 +1354,7 @@ contract OrigamiSuperSavingsUsdsVaultManagerTestViews is OrigamiSuperSavingsUsds
 
         // Will have sUSDS
         deal(address(asset), address(manager), 111e18, true);
-        manager.deposit();
+        depositAll();
 
         assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 1_000e18 + 111e18);
         assertEq(sUSDS.convertToAssets(1e18), 1e18);
