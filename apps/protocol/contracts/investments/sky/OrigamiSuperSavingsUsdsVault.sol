@@ -15,7 +15,7 @@ import { OrigamiErc4626 } from "contracts/common/OrigamiErc4626.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
 /**
- * @title Origami sUSDS + Sky Farms ERC-4626 Vault
+ * @title Origami sUSDS++ ERC-4626 Vault
  * @notice The logic to farm the sUSDS is delegated to a manager.
  */
 contract OrigamiSuperSavingsUsdsVault is

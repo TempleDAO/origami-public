@@ -20,7 +20,7 @@ import { OrigamiManagerPausable } from "contracts/investments/util/OrigamiManage
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
- * @title Origami sUSDS + Sky Farms Manager
+ * @title Origami sUSDS++ Manager
  * @notice Handles USDS deposits and switching between farms
  */
 contract OrigamiSuperSavingsUsdsManager is 
@@ -288,25 +288,17 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function farmDetails(uint32 farmIndex) external override view returns (
-        Farm memory farm,
-        uint256 stakedBalance,
-        uint256 totalSupply,
-        uint256 rewardRate,
-        uint256 unclaimedRewards
+    function farmDetails(uint32[] calldata farmIndexes) external override view returns (
+        FarmDetails[] memory details
     ) {
-        if (farmIndex == 0) {
-            stakedBalance = sUSDS.balanceOf(address(this));
-            totalSupply = sUSDS.totalSupply();
-            rewardRate = sUSDS.ssr();
-            // unclaimedRewards can remain as zero
-        } else {
-            farm = _getFarm(farmIndex);
-            ISkyStakingRewards staking = farm.staking;
-            stakedBalance = staking.balanceOf(address(this));
-            totalSupply = staking.totalSupply();
-            rewardRate = staking.rewardRate();
-            unclaimedRewards = staking.earned(address(this));
+        uint256 _length = farmIndexes.length;
+        details = new FarmDetails[](_length);
+        uint32 farmIndex;
+        for (uint256 i; i < _length; ++i) {
+            farmIndex = farmIndexes[i];
+            details[i] = farmIndex == 0
+                ? _buildSUsdsDetails()
+                : _buildFarmDetails(farmIndex);
         }
     }
 
@@ -477,6 +469,38 @@ contract OrigamiSuperSavingsUsdsManager is
         staking.withdraw(amountWithdrawn);
         if (receiver != address(this)) {
             USDS.safeTransfer(receiver, amountWithdrawn);
+        }
+    }
+
+    function _buildSUsdsDetails() private view returns (FarmDetails memory details) {
+        // The current amount of USDS which can be redeemed
+        // excluding any any limits that maxWithdraw may have
+        details.stakedBalance = sUSDS.previewRedeem(
+            sUSDS.balanceOf(address(this))
+        );
+
+        // The total amount of USDS within sUSDS
+        details.totalSupply = sUSDS.totalAssets();
+
+        // The current sUSDS savings rate
+        details.rewardRate = sUSDS.ssr();
+
+        // unclaimedRewards, farmIndex can remain as zero
+        // farmConfig can remain uninitialized
+    }
+
+    function _buildFarmDetails(
+        uint32 farmIndex
+    ) private view returns (FarmDetails memory details) {
+        // If this farm isn't valid or has been removed, then 
+        // just don't populate the fields
+        Farm memory farm = _farms[farmIndex];
+        if (address(farm.staking) != address(0)) {
+            details.farm = farm;
+            details.stakedBalance = farm.staking.balanceOf(address(this));
+            details.totalSupply = farm.staking.totalSupply();
+            details.rewardRate = farm.staking.rewardRate();
+            details.unclaimedRewards = farm.staking.earned(address(this));
         }
     }
 

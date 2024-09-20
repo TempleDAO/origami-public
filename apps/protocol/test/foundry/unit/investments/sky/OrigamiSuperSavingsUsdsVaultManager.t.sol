@@ -98,6 +98,16 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
     function depositAll() internal returns (uint256) {
         return manager.deposit(type(uint256).max);
     }
+
+    function allFarmDetails() internal view returns (IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory details) {
+        uint256 length = manager.maxFarmIndex() + 1;
+        uint32[] memory farmIndexes = new uint32[](length);
+        for (uint32 i; i < length; ++i) {
+            farmIndexes[i] = i;
+        }
+
+        return manager.farmDetails(farmIndexes);
+    }
 }
 
 contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManagerTestBase {
@@ -283,44 +293,34 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
             assertEq(farm.referral, 123);
         }
 
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+
         // Index 0 has the sUSDS
         {
-            (
-                IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-                uint256 stakedBalance,
-                uint256 totalSupply,
-                uint256 rewardRate,
-                uint256 unclaimedRewards
-            ) = manager.farmDetails(0);
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
 
-            assertEq(address(farm.staking), address(0));
-            assertEq(address(farm.rewardsToken), address(0));
-            assertEq(farm.referral, 0);
-
-            assertEq(stakedBalance, 0);
-            assertEq(totalSupply, 0);
-            assertEq(rewardRate, 0.05e18);
-            assertEq(unclaimedRewards, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
         }
 
         // Index 1 has this new farm
         {
-            (
-                IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-                uint256 stakedBalance,
-                uint256 totalSupply,
-                uint256 rewardRate,
-                uint256 unclaimedRewards
-            ) = manager.farmDetails(1);
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
 
-            assertEq(address(farm.staking), address(skyFarm1));
-            assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-            assertEq(farm.referral, 123);
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
 
-            assertEq(stakedBalance, 0);
-            assertEq(totalSupply, 0);
-            assertEq(rewardRate, 0.016534391534391534e18);
-            assertEq(unclaimedRewards, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 0);
         }
 
         assertEq(manager.maxFarmIndex(), 1); // new farm
@@ -564,20 +564,18 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         assertEq(manager.totalAssets(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 25e18);
-        assertEq(totalSupply, 25e18);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 1);
+        IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+        
+        assertEq(address(details.farm.staking), address(0));
+        assertEq(address(details.farm.rewardsToken), address(0));
+        assertEq(details.farm.referral, 0);
+        assertEq(details.stakedBalance, 25.003424657534246575e18);
+        assertEq(details.totalSupply, 25.003424657534246575e18);
+        assertEq(details.rewardRate, 0.05e18);
+        assertEq(details.unclaimedRewards, 0);
     }
 
     function test_deposit_successMaxSUsds() public {
@@ -589,20 +587,19 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         assertEq(manager.totalAssets(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 100e18);
-        assertEq(totalSupply, 100e18);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 1);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 100.013698630136986301e18);
+            assertEq(details.totalSupply, 100.013698630136986301e18);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
     }
 
     function test_deposit_successZeroAmount() public {
@@ -630,20 +627,19 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         assertEq(manager.totalAssets(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 25e18);
-        assertEq(totalSupply, 25e18);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 25e18);
+            assertEq(details.totalSupply, 25e18);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
     }
 
     function test_deposit_successSkyFarm1_noReferral() public {
@@ -663,20 +659,19 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         assertEq(manager.totalAssets(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 100e18);
-        assertEq(totalSupply, 100e18);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 100e18);
+            assertEq(details.totalSupply, 100e18);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
     }
 
     function test_deposit_successSkyFarm1_withReferral() public {
@@ -697,20 +692,19 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         assertEq(manager.totalAssets(), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 100e18);
-        assertEq(totalSupply, 100e18);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 100e18);
+            assertEq(details.totalSupply, 100e18);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
     }
 }
 
@@ -749,20 +743,20 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(asset.balanceOf(alice), 100.013698630136986301e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 1);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
+        
         assertEq(manager.totalAssets(), 0);
     }
 
@@ -777,20 +771,19 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(asset.balanceOf(alice), 100.013698630136986301e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 1);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
         assertEq(manager.totalAssets(), 0);
     }
 
@@ -805,20 +798,19 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(asset.balanceOf(address(manager)), 50e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 50.006848376934666483e18);
-        assertEq(totalSupply, 50.006848376934666483e18);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 1);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 50.020549821730155751e18);
+            assertEq(details.totalSupply, 50.020549821730155751e18);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
     }
 
     function test_withdraw_farm_failNothing() public {
@@ -849,20 +841,19 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(asset.balanceOf(alice), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
         assertEq(manager.totalAssets(), 0);
     }
 
@@ -878,20 +869,19 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(asset.balanceOf(alice), 100e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
         assertEq(manager.totalAssets(), 0);
     }
 
@@ -907,20 +897,19 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(asset.balanceOf(address(manager)), 50e18);
 
         skip(SWITCH_FARM_COOLDOWN);
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 50e18);
-        assertEq(totalSupply, 50e18);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 2857.142857142857075200e18);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 50e18);
+            assertEq(details.totalSupply, 50e18);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 2857.142857142857075200e18);
+        }
         assertEq(manager.totalAssets(), 100e18);
     }
 }
@@ -985,35 +974,29 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
         assertEq(deposited, 100.013698630136986301e18);
         assertEq(manager.totalAssets(), 100.013698630136986301e18);
 
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
 
-        (
-            farm,
-            stakedBalance,
-            totalSupply,
-            rewardRate,
-            unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 100.013698630136986301e18);
-        assertEq(totalSupply, 100.013698630136986301e18);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 0);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 100.013698630136986301e18);
+            assertEq(details.totalSupply, 100.013698630136986301e18);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
 
         assertEq(manager.currentFarmIndex(), 1);
         assertEq(manager.lastSwitchTime(), block.timestamp);
@@ -1037,35 +1020,30 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
         assertEq(deposited, 200.013698630136986301e18);
         assertEq(manager.totalAssets(), 200.013698630136986301e18);
 
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
 
-        (
-            farm,
-            stakedBalance,
-            totalSupply,
-            rewardRate,
-            unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 200.013698630136986301e18);
-        assertEq(totalSupply, 200.013698630136986301e18);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 0);
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 2);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
+
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 200.013698630136986301e18);
+            assertEq(details.totalSupply, 200.013698630136986301e18);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
 
         assertEq(manager.currentFarmIndex(), 1);
         assertEq(manager.lastSwitchTime(), block.timestamp);
@@ -1101,35 +1079,30 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
         assertEq(deposited, 100e18);
         assertEq(manager.totalAssets(), 100e18);
 
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
 
-        (
-            farm,
-            stakedBalance,
-            totalSupply,
-            rewardRate,
-            unclaimedRewards
-        ) = manager.farmDetails(2);
-        assertEq(address(farm.staking), address(skyFarm2));
-        assertEq(address(farm.rewardsToken), address(skyFarm2RewardsToken));
-        assertEq(farm.referral, 456);
-        assertEq(stakedBalance, 100e18);
-        assertEq(totalSupply, 100e18);
-        assertEq(rewardRate, 0.004960317460317460e18);
-        assertEq(unclaimedRewards, 0);
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 3);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
+
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[2];
+            assertEq(address(details.farm.staking), address(skyFarm2));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm2RewardsToken));
+            assertEq(details.farm.referral, 456);
+            assertEq(details.stakedBalance, 100e18);
+            assertEq(details.totalSupply, 100e18);
+            assertEq(details.rewardRate, 0.004960317460317460e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
 
         assertEq(manager.currentFarmIndex(), 2);
         assertEq(manager.lastSwitchTime(), block.timestamp);
@@ -1153,35 +1126,29 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
         assertEq(deposited, 100e18);
         assertEq(manager.totalAssets(), 100e18);
 
-        (
-            IOrigamiSuperSavingsUsdsManager.Farm memory farm,
-            uint256 stakedBalance,
-            uint256 totalSupply,
-            uint256 rewardRate,
-            uint256 unclaimedRewards
-        ) = manager.farmDetails(1);
-        assertEq(address(farm.staking), address(skyFarm1));
-        assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
-        assertEq(farm.referral, 123);
-        assertEq(stakedBalance, 0);
-        assertEq(totalSupply, 0);
-        assertEq(rewardRate, 0.016534391534391534e18);
-        assertEq(unclaimedRewards, 1428.571428571428537600e18);
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 3);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(skyFarm1));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm1RewardsToken));
+            assertEq(details.farm.referral, 123);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.016534391534391534e18);
+            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+        }
 
-        (
-            farm,
-            stakedBalance,
-            totalSupply,
-            rewardRate,
-            unclaimedRewards
-        ) = manager.farmDetails(0);
-        assertEq(address(farm.staking), address(0));
-        assertEq(address(farm.rewardsToken), address(0));
-        assertEq(farm.referral, 0);
-        assertEq(stakedBalance, 100e18);
-        assertEq(totalSupply, 100e18);
-        assertEq(rewardRate, 0.05e18);
-        assertEq(unclaimedRewards, 0);
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 100e18);
+            assertEq(details.totalSupply, 100e18);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
 
         assertEq(manager.currentFarmIndex(), 0);
         assertEq(manager.lastSwitchTime(), block.timestamp);
@@ -1376,5 +1343,53 @@ contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManag
         deal(address(asset), address(manager), asset.balanceOf(address(manager)) + 13e18, true);
         deal(address(sUSDS), address(manager), sUSDS.balanceOf(address(manager)) + 9e18, true);
         assertEq(manager.totalAssets(), 111e18+22.2e18 + 0.015205479452054794e18 + 13e18 + 9e18 - 0.079055622683519557e18);
+    }
+
+    function test_farmViewsPartial() public {
+        vm.startPrank(origamiMultisig);
+        assertEq(manager.addFarm(address(skyFarm1), 123), 1);
+        assertEq(manager.addFarm(address(skyFarm2), 456), 2);
+        deal(address(asset), address(manager), 100e18);
+        assertEq(depositAll(), 100e18);
+
+        uint32[] memory farmIndexes = new uint32[](3);
+        farmIndexes[0] = 0;
+        farmIndexes[1] = 3;
+        farmIndexes[2] = 2;
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = manager.farmDetails(farmIndexes);
+        assertEq(farmDetails.length, 3);
+
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 100e18);
+            assertEq(details.totalSupply, 100e18);
+            assertEq(details.rewardRate, 0.05e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
+
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[1];
+            assertEq(address(details.farm.staking), address(0));
+            assertEq(address(details.farm.rewardsToken), address(0));
+            assertEq(details.farm.referral, 0);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0);
+            assertEq(details.unclaimedRewards, 0);
+        }
+        
+        {
+            IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[2];
+            assertEq(address(details.farm.staking), address(skyFarm2));
+            assertEq(address(details.farm.rewardsToken), address(skyFarm2RewardsToken));
+            assertEq(details.farm.referral, 456);
+            assertEq(details.stakedBalance, 0);
+            assertEq(details.totalSupply, 0);
+            assertEq(details.rewardRate, 0.004960317460317460e18);
+            assertEq(details.unclaimedRewards, 0);
+        }
     }
 }

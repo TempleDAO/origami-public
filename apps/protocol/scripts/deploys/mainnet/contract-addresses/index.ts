@@ -43,8 +43,6 @@ import {
   OrigamiFixedPriceOracle__factory,
   OrigamiCowSwapper,
   OrigamiCowSwapper__factory,
-  OrigamiSuperSavingsUsdsManager, OrigamiSuperSavingsUsdsManager__factory,
-  OrigamiSuperSavingsUsdsVault, OrigamiSuperSavingsUsdsVault__factory,
 } from "../../../../typechain";
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
@@ -168,14 +166,6 @@ export interface ContractInstances {
   LOV_USD0pp_A: IMorphoType,
   LOV_RSWETH_A: IMorphoType,
 
-  VAULTS: {
-    SUSDSpS: {
-      TOKEN: OrigamiSuperSavingsUsdsVault;
-      MANAGER: OrigamiSuperSavingsUsdsManager;
-      COW_SWAPPER: OrigamiCowSwapper;
-    };
-  };
-
   EXTERNAL: {
     WETH_TOKEN: IERC20Metadata;
     WBTC_TOKEN: IERC20Metadata;
@@ -183,11 +173,6 @@ export interface ContractInstances {
       DAI_TOKEN: IERC20Metadata;
       SDAI_TOKEN: IERC4626;
       MKR_TOKEN: IERC20Metadata;
-    },
-    SKY: {
-      USDS_TOKEN: IERC20Metadata;
-      SUSDS_TOKEN: IERC4626;
-      SKY_TOKEN: IERC20Metadata;
     },
     CIRCLE: {
       USDC_TOKEN: IERC20Metadata;
@@ -413,14 +398,6 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_RSWETH_A.TOKEN, owner),
       MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_RSWETH_A.MANAGER, owner),
     },
-
-    VAULTS: {
-      SUSDSpS: {
-        TOKEN: OrigamiSuperSavingsUsdsVault__factory.connect(ADDRS.VAULTS.SUSDSpS.TOKEN, owner),
-        MANAGER: OrigamiSuperSavingsUsdsManager__factory.connect(ADDRS.VAULTS.SUSDSpS.MANAGER, owner),
-        COW_SWAPPER: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER, owner),
-      },
-    },
     EXTERNAL: {
       WETH_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.WETH_TOKEN, owner),
       WBTC_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.WBTC_TOKEN, owner),
@@ -428,11 +405,6 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
         DAI_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN, owner),
         SDAI_TOKEN: IERC4626__factory.connect(ADDRS.EXTERNAL.MAKER_DAO.SDAI_TOKEN, owner),
         MKR_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.MAKER_DAO.MKR_TOKEN, owner),
-      },
-      SKY: {
-        USDS_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.SKY.USDS_TOKEN, owner),
-        SUSDS_TOKEN: IERC4626__factory.connect(ADDRS.EXTERNAL.SKY.SUSDS_TOKEN, owner),
-        SKY_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.SKY.SKY_TOKEN, owner),
       },
       CIRCLE: {
         USDC_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.CIRCLE.USDC_TOKEN, owner),

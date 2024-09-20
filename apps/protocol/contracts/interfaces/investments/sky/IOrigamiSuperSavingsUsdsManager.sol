@@ -9,7 +9,7 @@ import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investme
 import { ISkyStakingRewards } from "contracts/interfaces/external/sky/ISkyStakingRewards.sol";
 
 /**
- * @title Origami sUSDS + Sky Farms Manager
+ * @title Origami Super Savings USDS Manager
  * @notice Handles USDS deposits and switching between farms
  */
 interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
@@ -192,15 +192,36 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
      */
     function getFarm(uint256 farmIndex) external view returns (Farm memory farm);
 
+    struct FarmDetails {
+        /// @dev The farm configuration
+        Farm farm;
+
+        /// @dev The amount of USDS staked in the farm
+        /// For sUSDS, this is the current amount of USDS
+        /// which can be withdrawn
+        uint256 stakedBalance;
+
+        /// @dev The total amount of USDS staked in the farm across
+        /// all stakers
+        /// For sUSDS, this is the total amount of USDS assets
+        uint256 totalSupply;
+
+        /// @dev The current rate of emissions from the farm
+        /// For sUSDS, this is current interest rate
+        uint256 rewardRate;
+
+        /// @dev The amount of emissions earned which can
+        /// currently be claimed.
+        /// For sUSDS, this will always be zero
+        uint256 unclaimedRewards;        
+    }
+
     /** 
-     * @notice A helper to show the current positions for a given farm index.
-     * @dev Reverts if the farmIndex is not valid
+     * @notice A helper to show the current positions for a set of farm indexes.
+     * @dev If the farmIndex is not valid/removed that item will remain 
+     * empty
      */
-    function farmDetails(uint32 farmIndex) external view returns (
-        Farm memory farm,
-        uint256 stakedBalance,
-        uint256 totalSupply,
-        uint256 rewardRate,
-        uint256 unclaimedRewards
+    function farmDetails(uint32[] calldata farmIndexes) external view returns (
+        FarmDetails[] memory
     );
 }
