@@ -144,6 +144,8 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
         assertEq(vault.asset(), address(asset));
         assertEq(vault.decimals(), 18);
         assertEq(vault.maxTotalSupply(), type(uint256).max);
+        assertEq(vault.areDepositsPaused(), false);
+        assertEq(vault.areWithdrawalsPaused(), false);
         assertEq(vault.totalSupply(), 0);
         assertEq(vault.totalAssets(), 0);
         assertEq(vault.convertToShares(1e18), 1e18);
@@ -169,6 +171,8 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
         assertEq(vault.asset(), address(asset));
         assertEq(vault.decimals(), 18);
         assertEq(vault.maxTotalSupply(), MAX_TOTAL_SUPPLY);
+        assertEq(vault.areDepositsPaused(), false);
+        assertEq(vault.areWithdrawalsPaused(), false);
         assertEq(vault.totalSupply(), 0);
         assertEq(vault.totalAssets(), 0);
         assertEq(vault.convertToShares(1e18), 1e18);

@@ -20,7 +20,7 @@ import { OrigamiManagerPausable } from "contracts/investments/util/OrigamiManage
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
- * @title Origami sUSDS++ Manager
+ * @title Origami sUSDS + Sky Farms Manager
  * @notice Handles USDS deposits and switching between farms
  */
 contract OrigamiSuperSavingsUsdsManager is 

@@ -27,16 +27,6 @@ interface IOrigamiCowSwapper is IConditionalOrder {
     error InvalidSellToken(address sellToken);
 
     /**
-     * @notice Cannot seup swap config which would result in a swap loop
-     */
-    error CircularSwapConfig(address sellToken);
-
-    /**
-     * @notice Only allow up to 20 joined sellToken->buyToken connections
-     */
-    error TooManyConnections();
-
-    /**
      * @notice The order configuration details used to create any new discrete orders for a given sellToken
      * @dev byte packed into 5x slots
      * NB: There's an opportunity for gas golfing here by packing into custom types - may revisit in future
@@ -132,6 +122,9 @@ interface IOrigamiCowSwapper is IConditionalOrder {
      * @notice Sets or updates the order configuration for a particular sellToken
      * @dev Registering the conditional order with CowSwap's Watchtower is done separately 
      * via createConditionalOrder()
+     * It is up to elevated access to ensure there is no circular loops that may cause infinite swaps
+     * back and forth (bleeding fees in the process). There may be valid situations where there is a loop
+     * but with different limit prices, for example.
      */
     function setOrderConfig(
         address sellToken, 

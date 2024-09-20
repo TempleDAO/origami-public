@@ -1,0 +1,11 @@
+// mainnet: LOV_WOETH_A.TOKEN=0xC242487172641eEf13626C2c426CB3d41BebC6DE
+// yarn hardhat verify --network mainnet 0xC242487172641eEf13626C2c426CB3d41BebC6DE --constructor-args scripts/deploys/mainnet/deploymentArgs/0xC242487172641eEf13626C2c426CB3d41BebC6DE.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "Origami lov-woETH-a",
+  "lov-woETH-a",
+  200,
+  "0x781B4c57100738095222bd92D37B07ed034AB696",
+  "0x76Cf788606F3d968B93B8A243D0e185C974EE407",
+  "50000000000000000000"
+];

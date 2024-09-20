@@ -426,6 +426,38 @@ export const DEFAULT_SETTINGS = {
       INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("2"), // Small initial supply
     },
 
+    VAULTS: {
+      SUSDSpS: {
+        TOKEN_SYMBOL: "sUSDS+s",
+        TOKEN_NAME: "Origami sUSDS + Sky Farms",
+        SWITCH_FARM_COOLDOWN_SECS: 86_400,
+        PERFORMANCE_FEE_FOR_CALLER_BPS: 100,
+        PERFORMANCE_FEE_FOR_ORIGAMI_BPS: 400,
+        
+        STAKING_FARMS: {
+          USDS_SKY: {
+            REFERRAL_CODE: 0,
+          },
+        },
+
+        COW_SWAPPERS: {
+          // Sell Exactly 10k SKY and Buy a min of 500 USDS
+          SKY_TO_USDS_EXACT_SELL_AMOUNT: {
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("10000", 18),
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("500", 18),
+            PARTIALLY_FILLABLE: false,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
+            LIMIT_PRICE_PREMIUM_BPS: 0,
+            VERIFY_SLIPPAGE_BPS: 0,
+            ROUND_DOWN_DIVISOR: 0,
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf
+            APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
+          }
+        }
+      }
+    },
+
     ORACLES: {
       USDE_DAI: {
         MIN_THRESHOLD: ethers.utils.parseEther("0.995"), 
@@ -536,6 +568,16 @@ export const DEFAULT_SETTINGS = {
           STALENESS_THRESHOLD: 86400 + 300 // 1 hr + 5 minutes
         },
       },
+      CHRONICLE: {
+        USDS_USD_ORACLE: {
+          // https://chroniclelabs.org/dashboard/oracle/USDS/USD?blockchain=ETH
+          STALENESS_THRESHOLD: 43200 + 300 // 12 hours + 5 minutes
+        },
+        SKY_USD_ORACLE: {
+          // https://chroniclelabs.org/dashboard/oracle/SKY/USD?blockchain=ETH
+          STALENESS_THRESHOLD: 43200 + 300 // 12 hours + 5 minutes
+        },
+      },
       SPARK: {
         EMODES: {
           DEFAULT: 0,
@@ -568,11 +610,12 @@ export const DEFAULT_SETTINGS = {
         },
 
         COW_SWAPPER_2: {
-          SDAI_SUSDE: {  // Sell sDAI and Buy sUSDe
-            MAX_SELL_AMOUNT: ethers.utils.parseUnits("1000", 18),
-            MIN_BUY_AMOUNT: ethers.utils.parseUnits("100", 18),
+          // Sell exactly 100 sDAI and Buy a min of 90 sUSDe
+          SDAI_SUSDE_EXACT_SELL_AMOUNT: {
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("100", 18),
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("90", 18),
             PARTIALLY_FILLABLE: false,
-            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false, // We want it to be exact not based off balance
             LIMIT_PRICE_PREMIUM_BPS: 0,
             VERIFY_SLIPPAGE_BPS: 0,
             ROUND_DOWN_DIVISOR: 0,
@@ -581,11 +624,40 @@ export const DEFAULT_SETTINGS = {
             APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
           },
 
-          SUSDE_SDAI: {  // Sell sUSDe and Buy sDAI
+          // Sell a max of 1000 sDAI and Buy a min amount of 100 sUSDe
+          SDAI_SUSDE_MIN_BUY_AMOUNT: {
             MAX_SELL_AMOUNT: ethers.utils.parseUnits("1000", 18),
             MIN_BUY_AMOUNT: ethers.utils.parseUnits("100", 18),
             PARTIALLY_FILLABLE: false,
-            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: true, // will use the contract balance of sDAI
+            LIMIT_PRICE_PREMIUM_BPS: 0,
+            VERIFY_SLIPPAGE_BPS: 0,
+            ROUND_DOWN_DIVISOR: 0,
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf
+            APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
+          },
+
+          // Sell exactly 100 sUSDe and Buy a min of 90 sDAI
+          SUSDE_SDAI_EXACT_SELL_AMOUNT: {
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("100", 18),
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("90", 18),
+            PARTIALLY_FILLABLE: false,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false, // We want it to be exact not based off balance
+            LIMIT_PRICE_PREMIUM_BPS: 0,
+            VERIFY_SLIPPAGE_BPS: 0,
+            ROUND_DOWN_DIVISOR: 0,
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf
+            APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
+          },
+
+          // Sell a max of 1000 sUSDe and Buy a min amount of 100 sDAI
+          SUSDE_SDAI_MIN_BUY_AMOUNT: {
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("1000", 18),
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("100", 18),
+            PARTIALLY_FILLABLE: false,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: true, // will use the contract balance of sDAI
             LIMIT_PRICE_PREMIUM_BPS: 0,
             VERIFY_SLIPPAGE_BPS: 0,
             ROUND_DOWN_DIVISOR: 0,

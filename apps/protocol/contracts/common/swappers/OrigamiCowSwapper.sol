@@ -35,12 +35,9 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     /// @notice The order configuration details used to create any new discrete orders for a given sellToken
     mapping(IERC20 sellToken => OrderConfig config) private _orderConfig;
 
-    /// @notice If there is an issue with the conditional order, then give a hint
-    /// to the CoW swap Watchtower it can delay querying for more orders for this period.
+    /// @notice For certain issues with the conditional orders, then a hint can be given
+    /// to the CoW swap Watchtower so it can delay querying for more orders for this period.
     uint256 private constant ORDER_DELAY_SECONDS = 300;
-
-    /// @notice Only allow up to 20 linked sellToken1->buyToken1->buyToken2->...
-    uint256 private constant MAX_CONNECTIONS = 20;
 
     /// @dev CoW swap orders placed too closely to their expiry time are deemed invalid.
     /// So ensure at least 90 seconds until the expiry time
@@ -61,12 +58,9 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
 
     /// @inheritdoc IOrigamiCowSwapper
     function setCowApproval(address sellToken, uint256 amount) external override onlyElevatedAccess {
-        IERC20 _sellToken = IERC20(sellToken);
-
-        // Ensure it's configured first.
-        _getOrderConfig(_sellToken);
-
-        _sellToken.forceApprove(cowSwapRelayer, amount);
+        // No need to check if this sellToken is configured or not - this function may
+        // be called after the order config has been removed already (or before it is configured in the first place)
+        IERC20(sellToken).forceApprove(cowSwapRelayer, amount);
     }
 
     /// @inheritdoc IOrigamiCowSwapper
@@ -81,18 +75,19 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         if (config.maxSellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (config.minBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
-        // If the price oracle is set, then the assets must match
-        if (
-            address(config.limitPriceOracle) != address(0) && 
-            !config.limitPriceOracle.matchAssets(sellToken, address(config.buyToken))
-        ) revert CommonEventsAndErrors.InvalidParam();
+        if (address(config.limitPriceOracle) != address(0)) {
+            // If the price oracle is set, then the assets must match
+            if (!config.limitPriceOracle.matchAssets(sellToken, address(config.buyToken)))
+                revert CommonEventsAndErrors.InvalidParam();
+        } else {
+            // If the price oracle is not set, then there should not be a limitPricePremiumBps
+            if (config.limitPricePremiumBps > 0) revert CommonEventsAndErrors.InvalidParam();
+        }
 
         if (config.recipient == address(0)) revert CommonEventsAndErrors.InvalidAddress(config.recipient);
         if (config.verifySlippageBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
         if (config.expiryPeriodSecs == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (config.expiryPeriodSecs > 7 days) revert CommonEventsAndErrors.InvalidParam();
-
-        _checkForLoops(sellToken, config.buyToken);
 
         _orderConfig[IERC20(sellToken)] = config;
         emit OrderConfigSet(sellToken);
@@ -112,11 +107,11 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         uint96 minBuyAmount,
         uint16 limitPricePremiumBps
     ) external override onlyElevatedAccess { 
-        // Ensure it's configured first.
-        OrderConfig storage config = _getOrderConfig(IERC20(sellToken));
-
         if (maxSellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (minBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
+        // Ensure it's configured first.
+        OrderConfig storage config = _getOrderConfig(IERC20(sellToken));
 
         config.maxSellAmount = maxSellAmount;
         config.minBuyAmount = minBuyAmount;
@@ -244,7 +239,7 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     /**
      * @notice Returns whether the signature provided is for a valid order as of the block it's called
      * @param signature Signature byte array, encoding the submitted GPv2Order.Data
-     * @dev This function is is called by the CoW swap settlement contract.
+     * @dev This function is called by the CoW swap settlement contract.
      *
      * This verify step needs to protect against unintentional/malicious orders being placed.
      * However if using a price oracle for limit orders, the buyAmount may have changed between when the (legitimate) 
@@ -393,14 +388,14 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
             }
         }
 
-        // Use the minimum of the oracle derived buyAmount and the min set in config.
+        // Use the maximum of the two minimums (the one oracle derived buyAmount and the min set in config).  
         uint256 minBuyAmount = config.minBuyAmount;
         unroundedBuyAmount = (minBuyAmount > unroundedBuyAmount) ? minBuyAmount : unroundedBuyAmount;
 
         // Intentionally lose precision when rounding down to the nearest divisor.
         uint256 divisor = config.roundDownDivisor;
         roundedBuyAmount = (divisor > 0)
-            ? unroundedBuyAmount / divisor * divisor
+            ? (unroundedBuyAmount / divisor) * divisor
             : unroundedBuyAmount;
 
         if (roundedBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -445,30 +440,5 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         return (
             (uint32(block.timestamp + MIN_ORDER_EXPIRY_SECONDS) / expiryPeriodSecs) * expiryPeriodSecs
         ) + expiryPeriodSecs;
-    }
-
-    /**
-     * @dev Check for circular swap loops
-     */
-    function _checkForLoops(address sellToken, IERC20 buyToken) internal view {
-        IERC20 nextBuyToken = _orderConfig[buyToken].buyToken;
-
-        // Up to 20 loops, which would be extremely unlikely.
-        // In practice it's likely to have multiple CowSwapper instances for each purpose
-        // given it will be holding the assets. Accounting will be messy in vaults if it's
-        // all co-mingled.
-        uint256 i;
-        for (; i < MAX_CONNECTIONS; ++i) {
-            // Not configured so can break.
-            if (address(nextBuyToken) == address(0)) break;
-
-            // If the next buyToken is the original sellToken being configured, then revert
-            if (address(nextBuyToken) == sellToken) revert CircularSwapConfig(sellToken);
-
-            // Move increment the pointer.
-            nextBuyToken = _orderConfig[nextBuyToken].buyToken;
-        }
-
-        if (i >= MAX_CONNECTIONS) revert TooManyConnections();
     }
 }

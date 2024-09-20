@@ -142,7 +142,7 @@ contract OrigamiErc4626 is
 
     /// @inheritdoc IERC4626
     function maxRedeem(address sharesOwner) public override view returns (uint256 maxShares) {
-        return balanceOf(sharesOwner);
+        return _maxRedeem(sharesOwner, withdrawalFeeBps());
     }
 
     /// @inheritdoc IERC4626
@@ -235,12 +235,12 @@ contract OrigamiErc4626 is
         address receiver, 
         address sharesOwner
     ) public virtual override nonReentrant returns (uint256) {
-        uint256 maxShares = maxRedeem(sharesOwner);
+        uint256 feeBps = withdrawalFeeBps();
+        uint256 maxShares = _maxRedeem(sharesOwner, feeBps);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(sharesOwner, shares, maxShares);
         }
 
-        uint256 feeBps = withdrawalFeeBps();
         (uint256 assets, uint256 shareFeesTaken) = _previewRedeem(shares, feeBps);
         if (shareFeesTaken > 0) {
             emit InKindFees(FeeType.WITHDRAWAL_FEE, feeBps, shareFeesTaken);
@@ -377,13 +377,35 @@ contract OrigamiErc4626 is
         );
     }
 
-    function _maxWithdraw(address sharesOwner, uint256 feeBps) internal view returns (uint256 maxAssets) {
+    /**
+     * @dev Calculate the max number of assets which can be withdrawn given the number of shares
+     * owned by `sharesOwner`
+     * May be overridden to enforce other constraints, such as current assets available to withdraw
+     * from the underlying asset deployment
+     */
+    function _maxWithdraw(
+        address sharesOwner, 
+        uint256 feeBps
+    ) internal virtual view returns (uint256 maxAssets) {
         uint256 shares = balanceOf(sharesOwner);
         // Withdrawal fees are taken from the shares the user redeems
         (shares,) = shares.splitSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_DOWN);
         return _convertToAssets(shares, OrigamiMath.Rounding.ROUND_DOWN);
     }
-        
+
+    /**
+     * @dev Calculate the max number of shares which can be redeemed given the number of shares
+     * owned by `sharesOwner`
+     * May be overridden to enforce other constraints, such as current assets available to withdraw
+     * from the underlying asset deployment
+     */
+    function _maxRedeem(
+        address sharesOwner,
+        uint256 /*feeBps*/
+    ) internal virtual view returns (uint256 maxShares) {
+        return balanceOf(sharesOwner);
+    }
+
     function _previewDeposit(uint256 assets, uint256 feeBps) internal virtual view returns (
         uint256 shares,
         uint256 shareFeesTaken

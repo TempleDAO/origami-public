@@ -9,7 +9,7 @@ import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investme
 import { ISkyStakingRewards } from "contracts/interfaces/external/sky/ISkyStakingRewards.sol";
 
 /**
- * @title Origami Super Savings USDS Manager
+ * @title Origami sUSDS + Sky Farms Manager
  * @notice Handles USDS deposits and switching between farms
  */
 interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
