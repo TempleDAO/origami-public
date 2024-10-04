@@ -153,7 +153,7 @@ contract OrigamiErc4626With6dpTestAdmin is OrigamiErc4626With6dpTestBase {
 
         // How many assets can be deposited to hit the total supply
         // so takes fees into consideration.
-        assertEq(vault.maxDeposit(alice), 100_502_512.562814e6);
+        assertEq(vault.maxDeposit(alice), 100_502_512.562815e6);
         assertEq(vault.maxMint(alice), MAX_TOTAL_SUPPLY);
         assertEq(vault.maxWithdraw(alice), 0);
         assertEq(vault.maxRedeem(alice), 0);
@@ -230,7 +230,7 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
         assertEq(vault.convertToShares(1e6), 0.904545446322314124e18);
         assertEq(vault.convertToAssets(1e18), 1.105527e6);
 
-        assertEq(vault.maxDeposit(alice), 111_108_195.803135e6);
+        assertEq(vault.maxDeposit(alice), 111_108_195.803136e6);
         assertEq(vault.maxMint(alice), 99_999_900.5e18);
         deposit(alice, 123e6);
 
@@ -321,7 +321,7 @@ contract OrigamiErc4626With6dpTestMint is OrigamiErc4626With6dpTestBase {
         assertEq(vault.convertToShares(1e6), 0.904956786775004956e18);
         assertEq(vault.convertToAssets(1e18), 1.105025e6);
 
-        assertEq(vault.maxDeposit(alice), 111_057_691.957272e6);
+        assertEq(vault.maxDeposit(alice), 111_057_691.957273e6);
         assertEq(vault.maxMint(alice), 99_999_900e18);
         mint(alice, 123e18);
 
