@@ -113,6 +113,11 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         // Ensure it's configured first.
         OrderConfig storage config = _getOrderConfig(IERC20(sellToken));
 
+        // If the price oracle is not set, then there should not be a limitPricePremiumBps
+        if (address(config.limitPriceOracle) == address(0)) {
+            if (limitPricePremiumBps > 0) revert CommonEventsAndErrors.InvalidParam();
+        }
+
         config.maxSellAmount = maxSellAmount;
         config.minBuyAmount = minBuyAmount;
         config.limitPricePremiumBps = limitPricePremiumBps;
