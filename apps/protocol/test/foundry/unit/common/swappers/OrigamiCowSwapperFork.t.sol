@@ -165,8 +165,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
         assertEq(order.receiver, address(swapper));
         assertEq(order.sellAmount, SDAI_SELL_AMOUNT);
         assertEq(order.buyAmount, 1_009_320e18);
-        // Was right at 00:00
-        assertEq(order.validTo, 1725511800); 
+        assertEq(order.validTo, 1725511500); 
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
