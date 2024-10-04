@@ -111,7 +111,18 @@ contract OrigamiSuperSavingsUsdsManager is
         // Only allowed to decrease the total fee or change allocation
         uint48 existingTotalFee = _performanceFeeBpsForCaller + _performanceFeeBpsForOrigami;
         if (newTotalFee > existingTotalFee) revert CommonEventsAndErrors.InvalidParam();
-        
+
+        // Ensure rewards are harvested on the existing farm prior to updating.
+        uint32 _currentFarmIndex = currentFarmIndex;
+        if(_currentFarmIndex > 0) {
+            // The `feeCollector` receives the extra incentives for harvesting.
+            _harvestRewards(
+                _currentFarmIndex, 
+                _farms[_currentFarmIndex],
+                _populateRewardsCache(feeCollector)
+            );
+        }
+
         emit PerformanceFeeSet(newTotalFee);
         _performanceFeeBpsForCaller = callerFeeBps;
         _performanceFeeBpsForOrigami = origamiFeeBps;
@@ -247,15 +258,11 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function claimFarmRewards(uint32[] calldata farmIndexes) external override nonReentrant {
-        HarvestRewardCache memory cache = HarvestRewardCache({
-            swapper: swapper,
-            caller: msg.sender,
-            feeCollector: feeCollector,
-            feeBpsForCaller: _performanceFeeBpsForCaller,
-            feeBpsForOrigami: _performanceFeeBpsForOrigami
-        });
-
+    function claimFarmRewards(
+        uint32[] calldata farmIndexes, 
+        address incentivesReceiver
+    ) external override nonReentrant {
+        HarvestRewardCache memory cache = _populateRewardsCache(incentivesReceiver);
         uint32 farmIndex;
         uint256 _length = farmIndexes.length;
         for (uint256 i; i < _length; ++i) {
@@ -504,6 +511,18 @@ contract OrigamiSuperSavingsUsdsManager is
         }
     }
 
+    function _populateRewardsCache(
+        address incentivesReceiver
+    ) private view returns (HarvestRewardCache memory) {
+        return HarvestRewardCache({
+            swapper: swapper,
+            caller: incentivesReceiver,
+            feeCollector: feeCollector,
+            feeBpsForCaller: _performanceFeeBpsForCaller,
+            feeBpsForOrigami: _performanceFeeBpsForOrigami
+        });
+    }
+    
     modifier onlyVault() {
         if (msg.sender != address(vault)) revert CommonEventsAndErrors.InvalidAccess();
         _;
