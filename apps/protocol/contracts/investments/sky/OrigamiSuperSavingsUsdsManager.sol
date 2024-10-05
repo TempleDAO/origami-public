@@ -160,14 +160,15 @@ contract OrigamiSuperSavingsUsdsManager is
         uint32 nextFarmIndex
     ) {
         // Farm index starts at 1
-        nextFarmIndex = maxFarmIndex + 1;
+        uint32 _maxFarmIndex = maxFarmIndex;
+        nextFarmIndex = _maxFarmIndex + 1;
         if (nextFarmIndex > MAX_FARMS) revert MaxFarms();
 
         // Use removeFarm to delete
         if (address(stakingAddress) == address(0)) revert InvalidFarm(nextFarmIndex);
 
         // Check this farm isn't already setup
-        for (uint256 i; i < MAX_FARMS; ++i) {
+        for (uint256 i; i <= _maxFarmIndex; ++i) {
             if (address(_farms[i].staking) == stakingAddress) revert FarmExistsAlready(stakingAddress);
         }
 

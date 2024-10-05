@@ -298,7 +298,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
     function test_addFarm_failNotUnique() public {
         vm.startPrank(origamiMultisig);
         DummySkyStakingRewards farm;
-        for (uint256 i; i < 99; ++i) {
+        for (uint256 i; i < 55; ++i) {
             farm = new DummySkyStakingRewards(address(skyFarm1RewardsToken), address(asset));
             manager.addFarm(address(farm), uint16(i));
         }
