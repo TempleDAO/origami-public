@@ -33,8 +33,8 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
 
     uint96 public constant SUSDS_INTEREST_RATE = 0.05e18;
     uint32 public constant SWITCH_FARM_COOLDOWN = 1 days;
-    uint48 public constant PERF_FEE_FOR_CALLER = 100; // 1%/
-    uint48 public constant PERF_FEE_FOR_ORIGAMI = 400; // 4%
+    uint16 public constant PERF_FEE_FOR_CALLER = 100; // 1%
+    uint16 public constant PERF_FEE_FOR_ORIGAMI = 400; // 4%
 
     uint256 public constant DEPOSIT_FEE = 0;
     uint256 public constant BOOTSTRAPPED_USDS_AMOUNT = 100_000_000e18;
@@ -165,7 +165,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         assertEq(manager.lastSwitchTime(), 1726300000);
         assertEq(manager.swapper(), swapper);
         assertEq(manager.feeCollector(), feeCollector);
-        (uint48 forCaller, uint48 forOrigami) = manager.performanceFeeBps();
+        (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 100);
         assertEq(forOrigami, 400);
 
@@ -174,6 +174,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         assertEq(address(farm.staking), address(0));
         assertEq(address(farm.rewardsToken), address(0));
         assertEq(farm.referral, 0);
+        assertEq(manager.sUsdsReferral(), 0);
 
         // Max approval set for sUSDS
         assertEq(asset.allowance(address(manager), address(sUSDS)), type(uint256).max);
@@ -191,7 +192,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         vm.expectEmit(address(manager));
         emit PerformanceFeeSet(500);
         manager.setPerformanceFees(101, 399);
-        (uint48 forCaller, uint48 forOrigami) = manager.performanceFeeBps();
+        (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 101);
         assertEq(forOrigami, 399);
         
@@ -221,7 +222,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         vm.expectEmit(address(manager));
         emit PerformanceFeeSet(500);
         manager.setPerformanceFees(101, 399);
-        (uint48 forCaller, uint48 forOrigami) = manager.performanceFeeBps();
+        (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 101);
         assertEq(forOrigami, 399);
         
@@ -480,7 +481,15 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         manager.setFarmReferralCode(1, 1);
     }
 
-    function test_setFarmReferralCode_success() public {
+    function test_setFarmReferralCode_sUsdsSuccess() public {
+        vm.startPrank(origamiMultisig);
+        vm.expectEmit(address(manager));
+        emit FarmReferralCodeSet(0, 123);
+        manager.setFarmReferralCode(0, 123);
+        assertEq(manager.sUsdsReferral(), 123);
+    }
+    
+    function test_setFarmReferralCode_farmSuccess() public {
         vm.startPrank(origamiMultisig);
         manager.addFarm(address(skyFarm1), 1);
         vm.expectEmit(address(manager));
@@ -577,6 +586,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAccess is OrigamiSuperSavingsUsdsMana
 contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsManagerTestBase {
     event Staked(address indexed user, uint256 amount);
     event Referral(uint16 indexed referral, address indexed user, uint256 amount);
+    event Referral(uint16 indexed referral, address indexed owner, uint256 assets, uint256 shares);
 
     function test_deposit_failPaused() public {
         vm.startPrank(origamiMultisig);
@@ -601,6 +611,36 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
     function test_deposit_successLimitedSUsds() public {
         vm.startPrank(origamiMultisig);
         deal(address(asset), address(manager), 100e18);
+        vm.expectEmit(address(sUSDS));
+        emit Deposit(address(manager), address(manager), 25e18, 25e18);
+        assertEq(manager.deposit(25e18), 25e18);
+        assertEq(sUSDS.balanceOf(address(manager)), 25e18);
+        assertEq(asset.balanceOf(address(manager)), 75e18);
+        assertEq(manager.totalAssets(), 100e18);
+
+        skip(SWITCH_FARM_COOLDOWN);
+
+        IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
+        assertEq(farmDetails.length, 1);
+        IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
+        
+        assertEq(address(details.farm.staking), address(0));
+        assertEq(address(details.farm.rewardsToken), address(0));
+        assertEq(details.farm.referral, 0);
+        assertEq(details.stakedBalance, 25.003424657534246575e18);
+        assertEq(details.totalSupply, 25.003424657534246575e18);
+        assertEq(details.rewardRate, 0.05e18);
+        assertEq(details.unclaimedRewards, 0);
+    }
+
+    function test_deposit_successSUsdsReferral() public {
+        vm.startPrank(origamiMultisig);
+        manager.setFarmReferralCode(0, 123);
+        deal(address(asset), address(manager), 100e18);
+        vm.expectEmit(address(sUSDS));
+        emit Deposit(address(manager), address(manager), 25e18, 25e18);
+        vm.expectEmit(address(sUSDS));
+        emit Referral(123, address(manager), 25e18, 25e18);
         assertEq(manager.deposit(25e18), 25e18);
         assertEq(sUSDS.balanceOf(address(manager)), 25e18);
         assertEq(asset.balanceOf(address(manager)), 75e18);
