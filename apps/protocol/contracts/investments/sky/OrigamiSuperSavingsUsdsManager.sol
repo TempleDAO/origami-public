@@ -101,7 +101,7 @@ contract OrigamiSuperSavingsUsdsManager is
         _performanceFeeBpsForOrigami = performanceFeeBpsForOrigami_;
 
         // Max approval for deposits into sUSDS
-        USDS.forceApprove(sUSDS_, type(uint256).max);
+        USDS.forceApprove(sUSDS_, MAX_AMOUNT);
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
@@ -162,7 +162,7 @@ contract OrigamiSuperSavingsUsdsManager is
         _farms[nextFarmIndex] = Farm(staking, rewardsToken, referralCode);
 
         // Max approve USDS for deposits
-        USDS.forceApprove(address(staking), type(uint256).max);
+        USDS.forceApprove(address(staking), MAX_AMOUNT);
 
         maxFarmIndex = nextFarmIndex;
         emit FarmAdded(nextFarmIndex, stakingAddress, address(rewardsToken), referralCode);
@@ -428,7 +428,7 @@ contract OrigamiSuperSavingsUsdsManager is
     function _depositIntoFarm(uint256 assetsAmount, uint32 farmIndex) private returns (uint256 amountDeposited) {
         Farm storage farm = _getFarm(farmIndex);
 
-        amountDeposited = assetsAmount == type(uint256).max
+        amountDeposited = assetsAmount == MAX_AMOUNT
             ? USDS.balanceOf(address(this))
             : assetsAmount;
             
