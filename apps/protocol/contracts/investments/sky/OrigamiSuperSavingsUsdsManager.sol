@@ -59,9 +59,12 @@ contract OrigamiSuperSavingsUsdsManager is
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
     address public override feeCollector;
     
-    uint48 private _performanceFeeBpsForCaller;
+    /// @inheritdoc IOrigamiSuperSavingsUsdsManager
+    uint16 public sUsdsReferral;
 
-    uint48 private _performanceFeeBpsForOrigami;
+    uint16 private _performanceFeeBpsForCaller;
+
+    uint16 private _performanceFeeBpsForOrigami;
 
     /**
      * @dev The mapping of farm details.
@@ -81,8 +84,8 @@ contract OrigamiSuperSavingsUsdsManager is
         uint32 switchFarmCooldown_,
         address swapper_,
         address feeCollector_,
-        uint48 performanceFeeBpsForCaller_,
-        uint48 performanceFeeBpsForOrigami_
+        uint16 performanceFeeBpsForCaller_,
+        uint16 performanceFeeBpsForOrigami_
     ) 
         OrigamiElevatedAccess(initialOwner_)
     {
@@ -105,11 +108,11 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function setPerformanceFees(uint48 callerFeeBps, uint48 origamiFeeBps) external override onlyElevatedAccess {
-        uint48 newTotalFee = callerFeeBps + origamiFeeBps;
+    function setPerformanceFees(uint16 callerFeeBps, uint16 origamiFeeBps) external override onlyElevatedAccess {
+        uint16 newTotalFee = callerFeeBps + origamiFeeBps;
 
         // Only allowed to decrease the total fee or change allocation
-        uint48 existingTotalFee = _performanceFeeBpsForCaller + _performanceFeeBpsForOrigami;
+        uint16 existingTotalFee = _performanceFeeBpsForCaller + _performanceFeeBpsForOrigami;
         if (newTotalFee > existingTotalFee) revert CommonEventsAndErrors.InvalidParam();
 
         // Ensure rewards are harvested on the existing farm prior to updating.
@@ -202,9 +205,14 @@ contract OrigamiSuperSavingsUsdsManager is
         uint32 farmIndex,
         uint16 referralCode
     ) external override onlyElevatedAccess {
-        Farm storage farm = _getFarm(farmIndex);
+        if (farmIndex == 0) {
+            sUsdsReferral = referralCode;
+        } else {
+            Farm storage farm = _getFarm(farmIndex);
+            farm.referral = referralCode;
+        }
+
         emit FarmReferralCodeSet(farmIndex, referralCode);
-        farm.referral = referralCode;
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
@@ -290,7 +298,7 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function performanceFeeBps() external view returns (uint48 /*forCaller*/, uint48 /*forOrigami*/) {
+    function performanceFeeBps() external view returns (uint16 /*forCaller*/, uint16 /*forOrigami*/) {
         return (_performanceFeeBpsForCaller, _performanceFeeBpsForOrigami);
     }
 
@@ -356,8 +364,8 @@ contract OrigamiSuperSavingsUsdsManager is
         address swapper;
         address caller;
         address feeCollector;
-        uint48 feeBpsForCaller;
-        uint48 feeBpsForOrigami;
+        uint16 feeBpsForCaller;
+        uint16 feeBpsForOrigami;
     }
 
     function _transferRewards(
@@ -428,7 +436,12 @@ contract OrigamiSuperSavingsUsdsManager is
             : assetsAmount;
 
         if (amountDeposited > 0) {
-            sUSDS.deposit(amountDeposited, address(this));
+            uint16 referral = sUsdsReferral;
+            if (referral == 0) {
+                sUSDS.deposit(amountDeposited, address(this));
+            } else {
+                sUSDS.deposit(amountDeposited, address(this), referral);
+            }
         }
     }
     

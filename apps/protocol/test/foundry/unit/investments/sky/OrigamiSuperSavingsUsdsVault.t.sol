@@ -23,8 +23,8 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
 
     uint96 public constant SUSDS_INTEREST_RATE = 0.05e18;
     uint32 public constant SWITCH_FARM_COOLDOWN = 1 days;
-    uint48 public constant PERF_FEE_FOR_CALLER = 100; // 1%/
-    uint48 public constant PERF_FEE_FOR_ORIGAMI = 400; // 4%
+    uint16 public constant PERF_FEE_FOR_CALLER = 100; // 1%
+    uint16 public constant PERF_FEE_FOR_ORIGAMI = 400; // 4%
 
     uint256 public constant DEPOSIT_FEE = 0;
     uint256 public constant BOOTSTRAPPED_USDS_AMOUNT = 100_000_000e18;

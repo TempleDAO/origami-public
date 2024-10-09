@@ -70,7 +70,7 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
      * @dev Total fees cannot increase, but the ratio can be changed.
      * Fees are distributed when claimFarmRewards() is called
      */
-    function setPerformanceFees(uint48 callerFeeBps, uint48 origamiFeeBps) external;
+    function setPerformanceFees(uint16 callerFeeBps, uint16 origamiFeeBps) external;
 
     /**
      * @notice Set the address used to collect the Origami performance fees.
@@ -151,12 +151,17 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
      * @notice The performance fee to the caller (to compensate for gas) and Origami treasury
      * Represented in basis points
      */
-    function performanceFeeBps() external view returns (uint48 forCaller, uint48 forOrigami);
+    function performanceFeeBps() external view returns (uint16 forCaller, uint16 forOrigami);
 
     /**
      * @notice The address used to collect the Origami performance fees.
      */
     function feeCollector() external view returns (address);
+
+    /**
+     * @notice The referral code representing Origami when depositing into sUSDS
+     */
+    function sUsdsReferral() external view returns (uint16);
 
     /**
      * @notice The swapper contract responsible for swapping 

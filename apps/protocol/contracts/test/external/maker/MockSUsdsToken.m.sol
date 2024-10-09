@@ -17,6 +17,7 @@ contract MockSUsdsToken is ERC4626 {
 
     event Checkpoint(uint256 checkpointValue, uint256 checkpointTime);
     event InterestRateSet(uint96 rate);
+    event Referral(uint16 indexed referral, address indexed owner, uint256 assets, uint256 shares);
 
     constructor(IERC20 _asset) ERC4626(_asset) ERC20("SDAI", "SDAI") {}
 
@@ -61,6 +62,11 @@ contract MockSUsdsToken is ERC4626 {
         checkpointValue = calcCheckpoint();
         checkpointTime = block.timestamp;
         emit Checkpoint(checkpointValue, checkpointTime);
+    }
+
+    function deposit(uint256 assets, address receiver, uint16 referral) external returns (uint256 shares) {
+        shares = deposit(assets, receiver);
+        emit Referral(referral, receiver, assets, shares);
     }
 
     /**
