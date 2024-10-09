@@ -45,6 +45,10 @@ contract OrigamiErc4626 is
     using SafeERC20 for IERC20;
     using OrigamiMath for uint256;
 
+    // Note the `_maxTotalSupply` is initally set to zero.
+    // It is first set upon elevated access calling `seedDeposit()`
+    uint256 private _maxTotalSupply;
+
     bytes32 private constant PERMIT_TYPEHASH =
         keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
@@ -58,9 +62,6 @@ contract OrigamiErc4626 is
 
     /// @dev The scalar to convert from `asset` decimals to 18 decimals
     uint256 private immutable _assetsToSharesScalar;
-
-    /// @dev A fixed _decimalsOffset() of 0, as per the OZ default
-    uint256 private constant DECIMALS_OFFSET_SCALAR = 10 ** 0; 
 
     constructor(
         address initialOwner_,
@@ -82,6 +83,30 @@ contract OrigamiErc4626 is
         _assetsToSharesScalar = 10 ** (DECIMALS - _underlyingDecimals);
 
         _asset = asset_;
+    }
+
+    /// @inheritdoc IOrigamiErc4626
+    function setMaxTotalSupply(uint256 maxTotalSupply_) public virtual override onlyElevatedAccess {
+        // Cannot set if the totalSupply is zero - seedDeposit should be used first
+        if (totalSupply() == 0) revert CommonEventsAndErrors.InvalidParam();
+        _maxTotalSupply = maxTotalSupply_;
+        emit MaxTotalSupplySet(maxTotalSupply_);
+    }
+
+    /// @inheritdoc IOrigamiErc4626
+    function seedDeposit(
+        uint256 assets, 
+        address receiver, 
+        uint256 maxTotalSupply_
+    ) external override onlyElevatedAccess returns (uint256 shares) {
+        // Only to be used for the first deposit
+        if (totalSupply() != 0) revert CommonEventsAndErrors.InvalidParam();
+
+        // The new maxTotalSupply needs to be at least the size of the
+        // new shares minted, or the deposit() will revert.
+        _maxTotalSupply = maxTotalSupply_;
+        emit MaxTotalSupplySet(maxTotalSupply_);
+        return deposit(assets, receiver);
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -124,14 +149,14 @@ contract OrigamiErc4626 is
 
     /// @inheritdoc IERC4626
     function maxMint(address /*receiver*/) public override view returns (uint256 maxShares) {
-        uint256 _maxTotalSupply = maxTotalSupply();
-        if (_maxTotalSupply == type(uint256).max) return type(uint256).max;
+        uint256 maxTotalSupply_ = maxTotalSupply();
+        if (maxTotalSupply_ == type(uint256).max) return type(uint256).max;
 
         uint256 _totalSupply = totalSupply();
-        if (_totalSupply > _maxTotalSupply) return 0;
+        if (_totalSupply > maxTotalSupply_) return 0;
 
         unchecked {
-            maxShares = _maxTotalSupply - _totalSupply;
+            maxShares = maxTotalSupply_ - _totalSupply;
         }
     }
 
@@ -268,7 +293,7 @@ contract OrigamiErc4626 is
 
     /// @inheritdoc IOrigamiErc4626
     function maxTotalSupply() public virtual override view returns (uint256) {
-        return type(uint256).max;
+        return _maxTotalSupply;
     }
 
     /// @inheritdoc IOrigamiErc4626
@@ -360,15 +385,15 @@ contract OrigamiErc4626 is
      * which is close to but not exactly type(uint256).max, or an extremely unbalanced share price.
      */
     function _maxDeposit(uint256 feeBps) internal view returns (uint256 maxAssets) {
-        uint256 _maxTotalSupply = maxTotalSupply();
-        if (_maxTotalSupply == type(uint256).max) return type(uint256).max;
+        uint256 maxTotalSupply_ = maxTotalSupply();
+        if (maxTotalSupply_ == type(uint256).max) return type(uint256).max;
 
         uint256 _totalSupply = totalSupply();
-        if (_totalSupply > _maxTotalSupply) return 0;
+        if (_totalSupply > maxTotalSupply_) return 0;
 
         uint256 availableShares;
         unchecked {
-            availableShares = _maxTotalSupply - _totalSupply;
+            availableShares = maxTotalSupply_ - _totalSupply;
         }
 
         return _convertToAssets(
@@ -455,20 +480,14 @@ contract OrigamiErc4626 is
      * @dev Internal conversion function (from assets to shares) with support for rounding direction.
      */
     function _convertToShares(uint256 assets, OrigamiMath.Rounding rounding) internal view virtual returns (uint256) {
-        uint256 _totalSupply = totalSupply();
-        return _totalSupply == 0
-            ? assets.scaleUp(_assetsToSharesScalar)
-            : assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
+        return assets.mulDiv(totalSupply() + _assetsToSharesScalar, totalAssets() + 1, rounding);
     }
 
     /**
      * @dev Internal conversion function (from shares to assets) with support for rounding direction.
      */
     function _convertToAssets(uint256 shares, OrigamiMath.Rounding rounding) internal view virtual returns (uint256) {
-        uint256 _totalSupply = totalSupply();
-        return _totalSupply == 0
-            ? shares.scaleDown(_assetsToSharesScalar, rounding)
-            : shares.mulDiv(totalAssets() + 1, _totalSupply + DECIMALS_OFFSET_SCALAR, rounding);
+        return shares.mulDiv(totalAssets() + 1, totalSupply() + _assetsToSharesScalar, rounding);
     }
 
     /**
@@ -511,6 +530,9 @@ contract OrigamiErc4626 is
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transferred, which is a valid state.
         _burn(sharesOwner, shares);
+        
+        // If the vault has been fully exited, then reset the maxTotalSupply to zero, as if it were newly created.
+        if (totalSupply() == 0) _maxTotalSupply = 0;
 
         _withdrawHook(assets, receiver);
 

@@ -64,6 +64,16 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
         vm.startPrank(origamiMultisig);
         vault.setManager(address(manager));
         vm.stopPrank();
+
+        seedDeposit(origamiMultisig, 0.1e18, type(uint256).max);
+    }
+
+    function seedDeposit(address account, uint256 amount, uint256 maxSupply) internal {
+        vm.startPrank(account);
+        deal(address(asset), account, amount);
+        asset.approve(address(vault), amount);
+        vault.seedDeposit(amount, account, maxSupply);
+        vm.stopPrank();
     }
 
     function deposit(address user, uint256 amount) internal {
@@ -137,8 +147,8 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
         assertEq(address(vault.tokenPrices()), address(tokenPrices));
         assertEq(vault.performanceFeeBps(), 500);
         assertEq(vault.maxTotalSupply(), type(uint256).max);
-        assertEq(vault.totalSupply(), 0);
-        assertEq(vault.totalAssets(), 0);
+        assertEq(vault.totalSupply(), 0.1e18);
+        assertEq(vault.totalAssets(), 0.1e18);
         assertEq(vault.convertToShares(1e18), 1e18);
         assertEq(vault.convertToAssets(1e18), 1e18);
         assertEq(vault.maxDeposit(alice), type(uint256).max);
@@ -203,10 +213,10 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 0);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 123e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 123e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), 123e18);
+        assertEq(vault.totalSupply(), 123e18 + 0.1e18);
+        assertEq(vault.totalAssets(), 123e18 + 0.1e18);
     }
 
     function test_deposit_beforeShareIncrease() public {
@@ -219,20 +229,20 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 100e18); // donation
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 123e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 123e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), 223e18); // The total of both donation in the contract and deposited into sdai
-        assertEq(vault.convertToShares(1e18), uint256(1e18)*expectedShares/223e18);
-        assertEq(vault.convertToAssets(1e18), uint256(1e18)*223e18/expectedShares);
+        assertEq(vault.totalSupply(), 123e18 + 0.1e18);
+        assertEq(vault.totalAssets(), 100e18 + 123e18 + 0.1e18);
+        assertEq(vault.convertToShares(1e18), 0.551770506499327655e18);
+        assertEq(vault.convertToAssets(1e18), 1.812347684809098294e18);
     }
 
     function test_deposit_afterShareIncrease() public {
         deposit(bob, 100e18);
 
         addToSharePrice(10e18); // 10% increase
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.099999999999999999e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
 
         assertEq(vault.maxDeposit(alice), type(uint256).max);
         assertEq(vault.maxMint(alice), type(uint256).max);
@@ -241,14 +251,14 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 0); // donation was added into sUSDS
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 233e18);
-        assertEq(vault.balanceOf(alice), 111.818181818181818181e18);
-        assertEq(vault.totalSupply(), 211.818181818181818181e18);
-        assertEq(vault.totalAssets(), 233e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 233e18 + 0.1e18);
+        assertEq(vault.balanceOf(alice), 111.828337874659400545e18);
+        assertEq(vault.totalSupply(), 211.928337874659400545e18);
+        assertEq(vault.totalAssets(), 233e18 + 0.1e18);
 
         // Deposit fees continue to help the share price
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.1e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
     }
 }
 
@@ -261,10 +271,10 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 0);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + expectedAssets);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + expectedAssets + 0.1e18);
         assertEq(vault.balanceOf(alice), 123e18);
-        assertEq(vault.totalSupply(), 123e18);
-        assertEq(vault.totalAssets(), expectedAssets);
+        assertEq(vault.totalSupply(), 123e18 + 0.1e18);
+        assertEq(vault.totalAssets(), 123e18 + 0.1e18);
     }
 
     function test_mint_beforeShareIncrease() public {
@@ -277,20 +287,20 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 100e18);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + expectedAssets - 100e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + expectedAssets - 100e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), 123e18);
-        assertEq(vault.totalSupply(), 123e18);
-        assertEq(vault.totalAssets(), expectedAssets);
-        assertEq(vault.convertToShares(1e18), uint256(1e18)*123e18/expectedAssets);
-        assertEq(vault.convertToAssets(1e18), uint256(1e18)*expectedAssets/123e18);
+        assertEq(vault.totalSupply(), 123e18 + 0.1e18);
+        assertEq(vault.totalAssets(), expectedAssets + 0.1e18);
+        assertEq(vault.convertToShares(1e18), 0.551770506499327655e18);
+        assertEq(vault.convertToAssets(1e18), 1.812347684809098294e18);
     }
 
     function test_mint_afterShareIncrease() public {
         mint(bob, 100e18);
 
         addToSharePrice(10e18); // 10% increase
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.099999999999999999e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
 
         assertEq(vault.maxDeposit(alice), type(uint256).max);
         assertEq(vault.maxMint(alice), type(uint256).max);
@@ -299,13 +309,13 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 0);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 100e18 + 145.3e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 245.387712287712287713e18);
         assertEq(vault.balanceOf(alice), 123e18);
-        assertEq(vault.totalSupply(), 223e18);
+        assertEq(vault.totalSupply(), 223e18 + 0.1e18);
 
         // Deposit fees continue to help the share price
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.099999999999999999e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
     }
 }
 
@@ -320,10 +330,10 @@ contract OrigamiSuperSavingsUsdsVaultTestWithdraw is OrigamiSuperSavingsUsdsVaul
         assertEq(asset.balanceOf(alice), 50e18);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 0);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 73e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 73e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), 73e18);
+        assertEq(vault.totalSupply(), expectedShares + 0.1e18);
+        assertEq(vault.totalAssets(), 73e18 + 0.1e18);
     }
 
     function test_withdraw_beforeShareIncrease() public {
@@ -337,36 +347,36 @@ contract OrigamiSuperSavingsUsdsVaultTestWithdraw is OrigamiSuperSavingsUsdsVaul
         assertEq(asset.balanceOf(alice), 50e18);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 100e18);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 73e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 73e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), 173e18);
-        assertEq(vault.convertToShares(1e18), 0.421965317919075144e18);
-        assertEq(vault.convertToAssets(1e18), 2.369863013698630136e18);
+        assertEq(vault.totalSupply(), expectedShares + 0.1e18);
+        assertEq(vault.totalAssets(), 173e18 + 0.1e18);
+        assertEq(vault.convertToShares(1e18), 0.422299248989023685e18);
+        assertEq(vault.convertToAssets(1e18), 2.367989056087551299e18);
     }
 
     function test_withdraw_afterShareIncrease() public {
         deposit(alice, 100e18);
 
         addToSharePrice(10e18); // 10% increase
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.099999999999999999e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
 
-        assertEq(vault.maxWithdraw(alice), 109.999999999999999999e18);
+        assertEq(vault.maxWithdraw(alice), 109.990009990009990009e18);
         assertEq(vault.maxRedeem(alice), 100e18);
         withdraw(alice, 50e18);
 
         assertEq(asset.balanceOf(alice), 50e18);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 10e18);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 50e18);
-        assertEq(vault.balanceOf(alice), 54.545454545454545454e18);
-        assertEq(vault.totalSupply(), 54.545454545454545454e18);
-        assertEq(vault.totalAssets(), 60e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 50e18 + 0.1e18);
+        assertEq(vault.balanceOf(alice), 54.541326067211625794e18);
+        assertEq(vault.totalSupply(), 54.641326067211625794e18);
+        assertEq(vault.totalAssets(), 60e18 + 0.1e18);
 
         // Withdrawal fees continue to help the share price
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.1e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
     }
 }
 
@@ -382,10 +392,10 @@ contract OrigamiSuperSavingsUsdsVaultTestRedeem is OrigamiSuperSavingsUsdsVaultT
         assertEq(asset.balanceOf(alice), 50e18);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 0);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + expectedAssets);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + expectedAssets + 0.1e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), expectedAssets);
+        assertEq(vault.totalSupply(), expectedShares + 0.1e18);
+        assertEq(vault.totalAssets(), expectedAssets + 0.1e18);
     }
 
     function test_redeem_beforeShareIncrease() public {
@@ -400,38 +410,37 @@ contract OrigamiSuperSavingsUsdsVaultTestRedeem is OrigamiSuperSavingsUsdsVaultT
         assertEq(asset.balanceOf(alice), 50e18);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 100e18);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 73e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 73e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), expectedAssets);
-        assertEq(vault.convertToShares(1e18), 0.421965317919075144e18);
-        assertEq(vault.convertToAssets(1e18), 2.369863013698630136e18);
+        assertEq(vault.totalSupply(), expectedShares + 0.1e18);
+        assertEq(vault.totalAssets(), expectedAssets + 0.1e18);
+        assertEq(vault.convertToShares(1e18), 0.422299248989023685e18);
+        assertEq(vault.convertToAssets(1e18), 2.367989056087551299e18);
     }
 
     function test_redeem_afterShareIncrease() public {
         deposit(alice, 100e18);
 
         addToSharePrice(10e18); // 10% increase
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.099999999999999999e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
 
-        assertEq(vault.maxWithdraw(alice), 109.999999999999999999e18);
+        assertEq(vault.maxWithdraw(alice), 109.990009990009990009e18);
         assertEq(vault.maxRedeem(alice), 100e18);
         redeem(alice, 50e18);
 
         uint256 expectedShares = OrigamiMath.subtractBps(100e18, DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_DOWN) - 50e18;
-        uint256 expectedAssets = 10e18 + 100e18 - 55e18 + 1; // rounding
 
-        assertEq(asset.balanceOf(alice), 55e18 - 1);
+        assertEq(asset.balanceOf(alice), 54.995004995004995004e18);
         assertEq(asset.balanceOf(address(vault)), 0);
         assertEq(asset.balanceOf(address(manager)), 10e18);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 100e18 - 55e18 + 1);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 45.104995004995004996e18);
         assertEq(vault.balanceOf(alice), expectedShares);
-        assertEq(vault.totalSupply(), expectedShares);
-        assertEq(vault.totalAssets(), expectedAssets);
+        assertEq(vault.totalSupply(), expectedShares + 0.1e18);
+        assertEq(vault.totalAssets(), 55.104995004995004996e18);
 
         // Withdrawal fees continue to help the share price
-        assertEq(vault.convertToShares(1e18), 0.909090909090909090e18);
-        assertEq(vault.convertToAssets(1e18), 1.1e18);
+        assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
+        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
     }
 }
