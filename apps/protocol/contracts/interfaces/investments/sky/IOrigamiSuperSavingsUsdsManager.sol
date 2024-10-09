@@ -126,13 +126,16 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
 
     /**
      * @notice A permisionless function to claim farm rewards from a given farm
-     * - The caller will earn a portion of these rewards (to compensate for gas)
+     * - The caller can nominate an address to receive a portion of these rewards (to compensate for gas)
      * - Origami will earn a portion of these rewards (as performance fee)
      * - The remainder is sent to a swapper contract to swap for USDS.
      * USDS proceeds from the swap will sent back to this contract, ready to add to the
      * current farm on the next deposit.
      */
-    function claimFarmRewards(uint32[] calldata farmIndexes) external;
+    function claimFarmRewards(
+        uint32[] calldata farmIndexes,
+        address incentivesReceiver
+    ) external;
 
     /**
      * @notice The Sky USDS contract
