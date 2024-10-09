@@ -475,6 +475,10 @@ contract OrigamiErc4626 is
      * @dev Deposit/mint common workflow.
      */
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual {
+        // Protect users from being able to mint zero shares to aid
+        // with potential inflation vectors
+        if (shares == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
         _depositHook(caller, assets);
 
         _mint(receiver, shares);
