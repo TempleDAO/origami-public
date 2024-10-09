@@ -372,8 +372,8 @@ contract OrigamiErc4626 is
         }
 
         return _convertToAssets(
-            availableShares.inverseSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_DOWN),
-            OrigamiMath.Rounding.ROUND_DOWN
+            availableShares.inverseSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_UP),
+            OrigamiMath.Rounding.ROUND_UP
         );
     }
 
