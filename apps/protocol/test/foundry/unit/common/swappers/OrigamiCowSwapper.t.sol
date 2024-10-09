@@ -1405,6 +1405,33 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(signature, abi.encode(order));
     }
     
+    function test_getTradeableOrderWithSignature_orderExpiries() public {
+        configureDai();
+
+        (GPv2Order.Data memory order,) = getDefaultOrder();
+        // Was right at 00:00
+        assertEq(block.timestamp, 1704027600);
+        assertEq(order.validTo, 1704027900);
+
+        // Still just in the same expiry window
+        skip(299);
+        (order,) = getDefaultOrder();
+        assertEq(block.timestamp, 1704027600 + 299);
+        assertEq(order.validTo, 1704027900);
+
+        // Moves into the next window
+        skip(1);
+        (order,) = getDefaultOrder();
+        assertEq(block.timestamp, 1704027600 + 300);
+        assertEq(order.validTo, 1704028200);
+
+        // Still in that same next window
+        skip(180);
+        (order,) = getDefaultOrder();
+        assertEq(block.timestamp, 1704027600 + 300 + 180);
+        assertEq(order.validTo, 1704028200);
+    }
+
     function test_isValidSignature_success_noSlippage() public {
         configureDai();
 

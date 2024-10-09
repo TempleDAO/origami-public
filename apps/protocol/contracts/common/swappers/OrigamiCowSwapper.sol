@@ -39,10 +39,6 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     /// to the CoW swap Watchtower so it can delay querying for more orders for this period.
     uint256 private constant ORDER_DELAY_SECONDS = 300;
 
-    /// @dev CoW swap orders placed too closely to their expiry time are deemed invalid.
-    /// So ensure at least 90 seconds until the expiry time
-    uint256 private constant MIN_ORDER_EXPIRY_SECONDS = 90;
-
     constructor(
         address _initialOwner,
         address _cowSwapRelayer
@@ -443,7 +439,7 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     function _calcOrderExpiry(uint32 expiryPeriodSecs) internal view returns (uint32) {
         // slither-disable-next-line divide-before-multiply
         return (
-            (uint32(block.timestamp + MIN_ORDER_EXPIRY_SECONDS) / expiryPeriodSecs) * expiryPeriodSecs
+            (uint32(block.timestamp) / expiryPeriodSecs) * expiryPeriodSecs
         ) + expiryPeriodSecs;
     }
 }
