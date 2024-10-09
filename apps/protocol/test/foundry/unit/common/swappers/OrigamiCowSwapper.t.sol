@@ -321,6 +321,23 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         swapper.updateAmountsAndPremiumBps(DAI, 123, 0, 123);
     }
 
+    function test_updateAmountsAndPremiumBps_failLimitPricePremium() public {
+        vm.startPrank(origamiMultisig);
+        IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
+        config.limitPriceOracle = IOrigamiOracle(address(0));
+        config.limitPricePremiumBps = 0;
+        swapper.setOrderConfig(
+            DAI,
+            config
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        swapper.updateAmountsAndPremiumBps(DAI, 123, 123, 123);
+
+        // ok with zero premium
+        swapper.updateAmountsAndPremiumBps(DAI, 123, 123, 0);
+    }
+
     function test_updateAmountsAndPremiumBps_success() public {
         configureDai();
         vm.expectEmit(address(swapper));
