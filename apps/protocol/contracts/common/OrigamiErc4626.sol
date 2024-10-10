@@ -19,6 +19,8 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title Origami ERC-4626
  * @notice A fork of the openzeppelin ERC-4626, with:
@@ -455,20 +457,33 @@ contract OrigamiErc4626 is
      * @dev Internal conversion function (from assets to shares) with support for rounding direction.
      */
     function _convertToShares(uint256 assets, OrigamiMath.Rounding rounding) internal view virtual returns (uint256) {
-        uint256 _totalSupply = totalSupply();
-        return _totalSupply == 0
-            ? assets.scaleUp(_assetsToSharesScalar)
-            : assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
+        // uint256 _totalSupply = totalSupply();
+        // // console.log("convertToShares:", assets, _totalSupply+1, totalAssets()+1);
+        // // console.log(assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding));
+        // return _totalSupply == 0
+        //     ? assets.scaleUp(_assetsToSharesScalar)
+        //     : assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
+
+        console.log("_convertToShares:", assets, totalSupply() + DECIMALS_OFFSET_SCALAR, totalAssets() + 1);
+        return assets.mulDiv(totalSupply() + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
     }
 
     /**
      * @dev Internal conversion function (from shares to assets) with support for rounding direction.
      */
     function _convertToAssets(uint256 shares, OrigamiMath.Rounding rounding) internal view virtual returns (uint256) {
-        uint256 _totalSupply = totalSupply();
-        return _totalSupply == 0
-            ? shares.scaleDown(_assetsToSharesScalar, rounding)
-            : shares.mulDiv(totalAssets() + 1, _totalSupply + DECIMALS_OFFSET_SCALAR, rounding);
+        // uint256 _totalSupply = totalSupply();
+        // console.log("_convertToAssets:", shares, totalAssets()+1, _totalSupply+1);
+        // console.log("_totalSupply:", _totalSupply);
+        // console.log(shares.mulDiv(totalAssets() + 1, _totalSupply + DECIMALS_OFFSET_SCALAR, rounding));
+        // uint256 result = _totalSupply == 0
+        //     ? shares.scaleDown(_assetsToSharesScalar, rounding)
+        //     : shares.mulDiv(totalAssets() + 1, _totalSupply + DECIMALS_OFFSET_SCALAR, rounding);
+
+        // console.log("==", result);
+        // return result;
+
+        return shares.mulDiv(totalAssets() + 1, totalSupply() + DECIMALS_OFFSET_SCALAR, rounding);
     }
 
     /**
