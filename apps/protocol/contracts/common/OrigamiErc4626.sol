@@ -62,7 +62,7 @@ contract OrigamiErc4626 is
     uint256 private immutable _assetsToSharesScalar;
 
     /// @dev A fixed _decimalsOffset() of 0, as per the OZ default
-    uint256 private constant DECIMALS_OFFSET_SCALAR = 10 ** 0; 
+    // uint256 private immutable DECIMALS_OFFSET_SCALAR; 
 
     constructor(
         address initialOwner_,
@@ -464,8 +464,8 @@ contract OrigamiErc4626 is
         //     ? assets.scaleUp(_assetsToSharesScalar)
         //     : assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
 
-        console.log("_convertToShares:", assets, totalSupply() + DECIMALS_OFFSET_SCALAR, totalAssets() + 1);
-        return assets.mulDiv(totalSupply() + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
+        console.log("_convertToShares:", assets, totalSupply() + _assetsToSharesScalar, totalAssets() + 1);
+        return assets.mulDiv(totalSupply() + _assetsToSharesScalar, totalAssets() + 1, rounding);
     }
 
     /**
@@ -483,7 +483,7 @@ contract OrigamiErc4626 is
         // console.log("==", result);
         // return result;
 
-        return shares.mulDiv(totalAssets() + 1, totalSupply() + DECIMALS_OFFSET_SCALAR, rounding);
+        return shares.mulDiv(totalAssets() + 1, totalSupply() + _assetsToSharesScalar, rounding);
     }
 
     /**
@@ -492,7 +492,7 @@ contract OrigamiErc4626 is
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual {
         // Protect users from being able to mint zero shares to aid
         // with potential inflation vectors
-        if (shares == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+        // if (shares == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
         _depositHook(caller, assets);
 

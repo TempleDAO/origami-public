@@ -650,3 +650,100 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
         assertEq(asset.balanceOf(bob), 98.492462e6);
     }
 }
+
+contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
+    function test_erc4626_donationAttack_noFees_6dp() public {
+        vault = new MockErc4626VaultWithFees(
+            origamiMultisig, 
+            "VAULT",
+            "VLT",
+            asset,
+            0, // DEPOSIT_FEE,
+            0, // WITHDRAWAL_FEE,
+            MAX_TOTAL_SUPPLY
+        );
+        vm.warp(100000000);
+
+        // declarations
+        address attacker = makeAddr("atacker");
+        uint256 initialAttackerAssets = 50_000e6 * 1e12;
+        
+        // preparations & context
+        deal(address(asset), alice, 7000e6);
+        deal(address(asset), attacker, initialAttackerAssets);
+        assertEq(vault.balanceOf(alice), 0);
+
+        vm.prank(alice);
+        asset.approve(address(vault), type(uint256).max);
+        vm.prank(attacker);
+        asset.approve(address(vault), type(uint256).max);
+
+        // The attempted attack beings. The attacker must be the first depositor of the vault, 
+        // so he must front-run the first depositor (alice)  
+        vm.prank(attacker);
+        vault.deposit(1, attacker);
+        assertEq(vault.totalSupply(), 1e12);
+        assertEq(vault.totalAssets(), 1);
+        assertEq(vault.convertToShares(1), 1e12);
+
+        // right after the deposit, the attacker makes a big donation of `asset` 
+        // to inflate the share price
+        vm.prank(attacker);
+
+        // @note With 6dp, it needs a huge (non-realistic) donation for Alice to receive zero shares.
+        // It becomes verrrry expensive to attack (impossibly so). For this 3k donation it
+        // would need a donation of 10_000_000_000_000_000e6 (10_000e6 * 1e12)
+
+        asset.transfer(address(vault), 10_000e6 * 1e12);
+        // Even though the price of 1 share should be inflated to around 5k (~10k assets for 2 shares), 
+        // the inflation-protection mechanism and rounding directions makes it only 3333k
+        assertEq(vault.convertToAssets(1e12), (5_000e6 * 1e12) + 1);
+        // attacker still rightfully owns all shares in the vault
+        assertEq(vault.totalSupply(), 1e12);
+        assertEq(vault.balanceOf(attacker), vault.totalSupply());
+
+        // An honest depositor deposits some amount of assets
+        // The amount will
+        // The donation from the attacker should leave the share price just above 
+        // the amount deposited by the honest depositor (3000 deposited < 3333 share price)
+        // Alice receives then 0 shares, and the attacker still owns 100% of the totalSupply
+        vm.startPrank(alice);
+
+        // THWARTED - alice cannot deposit the intended amount as it reverts.
+        // vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        vault.deposit(3_000e6, alice);
+
+        // The remainder of the test shows there's no attack if alice deposits enough.
+        // vault.deposit(2_600e18, alice);
+        assertEq(vault.balanceOf(alice), 0);
+        assertEq(vault.balanceOf(attacker), 1e12); //vault.totalSupply());
+
+        // Thanks to the inflation-attack-protection inside convertToAssets(), 
+        // even though the attacker owns 100% of the shares, 
+        // only a portion of them can be withdrawn. The attacker is currently at a loss.
+        assertEq(vault.maxWithdraw(attacker), (5_000e6 * 1e12) + 1500.000001e6);
+
+        // However, the inflation-attack-protection is bypassed
+        // when the totalSupply is back to 0, and the attacker owns the totalSupply.
+        // Therefore he can redeem all the shares, leaving totalSupply=0 
+        vm.startPrank(attacker);
+        assertEq(vault.redeem(vault.maxRedeem(attacker), attacker, attacker), (5_000e6 * 1e12) + 1500.000001e6);
+        assertEq(vault.totalSupply(), 0);
+        assertEq(vault.balanceOf(alice), 0);
+        assertEq(vault.balanceOf(attacker), 0);
+
+        // Now that totalSupply==0, the attacker will get the same
+        // number of shares as the assets deposited (except for the rounding-down)
+        // All it takes to own again all assets is to make a new deposit (non-negligible deposit)
+        assertEq(vault.deposit(1_000e6, attacker), 0);
+
+        // Now the attacker can withdraw the full balance from the vault (except 2% fees)
+        assertEq(vault.totalSupply(), vault.balanceOf(attacker));
+        assertEq(vault.balanceOf(attacker), 0);
+        assertEq(vault.redeem(vault.balanceOf(attacker), attacker, attacker), 0);
+
+        // When the attacker redeems his shares, he IS AT A LOSS
+        assertLt(asset.balanceOf(attacker), initialAttackerAssets);
+        assertEq(asset.balanceOf(attacker), (45_000e6 * 1e12) + 500e6);
+    }
+}
