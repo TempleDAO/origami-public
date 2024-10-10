@@ -219,7 +219,7 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
         assertEq(vault.balanceOf(alice), expectedShares);
         assertEq(vault.totalSupply(), expectedShares);
         assertEq(vault.totalAssets(), 223e6);
-        assertEq(vault.convertToShares(1e6), uint256(1e6)*(expectedShares+1)/(223e6+1));
+        assertEq(vault.convertToShares(1e6), uint256(1e6)*(expectedShares+1e12)/(223e6+1));
         assertEq(vault.convertToAssets(1e18), uint256(1e6)*223e18/expectedShares);
     }
 
@@ -227,21 +227,21 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
         deposit(bob, 100e6);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.904545446322314124e18);
+        assertEq(vault.convertToShares(1e6), 0.904545455413223132e18);
         assertEq(vault.convertToAssets(1e18), 1.105527e6);
 
-        assertEq(vault.maxDeposit(alice), 111_108_195.803136e6);
+        assertEq(vault.maxDeposit(alice), 111_108_194.686471e6);
         assertEq(vault.maxMint(alice), 99_999_900.5e18);
         deposit(alice, 123e6);
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 233e6);
-        assertEq(vault.balanceOf(alice), 110.702794448156414108e18);
-        assertEq(vault.totalSupply(), 210.202794448156414108e18);
+        assertEq(vault.balanceOf(alice), 110.702795560747313083e18);
+        assertEq(vault.totalSupply(), 210.202795560747313083e18);
         assertEq(vault.totalAssets(), 233e6);
 
         // Deposit fees continue to help the share price
-        assertEq(vault.convertToShares(1e6), 0.902157912214585845e18);
+        assertEq(vault.convertToShares(1e6), 0.902157921281499535e18);
         assertEq(vault.convertToAssets(1e18), 1.108453e6);
 
         uint256 _max = vault.maxDeposit(alice);
@@ -310,7 +310,7 @@ contract OrigamiErc4626With6dpTestMint is OrigamiErc4626With6dpTestBase {
         assertEq(vault.balanceOf(alice), 123e18);
         assertEq(vault.totalSupply(), 123e18);
         assertEq(vault.totalAssets(), expectedAssets);
-        assertEq(vault.convertToShares(1e6), uint256(1e6)*(123e18+1)/(expectedAssets+1));
+        assertEq(vault.convertToShares(1e6), uint256(1e6)*(123e18+1e12)/(expectedAssets+1));
         assertEq(vault.convertToAssets(1e18), uint256(1e18)*expectedAssets/123e18);
     }
 
@@ -318,20 +318,20 @@ contract OrigamiErc4626With6dpTestMint is OrigamiErc4626With6dpTestBase {
         mint(bob, 100e18);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.904956786775004956e18);
+        assertEq(vault.convertToShares(1e6), 0.904956795824572823e18);
         assertEq(vault.convertToAssets(1e18), 1.105025e6);
 
-        assertEq(vault.maxDeposit(alice), 111_057_691.957273e6);
+        assertEq(vault.maxDeposit(alice), 111_057_690.846696e6);
         assertEq(vault.maxMint(alice), 99_999_900e18);
         mint(alice, 123e18);
 
         assertEq(asset.balanceOf(alice), 0);
-        assertEq(asset.balanceOf(address(vault)), 247.103611e6);
+        assertEq(asset.balanceOf(address(vault)), 247.103610e6);
         assertEq(vault.balanceOf(alice), 123e18);
         assertEq(vault.totalSupply(), 223e18);
 
         // Deposit fees continue to help the share price
-        assertEq(vault.convertToShares(1e6), 0.902455444479702708e18);
+        assertEq(vault.convertToShares(1e6), 0.902455452178721904e18);
         assertEq(vault.convertToAssets(1e18), 1.108087e6);
 
         uint256 _max = vault.maxMint(alice);
@@ -382,7 +382,7 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
 
         withdraw(alice, 50e6);
 
-        uint256 expectedShares = 71.619694290277083087e18;
+        uint256 expectedShares = 71.619693875477020092e18;
 
         assertEq(asset.balanceOf(alice), 50e6);
         assertEq(asset.balanceOf(address(vault)), 73e6);
@@ -397,14 +397,14 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
         withdraw(alice, 50e6);
         addToSharePrice(100e6);
 
-        uint256 expectedShares = 71.619694290277083087e18;
+        uint256 expectedShares = 71.619693875477020092e18;
 
         assertEq(asset.balanceOf(alice), 50e6);
         assertEq(asset.balanceOf(address(vault)), 173e6);
         assertEq(vault.balanceOf(alice), expectedShares);
         assertEq(vault.totalSupply(), expectedShares);
         assertEq(vault.totalAssets(), 173e6);
-        assertEq(vault.convertToShares(1e6), 0.413986669805146897e18);
+        assertEq(vault.convertToShares(1e6), 0.413986673187805473e18);
         assertEq(vault.convertToAssets(1e18), 2.415536e6);
     }
 
@@ -412,29 +412,26 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
         deposit(alice, 100e6);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.904545446322314124e18);
+        assertEq(vault.convertToShares(1e6), 0.904545455413223132e18);
         assertEq(vault.convertToAssets(1e18), 1.105527e6);
 
-        assertEq(vault.maxWithdraw(alice), 107.8e6);
+        assertEq(vault.maxWithdraw(alice), 107.799999e6);
         assertEq(vault.maxRedeem(alice), 99.5e18);
         withdraw(alice, 50e6);
 
         assertEq(asset.balanceOf(alice), 50e6);
         assertEq(asset.balanceOf(address(vault)), 60e6);
-        assertEq(vault.balanceOf(alice), 53.349722126412544675e18);
-        assertEq(vault.totalSupply(), 53.349722126412544675e18);
+        assertEq(vault.balanceOf(alice), 53.349721662590656498e18);
+        assertEq(vault.totalSupply(), 53.349721662590656498e18);
         assertEq(vault.totalAssets(), 60e6);
 
         // Withdrawal fees continue to help the share price
-        assertEq(vault.convertToShares(1e6), 0.889162020620842067e18);
+        assertEq(vault.convertToShares(1e6), 0.889162029557143782e18);
         assertEq(vault.convertToAssets(1e18), 1.124654e6);
 
         // Check the maxWithdraw
         uint256 _max = vault.maxWithdraw(alice);
-        uint256 _sharesAfterFees = uint256(53.349722126412544675e18) * (10_000-WITHDRAWAL_FEE) / 10_000;
-        assertEq(_sharesAfterFees, 52282727683884293781);
-        assertEq(_max, _sharesAfterFees * (60e6+1) / (53.349722126412544675e18+1));
-        assertEq(_max, 58.8e6);
+        assertEq(_max, 58.799999e6);
 
         // Can't withdraw more
         {
@@ -445,10 +442,10 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
         // Because of the dp difference, there's (diminishing) dust on each maxWithdraw.
         // To get rid of the dust, should redeem rather than withdraw
         withdraw(alice, _max);
-        assertEq(vault.maxWithdraw(alice), 1.176000e6);
-        withdraw(alice, 1.176000e6);
+        assertEq(vault.maxWithdraw(alice), 0.521383e6);
+        withdraw(alice, 0.521383e6);
 
-        assertEq(vault.maxWithdraw(alice), 0.023520e6);
+        assertEq(vault.maxWithdraw(alice), 0);
     }
 
     function test_withdraw_differentReceiver() public {
@@ -473,7 +470,7 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
         assertEq(actualShares, expectedShares);
 
         assertEq(actualShares, expectedShares);
-        assertEq(vault.balanceOf(alice), 97.469388262755099502e18);
+        assertEq(vault.balanceOf(alice), 97.469387752551020420e18);
         assertEq(vault.balanceOf(bob), 0);
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(bob), 100e6);
@@ -508,7 +505,7 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
         vm.stopPrank();
 
         assertEq(actualShares, expectedShares);
-        assertEq(vault.balanceOf(alice), 97.469388262755099502e18);
+        assertEq(vault.balanceOf(alice), 97.469387752551020420e18);
         assertEq(vault.balanceOf(bob), 0);
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(bob), 100e6);
@@ -547,7 +544,7 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
         assertEq(vault.balanceOf(alice), expectedShares);
         assertEq(vault.totalSupply(), expectedShares);
         assertEq(vault.totalAssets(), expectedAssets);
-        assertEq(vault.convertToShares(1e6), 0.416595277328371062e18);
+        assertEq(vault.convertToShares(1e6), 0.416595283083641868e18);
         assertEq(vault.convertToAssets(1e18), 2.400411e6);
     }
 
@@ -555,10 +552,10 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
         deposit(alice, 100e6);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.904545446322314124e18);
+        assertEq(vault.convertToShares(1e6), 0.904545455413223132e18);
         assertEq(vault.convertToAssets(1e18), 1.105527e6);
 
-        assertEq(vault.maxWithdraw(alice), 107.8e6);
+        assertEq(vault.maxWithdraw(alice), 107.799999e6);
         assertEq(vault.maxRedeem(alice), 99.5e18);
         redeem(alice, 50e18);
 
@@ -572,7 +569,7 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
         assertEq(vault.totalAssets(), expectedAssets);
 
         // Withdrawal fees continue to help the share price
-        assertEq(vault.convertToShares(1e6), 0.886633643175669511e18);
+        assertEq(vault.convertToShares(1e6), 0.886633661087460283e18);
         assertEq(vault.convertToAssets(1e18), 1.127861e6);
 
         uint256 _max = vault.maxRedeem(alice);
@@ -710,7 +707,7 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
         vm.startPrank(alice);
 
         // THWARTED - alice cannot deposit the intended amount as it reverts.
-        // vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
         vault.deposit(3_000e6, alice);
 
         // The remainder of the test shows there's no attack if alice deposits enough.
@@ -721,13 +718,13 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
         // Thanks to the inflation-attack-protection inside convertToAssets(), 
         // even though the attacker owns 100% of the shares, 
         // only a portion of them can be withdrawn. The attacker is currently at a loss.
-        assertEq(vault.maxWithdraw(attacker), (5_000e6 * 1e12) + 1500.000001e6);
+        assertEq(vault.maxWithdraw(attacker), (5_000e6 * 1e12) + 1);
 
         // However, the inflation-attack-protection is bypassed
         // when the totalSupply is back to 0, and the attacker owns the totalSupply.
         // Therefore he can redeem all the shares, leaving totalSupply=0 
         vm.startPrank(attacker);
-        assertEq(vault.redeem(vault.maxRedeem(attacker), attacker, attacker), (5_000e6 * 1e12) + 1500.000001e6);
+        assertEq(vault.redeem(vault.maxRedeem(attacker), attacker, attacker), (5_000e6 * 1e12) + 1);
         assertEq(vault.totalSupply(), 0);
         assertEq(vault.balanceOf(alice), 0);
         assertEq(vault.balanceOf(attacker), 0);
@@ -735,7 +732,8 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
         // Now that totalSupply==0, the attacker will get the same
         // number of shares as the assets deposited (except for the rounding-down)
         // All it takes to own again all assets is to make a new deposit (non-negligible deposit)
-        assertEq(vault.deposit(1_000e6, attacker), 0);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        vault.deposit(1_000e6, attacker);
 
         // Now the attacker can withdraw the full balance from the vault (except 2% fees)
         assertEq(vault.totalSupply(), vault.balanceOf(attacker));
@@ -744,6 +742,6 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
 
         // When the attacker redeems his shares, he IS AT A LOSS
         assertLt(asset.balanceOf(attacker), initialAttackerAssets);
-        assertEq(asset.balanceOf(attacker), (45_000e6 * 1e12) + 500e6);
+        assertEq(asset.balanceOf(attacker), (45_000e6 * 1e12));
     }
 }

@@ -1023,24 +1023,23 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626TestBase {
         vm.startPrank(alice);
 
         // THWARTED - alice cannot deposit the intended amount as it reverts.
-        // vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
         vault.deposit(3_000e18, alice);
 
         // The remainder of the test shows there's no attack if alice deposits enough.
-        // vault.deposit(2_600e18, alice);
         assertEq(vault.balanceOf(alice), 0);
         assertEq(vault.balanceOf(attacker), vault.totalSupply());
 
         // Thanks to the inflation-attack-protection inside convertToAssets(), 
         // even though the attacker owns 100% of the shares, 
         // only a portion of them can be withdrawn. The attacker is currently at a loss.
-        assertEq(vault.maxWithdraw(attacker), 6_500e18 + 1);
+        assertEq(vault.maxWithdraw(attacker), 5_000e18 + 1);
 
         // However, the inflation-attack-protection is bypassed
         // when the totalSupply is back to 0, and the attacker owns the totalSupply.
         // Therefore he can redeem all the shares, leaving totalSupply=0 
         vm.startPrank(attacker);
-        assertEq(vault.redeem(vault.maxRedeem(attacker), attacker, attacker), 6_500e18 + 1);
+        assertEq(vault.redeem(vault.maxRedeem(attacker), attacker, attacker), 5_000e18 + 1);
         assertEq(vault.totalSupply(), 0);
         assertEq(vault.balanceOf(alice), 0);
         assertEq(vault.balanceOf(attacker), 0);
@@ -1048,7 +1047,8 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626TestBase {
         // Now that totalSupply==0, the attacker will get the same
         // number of shares as the assets deposited (except for the rounding-down)
         // All it takes to own again all assets is to make a new deposit (non-negligible deposit)
-        assertEq(vault.deposit(1_000e18, attacker), 0);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        vault.deposit(1_000e18, attacker);
 
         // Now the attacker can withdraw the full balance from the vault (except 2% fees)
         assertEq(vault.totalSupply(), vault.balanceOf(attacker));
@@ -1057,6 +1057,6 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626TestBase {
 
         // When the attacker redeems his shares, he IS AT A LOSS
         assertLt(asset.balanceOf(attacker), initialAttackerAssets);
-        assertEq(asset.balanceOf(attacker), 45_500e18);
+        assertEq(asset.balanceOf(attacker), 45_000e18);
     }
 }

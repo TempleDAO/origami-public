@@ -19,8 +19,6 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "forge-std/console.sol";
-
 /**
  * @title Origami ERC-4626
  * @notice A fork of the openzeppelin ERC-4626, with:
@@ -60,9 +58,6 @@ contract OrigamiErc4626 is
 
     /// @dev The scalar to convert from `asset` decimals to 18 decimals
     uint256 private immutable _assetsToSharesScalar;
-
-    /// @dev A fixed _decimalsOffset() of 0, as per the OZ default
-    // uint256 private immutable DECIMALS_OFFSET_SCALAR; 
 
     constructor(
         address initialOwner_,
@@ -457,14 +452,6 @@ contract OrigamiErc4626 is
      * @dev Internal conversion function (from assets to shares) with support for rounding direction.
      */
     function _convertToShares(uint256 assets, OrigamiMath.Rounding rounding) internal view virtual returns (uint256) {
-        // uint256 _totalSupply = totalSupply();
-        // // console.log("convertToShares:", assets, _totalSupply+1, totalAssets()+1);
-        // // console.log(assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding));
-        // return _totalSupply == 0
-        //     ? assets.scaleUp(_assetsToSharesScalar)
-        //     : assets.mulDiv(_totalSupply + DECIMALS_OFFSET_SCALAR, totalAssets() + 1, rounding);
-
-        console.log("_convertToShares:", assets, totalSupply() + _assetsToSharesScalar, totalAssets() + 1);
         return assets.mulDiv(totalSupply() + _assetsToSharesScalar, totalAssets() + 1, rounding);
     }
 
@@ -472,17 +459,6 @@ contract OrigamiErc4626 is
      * @dev Internal conversion function (from shares to assets) with support for rounding direction.
      */
     function _convertToAssets(uint256 shares, OrigamiMath.Rounding rounding) internal view virtual returns (uint256) {
-        // uint256 _totalSupply = totalSupply();
-        // console.log("_convertToAssets:", shares, totalAssets()+1, _totalSupply+1);
-        // console.log("_totalSupply:", _totalSupply);
-        // console.log(shares.mulDiv(totalAssets() + 1, _totalSupply + DECIMALS_OFFSET_SCALAR, rounding));
-        // uint256 result = _totalSupply == 0
-        //     ? shares.scaleDown(_assetsToSharesScalar, rounding)
-        //     : shares.mulDiv(totalAssets() + 1, _totalSupply + DECIMALS_OFFSET_SCALAR, rounding);
-
-        // console.log("==", result);
-        // return result;
-
         return shares.mulDiv(totalAssets() + 1, totalSupply() + _assetsToSharesScalar, rounding);
     }
 
@@ -492,7 +468,7 @@ contract OrigamiErc4626 is
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual {
         // Protect users from being able to mint zero shares to aid
         // with potential inflation vectors
-        // if (shares == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+        if (shares == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
         _depositHook(caller, assets);
 
