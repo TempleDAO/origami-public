@@ -56,7 +56,21 @@ interface IOrigamiErc4626 is
 
     /// @dev A client implementation may emit if the max total supply has been changed
     event MaxTotalSupplySet(uint256 maxTotalSupply);
-    
+
+    /// @notice Set the max total supply allowed for this vault
+    /// @dev Will revert if the current totalSupply is zero as
+    /// `seedDeposit()` needs to be called first
+    function setMaxTotalSupply(uint256 maxTotalSupply) external;
+
+    /// @notice Origami protocol seeds the initial deposit
+    /// @dev The new maxTotalSupply is set and a trusted deposit
+    /// is made
+    function seedDeposit(
+        uint256 assets,
+        address receiver,
+        uint256 maxTotalSupply
+    ) external returns (uint256 shares);
+
     /// @notice The current deposit fee in basis points.
     function depositFeeBps() external view returns (uint256);
 

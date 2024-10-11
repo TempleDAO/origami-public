@@ -11,7 +11,7 @@
   evm_version = 'cancun'
 
 [profile.default.fuzz]
-  max_test_rejects = 150000
+  max_test_rejects = 5000
   runs = 2000
   # For the seed, add this to the pipeline so it's a different seed every week
   # export FOUNDRY_FUZZ_SEED=$(echo $(($EPOCHSECONDS - $EPOCHSECONDS % 604800)))

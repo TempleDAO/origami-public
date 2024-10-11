@@ -7,7 +7,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockErc4626VaultWithFees is OrigamiErc4626 {
     uint256 private _depositFeeBps;
     uint256 private _exitFeeBps;
-    uint256 private _maxSupply;
 
     constructor(
         address initialOwner_,
@@ -15,13 +14,11 @@ contract MockErc4626VaultWithFees is OrigamiErc4626 {
         string memory symbol_,
         IERC20 asset_,
         uint256 depositFeeBps_,
-        uint256 exitFeeBps_,
-        uint256 maxSupply_
+        uint256 exitFeeBps_
     ) OrigamiErc4626(initialOwner_, name_, symbol_, asset_)
     {
         _depositFeeBps = depositFeeBps_;
         _exitFeeBps = exitFeeBps_;
-        _maxSupply = maxSupply_;
     }
 
     function depositFeeBps() public override view returns (uint256) {
@@ -32,7 +29,4 @@ contract MockErc4626VaultWithFees is OrigamiErc4626 {
         return _exitFeeBps;
     }
 
-    function maxTotalSupply() public override view returns (uint256) {
-        return _maxSupply;
-    }
 }
