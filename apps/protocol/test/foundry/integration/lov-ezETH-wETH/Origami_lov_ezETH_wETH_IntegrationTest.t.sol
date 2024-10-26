@@ -14,7 +14,6 @@ import { IOrigamiLovTokenMorphoManager } from "contracts/interfaces/investments/
 import { Id as MorphoMarketId } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
-import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
 
 contract Origami_lov_ezETH_wETH_IntegrationTest is Origami_lov_ezETH_wETH_IntegrationTestBase {
     using OrigamiMath for uint256;
@@ -62,10 +61,6 @@ contract Origami_lov_ezETH_wETH_IntegrationTest is Origami_lov_ezETH_wETH_Integr
             assertEq(lovTokenContracts.ezEthToEthOracle.spotPriceStalenessThreshold(), Constants.EZETH_ETH_STALENESS_THRESHOLD);
             assertEq(address(lovTokenContracts.ezEthToEthOracle.renzoRestakeManager()), Constants.RENZO_RESTAKE_MANAGER);
             assertEq(lovTokenContracts.ezEthToEthOracle.maxRelativeToleranceBps(), 30);
-        }
-
-        {
-            assertEq(OrigamiDexAggregatorSwapper(address(lovTokenContracts.swapper)).router(), Constants.ONE_INCH_ROUTER);
         }
 
         {

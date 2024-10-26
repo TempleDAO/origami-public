@@ -381,7 +381,7 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
      * @notice Maximum amount of `reserveToken` that can be redeemed to `toToken`
      * This vault only accepts where `fromToken` == `reserveToken`
      */
-    function _maxRedeemFromReserves(address toToken) internal override view returns (uint256 reservesAmount) {
+    function _maxRedeemFromReserves(address toToken, Cache memory /*cache*/) internal override view returns (uint256 reservesAmount) {
         if (toToken == address(_reserveToken)) {
             // Within Morpho, we can always withdraw our supplied collateral as it is siloed.
             reservesAmount = borrowLend.suppliedBalance();

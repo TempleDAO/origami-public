@@ -9,7 +9,7 @@ async function main() {
 
   const factory = new TokenPrices__factory(owner);
   await deployAndMine(
-    'CORE.TOKEN_PRICES', 
+    'CORE.TOKEN_PRICES.V1', 
     factory, 
     factory.deploy,
     30

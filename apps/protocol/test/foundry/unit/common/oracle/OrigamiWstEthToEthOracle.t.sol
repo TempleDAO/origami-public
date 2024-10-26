@@ -54,6 +54,7 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
             address(clStEthToEthOracle),
             100 days,
             Range.Data(0.99e18, 1.01e18),
+            true,
             true
         );
 

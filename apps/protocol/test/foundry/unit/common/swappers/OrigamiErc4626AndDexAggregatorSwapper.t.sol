@@ -20,13 +20,17 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestBase is OrigamiTest {
     IERC20 public constant SDAI = IERC20(0x83F20F44975D03b1b09e64809B757c47f942BEeA);
 
     event Swap(address indexed sellToken, uint256 sellTokenAmount, address indexed buyToken, uint256 buyTokenAmount);
+    event RouterWhitelisted(address indexed router, bool allowed);
 
     error UnknownSwapAmount(uint256 amount);
     error SafeTransferFromFailed();
 
     function setUp() public {
         fork("mainnet", 19564742);
-        swapper = new OrigamiErc4626AndDexAggregatorSwapper(origamiMultisig, router, address(SUSDE));
+        swapper = new OrigamiErc4626AndDexAggregatorSwapper(origamiMultisig, address(SUSDE));
+
+        vm.prank(origamiMultisig);
+        swapper.whitelistRouter(router, true);
     }
 }
 
@@ -34,14 +38,33 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestAdmin is OrigamiErc4626AndDexA
 
     function test_initialization() public {
         assertEq(swapper.owner(), origamiMultisig);
-        assertEq(swapper.router(), router);
         assertEq(address(swapper.vault()), address(SUSDE));
         assertEq(address(swapper.vaultUnderlyingAsset()), address(USDE));
+    }
+
+    function test_access_whitelistRouter() public {
+        expectElevatedAccess();
+        swapper.whitelistRouter(alice, true);
     }
 
     function test_access_recoverToken() public {
         expectElevatedAccess();
         swapper.recoverToken(alice, alice, 100e18);
+    }
+
+    function test_whitelistRouter() public {
+        vm.startPrank(origamiMultisig);
+        assertEq(swapper.whitelistedRouters(alice), false);
+
+        vm.expectEmit(address(swapper));
+        emit RouterWhitelisted(alice, true);
+        swapper.whitelistRouter(alice, true);
+        assertEq(swapper.whitelistedRouters(alice), true);
+
+        vm.expectEmit(address(swapper));
+        emit RouterWhitelisted(alice, false);
+        swapper.whitelistRouter(alice, false);
+        assertEq(swapper.whitelistedRouters(alice), false);
     }
 
     function test_recoverToken() public {
@@ -73,6 +96,7 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_NonVault is OrigamiErc
     function encode(bytes memory data) internal pure returns (bytes memory) {
         return abi.encode(OrigamiErc4626AndDexAggregatorSwapper.RouteData({
             routeType: OrigamiErc4626AndDexAggregatorSwapper.RouteType.VIA_DEX_AGGREGATOR_ONLY,
+            router: router,
             data: data
         }));
     }
@@ -89,6 +113,25 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_NonVault is OrigamiErc
 
         vm.expectRevert();
         swapper.execute(DAI, sellTokenAmount, SDAI, data);
+    }
+
+    function test_execute_fail_invalidRouter() public {
+        uint256 sellTokenAmount = 1_000e18;
+        (, bytes memory data) = getQuoteData(sellTokenAmount);
+
+        vm.startPrank(alice);
+        deal(address(DAI), alice, sellTokenAmount, true);
+        DAI.approve(address(swapper), sellTokenAmount);
+
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidRouter.selector, alice));        
+        swapper.execute(
+            DAI, sellTokenAmount, SDAI, 
+            abi.encode(OrigamiErc4626AndDexAggregatorSwapper.RouteData({
+                routeType: OrigamiErc4626AndDexAggregatorSwapper.RouteType.VIA_DEX_AGGREGATOR_ONLY,
+                router: alice,
+                data: data
+            }))
+        );
     }
 
     function test_execute_success_normal() public {
@@ -226,8 +269,6 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_NonVault is OrigamiErc
     }
 
     function test_execute_failure_unknownError() public {
-        // Set the proxy to another contract (DAI) to force an unknown error from the `call()`
-        swapper = new OrigamiErc4626AndDexAggregatorSwapper(origamiMultisig, address(DAI), address(SUSDE));
         bytes memory data = hex"12345678";
         data = encode(data);
 
@@ -265,6 +306,7 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_ToVaultDirect is Origa
     function encode(bytes memory data) internal pure returns (bytes memory) {
         return abi.encode(OrigamiErc4626AndDexAggregatorSwapper.RouteData({
             routeType: OrigamiErc4626AndDexAggregatorSwapper.RouteType.VIA_DEX_AGGREGATOR_ONLY,
+            router: router,
             data: data
         }));
     }
@@ -418,8 +460,6 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_ToVaultDirect is Origa
     }
 
     function test_execute_failure_unknownError() public {
-        // Set the proxy to another contract (DAI) to force an unknown error from the `call()`
-        swapper = new OrigamiErc4626AndDexAggregatorSwapper(origamiMultisig, address(DAI), address(SUSDE));
         bytes memory data = hex"12345678";
         data = encode(data);
 
@@ -458,6 +498,7 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_ToVaultWithStake is Or
     function encode(bytes memory data) internal pure returns (bytes memory) {
         return abi.encode(OrigamiErc4626AndDexAggregatorSwapper.RouteData({
             routeType: OrigamiErc4626AndDexAggregatorSwapper.RouteType.VIA_DEX_AGGREGATOR_THEN_DEPOSIT_IN_VAULT,
+            router: router,
             data: data
         }));
     }
@@ -611,8 +652,6 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_ToVaultWithStake is Or
     }
 
     function test_execute_failure_unknownError() public {
-        // Set the proxy to another contract (DAI) to force an unknown error from the `call()`
-        swapper = new OrigamiErc4626AndDexAggregatorSwapper(origamiMultisig, address(DAI), address(SUSDE));
         bytes memory data = hex"12345678";
         data = encode(data);
 
@@ -650,6 +689,7 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_FromVault is OrigamiEr
     function encode(bytes memory data) internal pure returns (bytes memory) {
         return abi.encode(OrigamiErc4626AndDexAggregatorSwapper.RouteData({
             routeType: OrigamiErc4626AndDexAggregatorSwapper.RouteType.VIA_DEX_AGGREGATOR_ONLY,
+            router: router,
             data: data
         }));
     }
@@ -803,8 +843,6 @@ contract OrigamiErc4626AndDexAggregatorSwapperTestExecute_FromVault is OrigamiEr
     }
 
     function test_execute_failure_unknownError() public {
-        // Set the proxy to another contract (SUSDE) to force an unknown error from the `call()`
-        swapper = new OrigamiErc4626AndDexAggregatorSwapper(origamiMultisig, address(SUSDE), address(SUSDE));
         bytes memory data = hex"12345678";
         data = encode(data);
 

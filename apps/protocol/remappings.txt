@@ -8,4 +8,6 @@ forge-std/=lib/forge-std/src/
 hardhat/=node_modules/hardhat/
 contracts/=contracts/
 test/=test/
-@morpho-org=node_modules/@morpho-org
+@morpho-org=node_modules/@morpho-org/
+@pendle/core-v2/=node_modules/@pendle/core-v2/
+erc4626-tests/=lib/erc4626-tests/

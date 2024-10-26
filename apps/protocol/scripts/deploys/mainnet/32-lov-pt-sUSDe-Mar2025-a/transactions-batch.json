@@ -1,0 +1,89 @@
+{
+  "chainId": "1",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0xe00bd3df25fb187d6abbb620b3dfd19839947b81",
+        "fnCalldata": "0x04b39534000000000000000000000000669b05610852f5d0fba3920bb8ad4c4c5c3c3d5900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "to": "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0xDb4f1Bb3f8c9929aaFbe7197e10ffaFEEAe19B9A",
+        "fnCalldata": "0x7eb11c63000000000000000000000000db4f1bb3f8c9929aafbe7197e10ffafeeae19b9a"
+      }
+    },
+    {
+      "to": "0xDb4f1Bb3f8c9929aaFbe7197e10ffaFEEAe19B9A",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x9e0457B5BcD95F4e2fc7FabCC41faAD0D443B4F7",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xe581eF672a0698a8cE5E85469e69FEEAebfC3DB3",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

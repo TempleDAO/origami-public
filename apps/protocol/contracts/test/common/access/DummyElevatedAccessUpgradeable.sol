@@ -91,6 +91,15 @@ abstract contract OrigamiElevatedAccessBasev2 is IOrigamiElevatedAccess {
     }
 
     /**
+     * @notice Revoke ownership. Be very certain before calling this, as no
+     * further elevated access can be called.
+     */
+    function revokeOwnership() external override onlyElevatedAccess {
+        owner = address(0);
+        emit NewOwnerAccepted(owner, address(0));
+    }
+    
+    /**
      * @notice Proposes a new Executor.
      * Can only be called by the current executor or rescuer (if in resuce mode)
      */

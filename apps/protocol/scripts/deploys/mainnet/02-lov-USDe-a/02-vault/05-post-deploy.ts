@@ -19,7 +19,7 @@ async function setupPricesTestnet(owner: SignerWithAddress) {
   const signer = await impersonateAndFund(owner, ADDRS.CORE.MULTISIG);
 
   // $lov-sUSDe
-  await mine(INSTANCES.CORE.TOKEN_PRICES.connect(signer).setTokenPriceFunction(
+  await mine(INSTANCES.CORE.TOKEN_PRICES.V1.connect(signer).setTokenPriceFunction(
     ADDRS.LOV_USDE_A.TOKEN,
     encodedRepricingTokenPrice(ADDRS.LOV_USDE_A.TOKEN)
   ));
@@ -27,7 +27,7 @@ async function setupPricesTestnet(owner: SignerWithAddress) {
 
 async function setupPrices() { 
   // $lov-sUSDe
-  await mine(INSTANCES.CORE.TOKEN_PRICES.setTokenPriceFunction(
+  await mine(INSTANCES.CORE.TOKEN_PRICES.V1.setTokenPriceFunction(
     ADDRS.LOV_USDE_A.TOKEN,
     encodedRepricingTokenPrice(ADDRS.LOV_USDE_A.TOKEN)
   ));
@@ -46,7 +46,7 @@ async function main() {
   );
   await mine(
     INSTANCES.LOV_USDE_A.MORPHO_BORROW_LEND.setSwapper(
-      ADDRS.SWAPPERS.DIRECT_1INCH_SWAPPER
+      ADDRS.SWAPPERS.DIRECT_SWAPPER
     )
   );
 
@@ -81,6 +81,12 @@ async function main() {
   await mine(
     INSTANCES.LOV_USDE_A.TOKEN.setManager(
       ADDRS.LOV_USDE_A.MANAGER
+    )
+  );
+  
+  await mine(
+    INSTANCES.LOV_USDE_A.MANAGER.setAllowAll(
+      true
     )
   );
 

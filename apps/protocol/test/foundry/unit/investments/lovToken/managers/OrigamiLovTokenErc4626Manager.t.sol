@@ -119,6 +119,7 @@ contract OrigamiLovTokenErc4626ManagerTestBase is OrigamiLovTokenTestBase {
                 address(daiUsdOracle),
                 365 days,
                 Range.Data(0.95e18, 1.05e18),
+                true,
                 true
             );
             origamiUsdcUsdOracle = new OrigamiStableChainlinkOracle(
@@ -134,6 +135,7 @@ contract OrigamiLovTokenErc4626ManagerTestBase is OrigamiLovTokenTestBase {
                 address(usdcUsdOracle),
                 365 days,
                 Range.Data(0.95e18, 1.05e18),
+                true,
                 true
             );
             origamiIUsdcUsdOracle = new OrigamiStableChainlinkOracle(
@@ -149,6 +151,7 @@ contract OrigamiLovTokenErc4626ManagerTestBase is OrigamiLovTokenTestBase {
                 address(usdcUsdOracle),
                 365 days,
                 Range.Data(0.95e18, 1.05e18),
+                true,
                 true
             );
 
@@ -161,7 +164,8 @@ contract OrigamiLovTokenErc4626ManagerTestBase is OrigamiLovTokenTestBase {
                     6
                 ),
                 address(origamiDaiUsdOracle),
-                address(origamiUsdcUsdOracle)
+                address(origamiUsdcUsdOracle),
+                address(0)
             );
             daiIUsdcOracle = new OrigamiCrossRateOracle(
                 IOrigamiOracle.BaseOracleParams(
@@ -172,7 +176,8 @@ contract OrigamiLovTokenErc4626ManagerTestBase is OrigamiLovTokenTestBase {
                     18
                 ),
                 address(origamiDaiUsdOracle),
-                address(origamiIUsdcUsdOracle)
+                address(origamiIUsdcUsdOracle),
+                address(0)
             );
         }
 
@@ -345,31 +350,41 @@ contract OrigamiLovTokenErc4626ManagerTestAdmin is OrigamiLovTokenErc4626Manager
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
         managerImpl.setOracle(address(0));
 
-        OrigamiCrossRateOracle badOracle = new OrigamiCrossRateOracle(
+        OrigamiStableChainlinkOracle badOracle = new OrigamiStableChainlinkOracle(
+            origamiMultisig,
             IOrigamiOracle.BaseOracleParams(
                 "alice/IUSDC",
                 alice,
-                18,
+                18, 
                 address(usdcToken),
                 18
             ),
-            address(origamiDaiUsdOracle),
-            address(origamiIUsdcUsdOracle)
+            1e18,
+            address(usdcUsdOracle),
+            365 days,
+            Range.Data(0.95e18, 1.05e18),
+            true,
+            true
         );
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         managerImpl.setOracle(address(badOracle));
 
-        badOracle = new OrigamiCrossRateOracle(
+        badOracle = new OrigamiStableChainlinkOracle(
+            origamiMultisig,
             IOrigamiOracle.BaseOracleParams(
                 "DAI/alice",
                 address(daiToken),
-                18,
+                18, 
                 alice,
                 18
             ),
-            address(origamiDaiUsdOracle),
-            address(origamiIUsdcUsdOracle)
+            1e18,
+            address(usdcUsdOracle),
+            365 days,
+            Range.Data(0.95e18, 1.05e18),
+            true,
+            true
         );
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
@@ -392,7 +407,8 @@ contract OrigamiLovTokenErc4626ManagerTestAdmin is OrigamiLovTokenErc4626Manager
                 18
             ),
             address(origamiDaiUsdOracle),
-            address(origamiIUsdcUsdOracle)
+            address(origamiIUsdcUsdOracle),
+            address(0)
         );
 
         vm.expectEmit(address(managerImpl));
@@ -2163,7 +2179,8 @@ contract OrigamiLovTokenErc4626ManagerTestViews is OrigamiLovTokenErc4626Manager
                 18
             ),
             address(origamiIUsdcUsdOracle),
-            address(origamiDaiUsdOracle)
+            address(origamiDaiUsdOracle),
+            address(0)
         );
         daiIUsdcOracle = new OrigamiCrossRateOracle(
             IOrigamiOracle.BaseOracleParams(
@@ -2174,7 +2191,8 @@ contract OrigamiLovTokenErc4626ManagerTestViews is OrigamiLovTokenErc4626Manager
                 18
             ),
             address(origamiIUsdcUsdOracle),
-            address(origamiDaiUsdOracle)
+            address(origamiDaiUsdOracle),
+            address(0)
         );
         managerImpl.setOracle(address(daiIUsdcOracle));
 

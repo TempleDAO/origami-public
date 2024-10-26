@@ -4,7 +4,7 @@ import { getImplementationAddress, ProxyKindOption } from '@openzeppelin/upgrade
 import { isAddress } from "ethers/lib/utils";
 import axios from 'axios';
 import { stringify as qsStringify } from 'qs';
-import { OrigamiGmxRewardsAggregator, IOrigamiElevatedAccess, TokenPrices__factory } from "../../typechain";
+import { OrigamiGmxRewardsAggregator, IOrigamiElevatedAccess, TokenPrices__factory, PendlePYLpOracle__factory, IPMarket__factory } from "../../typechain";
 import * as fs from 'fs';
 import * as path from 'path';
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -189,7 +189,11 @@ export function expectAddressWithPrivateKey() {
   }
 
   if (network.name == 'sepolia' && !process.env.SEPOLIA_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable SEPOLIA_ADDRESS_PRIVATE_KEY. A mumbai address private key with eth is required to deploy/manage contracts");
+    throw new Error("Missing environment variable SEPOLIA_ADDRESS_PRIVATE_KEY. A sepolia address private key with eth is required to deploy/manage contracts");
+  }
+
+  if (network.name == 'holesky' && !process.env.HOLESKY_ADDRESS_PRIVATE_KEY) {
+    throw new Error("Missing environment variable HOLESKY_ADDRESS_PRIVATE_KEY. A holesky address private key with eth is required to deploy/manage contracts");
   }
 }
 
@@ -202,6 +206,7 @@ const expectedEnvvars: { [key: string]: string[] } = {
   polygon: ['POLYGON_ADDRESS_PRIVATE_KEY', 'POLYGON_RPC_URL'],
   matic: ['MATIC_ADDRESS_PRIVATE_KEY', 'MATIC_RPC_URL'],
   sepolia: ['SEPOLIA_ADDRESS_PRIVATE_KEY', 'SEPOLIA_RPC_URL'],
+  holesky: ['HOLESKY_ADDRESS_PRIVATE_KEY', 'HOLESKY_RPC_URL'],
   anvil: [],
   localhost: [],
 }
@@ -316,6 +321,54 @@ export async function impersonateAndFund(owner: SignerWithAddress, address: stri
   return provider.getSigner(address);
 }
 
+// Check the Pendle Oracle and increase the cardinality if required.
+export async function updatePendleOracleCardinality(
+  pendleOracleAddress: string,
+  pendleMarketAddress: string,
+  owner: SignerWithAddress,
+  twapSecs: number,
+): Promise<void> {
+  const pendleOracle = PendlePYLpOracle__factory.connect(pendleOracleAddress, owner);
+  const oracleState = await pendleOracle.getOracleState(pendleMarketAddress, twapSecs);
+  console.log("Existing Oracle State:", oracleState);
+  if (oracleState.increaseCardinalityRequired) {
+    console.log("Increase cardinality required");
+    const market = IPMarket__factory.connect(pendleMarketAddress, owner);
+    await mine(market.increaseObservationsCardinalityNext(oracleState.cardinalityRequired));
+
+    if (network.name == 'localhost') {
+      const block = await ethers.provider.getBlock("latest");
+      const newTs = block.timestamp + twapSecs;
+      await ethers.provider.send("evm_setNextBlockTimestamp", [newTs]);
+      await ethers.provider.send("anvil_mine", [1]);
+    } else {
+      console.log(`Sleeping for the twap [${twapSecs}] seconds...`);
+      await new Promise((resolve) => setTimeout(resolve, twapSecs * 1_000));
+    }
+
+    console.log("New Oracle State:", await pendleOracle.getOracleState(pendleMarketAddress, twapSecs));
+  }
+}
+
+export function runAsyncMain<T>(p: () => Promise<T>): void {
+  p()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+export enum PriceType {
+  SPOT_PRICE,
+  HISTORIC_PRICE
+}
+
+export enum RoundingMode {
+  ROUND_DOWN,
+  ROUND_UP
+}
+
 export const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
 export const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
 export const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
@@ -326,3 +379,6 @@ export const encodedAliasFor = (sourceToken: string): string => encodeFunction("
 export const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
 export const encodedErc4626TokenPrice = (vault: string): string => encodeFunction("erc4626TokenPrice", vault);
 export const encodedWstEthRatio = (stEthToken: string): string => encodeFunction("wstEthRatio", stEthToken);
+export const encodedOrigamiOraclePrice = (oracleAddress: string, priceType: PriceType, roundingMode: RoundingMode): string => 
+  encodeFunction("origamiOraclePrice", oracleAddress, priceType, roundingMode);
+export const encodedScalar = (amount: BigNumberish): string => encodeFunction("scalar", amount);

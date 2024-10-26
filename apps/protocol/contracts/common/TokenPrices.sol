@@ -18,6 +18,7 @@ import { IStETH } from "contracts/interfaces/external/lido/IStETH.sol";
 import { ITokenPrices } from "contracts/interfaces/common/ITokenPrices.sol";
 import { IRepricingToken } from "contracts/interfaces/common/IRepricingToken.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
+import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 
 /// @title Token Prices
 /// @notice A utility contract to pull token prices on-chain.
@@ -142,11 +143,23 @@ contract TokenPrices is ITokenPrices, Ownable {
         return scaleToPrecision(IGmxVault(vault).getMinPrice(token), 30);
     }
 
+    /// @notice Use the origami defined oracle price
+    function origamiOraclePrice(
+        IOrigamiOracle origamiOracle, 
+        IOrigamiOracle.PriceType priceType, 
+        OrigamiMath.Rounding roundingMode
+    ) external view returns (uint256) {
+        return scaleToPrecision(origamiOracle.latestPrice(priceType, roundingMode), origamiOracle.decimals());
+    }
+
     /// @notice Calculate the Repricing Token price based
     /// on the [reserveToken price] * [reservesPerShare()]
     function repricingTokenPrice(address _repricingToken) external view returns (uint256) {
         IRepricingToken repricingToken = IRepricingToken(_repricingToken);
-        return tokenPrice(repricingToken.reserveToken()) * repricingToken.reservesPerShare() / (10 ** ERC20(_repricingToken).decimals());
+
+        // reservesPerShare is quoted in the reserve token decimals. The final result should be in `decimals` precision
+        address reserveToken = repricingToken.reserveToken();
+        return tokenPrice(reserveToken) * repricingToken.reservesPerShare() / (10 ** IERC20Metadata(reserveToken).decimals());
     }
 
     /// @notice Calculate the price of an ERC-4626 token vault

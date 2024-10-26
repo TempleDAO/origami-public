@@ -12,8 +12,10 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IOrigamiSwapper {
     error UnknownSwapError(bytes result);
     error InvalidSwap();
+    error InvalidRouter(address router);
 
     event Swap(address indexed sellToken, uint256 sellTokenAmount, address indexed buyToken, uint256 buyTokenAmount);
+    event RouterWhitelisted(address indexed router, bool allowed);
 
     /**
      * @notice Pull tokens from sender then execute the swap

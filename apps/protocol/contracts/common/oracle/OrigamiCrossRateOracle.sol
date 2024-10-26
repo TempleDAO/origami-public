@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 import { OrigamiOracleBase } from "contracts/common/oracle/OrigamiOracleBase.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
+import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
 /**
  * @title OrigamiCrossRateOracle
@@ -29,15 +30,41 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
      */
     IOrigamiOracle public immutable quoteAssetOracle;
 
+    /**
+     * @notice An oracle to lookup, used to ensure this reference price is valid and does not revert.
+     * @dev Can be set to address(0) to disable the check
+     */
+    IOrigamiOracle public immutable priceCheckOracle;
+
+    /**
+     * @notice Whether to multiply or to divide the two rates.
+     */
+    bool public immutable multiply;
+
     constructor (
         BaseOracleParams memory baseParams,
         address _baseAssetOracle,
-        address _quoteAssetOracle
+        address _quoteAssetOracle,
+        address _priceCheckOracle
     )
         OrigamiOracleBase(baseParams)
     {
         baseAssetOracle = IOrigamiOracle(_baseAssetOracle);
         quoteAssetOracle = IOrigamiOracle(_quoteAssetOracle);
+        priceCheckOracle = IOrigamiOracle(_priceCheckOracle);
+
+        // This oracle handles either:
+        //   baseAsset/quoteAsset = baseAsset/crossAsset * crossAsset/quoteAsset
+        //   baseAsset/quoteAsset = baseAsset/crossAsset / quoteAsset/crossAsset
+        // So apply checks that it all matches:
+        // 1. The base asset must match the baseAssetOracle's base asset
+        if (baseAssetOracle.baseAsset() != baseParams.baseAssetAddress) revert CommonEventsAndErrors.InvalidParam();
+
+        // 2. The quote asset and the cross asset must match the quoteAssetOracle, in either order.
+        address _crossAsset = baseAssetOracle.quoteAsset();
+        if (!quoteAssetOracle.matchAssets(_crossAsset, baseParams.quoteAssetAddress)) revert CommonEventsAndErrors.InvalidParam();
+
+        multiply = quoteAsset == quoteAssetOracle.quoteAsset();
     }
 
     /**
@@ -50,23 +77,36 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
         PriceType priceType, 
         OrigamiMath.Rounding roundingMode
     ) public override view returns (uint256) {
+        // check reference price is valid and does not revert
+        if (address(priceCheckOracle) != address(0))
+            priceCheckOracle.latestPrice(priceType, roundingMode);
+
         // baseOracle (the numerator) price follows the requested roundingMode
         // So if roundDown, then we want the numerator to be lower (round down)
-        uint256 _numerator = baseAssetOracle.latestPrice(
+        uint256 _basePrice = baseAssetOracle.latestPrice(
             priceType, 
             roundingMode
         );
 
-        // quotedOracle (the denominator) price follows the opposite roundingMode
-        // So if roundDown, then we want the denominator to be higher (round up)
-        uint256 _denominator = quoteAssetOracle.latestPrice(
-            priceType, 
-            roundingMode == OrigamiMath.Rounding.ROUND_DOWN ? OrigamiMath.Rounding.ROUND_UP : OrigamiMath.Rounding.ROUND_DOWN
-        );
+        if (multiply) {
+            // Also the numerator - so follow the requested roundingMode
+            uint256 _quotePrice = quoteAssetOracle.latestPrice(
+                priceType, 
+                roundingMode
+            );
 
-        if (_denominator == 0) revert InvalidPrice(address(quoteAssetOracle), int256(_denominator));
+            return _basePrice.mulDiv(_quotePrice, precision, roundingMode);
+        } else {
+            // quotedOracle (the denominator) price follows the opposite roundingMode
+            // So if roundDown, then we want the denominator to be higher (round up)
+            uint256 _quotePrice = quoteAssetOracle.latestPrice(
+                priceType, 
+                roundingMode == OrigamiMath.Rounding.ROUND_DOWN ? OrigamiMath.Rounding.ROUND_UP : OrigamiMath.Rounding.ROUND_DOWN
+            );
+            if (_quotePrice == 0) revert InvalidPrice(address(quoteAssetOracle), int256(_quotePrice));
 
-        // Final price follows the requested roundingMode
-        return _numerator.mulDiv(precision, _denominator, roundingMode);
+            // Final price follows the requested roundingMode
+            return _basePrice.mulDiv(precision, _quotePrice, roundingMode);
+        }
     }
 }

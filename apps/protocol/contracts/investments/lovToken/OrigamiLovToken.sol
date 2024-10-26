@@ -54,7 +54,7 @@ contract OrigamiLovToken is IOrigamiLovToken, OrigamiInvestment {
      * @notice The helper contract to retrieve Origami USD prices
      * @dev Required for off-chain/subgraph integration
      */
-    ITokenPrices public tokenPrices;
+    ITokenPrices public override tokenPrices;
 
     /**
      * @notice The maximum allowed supply of this token for user investments

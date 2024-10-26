@@ -11,6 +11,7 @@ import {
     TokenPrices, TokenPrices__factory, DummyOracle,
     MockSDaiToken__factory,
     MockStEthToken__factory,
+    OrigamiVolatileChainlinkOracle__factory,
 } from "../../../typechain";
 import { 
     blockTimestamp, 
@@ -50,6 +51,16 @@ describe("Token Prices", async () => {
         return tokenPricesInterface.encodeFunctionData(fn, args);
     }
 
+    enum PriceType {
+        SPOT_PRICE,
+        HISTORIC_PRICE
+    }
+      
+    enum RoundingMode {
+        ROUND_DOWN,
+        ROUND_UP
+    }
+      
     const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
     const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
     const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
@@ -62,6 +73,8 @@ describe("Token Prices", async () => {
     const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
     const encodedErc4626TokenPrice = (vault: string): string => encodeFunction("erc4626TokenPrice", vault);
     const encodedWstEthRatio = (stEthToken: string): string => encodeFunction("wstEthRatio", stEthToken);
+    const encodedOrigamiOraclePrice = (oracleAddress: string, priceType: PriceType, roundingMode: RoundingMode): string => 
+        encodeFunction("origamiOraclePrice", oracleAddress, priceType, roundingMode);
 
     describe("Arbitrum", async () => {
         const addresses = {
@@ -542,6 +555,41 @@ describe("Token Prices", async () => {
                         )
                     )
                 );
+        });
+
+        it("Origami oracle price", async () => {
+            const ETH_ADDRESS = ZERO_ADDRESS;
+            const clEthToUsdOracle = await new DummyOracle__factory(owner).deploy(
+                {
+                    roundId: 10,
+                    answer: ethers.utils.parseUnits("2500", 18),
+                    startedAt: await blockTimestamp(),
+                    updatedAtLag: 1,
+                    answeredInRound: 10
+                }, 
+                18
+            );
+
+            const origamiOracle = await new OrigamiVolatileChainlinkOracle__factory(owner).deploy(
+                {
+                    description: "ETH/USD",
+                    baseAssetAddress: ETH_ADDRESS,
+                    baseAssetDecimals: 18,
+                    quoteAssetAddress: "0x000000000000000000000000000000000000115d",
+                    quoteAssetDecimals: 18,
+                },
+                clEthToUsdOracle.address,
+                86400 * 365,
+                false,
+                true
+            );
+
+            await tokenPrices.setTokenPriceFunction(
+                ETH_ADDRESS,
+                encodedOrigamiOraclePrice(origamiOracle.address, PriceType.SPOT_PRICE, RoundingMode.ROUND_DOWN)
+            );
+            expect(await tokenPrices.tokenPrice(ETH_ADDRESS))
+                .to.eq(ethers.utils.parseUnits("2500", 30));
         });
     });
 

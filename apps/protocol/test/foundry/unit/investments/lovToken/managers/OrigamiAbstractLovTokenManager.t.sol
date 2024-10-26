@@ -481,6 +481,10 @@ contract OrigamiAbstractLovTokenManagerTestViews is OrigamiLovTokenTestBase {
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9_090.000000000000009083e18);
         assertEq(manager.effectiveExposure(IOrigamiOracle.PriceType.HISTORIC_PRICE), 10e18 + 9);
     }
+
+    function test_tokenPrice() public {
+        assertEq(tokenPrices.tokenPrice(address(lovToken)), 1e30);
+    }
 }
 
 contract OrigamiAbstractLovTokenManagerTestInvest is OrigamiLovTokenTestBase {

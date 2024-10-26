@@ -15,7 +15,7 @@ async function main() {
   const ADDRS = getDeployedContracts();
   INSTANCES = connectToContracts(owner);
 
-  await mine(INSTANCES.CORE.TOKEN_PRICES.transferOwnership(ADDRS.CORE.MULTISIG));
+  await mine(INSTANCES.CORE.TOKEN_PRICES.V1.transferOwnership(ADDRS.CORE.MULTISIG));
 }
 
 main()

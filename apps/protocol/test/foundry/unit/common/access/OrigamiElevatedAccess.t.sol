@@ -80,6 +80,11 @@ contract OrigamiElevatedAccessTest is OrigamiElevatedAccessTestBase {
         expectElevatedAccess();
         setExplicitAccess(mock, alice, msg.sig, true);
     }
+    
+    function test_access_revokeOwnership() public {
+        expectElevatedAccess();
+        mock.revokeOwnership();
+    }
 }
 
 contract OrigamiElevatedAccessTestSetters is OrigamiElevatedAccessTestBase {
@@ -163,6 +168,29 @@ contract OrigamiElevatedAccessTestSetters is OrigamiElevatedAccessTestBase {
         mock.setExplicitAccess(alice, access);
         assertEq(mock.explicitFunctionAccess(alice, fnSig), false);
         assertEq(mock.explicitFunctionAccess(alice, fnSig2), true);
+    }
+
+    function test_revokeAccess_fail() public {
+        vm.startPrank(origamiMultisig);
+
+        mock.proposeNewOwner(alice);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, alice));
+        mock.revokeOwnership();
+    }
+
+    function test_revokeAccess_success() public {
+        vm.startPrank(origamiMultisig);
+
+        mock.proposeNewOwner(0x000000000000000000000000000000000000dEaD);
+
+        vm.expectEmit(address(mock));
+        emit NewOwnerAccepted(origamiMultisig, address(0));
+        mock.revokeOwnership();
+
+        // Owner can no longder do anything
+        assertEq(mock.owner(), address(0));
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
+        mock.revokeOwnership();
     }
 }
 

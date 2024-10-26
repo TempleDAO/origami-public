@@ -71,6 +71,12 @@ interface IOrigamiOracle {
     function precision() external view returns (uint256);
 
     /**
+     * @notice When converting from baseAsset<->quoteAsset, the fixed point amounts
+     * need to be scaled by this amount.
+     */
+    function assetScalingFactor() external view returns (uint256);
+
+    /**
      * @notice A human readable description for this oracle
      */
     function description() external view returns (string memory);

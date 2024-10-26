@@ -25,10 +25,8 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
     using SafeERC20 for IERC20;
     using DexAggregator for address;
 
-    /**
-     * @notice The address of the 1Inch/0x/etc router
-     */
-    address public immutable router;
+    /// @notice Approved router contracts for swaps
+    mapping(address router => bool allowed) public whitelistedRouters;
 
     /**
      * @notice The ERC-4626 vault which can be deposited into directly
@@ -47,17 +45,21 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
 
     struct RouteData {
         RouteType routeType;
+        address router;
         bytes data;
     }
 
     constructor(
         address _initialOwner,
-        address _router,
         address _vault
     ) OrigamiElevatedAccess(_initialOwner) {
-        router = _router;
         vault = IERC4626(_vault);
         vaultUnderlyingAsset = IERC20(vault.asset());
+    }
+
+    function whitelistRouter(address router, bool allowed) external onlyElevatedAccess {
+        whitelistedRouters[router] = allowed;
+        emit RouterWhitelisted(router, allowed);
     }
 
     /**
@@ -87,8 +89,10 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
             swapData, (RouteData)
         );
 
+        if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
+
         if (routeData.routeType == RouteType.VIA_DEX_AGGREGATOR_ONLY) {
-            buyTokenAmount = router.swap(sellToken, sellTokenAmount, buyToken, routeData.data);
+            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, buyToken, routeData.data);
 
             // Transfer back to the caller
             buyToken.safeTransfer(msg.sender, buyTokenAmount);
@@ -98,7 +102,7 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
             if (address(buyToken) != address(vault)) revert CommonEventsAndErrors.InvalidToken(address(buyToken));
 
             // First swap from the sellToken to the vault deposit token
-            buyTokenAmount = router.swap(sellToken, sellTokenAmount, vaultUnderlyingAsset, routeData.data);
+            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, vaultUnderlyingAsset, routeData.data);
 
             // Now deposit 100% of the bought tokens into the vault
             vaultUnderlyingAsset.forceApprove(address(vault), buyTokenAmount);

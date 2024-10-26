@@ -57,11 +57,11 @@ async function updatePrices(contract: TokenPrices) {
 // Required for testnet run to impersonate the msig
 async function setupPricesTestnet(owner: SignerWithAddress) { 
   const signer = await impersonateAndFund(owner, ADDRS.CORE.MULTISIG);
-  await updatePrices(INSTANCES.CORE.TOKEN_PRICES.connect(signer));
+  await updatePrices(INSTANCES.CORE.TOKEN_PRICES.V1.connect(signer));
 }
 
 async function setupPrices() { 
-  await updatePrices(INSTANCES.CORE.TOKEN_PRICES);
+  await updatePrices(INSTANCES.CORE.TOKEN_PRICES.V1);
 }
 
 async function main() {
@@ -77,7 +77,7 @@ async function main() {
   );
   await mine(
     INSTANCES.LOV_EZETH_A.MORPHO_BORROW_LEND.setSwapper(
-      ADDRS.SWAPPERS.DIRECT_1INCH_SWAPPER
+      ADDRS.SWAPPERS.DIRECT_SWAPPER
     )
   );
 
@@ -112,6 +112,12 @@ async function main() {
   await mine(
     INSTANCES.LOV_EZETH_A.TOKEN.setManager(
       ADDRS.LOV_EZETH_A.MANAGER
+    )
+  );
+  
+  await mine(
+    INSTANCES.LOV_EZETH_A.MANAGER.setAllowAll(
+      true
     )
   );
 

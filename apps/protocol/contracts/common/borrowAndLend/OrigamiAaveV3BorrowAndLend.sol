@@ -11,6 +11,7 @@ import { ReserveConfiguration as AaveReserveConfiguration } from "@aave/core-v3/
 import { DataTypes as AaveDataTypes } from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 import { IPool as IAavePool } from "@aave/core-v3/contracts/interfaces/IPool.sol";
 import { IAToken as IAaveAToken } from "@aave/core-v3/contracts/interfaces/IAToken.sol";
+import { IAaveV3RewardsController } from "contracts/interfaces/external/aave/aave-v3-periphery/IAaveV3RewardsController.sol";
 
 import { IOrigamiAaveV3BorrowAndLend } from "contracts/interfaces/common/borrowAndLend/IOrigamiAaveV3BorrowAndLend.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
@@ -81,7 +82,6 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         address _supplyToken,
         address _borrowToken,
         address _aavePool,
-        uint256 _expectedDecimals,
         uint8 _defaultEMode
     ) OrigamiElevatedAccess(_initialOwner) {
         supplyToken = _supplyToken;
@@ -90,9 +90,6 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         aavePool = IAavePool(_aavePool);
         aaveAToken = IAaveAToken(aavePool.getReserveData(supplyToken).aTokenAddress);
         aaveDebtToken = IERC20Metadata(aavePool.getReserveData(_borrowToken).variableDebtTokenAddress);
-
-        if (IERC20Metadata(address(aaveAToken)).decimals() != _expectedDecimals) revert CommonEventsAndErrors.InvalidToken(address(aaveAToken));
-        if (aaveDebtToken.decimals() != _expectedDecimals) revert CommonEventsAndErrors.InvalidToken(address(aaveDebtToken));
 
         // Approve the supply and borrow to the Aave/Spark pool upfront
         IERC20(supplyToken).forceApprove(address(aavePool), type(uint256).max);
@@ -139,8 +136,43 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
      */
     function setAavePool(address pool) external override onlyElevatedAccess {
         if (pool == address(0)) revert CommonEventsAndErrors.InvalidAddress(pool);
+
+        address oldPool = address(aavePool);
+        if (pool == oldPool) revert CommonEventsAndErrors.InvalidAddress(pool);
+
         emit AavePoolSet(pool);
         aavePool = IAavePool(pool);
+
+        // Reset allowance to old Aave/Spark pool
+        IERC20(supplyToken).forceApprove(oldPool, 0);
+        IERC20(borrowToken).forceApprove(oldPool, 0);
+
+        // Approve the supply and borrow to the new Aave/Spark pool upfront
+        IERC20(supplyToken).forceApprove(pool, type(uint256).max);
+        IERC20(borrowToken).forceApprove(pool, type(uint256).max);
+    }
+
+    /**
+     * @notice Elevated access can claim rewards, from a nominated rewards controller.
+     * @param rewardsController The aave-v3-periphery RewardsController
+     * @param assets The list of assets to check eligible distributions before claiming rewards
+     * @param to The address that will be receiving the rewards
+     * @return rewardsList List of addresses of the reward tokens
+     * @return claimedAmounts List that contains the claimed amount per reward, following same order as "rewardList"
+     */
+    function claimAllRewards(
+        address rewardsController,
+        address[] calldata assets,
+        address to
+    ) external override onlyElevatedAccess returns (
+        address[] memory rewardsList, 
+        uint256[] memory claimedAmounts
+    ) {
+        // Event emitted within rewards controller.
+        return IAaveV3RewardsController(rewardsController).claimAllRewards(
+            assets,
+            to
+        );
     }
 
     /**
@@ -287,8 +319,14 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
      * @notice How many `borrowToken` are available to borrow
      * from the entire protocol
      */
-    function availableToBorrow() external override view returns (uint256) {
-        return IERC20(borrowToken).balanceOf(aavePool.getReserveData(borrowToken).aTokenAddress);
+    function availableToBorrow() external override view returns (uint256 available) {
+        AaveDataTypes.ReserveData memory _reserveData = aavePool.getReserveData(borrowToken);
+        uint256 borrowCap = _reserveData.configuration.getBorrowCap() * (10 ** _reserveData.configuration.getDecimals());
+        available = IERC20(borrowToken).balanceOf(_reserveData.aTokenAddress);
+
+        if (borrowCap > 0 && borrowCap < available) {
+            available = borrowCap;
+        }
     }
 
     /**
@@ -301,7 +339,9 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         AaveDataTypes.ReserveData memory _reserveData = aavePool.getReserveData(supplyToken);
 
         // The supply cap needs to be scaled by decimals
-        supplyCap = _reserveData.configuration.getSupplyCap() * (10 ** _reserveData.configuration.getDecimals());
+        uint256 unscaledCap = _reserveData.configuration.getSupplyCap();
+        if (unscaledCap == 0) return (type(uint256).max, type(uint256).max);  
+        supplyCap = unscaledCap * (10 ** _reserveData.configuration.getDecimals());
 
         // The utilised amount is the scaledTotalSupply + any fees accrued to treasury
         // Then scaled by the normalised income.

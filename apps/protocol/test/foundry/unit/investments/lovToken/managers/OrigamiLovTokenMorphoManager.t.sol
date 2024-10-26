@@ -67,11 +67,11 @@ contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
     uint24 internal constant FEE_LEVERAGE_FACTOR = 6e4;
     uint48 internal constant PERFORMANCE_FEE_BPS = 500;
 
-    uint128 internal constant TARGET_AL = 1.25e18;                         // 80% LTV == 5x EE
-    uint128 internal constant USER_AL_FLOOR = 1.14285714285714e18;         // 87.5% LTV == 8x EE
-    uint128 internal constant USER_AL_CEILING = 1.42857142857143e18;       // 70% LTV == 3.33x EE
-    uint128 internal constant REBALANCE_AL_FLOOR = 1.17647058823529e18;    // 85% LTV == 6.66x EE
-    uint128 internal constant REBALANCE_AL_CEILING = 1.333333333334e18;    // 75% LTV == 4x EE
+    uint128 internal TARGET_AL = 1.25e18;                         // 80% LTV == 5x EE
+    uint128 internal USER_AL_FLOOR = 1.14285714285714e18;         // 87.5% LTV == 8x EE
+    uint128 internal USER_AL_CEILING = 1.42857142857143e18;       // 70% LTV == 3.33x EE
+    uint128 internal REBALANCE_AL_FLOOR = 1.17647058823529e18;    // 85% LTV == 6.66x EE
+    uint128 internal REBALANCE_AL_CEILING = 1.333333333334e18;    // 75% LTV == 4x EE
 
     uint128 internal constant USDE_USD_STALENESS_THRESHOLD = 1 days + 15 minutes; // It should update every 86400 seconds. So set to 1day 15mins
     uint128 internal constant USDE_USD_MIN_THRESHOLD = 0.995e18;
@@ -79,7 +79,7 @@ contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
     uint256 internal constant USDE_USD_HISTORIC_STABLE_PRICE = 1e18; // Expect it to be at 1:1 peg
 
 
-    function setUp() public {
+    function setUp() public virtual {
         fork("mainnet", 19506752);
         vm.warp(1711311924);
 
@@ -135,7 +135,8 @@ contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
                 address(redstoneUsdeToUsdOracle),
                 USDE_USD_STALENESS_THRESHOLD,
                 Range.Data(USDE_USD_MIN_THRESHOLD, USDE_USD_MAX_THRESHOLD),
-                false
+                false,
+                true
             );
             sUsdeToDaiOracle = new OrigamiErc4626Oracle(
                 IOrigamiOracle.BaseOracleParams(
@@ -166,6 +167,10 @@ contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
         vm.stopPrank();
 
         supplyIntoMorpho(10_000_000e18);
+    }
+
+    function convertAL(uint128 al) internal virtual view returns (uint128) {
+        return al;
     }
 
     function supplyIntoMorpho(uint256 amount) internal {
@@ -242,7 +247,9 @@ contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
         params.supplyAmount = reservesAmount.subtractBps(swapSlippageBps, OrigamiMath.Rounding.ROUND_DOWN);
 
         params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.minNewAL = convertAL(params.minNewAL);
         params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
+        params.maxNewAL = convertAL(params.maxNewAL);
         params.supplyCollateralSurplusThreshold = 0;
     }
 
@@ -314,7 +321,9 @@ contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
         params.repaySurplusThreshold = 0;
 
         params.minNewAL = uint128(OrigamiMath.subtractBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_DOWN));
+        params.minNewAL = convertAL(params.minNewAL);
         params.maxNewAL = uint128(OrigamiMath.addBps(targetAL, alSlippageBps, OrigamiMath.Rounding.ROUND_UP));
+        params.maxNewAL = convertAL(params.maxNewAL);
     }
 }
 
@@ -322,7 +331,7 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
     event OraclesSet(address indexed debtTokenToReserveTokenOracle, address indexed dynamicFeePriceOracle);
     event BorrowLendSet(address indexed addr);
 
-    function test_initialization() public {
+    function test_initialization() public virtual {
         assertEq(manager.owner(), origamiMultisig);
         assertEq(address(manager.lovToken()), address(lovToken));
 
@@ -367,7 +376,7 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         assertEq(tokens[0], address(sUsdeToken));
     }
 
-    function test_constructor_fail() public {
+    function test_constructor_fail() public virtual {
         // 6dp reserves
         {
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, USDT_ADDRESS));
@@ -394,7 +403,7 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         }
     }
 
-    function test_setOracleConfig_fail() public {
+    function test_setOracleConfig_fail() public virtual {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
         manager.setOracles(address(0), address(usdeToDaiOracle));
@@ -429,7 +438,7 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         manager.setOracles(address(badOracle), address(usdeToDaiOracle));
     }
 
-    function test_setOracles() public {
+    function test_setOracles() public virtual {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(manager));
         emit OraclesSet(address(sUsdeToDaiOracle), address(usdeToDaiOracle));
@@ -466,13 +475,13 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         assertEq(address(manager.dynamicFeePriceOracle()), address(oracle2));
     }
 
-    function test_setBorrowLend_fail() public {
+    function test_setBorrowLend_fail() public virtual {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
         manager.setBorrowLend(address(0));
     }
 
-    function test_setBorrowLend_success() public {
+    function test_setBorrowLend_success() public virtual {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(manager));
         emit BorrowLendSet(alice);
@@ -480,7 +489,7 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         assertEq(address(manager.borrowLend()), alice);
     }
 
-    function test_setUserAlRange_failValidate() public {
+    function test_setUserAlRange_failValidate() public virtual {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(Range.InvalidRange.selector, 1.111111111111111110e18, 2e18));
         manager.setUserALRange(1.111111111111111110e18, 2e18);
@@ -493,7 +502,7 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         assertEq(ceiling, 2e18);
     }
 
-    function test_setRebalanceAlRange_failValidate() public {
+    function test_setRebalanceAlRange_failValidate() public virtual {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(Range.InvalidRange.selector, 1.10e18, 2e18));
         manager.setRebalanceALRange(1.10e18, 2e18);
@@ -504,50 +513,50 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
         assertEq(ceiling, 2e18);
     }
 
-    function test_recoverToken_success() public {
+    function test_recoverToken_success() public virtual {
         check_recoverToken(address(manager));
     }
 }
 
 contract OrigamiLovTokenMorphoManagerTestAccess is OrigamiLovTokenMorphoManagerTestBase {
-    function test_access_setOracles() public {
+    function test_access_setOracles() public virtual {
         expectElevatedAccess();
         manager.setOracles(alice, alice);
     }
 
-    function test_access_setBorrowLend() public {
+    function test_access_setBorrowLend() public virtual {
         expectElevatedAccess();
         manager.setBorrowLend(alice);
     }
 
-    function test_access_rebalanceUp() public {
+    function test_access_rebalanceUp() public virtual {
         expectElevatedAccess();
         manager.rebalanceUp(IOrigamiLovTokenMorphoManager.RebalanceUpParams(0, 0, bytes(""), 0, 0, 0));
     }
 
-    function test_access_forceRebalanceUp() public {
+    function test_access_forceRebalanceUp() public virtual {
         expectElevatedAccess();
         manager.forceRebalanceUp(IOrigamiLovTokenMorphoManager.RebalanceUpParams(0, 0, bytes(""), 0, 0, 0));
     }
 
-    function test_access_rebalanceDown() public {
+    function test_access_rebalanceDown() public virtual {
         expectElevatedAccess();
         manager.rebalanceDown(IOrigamiLovTokenMorphoManager.RebalanceDownParams(0, 0, bytes(""), 0, 0, 0));
     }
 
-    function test_access_forceRebalanceDown() public {
+    function test_access_forceRebalanceDown() public virtual {
         expectElevatedAccess();
         manager.forceRebalanceDown(IOrigamiLovTokenMorphoManager.RebalanceDownParams(0, 0, bytes(""), 0, 0, 0));
     }
 
-    function test_access_recoverToken() public {
+    function test_access_recoverToken() public virtual {
         expectElevatedAccess();
         manager.recoverToken(address(sUsdeToken), alice, 123);
     }
 }
 
 contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTestBase {
-    function test_reservesBalance() public {
+    function test_reservesBalance() public virtual {
         uint256 amount = 50e18;
 
         investLovToken(alice, amount);
@@ -574,7 +583,7 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
         assertEq(sUsdeToken.balanceOf(bob), 4.916916916916916921e18);
     }
 
-    function test_liabilities_success() public {
+    function test_liabilities_success() public virtual {
         uint256 amount = 50e18;
 
         investLovToken(alice, amount);
@@ -596,12 +605,12 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 150.438296999699123303e18);
     }
 
-    function test_liabilities_zeroDebt() public {
+    function test_liabilities_zeroDebt() public virtual {
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 0);
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
     }
 
-    function test_liabilities_withDebt_isPricingToken() public {
+    function test_liabilities_withDebt_isPricingToken() public virtual {
         uint256 amount = 50e18;
         investLovToken(alice, amount);
         doRebalanceDown(TARGET_AL, 0, 5);
@@ -610,7 +619,7 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 200.584395999999999935e18);
     }
 
-    function test_liabilities_withDebt_notPricingToken() public {
+    function test_liabilities_withDebt_notPricingToken() public virtual {
         // Setup the oracle so it's the inverse (DAI/sUSDe)
         vm.startPrank(origamiMultisig);
 
@@ -630,16 +639,17 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
                 origamiMultisig, 
                 IOrigamiOracle.BaseOracleParams(
                     "ONE/ONE", 
-                    address(0),
+                    address(daiToken),
                     18,
-                    address(0),
+                    address(daiToken),
                     18
                 ),
                 1e18, 
                 address(clOne), 
                 365 days, 
                 Range.Data(1e18, 1e18),
-                false
+                false,
+                true
             );
 
             OrigamiCrossRateOracle daiToSUsde = new OrigamiCrossRateOracle(
@@ -651,7 +661,8 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
                     18
                 ),
                 address(oOne), 
-                address(sUsdeToDaiOracle)
+                address(sUsdeToDaiOracle),
+                address(0)
             );
 
             manager.setOracles(address(daiToSUsde), address(usdeToDaiOracle));
@@ -665,7 +676,7 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 200.584395999999999960e18);
     }
 
-    function test_getDynamicFeesBps() public {
+    function test_getDynamicFeesBps() public virtual {
         (uint256 depositFee, uint256 exitFee) = lovToken.getDynamicFeesBps();
         assertEq(depositFee, 10);
         assertEq(exitFee, 176);
@@ -675,11 +686,11 @@ contract OrigamiLovTokenMorphoManagerTestViews is OrigamiLovTokenMorphoManagerTe
 contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerTestBase {
     using OrigamiMath for uint256;
     
-    function test_maxInvest_fail_badAsset() public {
+    function test_maxInvest_fail_badAsset() public virtual {
         assertEq(manager.maxInvest(alice), 0);
     }
 
-    function test_maxInvest_reserveToken() public {
+    function test_maxInvest_reserveToken() public virtual {
         vm.startPrank(origamiMultisig);
         manager.setFeeConfig(500, 0, FEE_LEVERAGE_FACTOR);
 
@@ -754,7 +765,7 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
         }
     }
 
-    function test_maxInvest_reserveToken_withMaxTotalSupply() public {
+    function test_maxInvest_reserveToken_withMaxTotalSupply() public virtual {
         vm.startPrank(origamiMultisig);
         manager.setFeeConfig(500, 0, FEE_LEVERAGE_FACTOR);
         uint256 maxTotalSupply = 200_000e18;
@@ -833,7 +844,7 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
         }
     }
 
-    function test_investQuote_badToken_gives0() public {
+    function test_investQuote_badToken_gives0() public virtual {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
             100,
             alice,
@@ -852,7 +863,7 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
         assertEq(investFeeBps[0], 10);
     }
 
-    function test_investQuote_reserveToken() public {
+    function test_investQuote_reserveToken() public virtual {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
             1e18,
             address(sUsdeToken),
@@ -871,7 +882,7 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
         assertEq(investFeeBps[0], 10);
     }
 
-    function test_investWithToken_fail_badToken() public {
+    function test_investWithToken_fail_badToken() public virtual {
         uint256 amount = 1e18;
         (IOrigamiInvestment.InvestQuoteData memory quoteData,) = manager.investQuote(
             amount,
@@ -885,7 +896,7 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
         manager.investWithToken(alice, quoteData);
     }
 
-    function test_investWithToken_zeroAmount() public {
+    function test_investWithToken_zeroAmount() public virtual {
         uint256 amount = 1e18;
         (IOrigamiInvestment.InvestQuoteData memory quoteData,) = manager.investQuote(
             amount,
@@ -899,7 +910,7 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
         manager.investWithToken(alice, quoteData);
     }
 
-    function test_investWithToken_success() public {
+    function test_investWithToken_success() public virtual {
         uint256 amount = 1e18;
         (IOrigamiInvestment.InvestQuoteData memory quoteData,) = manager.investQuote(
             amount,
@@ -920,11 +931,11 @@ contract OrigamiLovTokenMorphoManagerTestInvest is OrigamiLovTokenMorphoManagerT
 contract OrigamiLovTokenMorphoManagerTestExit is OrigamiLovTokenMorphoManagerTestBase {
     using OrigamiMath for uint256;
     
-    function test_maxExit_fail_badAsset() public {
+    function test_maxExit_fail_badAsset() public virtual {
         assertEq(manager.maxExit(alice), 0);
     }
 
-    function test_maxExit_reserveToken() public {
+    function test_maxExit_reserveToken() public virtual {
         vm.startPrank(origamiMultisig);
         manager.setFeeConfig(0, 500, 0);
         
@@ -995,7 +1006,7 @@ contract OrigamiLovTokenMorphoManagerTestExit is OrigamiLovTokenMorphoManagerTes
         assertEq(manager.maxExit(address(sUsdeToken)), 8_187.134484210526322552e18);
     }
 
-    function test_exitQuote_badToken_gives0() public {
+    function test_exitQuote_badToken_gives0() public virtual {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
             100,
             alice,
@@ -1014,7 +1025,7 @@ contract OrigamiLovTokenMorphoManagerTestExit is OrigamiLovTokenMorphoManagerTes
         assertEq(exitFeeBps[0], 176);
     }
 
-    function test_exitQuote_reserveToken() public {
+    function test_exitQuote_reserveToken() public virtual {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
             1e18,
             address(sUsdeToken),
@@ -1033,7 +1044,7 @@ contract OrigamiLovTokenMorphoManagerTestExit is OrigamiLovTokenMorphoManagerTes
         assertEq(exitFeeBps[0], 176);
     }
 
-    function test_exitToToken_fail_badToken() public {
+    function test_exitToToken_fail_badToken() public virtual {
         (IOrigamiInvestment.ExitQuoteData memory quoteData,) = manager.exitQuote(
             1e18,
             address(sUsdeToken),
@@ -1047,7 +1058,7 @@ contract OrigamiLovTokenMorphoManagerTestExit is OrigamiLovTokenMorphoManagerTes
         manager.exitToToken(alice, quoteData, alice);
     }
 
-    function test_exitToToken_fail_zeroAmount() public {
+    function test_exitToToken_fail_zeroAmount() public virtual {
         (IOrigamiInvestment.ExitQuoteData memory quoteData,) = manager.exitQuote(
             1e18,
             address(sUsdeToken),
@@ -1061,7 +1072,7 @@ contract OrigamiLovTokenMorphoManagerTestExit is OrigamiLovTokenMorphoManagerTes
         manager.exitToToken(alice, quoteData, alice);
     }
 
-    function test_exitToToken_success() public {
+    function test_exitToToken_success() public virtual {
         uint256 investAmount = 1e18;
         uint256 shares = investLovToken(alice, investAmount);
         assertEq(shares, 0.999e18);
@@ -1094,7 +1105,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         uint256 alRatioAfter
     );
 
-    function test_rebalanceDown_fail_fresh() public {
+    function test_rebalanceDown_fail_fresh() public virtual {
         uint256 targetAL = TARGET_AL;
         uint256 slippageBps = 20;
 
@@ -1106,7 +1117,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         manager.rebalanceDown(params);
     }
 
-    function test_rebalanceDown_fail_slippage() public {
+    function test_rebalanceDown_fail_slippage() public virtual {
         IOrigamiLovTokenMorphoManager.RebalanceDownParams memory params;
         params.supplyAmount = 20e18;
         params.borrowAmount = 10e18;
@@ -1120,7 +1131,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         manager.rebalanceDown(params);
     }
 
-    function test_rebalanceDown_success_noSupply() public {
+    function test_rebalanceDown_success_noSupply() public virtual {
         IOrigamiLovTokenMorphoManager.RebalanceDownParams memory params;
 
         params.supplyAmount = 11.5e18;
@@ -1130,7 +1141,9 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         }));
         deal(address(sUsdeToken), address(swapper), params.supplyAmount);
         params.minNewAL = 1.19e18;
+        params.minNewAL = convertAL(params.minNewAL);
         params.maxNewAL = 1.20e18;
+        params.maxNewAL = convertAL(params.maxNewAL);
 
         vm.startPrank(origamiMultisig);
         manager.rebalanceDown(params);
@@ -1146,7 +1159,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         assertEq(ratio, 1.189707511066849720e18);
     }
 
-    function test_rebalanceDown_fail_al_validation() public {
+    function test_rebalanceDown_fail_al_validation() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1163,12 +1176,17 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
 
         // Can't be < minNewAL
         params.minNewAL = uint128(expectedActualAl+1);
+        params.minNewAL = convertAL(params.minNewAL);
+
         vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooLow.selector, type(uint128).max, expectedActualAl, expectedActualAl+1));
         manager.rebalanceDown(params);
 
         // Can't be > maxNewAL
         params.minNewAL = uint128(expectedActualAl);
+        params.minNewAL = convertAL(params.minNewAL);
+
         params.maxNewAL = uint128(expectedActualAl-1);
+        params.maxNewAL = convertAL(params.maxNewAL);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooHigh.selector, type(uint128).max, expectedActualAl, expectedActualAl-1));
         manager.rebalanceDown(params);
 
@@ -1190,7 +1208,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         }
     }
 
-    function test_rebalanceDown_fail_al_floor() public {
+    function test_rebalanceDown_fail_al_floor() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1206,7 +1224,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         manager.rebalanceDown(params);
     }
     
-    function test_rebalanceDown_success_withEvent() public {
+    function test_rebalanceDown_success_withEvent() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1240,7 +1258,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         assertEq(daiToken.balanceOf(address(manager)), 0);
     }
     
-    function test_rebalanceDown_success_surplus_underThreshold() public {
+    function test_rebalanceDown_success_surplus_underThreshold() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1277,7 +1295,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         assertEq(daiToken.balanceOf(address(borrowLend)), 0);
     }
     
-    function test_rebalanceDown_success_surplus_overThreshold() public {
+    function test_rebalanceDown_success_surplus_overThreshold() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1314,7 +1332,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceDown is OrigamiLovTokenMorphoM
         assertEq(daiToken.balanceOf(address(borrowLend)), 0);
     }
 
-    function test_rebalanceDown_success_al_floor_force() public {
+    function test_rebalanceDown_success_al_floor_force() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1360,7 +1378,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         uint256 alRatioAfter
     );
 
-    function test_rebalanceUp_fail_noDebt() public {
+    function test_rebalanceUp_fail_noDebt() public virtual {
         IOrigamiLovTokenMorphoManager.RebalanceUpParams memory params = IOrigamiLovTokenMorphoManager.RebalanceUpParams({
             repayAmount: 10e18,
             withdrawCollateralAmount: 10e18,
@@ -1377,7 +1395,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         manager.rebalanceUp(params);
     }
 
-    function test_rebalanceUp_fail_repayTooMuch() public {
+    function test_rebalanceUp_fail_repayTooMuch() public virtual {
         uint256 amount = 1e18;
         investLovToken(alice, amount);
 
@@ -1401,7 +1419,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         manager.rebalanceUp(params);
     }
 
-    function test_rebalanceUp_success_forceRepayTooMuch_noSurplus() public {
+    function test_rebalanceUp_success_forceRepayTooMuch_noSurplus() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1447,7 +1465,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         assertEq(daiToken.balanceOf(address(borrowLend)), 51.877557070436584149e18);
     }
 
-    function test_rebalanceUp_success_forceRepayTooMuch_withSurplus() public {
+    function test_rebalanceUp_success_forceRepayTooMuch_withSurplus() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1495,7 +1513,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         assertEq(daiToken.balanceOf(address(borrowLend)), 0);
     }
 
-    function test_rebalanceUp_fail_slippage() public {
+    function test_rebalanceUp_fail_slippage() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1513,7 +1531,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         manager.rebalanceUp(params);
     }
 
-    function test_rebalanceUp_fail_al_validation() public {
+    function test_rebalanceUp_fail_al_validation() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1529,12 +1547,17 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
 
         // Can't be < minNewAL
         params.minNewAL = uint128(expectedNewAl+1);
+        params.minNewAL = convertAL(params.minNewAL);
+
         vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooLow.selector, expectedOldAl, expectedNewAl, expectedNewAl+1));
         manager.rebalanceUp(params);
 
         // Can't be > maxNewAL
         params.minNewAL = uint128(expectedNewAl);
+        params.minNewAL = convertAL(params.minNewAL);
+
         params.maxNewAL = uint128(expectedNewAl-1);
+        params.maxNewAL = convertAL(params.maxNewAL);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiLovTokenManager.ALTooHigh.selector, expectedOldAl, expectedNewAl, expectedNewAl-1));
         manager.rebalanceUp(params);
 
@@ -1549,7 +1572,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         }
     }
 
-    function test_rebalanceUp_fail_al_ceiling() public {
+    function test_rebalanceUp_fail_al_ceiling() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1565,7 +1588,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         manager.rebalanceUp(params);
     }
     
-    function test_rebalanceUp_success_withEvent() public {
+    function test_rebalanceUp_success_withEvent() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1600,7 +1623,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         assertEq(daiToken.balanceOf(address(borrowLend)), 0);
     }
     
-    function test_rebalanceUp_success_al_floor_force() public {
+    function test_rebalanceUp_success_al_floor_force() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1624,7 +1647,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         manager.forceRebalanceUp(params);
     }
 
-    function test_rebalanceUp_success_surplusUnderThreshold() public {
+    function test_rebalanceUp_success_surplusUnderThreshold() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 
@@ -1659,7 +1682,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         assertEq(daiToken.balanceOf(address(borrowLend)), expectedSurplus);
     }
 
-    function test_rebalanceUp_success_surplusOverThreshold() public {
+    function test_rebalanceUp_success_surplusOverThreshold() public virtual {
         uint256 amount = 50_000e18;
         investLovToken(alice, amount);
 

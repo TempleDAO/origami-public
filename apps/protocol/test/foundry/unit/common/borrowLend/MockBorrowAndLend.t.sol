@@ -63,7 +63,8 @@ contract MockBorrowAndLendTestBase is OrigamiTest {
             address(clStEthToEthOracle),
             100 days,
             Range.Data(0.99e18, 1.01e18),
-            true // Chainlink does use roundId
+            true, // Chainlink does use roundId
+            true // It does use lastUpdatedAt
         );
 
         oWstEthToEthOracle = new OrigamiWstEthToEthOracle(

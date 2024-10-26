@@ -108,7 +108,8 @@ contract OrigamiRenzoEthToEthOracle is OrigamiOracleBase, OrigamiElevatedAccess 
                     spotPricePrecisionScaleDown,
                     spotPricePrecisionScalar,
                     spotPriceStalenessThreshold,
-                    false // Redstone 'chainlink lookalike contracts' don't use the roundId
+                    false, // Redstone 'chainlink lookalike contracts' don't use the roundId
+                    true   // It does use the lastUpdatedAt though
                 ),
                 roundingMode
             );

@@ -1,6 +1,6 @@
 [profile.default]
   optimizer = true
-  optimizer_runs = 10_000
+  optimizer_runs = 9999
   verbosity = 3
   src = 'contracts'
   out = 'artifacts-foundry'
@@ -11,8 +11,8 @@
   evm_version = 'cancun'
 
 [profile.default.fuzz]
-  max_test_rejects = 1_000_000 # Number of times `vm.assume` can fail
-  runs = 100
+  max_test_rejects = 5000
+  runs = 2000
   # For the seed, add this to the pipeline so it's a different seed every week
   # export FOUNDRY_FUZZ_SEED=$(echo $(($EPOCHSECONDS - $EPOCHSECONDS % 604800)))
   # seed = "123"  export FOUNDRY_FUZZ_SEED=123

@@ -1,0 +1,114 @@
+{
+  "chainId": "1",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xAE53dcfE0E357DF2b5Ef1FF935dF29F57f76c751",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0x64a925B0fA211c44337148C0807f959Bd44b0B67",
+        "fnCalldata": "0x0983b122000000000000000000000000000000000000000c9ed9e4fd69ace1175c000000"
+      }
+    },
+    {
+      "to": "0xAE53dcfE0E357DF2b5Ef1FF935dF29F57f76c751",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0xD112Fb2e38305829136971732c4805A782bcb459",
+        "fnCalldata": "0xfd47f60f000000000000000000000000d112fb2e38305829136971732c4805a782bcb459"
+      }
+    },
+    {
+      "to": "0xAE53dcfE0E357DF2b5Ef1FF935dF29F57f76c751",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0x33FA9618365F67c5345066d5Cfd7f3A2f183599A",
+        "fnCalldata": "0xfd47f60f00000000000000000000000033fa9618365f67c5345066d5cfd7f3a2f183599a"
+      }
+    },
+    {
+      "to": "0x1b86AF2A27fa7ac467ecbE287359620512bF2881",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x33FA9618365F67c5345066d5Cfd7f3A2f183599A",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xDa398D50EA06112C37f17e6E78bf688809caCd3D",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

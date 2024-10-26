@@ -37,7 +37,7 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
      * @notice When converting from baseAsset<->quoteAsset, the fixed point amounts
      * need to be scaled by this amount.
      */
-    uint256 public immutable assetScalingFactor;
+    uint256 public immutable override assetScalingFactor;
 
     /**
      * @notice A human readable description for this origami oracle
@@ -129,7 +129,7 @@ abstract contract OrigamiOracleBase is IOrigamiOracle {
     /**
      * @notice Match whether a pair of assets match the base and quote asset on this oracle, in either order
      */
-    function matchAssets(address asset1, address asset2) external view returns (bool) {
+    function matchAssets(address asset1, address asset2) public view returns (bool) {
         return (
             (asset1 == baseAsset && asset2 == quoteAsset) ||
             (asset2 == baseAsset && asset1 == quoteAsset)

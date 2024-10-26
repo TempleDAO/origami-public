@@ -13,6 +13,7 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { ExternalContracts, LovTokenContracts, Origami_lov_sUSDe_DAI_TestDeployer } from "test/foundry/deploys/lov-sUSDe-DAI/Origami_lov_sUSDe_DAI_TestDeployer.t.sol";
 import { LovTokenHelpers } from "test/foundry/libraries/LovTokenHelpers.t.sol";
 import { OrigamiErc4626AndDexAggregatorSwapper } from "contracts/common/swappers/OrigamiErc4626AndDexAggregatorSwapper.sol";
+import { Origami_lov_sUSDe_DAI_TestConstants as Constants } from "test/foundry/deploys/lov-sUSDe-DAI/Origami_lov_sUSDe_DAI_TestConstants.t.sol";
 
 contract Origami_lov_sUSDe_DAI_IntegrationTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -164,6 +165,7 @@ contract Origami_lov_sUSDe_DAI_IntegrationTestBase is OrigamiTest {
     function encode(bytes memory data) internal pure returns (bytes memory) {
         return abi.encode(OrigamiErc4626AndDexAggregatorSwapper.RouteData({
             routeType: OrigamiErc4626AndDexAggregatorSwapper.RouteType.VIA_DEX_AGGREGATOR_ONLY,
+            router: Constants.ONE_INCH_ROUTER,
             data: data
         }));
     }

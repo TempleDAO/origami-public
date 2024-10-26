@@ -33,7 +33,8 @@ async function main() {
       floor: DEFAULT_SETTINGS.ORACLES.STETH_ETH.MIN_THRESHOLD,
       ceiling: DEFAULT_SETTINGS.ORACLES.STETH_ETH.MAX_THRESHOLD
     },
-    true // Chainlink uses roundId
+    true, // Chainlink does use roundId
+    true  // It does use the lastUpdatedAt
   );
 }
 

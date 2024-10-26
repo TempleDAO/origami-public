@@ -10,7 +10,7 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 /**
  * @title OrigamiErc4626Oracle
- * @notice The price is represented by an ERC-4626 vault multiplied
+ * @notice The price is represented by an ERC-4626 vault, optionally multiplied
  * by another Origami oracle price
  */
 contract OrigamiErc4626Oracle is OrigamiOracleBase {
@@ -42,11 +42,13 @@ contract OrigamiErc4626Oracle is OrigamiOracleBase {
         // How many assets for 1e18 shares
         price = IERC4626(baseAsset).convertToAssets(precision);
 
-        // Convert the assets to quote token using its oracle price
-        price = price.mulDiv(
-            quoteAssetOracle.latestPrice(priceType, roundingMode),
-            precision,
-            roundingMode
-        );
+        // Convert to the quote asset if required
+        if (address(quoteAssetOracle) != address(0)) {
+            price = price.mulDiv(
+                quoteAssetOracle.latestPrice(priceType, roundingMode),
+                precision,
+                roundingMode
+            );
+        }
     }
 }

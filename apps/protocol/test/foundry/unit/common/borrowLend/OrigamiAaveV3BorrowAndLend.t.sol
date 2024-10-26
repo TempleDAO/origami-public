@@ -3,10 +3,10 @@ pragma solidity 0.8.19;
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { Errors as AaveErrors } from "@aave/core-v3/contracts/protocol/libraries/helpers/Errors.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { OrigamiAaveV3BorrowAndLend } from "contracts/common/borrowAndLend/OrigamiAaveV3BorrowAndLend.sol";
+import { IAaveV3RewardsController } from "contracts/interfaces/external/aave/aave-v3-periphery/IAaveV3RewardsController.sol";
 
 contract OrigamiAaveV3BorrowAndLendTestBase is OrigamiTest {
     IERC20 internal wethToken;
@@ -34,7 +34,6 @@ contract OrigamiAaveV3BorrowAndLendTestBase is OrigamiTest {
             address(wstEthToken),
             address(wethToken),
             SPARK_POOL,
-            18,
             SPARK_EMODE_ETH
         );
 
@@ -47,6 +46,24 @@ contract OrigamiAaveV3BorrowAndLendTestBase is OrigamiTest {
         doMint(wstEthToken, address(borrowLend), amount);
         vm.startPrank(posOwner);
         borrowLend.supply(amount);
+    }
+}
+
+contract MockRewardController is IAaveV3RewardsController {
+    address internal constant WSTETH_ADDRESS = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+
+    function claimAllRewards(
+        address[] calldata /*assets*/,
+        address to
+    ) external override returns (
+        address[] memory rewardsList, 
+        uint256[] memory claimedAmounts
+    ) {
+        IERC20(WSTETH_ADDRESS).transfer(to, 6.9e18);
+        rewardsList = new address[](1);
+        rewardsList[0] = WSTETH_ADDRESS;
+        claimedAmounts = new uint256[](1);
+        claimedAmounts[0] = 6.9e18;
     }
 }
 
@@ -71,56 +88,12 @@ contract OrigamiAaveV3BorrowAndLendTestAdmin is OrigamiAaveV3BorrowAndLendTestBa
         assertEq(borrowLend.aavePool().getUserEMode(address(borrowLend)), SPARK_EMODE_ETH);
     }
 
-    function test_constructor_fail() public {
-        // 6dp spark a token
-        {
-            vm.mockCall(
-                SPARK_WSTETH_A_TOKEN,
-                abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-                abi.encode(6)
-            );
-            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, SPARK_WSTETH_A_TOKEN));
-            borrowLend = new OrigamiAaveV3BorrowAndLend(
-                origamiMultisig, 
-                address(wstEthToken), 
-                address(wethToken),
-                SPARK_POOL,
-                18,
-                SPARK_EMODE_ETH
-            );
-        }
-
-        // 6dp spark d token
-        {
-            vm.mockCall(
-                SPARK_WSTETH_A_TOKEN,
-                abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-                abi.encode(18)
-            );
-            vm.mockCall(
-                SPARK_WETH_DEBT_TOKEN,
-                abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-                abi.encode(6)
-            );
-            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, SPARK_WETH_DEBT_TOKEN));
-            borrowLend = new OrigamiAaveV3BorrowAndLend(
-                origamiMultisig, 
-                address(wstEthToken), 
-                address(wethToken),
-                SPARK_POOL,
-                18,
-                SPARK_EMODE_ETH
-            );
-        }
-    }
-
     function test_constructor_zeroEMode() public {
         borrowLend = new OrigamiAaveV3BorrowAndLend(
             origamiMultisig, 
             address(wstEthToken), 
             address(wethToken),
             SPARK_POOL,
-            18,
             0
         );
         assertEq(borrowLend.aavePool().getUserEMode(address(borrowLend)), 0);
@@ -189,10 +162,17 @@ contract OrigamiAaveV3BorrowAndLendTestAdmin is OrigamiAaveV3BorrowAndLendTestBa
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, 0));
         borrowLend.setAavePool(address(0));
 
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, SPARK_POOL));
+        borrowLend.setAavePool(SPARK_POOL);
+
         vm.expectEmit(address(borrowLend));
         emit AavePoolSet(alice);
         borrowLend.setAavePool(alice);
         assertEq(address(borrowLend.aavePool()), alice);
+        assertEq(wethToken.allowance(address(borrowLend), SPARK_POOL), 0);
+        assertEq(wstEthToken.allowance(address(borrowLend), SPARK_POOL), 0);
+        assertEq(wethToken.allowance(address(borrowLend), alice), type(uint256).max);
+        assertEq(wstEthToken.allowance(address(borrowLend), alice), type(uint256).max);
     }
 
     function test_recoverToken_nonAToken() public {
@@ -323,6 +303,40 @@ contract OrigamiAaveV3BorrowAndLendTestAdmin is OrigamiAaveV3BorrowAndLendTestBa
         assertEq(borrowLend.aaveAToken().balanceOf(address(borrowLend)), 0);
         assertEq(wstEthToken.balanceOf(feeCollector), expectedSuppliedBalance);
     }
+
+    function test_claim_rewards() public {
+        IAaveV3RewardsController rewardController = new MockRewardController();
+        deal(address(wstEthToken), address(rewardController), 1_000e18, false);
+
+        uint256 amount = 50e18;
+        supply(amount);
+        borrowLend.borrow(amount, alice);
+
+        skip(30 days);
+
+        address[] memory assets = new address[](1);
+        assets[0] = address(wstEthToken);
+
+        assertEq(wstEthToken.balanceOf(alice), 0);
+        assertEq(wstEthToken.balanceOf(address(rewardController)), 1_000e18);
+
+        vm.startPrank(origamiMultisig);
+        (
+            address[] memory rewardsList, 
+            uint256[] memory claimedAmounts
+        ) = borrowLend.claimAllRewards(
+            address(rewardController),
+            assets,
+            alice
+        );
+
+        assertEq(rewardsList.length, 1);
+        assertEq(rewardsList[0], WSTETH_ADDRESS);
+        assertEq(claimedAmounts.length, 1);
+        assertEq(claimedAmounts[0], 6.9e18);
+        assertEq(wstEthToken.balanceOf(alice), 6.9e18);
+        assertEq(wstEthToken.balanceOf(address(rewardController)), 1_000e18 - 6.9e18);
+    }
 }
 
 contract OrigamiAaveV3BorrowAndLendTestAccess is OrigamiAaveV3BorrowAndLendTestBase {
@@ -431,6 +445,15 @@ contract OrigamiAaveV3BorrowAndLendTestAccess is OrigamiAaveV3BorrowAndLendTestB
     function test_access_recoverToken() public {
         expectElevatedAccess();
         borrowLend.recoverToken(alice, alice, 100e18);
+    }
+
+    function test_access_claimRewards() public {
+        expectElevatedAccess();
+        borrowLend.claimAllRewards(
+            alice,
+            new address[](0),
+            alice
+        );
     }
 }
 

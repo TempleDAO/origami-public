@@ -138,7 +138,8 @@ contract Origami_lov_wstETH_wETH_TestDeployer {
             wstEthToken = IERC20(Constants.WSTETH_ADDRESS);
             stEthToken = IERC20(Constants.STETH_ADDRESS);
 
-            swapper = new OrigamiDexAggregatorSwapper(owner, Constants.ONE_INCH_ROUTER);
+            swapper = new OrigamiDexAggregatorSwapper(owner);
+            OrigamiDexAggregatorSwapper(address(swapper)).whitelistRouter(Constants.ONE_INCH_ROUTER, true);
 
             // https://data.chain.link/feeds/ethereum/mainnet/steth-eth
             clStEthToEthOracle = IAggregatorV3Interface(Constants.STETH_ETH_ORACLE);
@@ -162,7 +163,8 @@ contract Origami_lov_wstETH_wETH_TestDeployer {
             address(clStEthToEthOracle),
             Constants.STETH_ETH_STALENESS_THRESHOLD,
             Range.Data(Constants.STETH_ETH_MIN_THRESHOLD, Constants.STETH_ETH_MAX_THRESHOLD),
-            true // Chainlink does use roundId
+            true, // Chainlink does use roundId
+            true // It does use lastUpdatedAt
         );
         wstEthToEthOracle = new OrigamiWstEthToEthOracle(
             IOrigamiOracle.BaseOracleParams(

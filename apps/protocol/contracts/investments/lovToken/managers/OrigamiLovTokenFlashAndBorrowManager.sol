@@ -4,7 +4,6 @@ pragma solidity 0.8.19;
 
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import { IOrigamiLovTokenFlashAndBorrowManager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenFlashAndBorrowManager.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
@@ -94,13 +93,6 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
         dynamicFeeOracleBaseToken = _dynamicFeeOracleBaseToken;
         flashLoanProvider = IOrigamiFlashLoanProvider(_flashLoanProvider);
         borrowLend = IOrigamiBorrowAndLend(_borrowLend);
-
-        // Validate the decimals of the tokens
-        {
-            uint256 _decimals = IERC20Metadata(_lovToken).decimals();
-            if (IERC20Metadata(_reserveToken_).decimals() != _decimals) revert CommonEventsAndErrors.InvalidToken(_reserveToken_);
-            if (IERC20Metadata(_debtToken_).decimals() != _decimals) revert CommonEventsAndErrors.InvalidToken(_debtToken_);
-        }
     }
 
     /**
@@ -567,10 +559,10 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
      * @dev If the A/L is now unsafe (eg if the money market Liquidation LTV is now lower than the floor)
      * Then this will return zero
      */
-    function _maxRedeemFromReserves(address toToken) internal override view returns (uint256 reservesAmount) {
+    function _maxRedeemFromReserves(address toToken, Cache memory cache) internal override view returns (uint256 reservesAmount) {
         // If the A/L range is invalid, then return 0
         IOrigamiBorrowAndLend _borrowLend = borrowLend;
-        if (!_borrowLend.isSafeAlRatio(userALRange.floor)) return 0;
+        if (!_borrowLend.isSafeAlRatio(convertedAL(userALRange.floor, cache))) return 0;
 
         if (toToken == address(_reserveToken)) {
             // The max number of reserveToken available for redemption is the minimum

@@ -1,0 +1,6 @@
+// sepolia: EXTERNAL.SKY.STAKING_FARMS.USDS_SKY=0xDe24d9Fcc57D17E65B70770cEbCb2c31AC163683
+// yarn hardhat verify --network sepolia 0xDe24d9Fcc57D17E65B70770cEbCb2c31AC163683 --constructor-args scripts/deploys/sepolia/deploymentArgs/0xDe24d9Fcc57D17E65B70770cEbCb2c31AC163683.js
+module.exports = [
+  "0xC5Ec6386Be1d93ef1CC261a3496D2B5Ca8C05433",
+  "0x24390bDbD4748c7A0a6865Ee7b599827c2122B2C"
+];

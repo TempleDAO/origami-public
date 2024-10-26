@@ -1,0 +1,6 @@
+// holesky: EXTERNAL.SKY.STAKING_FARMS.USDS_SDAO=0xB089694e2930FFda2066c00Bd2A8e512a3B4fA43
+// yarn hardhat verify --network holesky 0xB089694e2930FFda2066c00Bd2A8e512a3B4fA43 --constructor-args scripts/deploys/holesky/deploymentArgs/0xB089694e2930FFda2066c00Bd2A8e512a3B4fA43.js
+module.exports = [
+  "0x770E440064B1AC1f5A245655C5e4211439baB295",
+  "0x64a925B0fA211c44337148C0807f959Bd44b0B67"
+];

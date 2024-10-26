@@ -75,4 +75,20 @@ interface IOrigamiAaveV3BorrowAndLend is IOrigamiBorrowAndLend {
         uint256 healthFactor
     );
     
+    /**
+     * @notice Elevated access can claim rewards, from a nominated rewards controller.
+     * @param rewardsController The aave-v3-periphery RewardsController
+     * @param assets The list of assets to check eligible distributions before claiming rewards
+     * @param to The address that will be receiving the rewards
+     * @return rewardsList List of addresses of the reward tokens
+     * @return claimedAmounts List that contains the claimed amount per reward, following same order as "rewardList"
+     */
+    function claimAllRewards(
+        address rewardsController,
+        address[] calldata assets,
+        address to
+    ) external returns (
+        address[] memory rewardsList, 
+        uint256[] memory claimedAmounts
+    );
 }

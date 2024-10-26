@@ -1,0 +1,9 @@
+// mainnet: LOV_AAVE_USDC_LONG_A.SPARK_BORROW_LEND=0xb26631bc6AFd6483ac4fDCd5F943E8a788352D96
+// yarn hardhat verify --network mainnet 0xb26631bc6AFd6483ac4fDCd5F943E8a788352D96 --constructor-args scripts/deploys/mainnet/deploymentArgs/0xb26631bc6AFd6483ac4fDCd5F943E8a788352D96.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+  0
+];

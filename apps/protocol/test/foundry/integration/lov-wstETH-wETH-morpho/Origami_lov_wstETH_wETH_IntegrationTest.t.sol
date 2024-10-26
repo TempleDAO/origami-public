@@ -13,7 +13,6 @@ import { IOrigamiLovTokenMorphoManager } from "contracts/interfaces/investments/
 import { Id as MorphoMarketId } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
-import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
 import { ErrorsLib as MorphoErrors } from "@morpho-org/morpho-blue/src/libraries/ErrorsLib.sol";
 
 contract Origami_lov_wstETH_wETH_IntegrationTest is Origami_lov_wstETH_wETH_IntegrationTestBase {
@@ -72,10 +71,6 @@ contract Origami_lov_wstETH_wETH_IntegrationTest is Origami_lov_wstETH_wETH_Inte
 
             assertEq(address(lovTokenContracts.wstEthToEthOracle.stEth()), Constants.STETH_ADDRESS);
             assertEq(address(lovTokenContracts.wstEthToEthOracle.stEthToEthOracle()), address(lovTokenContracts.stEthToEthOracle));
-        }
-
-        {
-            assertEq(OrigamiDexAggregatorSwapper(address(lovTokenContracts.swapper)).router(), Constants.ONE_INCH_ROUTER);
         }
 
         {

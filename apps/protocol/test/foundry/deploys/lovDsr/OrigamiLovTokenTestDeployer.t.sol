@@ -229,7 +229,9 @@ contract OrigamiLovTokenTestDeployer {
             usdcToken = IERC20(Constants.USDC_ADDRESS);
             sDaiToken = IERC4626(Constants.SDAI_ADDRESS);
 
-            swapper = new OrigamiDexAggregatorSwapper(owner, Constants.ONE_INCH_ROUTER);
+            swapper = new OrigamiDexAggregatorSwapper(owner);
+            OrigamiDexAggregatorSwapper(address(swapper)).whitelistRouter(Constants.ONE_INCH_ROUTER, true);
+
             idleStrategy = new OrigamiAaveV3IdleStrategy(owner, address(usdcToken), Constants.AAVE_POOL_ADDRESS_PROVIDER);
 
             // https://data.chain.link/ethereum/mainnet/stablecoins/dai-usd
@@ -390,7 +392,8 @@ contract OrigamiLovTokenTestDeployer {
             address(clDaiUsdOracle),
             Constants.DAI_USD_STALENESS_THRESHOLD,
             Range.Data(Constants.DAI_USD_MIN_THRESHOLD, Constants.DAI_USD_MAX_THRESHOLD),
-            true // Chainlink does use roundId
+            true, // Chainlink does use roundId
+            true // It does use lastUpdatedAt
         );
         origamiUsdcUsdOracle = new OrigamiStableChainlinkOracle(
             owner,
@@ -405,7 +408,8 @@ contract OrigamiLovTokenTestDeployer {
             address(clUsdcUsdOracle),
             Constants.USDC_USD_STALENESS_THRESHOLD,
             Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD),
-            true // Chainlink does use roundId
+            true, // Chainlink does use roundId
+            true // It does use lastUpdatedAt
         );
         origamiIUsdcUsdOracle = new OrigamiStableChainlinkOracle(
             owner,
@@ -423,6 +427,7 @@ contract OrigamiLovTokenTestDeployer {
             address(clUsdcUsdOracle),
             Constants.USDC_USD_STALENESS_THRESHOLD,
             Range.Data(Constants.USDC_USD_MIN_THRESHOLD, Constants.USDC_USD_MAX_THRESHOLD),
+            true,
             true
         );
         daiUsdcOracle = new OrigamiCrossRateOracle(
@@ -434,7 +439,8 @@ contract OrigamiLovTokenTestDeployer {
                 Constants.USDC_DECIMALS
             ),
             address(origamiDaiUsdOracle),
-            address(origamiUsdcUsdOracle)
+            address(origamiUsdcUsdOracle),
+            address(0)
         );
         daiIUsdcOracle = new OrigamiCrossRateOracle(
             IOrigamiOracle.BaseOracleParams(
@@ -448,7 +454,8 @@ contract OrigamiLovTokenTestDeployer {
                 Constants.IUSDC_DECIMALS
             ),
             address(origamiDaiUsdOracle),
-            address(origamiIUsdcUsdOracle)
+            address(origamiIUsdcUsdOracle),
+            address(0)
         );
 
         lovDsr = new OrigamiLovToken(

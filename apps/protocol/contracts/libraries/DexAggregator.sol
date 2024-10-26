@@ -5,6 +5,7 @@ pragma solidity 0.8.19;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
+import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
 /**
  * @notice Execute a swap on a DEX Aggregator such as 1inch, 0x
@@ -27,6 +28,8 @@ library DexAggregator {
         IERC20 buyToken,
         bytes memory swapData
     ) internal returns (uint256 buyTokenAmount) {
+        if (sellTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
+
         (uint256 _initialSellTokenBalance, uint256 _initialBuyTokenBalance) = (
             sellToken.balanceOf(address(this)),
             buyToken.balanceOf(address(this))
