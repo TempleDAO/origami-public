@@ -72,7 +72,7 @@ A new DAI or sDAI deposit into the lovDSR vault will revert if the transaction w
 
 ### Yield For Liquidity Providers Comes From Accrued USDC Interest
 
-The USDC LP will receive both yield and principal denominated in oUSDC (backed 1:1 by either iUSDC or USDC). A rebasing debt token called iUSDC is minted when the ovUSDC vault initially transfers the USDC to the lovDSR vault. Rebased iUSDC represents anticipated oUSDC yield for ovUSDC holders. This new token allows Origami to track the accrued interest that is continuously compounded against the initial USDC principal. The rebase rate of iUSDC is based on utilisation of available ovUSDC lending capacity. The iUSDC is burned or transferred to the idle strategy when the lovDSR vault repays the loan by selling its sDAI to USDC, and transfering the USDC tokens back to the ovUSDC vault.
+The USDC LP will receive both yield and principal denominated in oUSDC (backed 1:1 by either iUSDC or USDC). A rebasing debt token called iUSDC is minted when the ovUSDC vault initially transfers the USDC to the lovDSR vault. Rebased iUSDC represents anticipated oUSDC yield for ovUSDC holders. This new token allows Origami to track the accrued interest that is continuously compounded against the initial USDC principal. The rebase rate of iUSDC is based on utilisation of available ovUSDC lending capacity. The iUSDC is burned or transferred to the idle strategy when the lovDSR vault repays the loan by selling its sDAI to USDC, and transferring the USDC tokens back to the ovUSDC vault.
 
 ### Borrower Interest is Variable and Determined by Capital Utilisation Ratio
 
