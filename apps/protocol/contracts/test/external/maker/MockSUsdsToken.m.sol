@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { ERC4626 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -19,7 +19,7 @@ contract MockSUsdsToken is ERC4626 {
     event InterestRateSet(uint96 rate);
     event Referral(uint16 indexed referral, address indexed owner, uint256 assets, uint256 shares);
 
-    constructor(IERC20 _asset) ERC4626(_asset) ERC20("SDAI", "SDAI") {}
+    constructor(IERC20 _asset) ERC4626(_asset) ERC20("sUSDS", "sUSDS") {}
 
     function setInterestRate(uint96 rate) external {
         checkpoint();

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiLendingClerkTestBase, MockBorrower } from "./OrigamiLendingClerkBase.t.sol";
@@ -25,7 +25,7 @@ contract OrigamiLendingClerkTestAdmin is OrigamiLendingClerkTestBase {
     event InterestRateSet(address indexed debtor, uint96 rate);
     event Checkpoint(address indexed debtor, uint128 principal, uint128 interest);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(lendingClerk.owner(), origamiMultisig);
         assertEq(address(lendingClerk.asset()), address(usdcToken));
         assertEq(address(lendingClerk.oToken()), address(oUsdc));

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/borrowAndLend/OrigamiAaveV3BorrowAndLend.sol)
 
@@ -133,8 +133,9 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
      */
     function supply(
         uint256 supplyAmount
-    ) external override onlyPositionOwnerOrElevated {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 supplied) {
         _supply(supplyAmount);
+        supplied = supplyAmount;
     }
 
     /**
@@ -153,8 +154,8 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
     function borrow(
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwnerOrElevated {
-        _borrow(borrowAmount, recipient);
+    ) external override onlyPositionOwnerOrElevated returns (uint256 borrowedAmount) {
+        borrowedAmount =_borrow(borrowAmount, recipient);
     }
 
     /**
@@ -189,9 +190,9 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         uint256 supplyAmount, 
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwnerOrElevated {
-        _supply(supplyAmount);
-        _borrow(borrowAmount, recipient);
+    ) external override onlyPositionOwnerOrElevated returns (uint256 suppliedAmount, uint256 borrowedAmount) {
+        suppliedAmount = _supply(supplyAmount);
+        borrowedAmount = _borrow(borrowAmount, recipient);
     }
 
     function recoverToken(address token, address to, uint256 amount) external onlyElevatedAccess {       
@@ -330,9 +331,10 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         if (currentLtvBps > maxLtvBps) revert ExceededLtv(currentLtvBps, maxLtvBps);
     }
 
-    function _supply(uint256 supplyAmount) internal {
+    function _supply(uint256 supplyAmount) internal returns (uint256 suppliedAmount) {
         IERC20(supplyToken).safeTransfer(address(escrow), supplyAmount);
         uint256 newSupplyBalance = _checkpoint(supplyAccumulatorData);
+        suppliedAmount = supplyAmount;
 
         supplyAccumulatorData.checkpoint = newSupplyBalance + supplyAmount;
     }
@@ -350,7 +352,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         escrow.pullToken(supplyToken, recipient, amountWithdrawn);
     }
 
-    function _borrow(uint256 borrowAmount, address recipient) internal {
+    function _borrow(uint256 borrowAmount, address recipient) internal returns (uint256 borrowedAmount) {
         uint256 newDebtBalance = _checkpoint(borrowAccumulatorData);
         newDebtBalance += borrowAmount;
         borrowAccumulatorData.checkpoint = newDebtBalance;
@@ -359,6 +361,7 @@ contract MockBorrowAndLend is IOrigamiBorrowAndLend, OrigamiElevatedAccess {
         _checkLtv(_updatedBalance(supplyAccumulatorData), newDebtBalance);
 
         escrow.pullToken(borrowToken, recipient, borrowAmount);
+        return borrowAmount;
     }
     
     function _repay(uint256 repayAmount) internal returns (uint256 debtRepaidAmount) {

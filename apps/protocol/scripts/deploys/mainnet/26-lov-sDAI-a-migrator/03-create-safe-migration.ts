@@ -5,7 +5,7 @@ import {
 } from '../../helpers';
 import { ContractInstances, connectToContracts1, getDeployedContracts1 } from '../contract-addresses';
 import path from 'path';
-import { createSafeBatch, createSafeTransaction, SafeTransaction, writeSafeTransactionsBatch } from '../../safe-tx-builder';
+import { createSafeBatch, createSafeTransaction, SafeTransaction, setExplicitAccess, writeSafeTransactionsBatch } from '../../safe-tx-builder';
 import { OrigamiMorphoBorrowAndLend__factory } from '../../../../typechain';
 import { Contract } from 'ethers';
 
@@ -26,13 +26,12 @@ async function main() {
   if (network.name === "localhost") return;
 
   const batch = createSafeBatch(
-    1,
     [
       // Grant access to the migrator on the old
       setExplicitAccess(
         oldBorrowLend, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("repayAndWithdraw")),
+        ["repayAndWithdraw"],
         true
       ),
 
@@ -40,7 +39,7 @@ async function main() {
       setExplicitAccess(
         INSTANCES.LOV_SDAI_A.MORPHO_BORROW_LEND, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("supplyAndBorrow")),
+        ["supplyAndBorrow"],
         true
       ),
 
@@ -67,7 +66,7 @@ async function main() {
       setExplicitAccess(
         oldBorrowLend, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("repayAndWithdraw")),
+        ["repayAndWithdraw"],
         false
       ),
 
@@ -75,7 +74,7 @@ async function main() {
       setExplicitAccess(
         INSTANCES.LOV_SDAI_A.MORPHO_BORROW_LEND, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("supplyAndBorrow")),
+        ["supplyAndBorrow"],
         false
       ),
 
@@ -96,51 +95,6 @@ async function main() {
   const filename = path.join(__dirname, "./transactions-batch.json");
   writeSafeTransactionsBatch(batch, filename);
   console.log(`Wrote Safe tx's batch to: ${filename}`);
-}
-
-function setExplicitAccess(
-  contract: Contract,
-  allowedCallerAddress: string,
-  fnSelector: string,
-  allowed: boolean,
-): SafeTransaction {
-  return {
-    to: contract.address,
-    value: "0",
-    data: null,
-    contractMethod: {
-      inputs: [
-        {
-          internalType: "address",
-          name: "allowedCaller",
-          type: "address"
-        },
-        {
-          components: [
-            {
-              internalType: "bytes4",
-              name: "fnSelector",
-              type: "bytes4"
-            },
-            {
-              internalType: "bool",
-              name: "allowed",
-              type: "bool"
-            }
-          ],
-          internalType: "struct IOrigamiElevatedAccess.ExplicitAccess[]",
-          name: "access",
-          type: "tuple[]"
-        }
-      ],
-      name: "setExplicitAccess",
-      payable: false
-    },
-    contractInputsValues: {
-      allowedCaller: allowedCallerAddress,
-      access: `[["${fnSelector}",${allowed}]]`
-    }
-  }
 }
 
 main()

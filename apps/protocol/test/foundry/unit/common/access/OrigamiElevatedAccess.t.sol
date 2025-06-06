@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -44,7 +44,7 @@ contract OrigamiElevatedAccessTestBase is OrigamiTest {
 
 contract OrigamiElevatedAccessTest is OrigamiElevatedAccessTestBase {
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(mock.owner(), origamiMultisig);
     }
 

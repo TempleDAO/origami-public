@@ -6,7 +6,7 @@ import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ContractAddresses } from "../../contract-addresses/types";
 import { IERC20Metadata, IOrigamiOracle__factory, OrigamiCrossRateOracle, OrigamiLovToken, OrigamiLovTokenMorphoManagerMarketAL, OrigamiMorphoBorrowAndLend } from "../../../../../typechain";
-import { swapExactPtForToken, swapExactTokenForPt } from "../swaps/pendle";
+import { swapExactPtForToken, swapExactTokenForPt } from "../../../swaps/pendle";
 import { getDeployContext } from "../../deploy-context";
 
 let ADDRS: ContractAddresses;

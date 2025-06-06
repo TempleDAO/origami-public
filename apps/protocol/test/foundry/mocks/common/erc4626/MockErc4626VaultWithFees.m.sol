@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiErc4626 } from "contracts/common/OrigamiErc4626.sol";
@@ -7,6 +7,9 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockErc4626VaultWithFees is OrigamiErc4626 {
     uint256 private _depositFeeBps;
     uint256 private _exitFeeBps;
+    
+    bool private _areDepositsPaused;
+    bool private _areWithdrawalsPaused;
 
     constructor(
         address initialOwner_,
@@ -19,6 +22,19 @@ contract MockErc4626VaultWithFees is OrigamiErc4626 {
     {
         _depositFeeBps = depositFeeBps_;
         _exitFeeBps = exitFeeBps_;
+    }
+
+    function setPaused(bool deposits, bool withdrawals) external {
+        _areDepositsPaused = deposits;
+        _areWithdrawalsPaused = withdrawals;
+    }
+
+    function areDepositsPaused() public override view returns (bool) {
+        return _areDepositsPaused;
+    }
+
+    function areWithdrawalsPaused() public override view returns (bool) {
+        return _areWithdrawalsPaused;
     }
 
     function depositFeeBps() public override view returns (uint256) {

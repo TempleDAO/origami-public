@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -77,7 +77,7 @@ contract OrigamiVolatileChainlinkOracleTestAdmin is OrigamiVolatileChainlinkOrac
         vm.startPrank(origamiMultisig);
     }
 
-    function test_matchAssets() public {
+    function test_matchAssets() public view {
         assertEq(oOracle1.matchAssets(token1, INTERNAL_USD_ADDRESS), true);
         assertEq(oOracle1.matchAssets(INTERNAL_USD_ADDRESS, token1), true);
         assertEq(oOracle1.matchAssets(alice, INTERNAL_USD_ADDRESS), false);
@@ -94,7 +94,7 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
         vm.startPrank(origamiMultisig);
     }
 
-    function test_latestPrice_success() public {
+    function test_latestPrice_success() public view {
         assertEq(
             oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             1.00044127e18
@@ -105,7 +105,7 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
         );
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             1.00044127e18
@@ -116,7 +116,7 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
         );
     }
 
-    function test_latestPrices_sameRounding() public {
+    function test_latestPrices_sameRounding() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracle1.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE, 
             OrigamiMath.Rounding.ROUND_UP,
@@ -129,7 +129,7 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
         assertEq(quoteAsset, INTERNAL_USD_ADDRESS);
     }
 
-    function test_latestPrices_differentRounding() public {
+    function test_latestPrices_differentRounding() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracle1.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE, 
             OrigamiMath.Rounding.ROUND_UP,

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/lovToken/managers/OrigamiLovTokenMorphoManager.sol)
 
@@ -9,7 +9,7 @@ import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/I
 import { IOrigamiLovTokenMorphoManager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenMorphoManager.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 import { IOrigamiLovTokenManager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenManager.sol";
-import { IOrigamiMorphoBorrowAndLend } from "contracts/interfaces/common/borrowAndLend/IOrigamiMorphoBorrowAndLend.sol";
+import { IOrigamiBorrowAndLendWithLeverage } from "contracts/interfaces/common/borrowAndLend/IOrigamiBorrowAndLendWithLeverage.sol";
 
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { OrigamiAbstractLovTokenManager } from "contracts/investments/lovToken/managers/OrigamiAbstractLovTokenManager.sol";
@@ -45,7 +45,7 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
     /**
      * @notice The contract responsible for borrow/lend via external markets
      */
-    IOrigamiMorphoBorrowAndLend public override borrowLend;
+    IOrigamiBorrowAndLendWithLeverage public override borrowLend;
 
     /**
      * @notice The oracle to convert `debtToken` <--> `reserveToken`
@@ -76,14 +76,13 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
         _reserveToken = IERC20(_reserveToken_);
         _debtToken = IERC20(_debtToken_);
         dynamicFeeOracleBaseToken = _dynamicFeeOracleBaseToken;
-        borrowLend = IOrigamiMorphoBorrowAndLend(_borrowLend);
+        borrowLend = IOrigamiBorrowAndLendWithLeverage(_borrowLend);
 
-        // Validate the decimals of the reserve token
-        // A borrow token of non-18dp has been tested and is ok
-        // A reserve token of non-18dp has not been tested as yet.
+        // Validate the decimals aren't more than 18dp as this hasn't been tested
         {
             uint256 _decimals = IERC20Metadata(_lovToken).decimals();
-            if (IERC20Metadata(_reserveToken_).decimals() != _decimals) revert CommonEventsAndErrors.InvalidToken(_reserveToken_);
+            if (IERC20Metadata(_reserveToken_).decimals() > _decimals) revert CommonEventsAndErrors.InvalidToken(_reserveToken_);
+            if (IERC20Metadata(_debtToken_).decimals() > _decimals) revert CommonEventsAndErrors.InvalidToken(_debtToken_);
         }
     }
 
@@ -101,7 +100,7 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
      */
     function setBorrowLend(address _address) external override onlyElevatedAccess {
         if (_address == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        borrowLend = IOrigamiMorphoBorrowAndLend(_address);
+        borrowLend = IOrigamiBorrowAndLendWithLeverage(_address);
         emit BorrowLendSet(_address);
     }
 
@@ -167,7 +166,7 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
     }
 
     function _rebalanceUp(RebalanceUpParams calldata params, bool force) internal {
-        // Get the current A/L to check for oracle prices, and so we can compare that the new A/L is lower after the rebalance
+        // Get the current A/L to check for oracle prices, and so we can compare that the new A/L is higher after the rebalance
         Cache memory cache = populateCache(IOrigamiOracle.PriceType.SPOT_PRICE);
         uint128 alRatioBefore = _assetToLiabilityRatio(cache);
 
@@ -177,12 +176,6 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
             params.swapData,
             params.repaySurplusThreshold
         );
-
-        // Repaying less than what was asked is only allowed in force mode.
-        // This will only happen when there is no more debt in the money market, ie we are fully delevered
-        if (_debtRepaidAmount != params.repayAmount) {
-            if (!force) revert CommonEventsAndErrors.InvalidAmount(address(_debtToken), params.repayAmount);
-        }
 
         // Validate that the new A/L is still within the `rebalanceALRange` and expected slippage range
         uint128 alRatioAfter = _validateAfterRebalance(
@@ -315,12 +308,10 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
      */
     function _depositIntoReserves(address fromToken, uint256 fromTokenAmount) internal override returns (uint256 newReservesAmount) {
         if (fromToken == address(_reserveToken)) {
-            newReservesAmount = fromTokenAmount;
-
             // Supply into the money market
-            IOrigamiMorphoBorrowAndLend _borrowLend = borrowLend;
+            IOrigamiBorrowAndLendWithLeverage _borrowLend = borrowLend;
             _reserveToken.safeTransfer(address(_borrowLend), fromTokenAmount);
-            _borrowLend.supply(fromTokenAmount);
+            newReservesAmount = _borrowLend.supply(fromTokenAmount);
         } else {
             revert CommonEventsAndErrors.InvalidToken(fromToken);
         }
@@ -383,8 +374,9 @@ contract OrigamiLovTokenMorphoManager is IOrigamiLovTokenMorphoManager, OrigamiA
      */
     function _maxRedeemFromReserves(address toToken, Cache memory /*cache*/) internal override view returns (uint256 reservesAmount) {
         if (toToken == address(_reserveToken)) {
-            // Within Morpho, we can always withdraw our supplied collateral as it is siloed.
-            reservesAmount = borrowLend.suppliedBalance();
+            // Within Morpho, we can always withdraw our supplied collateral as it is siloed (availableToWithdraw == suppliedBalance).
+            // However, other markets (like Euler) may have other restrictions (how much cash is in the vault).
+            reservesAmount = borrowLend.availableToWithdraw();
         }
 
         // Anything else returns 0

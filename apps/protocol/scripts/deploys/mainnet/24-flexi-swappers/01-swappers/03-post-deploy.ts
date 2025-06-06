@@ -123,7 +123,6 @@ export function setSwapperFunction(
 
 async function updateSwappersSafeBatch() {
   const batch = createSafeBatch(
-    1,
     swapperMappings().map(mapping => setSwapperFunction(mapping.contract, mapping.swapper)),
   );
 

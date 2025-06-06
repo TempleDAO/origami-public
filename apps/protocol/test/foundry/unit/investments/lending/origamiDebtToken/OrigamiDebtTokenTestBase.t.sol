@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -66,7 +66,7 @@ contract OrigamiDebtTokenTestBase is OrigamiTest {
         uint256 expectedTotalPrincipal,
         uint256 expectedEstimatedInterest,
         uint256 expectedRepaidTotalInterest
-    ) internal {
+    ) internal view {
         if (LOG) dumpBase();
 
         IOrigamiDebtToken.DebtOwed memory debtOwed = iUSDC.currentTotalDebt();
@@ -87,7 +87,7 @@ contract OrigamiDebtTokenTestBase is OrigamiTest {
         uint256 expectedInterestCheckpoint,
         uint256 expectedTimeCheckpoint,
         uint256 expectedBalancedOf
-    ) internal {
+    ) internal view {
         if (LOG) dumpDebtor(debtor);
 
         (uint128 principal, uint128 interestCheckpoint, uint32 timeCheckpoint, uint96 rate) = iUSDC.debtors(debtor);
@@ -126,7 +126,7 @@ contract OrigamiDebtTokenTestAdmin is OrigamiDebtTokenTestBase {
         _setUp();
     }
 
-    function test_initalization() public {
+    function test_initalization() public view {
         assertEq(address(iUSDC.owner()), origamiMultisig);
         assertEq(iUSDC.name(), "Origami iUSDC Debt");
         assertEq(iUSDC.symbol(), "iUSDC");

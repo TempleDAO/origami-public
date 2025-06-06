@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -75,7 +75,7 @@ contract OrigamiLendingRewardsMinterTestAdmin is OrigamiLendingRewardsMinterTest
         _setUp();
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(rewardsMinter.owner()), origamiMultisig);
         assertEq(address(rewardsMinter.oToken()), address(oToken));
         assertEq(address(rewardsMinter.ovToken()), address(ovToken));

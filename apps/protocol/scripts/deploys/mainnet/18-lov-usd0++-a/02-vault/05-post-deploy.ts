@@ -65,7 +65,6 @@ async function updatePrices(contract: TokenPrices) {
 
 async function updatePricesSafeBatch(contract: TokenPrices) {
   const batch = createSafeBatch(
-    1,
     [
       setTokenPriceFunction(contract, ADDRS.LOV_USD0pp_A.TOKEN, 
         encodedRepricingTokenPrice(ADDRS.LOV_USD0pp_A.TOKEN)
@@ -125,8 +124,8 @@ async function main() {
 
   await mine(
     INSTANCES.LOV_USD0pp_A.MANAGER.setOracles(
-      ADDRS.ORACLES.USD0pp_USDC,
-      ADDRS.ORACLES.USD0pp_USDC
+      ADDRS.ORACLES.USD0pp_USDC_PEGGED,
+      ADDRS.ORACLES.USD0pp_USDC_PEGGED
     )
   );
 

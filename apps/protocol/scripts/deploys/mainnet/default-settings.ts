@@ -1,5 +1,8 @@
 import { ethers } from "ethers";
 
+// Fixed Olympus constant
+const OHM_PER_GOHM = ethers.utils.parseEther("269.238508004");
+
 export const DEFAULT_SETTINGS = {
     LOV_SUSDE_A: {
       TOKEN_SYMBOL: "lov-sUSDe-a",
@@ -349,6 +352,35 @@ export const DEFAULT_SETTINGS = {
       INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("0"), // Small deposits allowed at start
     },
 
+    LOV_PT_SUSDE_MAY_2025_A: {
+      TOKEN_SYMBOL: "lov-PT-sUSDe-May2025-a",
+      TOKEN_NAME: "Origami lov-PT-sUSDe-May2025-a",
+
+      MIN_DEPOSIT_FEE_BPS: 0,    // 0%
+      MIN_EXIT_FEE_BPS: 200,     // 2%
+      FEE_LEVERAGE_FACTOR: 0,    // no dynamic fees on this vault now.
+      PERFORMANCE_FEE_BPS: 200,  // 2%
+
+      // These are in terms of the Morpho LTV
+      // marketAL = morphoAL
+      //     * PT-sUSDe-Oct24/USDe [pendle twap] * USDe/DAI [redstone]
+      //     / discount factor oracle
+      USER_AL_FLOOR: ethers.utils.parseEther("1.1236"),         // 89% Market LTV == 9.09x EE
+      USER_AL_CEILING: ethers.utils.parseEther("1.4286"),       // 70% Market LTV == 3.33x EE
+      REBALANCE_AL_FLOOR: ethers.utils.parseEther("1.1429"),    // 87.5% Market LTV == 8x EE
+      REBALANCE_AL_CEILING: ethers.utils.parseEther("1.3334"),  // 75% Market LTV == 4x EE
+
+      MORPHO_BORROW_LEND: {
+        // Also need to be in terms of the Morpho LTV
+        LIQUIDATION_LTV: ethers.utils.parseEther("0.915"),  // 91.5% Morpho LTV. 
+        SAFE_LTV: ethers.utils.parseEther("0.9"),           // 90% Morpho LTV
+      },
+
+      INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("0"), // Origami will seed first
+      SEED_DEPOSIT_SIZE: ethers.utils.parseUnits("3000", 18), // PT sUSDe May25
+      MAX_TOTAL_SUPPLY: ethers.utils.parseUnits("5000000", 18),
+    },
+
     LOV_MKR_DAI_LONG_A: {
       TOKEN_SYMBOL: "lov-MKR-DAI-long-a",
       TOKEN_NAME: "Origami lov-MKR-DAI-long-a",
@@ -413,18 +445,18 @@ export const DEFAULT_SETTINGS = {
       TOKEN_NAME: "Origami lov-USD0++-a",
 
       MIN_DEPOSIT_FEE_BPS: 0, // 0%
-      MIN_EXIT_FEE_BPS: 400, // 4%
-      FEE_LEVERAGE_FACTOR: 7e4, // targeting ~EE of the REBALANCE_AL_FLOOR
-      PERFORMANCE_FEE_BPS: 500, // 5%
+      MIN_EXIT_FEE_BPS: 300,  // 3%
+      FEE_LEVERAGE_FACTOR: 0, // Fixed fees
+      PERFORMANCE_FEE_BPS: 200, // 2%
 
-      USER_AL_FLOOR: ethers.utils.parseEther("1.1835"),        // 84.5% LTV == 6.45x EE
-      USER_AL_CEILING: ethers.utils.parseEther("1.4286"),      // 70% LTV == 3.33x EE
-      REBALANCE_AL_FLOOR: ethers.utils.parseEther("1.1905"),   // 84% LTV == 6.25x EE
-      REBALANCE_AL_CEILING: ethers.utils.parseEther("1.3334"), // 75% LTV == 4x EE
+      USER_AL_FLOOR: ethers.utils.parseEther("1.0929"),        // 91.5% LTV == 11.76x EE
+      USER_AL_CEILING: ethers.utils.parseEther("1.1364"),      // 88% LTV == 8.33x EE
+      REBALANCE_AL_FLOOR: ethers.utils.parseEther("1.087"),    // 92% LTV == 12.5x EE
+      REBALANCE_AL_CEILING: ethers.utils.parseEther("1.1429"), // 87.5% LTV == 8x EE
 
       MORPHO_BORROW_LEND: {
-        LIQUIDATION_LTV: ethers.utils.parseEther("0.86"), // 86% LTV
-        SAFE_LTV: ethers.utils.parseEther("0.845"),       // 84.5% LTV
+        LIQUIDATION_LTV: ethers.utils.parseEther("0.965"), // 96.5% LTV
+        SAFE_LTV: ethers.utils.parseEther("0.925"),        // 92.5% LTV
       },
 
       INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("0"), // No deposits allowed to start
@@ -504,6 +536,55 @@ export const DEFAULT_SETTINGS = {
 
       INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("0"), // Small initial supply
     },
+    
+    LOV_PT_USD0pp_MAR_2025_A: {
+      TOKEN_SYMBOL: "lov-PT-USD0++-Mar2025-a",
+      TOKEN_NAME: "Origami lov-PT-USD0++-Mar2025-a",
+
+      MIN_DEPOSIT_FEE_BPS: 0, // 0%
+      MIN_EXIT_FEE_BPS: 200, // 2%
+      PERFORMANCE_FEE_BPS: 200, // 2%
+      FEE_LEVERAGE_FACTOR: 0, // N/A
+
+      USER_AL_FLOOR: ethers.utils.parseEther("1.1765"),        // 85% LTV
+      USER_AL_CEILING: ethers.utils.parseEther("1.4286"),      // 70% LTV
+
+      REBALANCE_AL_FLOOR: ethers.utils.parseEther("1.2049"),   // 83% LTV
+      REBALANCE_AL_CEILING: ethers.utils.parseEther("1.2988"), // 77% LTV
+
+      MORPHO_BORROW_LEND: {
+        LIQUIDATION_LTV: ethers.utils.parseEther("0.915"), // 91.5% LTV
+        SAFE_LTV: ethers.utils.parseEther("0.90"),         // 90% LTV
+      },
+
+      INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("0"), // Small initial supply
+      SEED_DEPOSIT_SIZE: ethers.utils.parseUnits("3000", 18), // USD0 PT
+      MAX_TOTAL_SUPPLY: ethers.utils.parseUnits("1000000", 18),
+    },
+
+    LOV_PT_LBTC_MAR_2025_A: {
+      TOKEN_SYMBOL: "lov-PT-LBTC-Mar2025-a",
+      TOKEN_NAME: "Origami lov-PT-LBTC-Mar2025-a",
+
+      MIN_DEPOSIT_FEE_BPS: 0, // 0%
+      MIN_EXIT_FEE_BPS: 200, // 2%
+      FEE_LEVERAGE_FACTOR: 0, // N/A
+      PERFORMANCE_FEE_BPS: 200, // 2%
+
+      USER_AL_FLOOR: ethers.utils.parseEther("1.1429"),         // 87.5% Market LTV == 8x EE
+      USER_AL_CEILING: ethers.utils.parseEther("1.4286"),       // 70% Market LTV == 3.33x EE
+      REBALANCE_AL_FLOOR: ethers.utils.parseEther("1.1765"),    // 85% Market LTV == 6.67x EE
+      REBALANCE_AL_CEILING: ethers.utils.parseEther("1.3334"),  // 75% Market LTV == 4x EE
+
+      MORPHO_BORROW_LEND: {
+        LIQUIDATION_LTV: ethers.utils.parseEther("0.915"), // 91.5% LTV
+        SAFE_LTV: ethers.utils.parseEther("0.90"),         // 90% LTV
+      },
+
+      INITIAL_MAX_TOTAL_SUPPLY: ethers.utils.parseEther("0"), // Small initial supply
+      SEED_DEPOSIT_SIZE: ethers.utils.parseUnits("0.04649983", 8),  // LBTC PT (8dp)
+      MAX_TOTAL_SUPPLY: ethers.utils.parseUnits("30", 18),    // Vault is always 18dp
+    },
 
     VAULTS: {
       SUSDSpS: {
@@ -535,9 +616,46 @@ export const DEFAULT_SETTINGS = {
             EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
             // https://api.cow.fi/mainnet/api/v1/app_data/0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf
             APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
+          },
+          SKY_TO_USDS_LIMIT_SELL: {
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("1000000", 18), // 1M SKY
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("50000", 18), // 50k USDS
+            PARTIALLY_FILLABLE: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
+            LIMIT_PRICE_ADJUSTMENT_BPS: -30,
+            VERIFY_SLIPPAGE_BPS: 10,
+            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("10", 18), // 10 USDS (0.02%)
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf
+            APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
           }
         }
-      }
+      },
+
+      hOHM: {
+        TOKEN_SYMBOL: "hOHM",
+        TOKEN_NAME: "Origami hOHM",
+        PERFORMANCE_FEE_BPS: 330, // 3.3%
+        EXIT_FEE_BPS: 100, // 1%
+
+        // 1 hOHM = 0.000003714158 gOHM
+        SEED_GOHM_AMOUNT: ethers.utils.parseEther("1"),
+
+        // 1 hOHM = 0.011 USDS
+        SEED_USDS_AMOUNT: ethers.utils.parseEther("1") // The SEED_GOHM_AMOUNT
+          .mul(ethers.utils.parseEther("2961.64")) // The origination LTV of cooler
+          .div(ethers.utils.parseEther("1")),
+
+        SEED_SHARES_AMOUNT: ethers.utils.parseEther("1") // The SEED_GOHM_AMOUNT
+          .mul(OHM_PER_GOHM) // OHM per gOHM
+          .mul(1_000) // Intentionally scaling the share price by 1000
+          .div(ethers.utils.parseEther("1")),
+
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+
+        SWEEP_COOLDOWN_SECS: 86400, // 1 day
+        SWEEP_MAX_SELL_AMOUNT: ethers.utils.parseEther("10000"), // 10k USDS per day
+      },
     },
 
     ORACLES: {
@@ -588,9 +706,8 @@ export const DEFAULT_SETTINGS = {
       PT_SUSDE_MAR_2025_SUSDE: {
         TWAP_DURATION_SECS: 3600,
       },
-      PT_SUSDE_MAR_2025_DISCOUNT_TO_MATURITY: {
-        MIN_THRESHOLD: ethers.utils.parseEther("0.9"),
-        MAX_THRESHOLD: ethers.utils.parseEther("1"),
+      PT_SUSDE_MAY_2025_SUSDE: {
+        TWAP_DURATION_SECS: 3600,
       },
       USD0pp_USD0: {
         MIN_THRESHOLD: ethers.utils.parseEther("0.99"), 
@@ -600,7 +717,7 @@ export const DEFAULT_SETTINGS = {
         MIN_THRESHOLD: ethers.utils.parseEther("0.99"), 
         MAX_THRESHOLD: ethers.utils.parseEther("1.01"),
       },
-      USD0pp_USDC: {
+      USD0pp_USDC_PEGGED: {
         FIXED_PRICE: ethers.utils.parseEther("1")
       },
       USDC_USD: {
@@ -613,6 +730,16 @@ export const DEFAULT_SETTINGS = {
       },
       PT_CORN_LBTC_DEC24_LBTC: {
         TWAP_DURATION_SECS: 30*60, // 30min twap
+      },
+      PT_USD0pp_MAR_2025_USDC: {
+        TWAP_DURATION_SECS: 15*60, // 15min twap
+      },
+      SKY_MKR: {
+        // Fixed redemption price of 24,000 SKY per MKR
+        FIXED_PRICE: ethers.utils.parseUnits("1.0", 36).div(ethers.utils.parseEther("24000")),
+      },
+      PT_LBTC_MAR_2025_LBTC: {
+        TWAP_DURATION_SECS: 15*60, // 15min twap
       },
     },
 
@@ -660,7 +787,11 @@ export const DEFAULT_SETTINGS = {
         },
         USDC_USD_ORACLE: {
           // https://data.chain.link/feeds/ethereum/mainnet/usdc-usd
-          STALENESS_THRESHOLD: 86400 + 300 // 1 hr + 5 minutes
+          STALENESS_THRESHOLD: 86400 + 300 // 1 day + 5 minutes
+        },
+        USD0pp_USD_ORACLE: {
+          // https://docs.chain.link/data-feeds/price-feeds/addresses?network=ethereum&page=1&search=USD0%2B%2B
+          STALENESS_THRESHOLD: 86400 + 300 // 1 day + 5 minutes
         },
       },
       CHRONICLE: {
@@ -689,6 +820,12 @@ export const DEFAULT_SETTINGS = {
         EMODES: {
           DEFAULT: 0, // ZEROLEND has no other EMODES
         }
+      },
+      LAYER_ZERO: {
+        ENDPOINT_ID: 30101,
+      },
+      OLYMPUS: {
+        OHM_PER_GOHM: OHM_PER_GOHM,
       },
     },
 

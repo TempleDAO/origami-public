@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -166,7 +166,7 @@ contract OrigamiLendingClerkTestBase is OrigamiTest {
 
     // To match the scale of asset -> debt, scale down the lhs and it should
     // match except for rounding
-    function _scaleAndAssert(uint256 lhs, uint256 rhs) internal {
+    function _scaleAndAssert(uint256 lhs, uint256 rhs) internal pure {
         assertApproxEqAbs(
             lhs / 1e12,
             rhs,

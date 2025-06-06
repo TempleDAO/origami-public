@@ -1,0 +1,7 @@
+// bartio: LOV_LOCKS_A.MANAGER=0x779d3Bc1A408dE767887122279fadc2A9AC3CAaF
+// yarn hardhat verify --network bartio 0x779d3Bc1A408dE767887122279fadc2A9AC3CAaF --constructor-args scripts/deploys/bartio/deploymentArgs/0x779d3Bc1A408dE767887122279fadc2A9AC3CAaF.js
+module.exports = [
+  "0xE00F5CB480AaAECb749dA37cb13Ee3408AF13d06",
+  "0xC94ecBfE16E337f6e606dcd86B8A5eaDbAe7A337",
+  "0x44c4667cE983870CE8E013C87b2bE1fC37f2875d"
+];

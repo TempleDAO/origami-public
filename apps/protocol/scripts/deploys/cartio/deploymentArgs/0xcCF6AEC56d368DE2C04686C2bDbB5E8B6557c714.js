@@ -1,0 +1,9 @@
+// cartio: VAULTS.BOYCO_USDC_A.TOKEN=0xcCF6AEC56d368DE2C04686C2bDbB5E8B6557c714
+// yarn hardhat verify --network cartio 0xcCF6AEC56d368DE2C04686C2bDbB5E8B6557c714 --constructor-args scripts/deploys/cartio/deploymentArgs/0xcCF6AEC56d368DE2C04686C2bDbB5E8B6557c714.js
+module.exports = [
+  "0xE00F5CB480AaAECb749dA37cb13Ee3408AF13d06",
+  "Origami Boyco USDC",
+  "oboy-USDC-a",
+  "0x015fd589F4f1A33ce4487E12714e1B15129c9329",
+  "0x0ba8F7204A0642649c029aB3a6917116a8bA0ed4"
+];

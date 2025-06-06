@@ -5,9 +5,8 @@ import {
 } from '../../helpers';
 import { ContractInstances, connectToContracts, getDeployedContracts } from '../contract-addresses';
 import path from 'path';
-import { appendTransactionsToBatch, createSafeBatch, createSafeTransaction, SafeTransaction, writeSafeTransactionsBatch } from '../../safe-tx-builder';
+import { createSafeBatch, createSafeTransaction, setExplicitAccess, writeSafeTransactionsBatch } from '../../safe-tx-builder';
 import { OrigamiAaveV3BorrowAndLend__factory } from '../../../../typechain';
-import { Contract } from 'ethers';
 
 let INSTANCES: ContractInstances;
 
@@ -24,13 +23,12 @@ async function main() {
   const oldBorrowLend = OrigamiAaveV3BorrowAndLend__factory.connect(OLD_BORROW_LEND_ADDRESS, owner);
     
   const batch = createSafeBatch(
-    1,
     [
       // Grant access to the migrator on the old
       setExplicitAccess(
         oldBorrowLend, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("repayAndWithdraw")),
+        ["repayAndWithdraw"],
         true
       ),
 
@@ -38,7 +36,7 @@ async function main() {
       setExplicitAccess(
         INSTANCES.LOV_WSTETH_A.SPARK_BORROW_LEND, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("supplyAndBorrow")),
+        ["supplyAndBorrow"],
         true
       ),
 
@@ -65,7 +63,7 @@ async function main() {
       setExplicitAccess(
         oldBorrowLend, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("repayAndWithdraw")),
+        ["repayAndWithdraw"],
         false
       ),
 
@@ -73,7 +71,7 @@ async function main() {
       setExplicitAccess(
         INSTANCES.LOV_WSTETH_A.SPARK_BORROW_LEND, 
         MIGRATOR_ADDRESS,
-        oldBorrowLend.interface.getSighash(oldBorrowLend.interface.getFunction("supplyAndBorrow")),
+        ["supplyAndBorrow"],
         false
       ),
 
@@ -94,51 +92,6 @@ async function main() {
   const filename = path.join(__dirname, "./transactions-batch.json");
   writeSafeTransactionsBatch(batch, filename);
   console.log(`Wrote Safe tx's batch to: ${filename}`);
-}
-
-function setExplicitAccess(
-  contract: Contract,
-  allowedCallerAddress: string,
-  fnSelector: string,
-  allowed: boolean,
-): SafeTransaction {
-  return {
-    to: contract.address,
-    value: "0",
-    data: null,
-    contractMethod: {
-      inputs: [
-        {
-          internalType: "address",
-          name: "allowedCaller",
-          type: "address"
-        },
-        {
-          components: [
-            {
-              internalType: "bytes4",
-              name: "fnSelector",
-              type: "bytes4"
-            },
-            {
-              internalType: "bool",
-              name: "allowed",
-              type: "bool"
-            }
-          ],
-          internalType: "struct IOrigamiElevatedAccess.ExplicitAccess[]",
-          name: "access",
-          type: "tuple[]"
-        }
-      ],
-      name: "setExplicitAccess",
-      payable: false
-    },
-    contractInputsValues: {
-      allowedCaller: allowedCallerAddress,
-      access: `[["${fnSelector}",${allowed}]]`
-    }
-  }
 }
 
 main()

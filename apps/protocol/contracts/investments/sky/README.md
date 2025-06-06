@@ -129,22 +129,22 @@ Both Origami Treasury and the caller receives the rewards in-kind of that farm's
 
 In order to efficiently swap `$SKY` and other reward tokens back to `USDS`, the [CoW Swapper programmatic orders](../../common/swappers/README.md) will be used.
 
-Parameters are tuned for a `MARKET` order with a min buy amount in USDS terms. This can be updated:
+Parameters are tuned for a `LIMIT` order with a min price expressed as a discount on the current SKY/USDS oracle price. This can be updated:
 
 * sellToken: SKY
 * maxSellAmount: 1,000,000 SKY
 * buyToken: USDS
 * minBuyAmount: 1,000 USDS
-* partiallyFillable: False
-* limitPriceOracle: N/A
-* limitPricePremiumBps: N/A
-* roundDownDivisor: N/A
-* verifySlippageBps: N/A
+* partiallyFillable: True
+* limitPriceOracle: Origami's SKY/USDS Oracle
+* limitPriceAdjustmentBps: -30
+* roundDownDivisor: 10 USDS
+* verifySlippageBps: 10
 * expiryPeriodSecs: 5 minutes
 * recipient: `sUSDS++ manager` contract
 * appData: Origami's default metadata: `0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf`
 
-This means as soon as there's enough SKY balance in the swapper, and it will result in 1,000 USDS (inclusive of fees) then it will be executed.
+The `limitPriceAdjustmentBps` represents a discount that is accepted to cover gas fees, slippage and price impact.
 
 The USDS is sent directly back to the `sUSDS++ manager`, and will contribute to the share price at that point.
 

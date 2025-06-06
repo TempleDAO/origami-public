@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -247,7 +247,7 @@ contract OrigamiLovTokenErc4626ManagerTestBase is OrigamiLovTokenTestBase {
 }
 
 contract OrigamiLovTokenErc4626ManagerTestAdmin is OrigamiLovTokenErc4626ManagerTestBase {
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(managerImpl.owner(), origamiMultisig);
         assertEq(managerImpl.name(), "lovToken");
         assertEq(managerImpl.version(), "1.0.0");
@@ -1136,7 +1136,7 @@ contract OrigamiLovTokenErc4626ManagerTestRebalanceUp is OrigamiLovTokenErc4626M
 contract OrigamiLovTokenErc4626ManagerTestInvest is OrigamiLovTokenErc4626ManagerTestBase {
     using OrigamiMath for uint256;
 
-    function test_maxInvest_badAsset() public {
+    function test_maxInvest_badAsset() public view {
         assertEq(managerImpl.maxInvest(alice), 0);
     }
 
@@ -1502,7 +1502,7 @@ contract OrigamiLovTokenErc4626ManagerTestInvest is OrigamiLovTokenErc4626Manage
         investWithDai(expectedMaxInvest, alice);
     }
 
-    function test_investQuote_badToken_gives0() public {
+    function test_investQuote_badToken_gives0() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = managerImpl.investQuote(
             100,
             alice,
@@ -1723,7 +1723,7 @@ contract OrigamiLovTokenErc4626ManagerTestInvest is OrigamiLovTokenErc4626Manage
 contract OrigamiLovTokenErc4626ManagerTestExit is OrigamiLovTokenErc4626ManagerTestBase {
     using OrigamiMath for uint256;
 
-    function test_maxExit_badAsset() public {
+    function test_maxExit_badAsset() public view {
         assertEq(managerImpl.maxExit(alice), 0);
     }
 
@@ -1844,7 +1844,7 @@ contract OrigamiLovTokenErc4626ManagerTestExit is OrigamiLovTokenErc4626ManagerT
         assertEq(managerImpl.maxExit(address(sDaiToken)), 578_953.155117530525387184e18);
     }
 
-    function test_exitQuote_badAsset_gives0() public {
+    function test_exitQuote_badAsset_gives0() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = managerImpl.exitQuote(
             100,
             alice,
@@ -2150,7 +2150,7 @@ contract OrigamiLovTokenErc4626ManagerTestExit is OrigamiLovTokenErc4626ManagerT
 }
 
 contract OrigamiLovTokenErc4626ManagerTestViews is OrigamiLovTokenErc4626ManagerTestBase {
-    function test_liabilities_zeroDebt() public {
+    function test_liabilities_zeroDebt() public view {
         assertEq(managerImpl.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 0);
         assertEq(managerImpl.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
     }

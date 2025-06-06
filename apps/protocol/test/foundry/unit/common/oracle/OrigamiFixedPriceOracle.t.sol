@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -68,7 +68,7 @@ contract OrigamiFixedPriceOracleTestBase is OrigamiTest {
 }
 
 contract OrigamiFixedPriceOracleTestInit is OrigamiFixedPriceOracleTestBase {
-    function test_initialization_fixed() public {
+    function test_initialization_fixed() public view {
         assertEq(oOracleFixed.decimals(), 18);
         assertEq(oOracleFixed.precision(), 1e18);
         assertEq(oOracleFixed.description(), "token1/token2");
@@ -79,7 +79,7 @@ contract OrigamiFixedPriceOracleTestInit is OrigamiFixedPriceOracleTestBase {
         assertEq(address(oOracleFixed.priceCheckOracle()), address(oOracleCheck));
     }
 
-    function test_initialization_noCheck() public {
+    function test_initialization_noCheck() public view {
         assertEq(oOracleFixedNoCheck.decimals(), 18);
         assertEq(oOracleFixedNoCheck.precision(), 1e18);
         assertEq(oOracleFixedNoCheck.description(), "token1/token2");
@@ -92,7 +92,7 @@ contract OrigamiFixedPriceOracleTestInit is OrigamiFixedPriceOracleTestBase {
 }
 
 contract OrigamiFixedPriceOracleWithCheck_LatestPrice is OrigamiFixedPriceOracleTestBase {
-    function test_latestPrice_success() public {
+    function test_latestPrice_success() public view {
         assertEq(
             oOracleFixed.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             0.9999e18

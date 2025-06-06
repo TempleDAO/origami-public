@@ -1,15 +1,15 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { TimestampStore } from "test/foundry/invariant/stores/TimestampStore.sol";
 import { StateStore } from "test/foundry/invariant/stores/StateStore.sol";
 import { BaseHandler } from "test/foundry/invariant/handlers/BaseHandler.sol";
 
-import { ExternalContracts, OUsdcContracts, LovTokenContracts } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestDeployer.t.sol";
+import { ExternalContracts, OUsdcContracts, LovTokenContracts } from "test/foundry-integration/deploys/lovDsr/OrigamiLovTokenTestDeployer.t.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
 import { IOrigamiLovTokenErc4626Manager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenErc4626Manager.sol";
-import { OrigamiLovTokenTestConstants as Constants } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
+import { OrigamiLovTokenTestConstants as Constants } from "test/foundry-integration/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { DummyLovTokenSwapper } from "contracts/test/investments/lovToken/DummyLovTokenSwapper.sol";
 

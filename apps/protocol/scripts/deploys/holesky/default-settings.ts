@@ -24,7 +24,31 @@ export const DEFAULT_SETTINGS = {
             APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
           }
         }
-      }
+      },
+      hOHM: {
+        TOKEN_SYMBOL: "hOHM",
+        TOKEN_NAME: "Origami hOHM",
+        PERFORMANCE_FEE_BPS: 330, // 3.3%
+        EXIT_FEE_BPS: 100, // 1%
+
+        // 1 hOHM = 0.000003714158 gOHM
+        SEED_GOHM_AMOUNT: ethers.utils.parseEther("10"),
+
+        // 1 hOHM = 0.011 USDS
+        SEED_USDS_AMOUNT: ethers.utils.parseEther("10") // The SEED_GOHM_AMOUNT
+          .mul(ethers.utils.parseEther("2961.64")) // The origination LTV of cooler
+          .div(ethers.utils.parseEther("1")),
+
+        SEED_SHARES_AMOUNT: ethers.utils.parseEther("10") // The SEED_GOHM_AMOUNT
+          .mul(ethers.utils.parseEther("269.24")) // OHM per gOHM
+          .mul(1_000) // Intentionally scaling the share price by 1000
+          .div(ethers.utils.parseEther("1")),
+
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+
+        SWEEP_COOLDOWN_SECS: 86400, // 1 day
+        SWEEP_MAX_SELL_AMOUNT: ethers.utils.parseEther("10000"), // 10k USDS per day
+      },
     },
 
     EXTERNAL: {

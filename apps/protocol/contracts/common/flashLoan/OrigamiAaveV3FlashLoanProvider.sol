@@ -1,10 +1,10 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/flashLoan/OrigamiAaveV3FlashLoanProvider.sol)
 
 import { IPoolAddressesProvider } from "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol";
 import { IPool } from "@aave/core-v3/contracts/interfaces/IPool.sol";
-import { IFlashLoanReceiver } from "@aave/core-v3/contracts/flashloan/interfaces/IFlashLoanReceiver.sol";
+import { IFlashLoanReceiver } from "@aave/core-v3/contracts/misc/flashloan/interfaces/IFlashLoanReceiver.sol";
 import { DataTypes } from "@aave/core-v3/contracts/protocol/libraries/types/DataTypes.sol";
 
 import { IOrigamiFlashLoanProvider } from "contracts/interfaces/common/flashLoan/IOrigamiFlashLoanProvider.sol";

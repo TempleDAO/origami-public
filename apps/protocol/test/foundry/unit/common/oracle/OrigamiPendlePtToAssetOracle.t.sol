@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -40,7 +40,7 @@ contract OrigamiPendlePtToAssetOracleTest is OrigamiTest {
         );
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(oOracle.pendleMarket()), pt_sUSDE_market);
         assertEq(oOracle.twapDuration(), twapDuration);
 
@@ -48,7 +48,7 @@ contract OrigamiPendlePtToAssetOracleTest is OrigamiTest {
         assertEq(oOracle.quoteAsset(), DAI);
     }
 
-    function test_latestPrice_spot() public {
+    function test_latestPrice_spot() public view {
         assertEq(
             oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             0.969695790921845659e18
@@ -59,7 +59,7 @@ contract OrigamiPendlePtToAssetOracleTest is OrigamiTest {
         );
     }
 
-    function test_latestPrice_historic() public {
+    function test_latestPrice_historic() public view {
         assertEq(
             oOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             0.969695790921845659e18

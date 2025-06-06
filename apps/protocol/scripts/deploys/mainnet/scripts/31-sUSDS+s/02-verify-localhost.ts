@@ -5,9 +5,7 @@ import { ContractInstances } from "../../contract-addresses";
 import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ContractAddresses } from "../../contract-addresses/types";
-import { 
-    IERC20Metadata, 
-    OrigamiSuperSavingsUsdsManager, OrigamiSuperSavingsUsdsVault } from "../../../../../typechain";
+import { IERC20Metadata, OrigamiSuperSavingsUsdsManager, OrigamiDelegated4626Vault } from "../../../../../typechain";
 import { DEFAULT_SETTINGS } from "../../default-settings";
 import { getDeployContext } from "../../deploy-context";
 
@@ -19,7 +17,7 @@ const DEPOSIT_AMOUNT = "1000"; // USDS
 
 interface TestContracts {
   DEPOSIT_TOKEN: IERC20Metadata;
-  VAULT_TOKEN: OrigamiSuperSavingsUsdsVault;
+  VAULT_TOKEN: OrigamiDelegated4626Vault;
   DEPOSIT_TOKEN_DECIMALS: number;
   VAULT_TOKEN_DECIMALS: number;
   MANAGER: OrigamiSuperSavingsUsdsManager;

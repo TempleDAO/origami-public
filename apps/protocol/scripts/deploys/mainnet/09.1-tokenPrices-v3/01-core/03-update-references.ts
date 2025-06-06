@@ -28,7 +28,6 @@ async function updateTokenPrices(owner: Signer) {
   
 async function updateTokenPricesSafeBatch() {
   const batch = createSafeBatch(
-    1,
     [
       setTokenPrices(INSTANCES.LOV_SUSDE_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V3),
       setTokenPrices(INSTANCES.LOV_SUSDE_B.TOKEN, ADDRS.CORE.TOKEN_PRICES.V3),

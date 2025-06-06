@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -295,7 +295,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestAdmin is Ori
     event FlashLoanProviderSet(address indexed provider);
     event BorrowLendSet(address indexed addr);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(manager.owner(), origamiMultisig);
         assertEq(address(manager.lovToken()), address(lovToken));
 
@@ -587,7 +587,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestViews is Ori
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 50.050049927946976008e18);
     }
 
-    function test_liabilities_zeroDebt() public {
+    function test_liabilities_zeroDebt() public view {
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 0);
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
     }
@@ -655,7 +655,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestViews is Ori
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 66.666666666666666668e18);
     }
 
-    function test_getDynamicFeesBps() public {
+    function test_getDynamicFeesBps() public view {
         (uint256 depositFee, uint256 exitFee) = lovToken.getDynamicFeesBps();
         assertEq(depositFee, 10);
         assertEq(exitFee, 50);
@@ -666,17 +666,17 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestInvest is Or
     using OrigamiMath for uint256;
     using AaveReserveConfiguration for AaveDataTypes.ReserveConfigurationMap;
 
-    function test_maxInvest_fail_badAsset() public {
+    function test_maxInvest_fail_badAsset() public view {
         assertEq(manager.maxInvest(alice), 0);
     }
 
-    function test_availableSupply() public {
+    function test_availableSupply() public view {
         (uint256 supplyCap, uint256 expectedAvailable) = borrowLend.availableToSupply();
         assertEq(supplyCap, type(uint256).max);
         assertEq(expectedAvailable, type(uint256).max);
 
         IAavePool pool = borrowLend.aavePool();
-        AaveDataTypes.ReserveData memory _reserveData = pool.getReserveData(address(wethToken));
+        AaveDataTypes.ReserveDataLegacy memory _reserveData = pool.getReserveData(address(wethToken));
         assertEq(_reserveData.configuration.getSupplyCap(), 0);
         assertEq(_reserveData.configuration.getBorrowCap(), 1_400_000);
 
@@ -860,7 +860,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestInvest is Or
         assertEq(manager.maxInvest(address(wethToken)), 1.915966050602167855e18);
     }
 
-    function test_investQuote_badToken_gives0() public {
+    function test_investQuote_badToken_gives0() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
             100,
             alice,
@@ -879,7 +879,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestInvest is Or
         assertEq(investFeeBps[0], 10);
     }
 
-    function test_investQuote_reserveToken() public {
+    function test_investQuote_reserveToken() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
             1e18,
             address(wethToken),
@@ -948,7 +948,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestInvest is Or
 contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestExit is OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestBase {
     using OrigamiMath for uint256;
     
-    function test_maxExit_fail_badAsset() public {
+    function test_maxExit_fail_badAsset() public view {
         assertEq(manager.maxExit(alice), 0);
     }
 
@@ -1007,7 +1007,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestExit is Orig
         // Do a large external borrow to use all the wstETH supply up
         {
             IAavePool pool = borrowLend.aavePool();
-            AaveDataTypes.ReserveData memory _reserveData = pool.getReserveData(address(wethToken));
+            AaveDataTypes.ReserveDataLegacy memory _reserveData = pool.getReserveData(address(wethToken));
 
             // Set the borrow cap to the supply cap
             {
@@ -1039,7 +1039,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestExit is Orig
         }
     }
 
-    function test_exitQuote_badToken_gives0() public {
+    function test_exitQuote_badToken_gives0() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
             100,
             alice,
@@ -1058,7 +1058,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerNotMatchingDecimalsTestExit is Orig
         assertEq(exitFeeBps[0], 50);
     }
 
-    function test_exitQuote_reserveToken() public {
+    function test_exitQuote_reserveToken() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
             1e18,
             address(wethToken),

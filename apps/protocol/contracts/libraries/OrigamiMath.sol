@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (libraries/OrigamiMath.sol)
 
@@ -16,6 +16,8 @@ library OrigamiMath {
     }
 
     uint256 public constant BASIS_POINTS_DIVISOR = 10_000;
+    uint256 public constant WAD_DECIMALS = 18;
+    uint256 public constant WAD = 10 ** WAD_DECIMALS;
 
     function scaleUp(uint256 amount, uint256 scalar) internal pure returns (uint256) {
         // Special case for scalar == 1, as it's common for token amounts to not need
@@ -90,10 +92,7 @@ library OrigamiMath {
         uint256 basisPoints,
         Rounding roundingMode
     ) internal pure returns (uint256 result) {
-        uint256 numeratorBps;
-        unchecked {
-            numeratorBps = BASIS_POINTS_DIVISOR + basisPoints;
-        }
+        uint256 numeratorBps = BASIS_POINTS_DIVISOR + basisPoints;
 
         // Round up for max amounts out expected
         result = mulDiv(
@@ -114,6 +113,8 @@ library OrigamiMath {
         uint256 basisPoints,
         Rounding roundingMode
     ) internal pure returns (uint256 result, uint256 removed) {
+        if (basisPoints == 0) return (inputAmount, 0); // gas shortcut for 0
+
         result = subtractBps(inputAmount, basisPoints, roundingMode);
         unchecked {
             removed = inputAmount - result;

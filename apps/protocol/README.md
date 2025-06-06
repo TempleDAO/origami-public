@@ -75,19 +75,15 @@ yarn forge-coverage-html
 open report/index.html
 ```
 
-1. Install `slither-analyzer`:
-   1. `pip3 install -r slither.requirements.txt`
-2. `yarn slither`
-3. For each category + finding, analyse and either:
-   1. Fix the issue or
-   2. If it's a false positive then ignore the finding by typing the list index number in the triage.
-
 ## Slither Static Code Analysis
 
 1. Install `slither-analyzer`:
    1. `pip3 install -r slither.requirements.txt`
-2. `yarn slither`
-3. For each category + finding, analyse and either:
+2. If encountering: `ModuleNotFoundError: No module named 'pkg_resources'`, you
+   may be missing setuptools (e.g. in a fresh venv)
+   1. `pip3 install setuptools`
+3. `yarn slither`
+4. For each category + finding, analyse and either:
    1. Fix the issue or
    2. If it's a false positive then ignore the finding by typing the list index number in the triage.
 

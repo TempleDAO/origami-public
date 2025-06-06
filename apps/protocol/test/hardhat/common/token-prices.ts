@@ -5,7 +5,6 @@ import {
     DummyOracle__factory,
     DummyRepricingToken,
     DummyRepricingToken__factory,
-    GMX_GlpManager__factory,
     MintableToken,
     DummyMintableToken__factory,
     TokenPrices, TokenPrices__factory, DummyOracle,
@@ -22,7 +21,6 @@ import {
     ZERO_ADDRESS
 } from "../helpers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { deployGmx } from "../investments/gmx/gmx-helpers";
 import { getSigners } from "../signers";
 
 const AVAX_RPC = "https://api.avax.network/ext/bc/C/rpc";
@@ -62,8 +60,6 @@ describe("Token Prices", async () => {
     }
       
     const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
-    const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
-    const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
     const encodedUniV3Price = (pool: string, inQuotedOrder: boolean): string => encodeFunction("univ3Price", pool, inQuotedOrder);
     const encodedTraderJoeBestPrice = (joeQuoter: string, sellToken: string, buyToken: string): string => encodeFunction("traderJoeBestPrice", joeQuoter, sellToken, buyToken);
     const encodedMulPrice = (v1Bytes: string, v2Bytes: string): string => encodeFunction("mul", v1Bytes, v2Bytes);
@@ -83,24 +79,20 @@ describe("Token Prices", async () => {
             gmx: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
             glp: "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258",
             ethGmxUniV3Pool: '0x80A9ae39310abf666A87C743d6ebBD0E8C42158E',
-            glpManager: "0x321F653eED006AD1C29D174e17d96351BDe22649",
         };
 
         async function setup() {
             forkMainnet(38187290, ARBITRUM_RPC);
             tokenPrices = await new TokenPrices__factory(owner).deploy(pricePrecision);
-            gmxVaultAddr = await GMX_GlpManager__factory.connect(addresses.glpManager, owner).vault();
             
             return {
                 tokenPrices,
-                gmxVaultAddr,
             };
         }
 
         beforeEach(async () => {
             ({
                 tokenPrices,
-                gmxVaultAddr,
             } = await loadFixture(setup));
         });
 
@@ -116,31 +108,6 @@ describe("Token Prices", async () => {
 
             const price = await tokenPrices.tokenPrice(addresses.weth);
             expect(price).to.eq(toPrecision("1259.44226268"));
-        });
-
-        it("GMX Vault Price", async () => {
-            const encodedEthUsd = encodedGmxVaultPrice(gmxVaultAddr, addresses.weth);
-            await tokenPrices.setTokenPriceFunction(addresses.weth, encodedEthUsd);
-
-            const price = await tokenPrices.tokenPrice(addresses.weth);
-            expect(price).to.eq(toPrecision("1259.64"));
-        });
-
-        it("GLP Price", async () => {
-            const encodedGlpUsd = encodedGlpPrice(addresses.glpManager);
-            await tokenPrices.setTokenPriceFunction(addresses.glp, encodedGlpUsd);
-
-            const price = await tokenPrices.tokenPrice(addresses.glp);
-            expect(price).to.eq(toPrecision("0.857773867014654178652699835936"));
-        });
-
-        it("GLP price with empty setup", async () => {
-            // The non-forked gmx contracts has no assets in the pool - so AUM = 0
-            const rewardsPerSec = BigNumber.from("0");
-            const gmxContracts = await deployGmx(owner, rewardsPerSec, rewardsPerSec, rewardsPerSec, rewardsPerSec);
-
-            const price = await tokenPrices.glpPrice(await gmxContracts.glpRewardRouter.glpManager());
-            expect(price).to.eq(toPrecision("1.0"));
         });
 
         it("Uniswap V3 Price", async () => {
@@ -162,25 +129,25 @@ describe("Token Prices", async () => {
         it("mul() - ", async () => {
             // Not in quoted order
             const encodedEthGmx = encodedUniV3Price(addresses.ethGmxUniV3Pool, false);
-            const encodedEthUsd = encodedGmxVaultPrice(gmxVaultAddr, addresses.weth);
+            const encodedEthUsd = encodedScalar(ethers.utils.parseUnits("1260", 30));
             const encodedGmxUsd = encodedMulPrice(encodedEthGmx, encodedEthUsd);
 
             await tokenPrices.setTokenPriceFunction(addresses.gmx, encodedGmxUsd);
 
             const price = await tokenPrices.tokenPrice(addresses.gmx);
-            expect(price).to.eq(toPrecision("43.099467377390816127490190759143"));
+            expect(price).to.eq(toPrecision("43.111785030256603728555492328380"));
         });
 
         it("div() - ", async () => {
             // In quoted order
             const encodedEthGmx = encodedUniV3Price(addresses.ethGmxUniV3Pool, true);
-            const encodedEthUsd = encodedGmxVaultPrice(gmxVaultAddr, addresses.weth);
+            const encodedEthUsd = encodedScalar(ethers.utils.parseUnits("1260", 30));
             const encodedGmxUsd = encodedDivPrice(encodedEthUsd, encodedEthGmx);
 
             await tokenPrices.setTokenPriceFunction(addresses.gmx, encodedGmxUsd);
 
             const price = await tokenPrices.tokenPrice(addresses.gmx);
-            expect(price).to.eq(toPrecision("43.099467377390816127490190759359"));
+            expect(price).to.eq(toPrecision("43.111785030256603728555492328596"));
         });
 
         it("scalar()", async () => {
@@ -196,7 +163,7 @@ describe("Token Prices", async () => {
         it("aliasFor()", async () => {
             // Add $GMX price        
             const encodedEthGmx = encodedUniV3Price(addresses.ethGmxUniV3Pool, true);
-            const encodedEthUsd = encodedGmxVaultPrice(gmxVaultAddr, addresses.weth);
+            const encodedEthUsd = encodedScalar(ethers.utils.parseUnits("1260", 30));
             const encodedGmxUsd = encodedDivPrice(encodedEthUsd, encodedEthGmx);
             await tokenPrices.setTokenPriceFunction(addresses.gmx, encodedGmxUsd);
 
@@ -207,7 +174,7 @@ describe("Token Prices", async () => {
 
             const gmxPrice = await tokenPrices.tokenPrice(addresses.gmx);
             const aliasPrice = await tokenPrices.tokenPrice(aliasToken.address);
-            expect(gmxPrice).to.eq(aliasPrice).eq(toPrecision("43.099467377390816127490190759359"));
+            expect(gmxPrice).to.eq(aliasPrice).eq(toPrecision("43.111785030256603728555492328596"));
         });
 
         it("Unknown token", async () => {
@@ -220,21 +187,21 @@ describe("Token Prices", async () => {
             await tokenPrices.setTokenPriceFunction(addresses.weth, encodedEthUsdOracle);
 
             // GLP
-            const encodedGlpUsd = encodedGlpPrice(addresses.glpManager);
+            const encodedGlpUsd = encodedScalar(ethers.utils.parseUnits("0.99", 30));
             await tokenPrices.setTokenPriceFunction(addresses.glp, encodedGlpUsd);
 
             // GMX
             const encodedEthGmx = encodedUniV3Price(addresses.ethGmxUniV3Pool, true);
-            const encodedEthUsdGmx = encodedGmxVaultPrice(gmxVaultAddr, addresses.weth);
+            const encodedEthUsdGmx = encodedScalar(ethers.utils.parseUnits("1260", 30));
             const encodedGmxUsd = encodedDivPrice(encodedEthUsdGmx, encodedEthGmx);
             await tokenPrices.setTokenPriceFunction(addresses.gmx, encodedGmxUsd);
 
             const price = await tokenPrices.tokenPrices([addresses.glp, addresses.weth, addresses.gmx]);
             expect(price).to.deep.eq(
                 [
-                    toPrecision("0.857773867014654178652699835936"),
+                    toPrecision("0.99"),
                     toPrecision("1259.44226268"),
-                    toPrecision("43.099467377390816127490190759359"),
+                    toPrecision("43.111785030256603728555492328596"),
                 ]
             );
         });
@@ -247,21 +214,21 @@ describe("Token Prices", async () => {
             await tokenPricesLower.setTokenPriceFunction(addresses.weth, encodedEthUsdOracle);
 
             // GLP
-            const encodedGlpUsd = encodedGlpPrice(addresses.glpManager);
+            const encodedGlpUsd = encodedScalar(ethers.utils.parseUnits("0.99", 6));
             await tokenPricesLower.setTokenPriceFunction(addresses.glp, encodedGlpUsd);
 
             // GMX
             const encodedEthGmx = encodedUniV3Price(addresses.ethGmxUniV3Pool, true);
-            const encodedEthUsdGmx = encodedGmxVaultPrice(gmxVaultAddr, addresses.weth);
+            const encodedEthUsdGmx = encodedScalar(ethers.utils.parseUnits("1260", 6));
             const encodedGmxUsd = encodedDivPrice(encodedEthUsdGmx, encodedEthGmx);
             await tokenPricesLower.setTokenPriceFunction(addresses.gmx, encodedGmxUsd);
             
             const price = await tokenPricesLower.tokenPrices([addresses.glp, addresses.weth, addresses.gmx]);
             expect(price).to.deep.eq(
                 [
-                    toPrecision("0.857773", 6),
+                    toPrecision("0.99", 6),
                     toPrecision("1259.442262", 6),
-                    toPrecision("43.099467", 6),
+                    toPrecision("43.111785", 6),
                 ]
             );
         });
@@ -271,7 +238,6 @@ describe("Token Prices", async () => {
         const addresses = {
             wavax: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
             traderJoeQuoter: '0x9dbf1706577636941ab5f443d2aebe251ccd1648',
-            glpManager: '0xe1ae4d4b06A5Fe1fc288f6B4CD72f9F8323B107F',
             gmx: '0x62edc0692BD897D2295872a9FFCac5425011c661',
             usdc: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
         };
@@ -279,18 +245,15 @@ describe("Token Prices", async () => {
         async function setup() {
             forkMainnet(26276626, AVAX_RPC);
             tokenPrices = await new TokenPrices__factory(owner).deploy(pricePrecision);
-            gmxVaultAddr = await GMX_GlpManager__factory.connect(addresses.glpManager, owner).vault();
             
             return {
                 tokenPrices,
-                gmxVaultAddr,
             };
         }
 
         beforeEach(async () => {
             ({
                 tokenPrices,
-                gmxVaultAddr,
             } = await loadFixture(setup));
         });
 
@@ -315,11 +278,11 @@ describe("Token Prices", async () => {
             expect(lookupPrice).eq(wavaxGmxPrice);
 
             // And get the derived $GMX price from [AVAX_USD / AVAX_GMX]
-            const encodedAvaxUsd = encodedGmxVaultPrice(gmxVaultAddr, addresses.wavax);
+            const encodedAvaxUsd = encodedScalar(ethers.utils.parseUnits("18", 30));
             const encodedGmxUsd = encodedDivPrice(encodedAvaxUsd, encodedWavaxGmx);
             await tokenPrices.setTokenPriceFunction(aliasAddr, encodedGmxUsd);
             const gmxPrice = await tokenPrices.tokenPrice(aliasAddr);
-            expect(gmxPrice).to.eq(toPrecision("75.886932056175436282845046092983"));
+            expect(gmxPrice).to.eq(toPrecision("75.634816002832660747021640624236"));
         });
     });
 

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -38,7 +38,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
 
     address public constant INTERNAL_USD_ADDRESS = 0x000000000000000000000000000000000000115d;
 
-    uint16 public constant PRICE_PREMIUM_BPS = 30;
+    int16 public constant PRICE_PREMIUM_BPS = 30;
     uint16 public constant VERIFY_SLIPPAGE_BPS = 3;
     uint96 public constant ROUND_DOWN_DIVISOR = 10e18; // In buyToken decimals
     uint24 public constant EXPIRY_PERIOD_SECS = 5 minutes;
@@ -107,7 +107,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
             partiallyFillable: true,
             useCurrentBalanceForSellAmount: false,
             limitPriceOracle: limitPriceOracle,
-            limitPricePremiumBps: PRICE_PREMIUM_BPS,
+            limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
             roundDownDivisor: ROUND_DOWN_DIVISOR,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS,
@@ -132,7 +132,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
         );
     }
 
-    function test_oracle() public {
+    function test_oracle() public view {
         assertEq(
             sdaiOracle.convertAmount(sDAI, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
             1.106391098015661527e18

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -17,7 +17,7 @@ contract OrigamiAbstractLovTokenManagerTestAdmin_6dp is OrigamiLovTokenTestBase_
     event UserALRangeSet(uint128 floor, uint128 ceiling);
     event RebalanceALRangeSet(uint128 floor, uint128 ceiling);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(manager.owner(), origamiMultisig);
         assertEq(address(manager.lovToken()), address(lovToken));
         (uint64 minDepositFeeBps, uint64 minExitFeeBps, uint64 feeLeverageFactor) = manager.getFeeConfig();
@@ -485,7 +485,7 @@ contract OrigamiAbstractLovTokenManagerTestViews_6dp is OrigamiLovTokenTestBase_
         assertEq(manager.effectiveExposure(IOrigamiOracle.PriceType.HISTORIC_PRICE), 9.999999993069306931e18);
     }
 
-    function test_tokenPrice() public {
+    function test_tokenPrice() public view {
         assertEq(tokenPrices.tokenPrice(address(lovToken)), 1e30);
     }
 }

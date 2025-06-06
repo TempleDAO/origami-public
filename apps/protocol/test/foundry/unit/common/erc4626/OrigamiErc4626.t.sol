@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -180,7 +180,7 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
         assertEq(vault.areWithdrawalsPaused(), false);
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(vault.owner(), origamiMultisig);
         assertEq(vault.name(), "VAULT");
         assertEq(vault.symbol(), "VLT");
@@ -212,7 +212,7 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
         assertEq(vault.areWithdrawalsPaused(), false);
     }
 
-    function test_supportsInterface() public {
+    function test_supportsInterface() public view {
         assertEq(vault.supportsInterface(type(IERC4626).interfaceId), true);
         assertEq(vault.supportsInterface(type(IERC20Permit).interfaceId), true);
         assertEq(vault.supportsInterface(type(EIP712).interfaceId), true);
@@ -260,6 +260,20 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
     function test_setMaxTotalSupply_access() public {
         expectElevatedAccess();
         vault.setMaxTotalSupply(100e18);
+    }
+
+    function test_seedDeposit_failure_zeroAssets() public {
+        vault = new MockErc4626VaultWithFees(
+            origamiMultisig, 
+            "VAULT",
+            "VLT",
+            asset,
+            0,
+            0
+        );
+        vm.startPrank(origamiMultisig);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
+        vault.seedDeposit(0, origamiMultisig, 123e18);
     }
 
     function test_seedDeposit_failure_alreadySeeded() public {
@@ -338,7 +352,6 @@ contract OrigamiErc4626TestAdmin is OrigamiErc4626TestBase {
     }
 }
 
-
 contract OrigamiErc4626TestDeposit is OrigamiErc4626TestBase {
     function test_deposit_basic() public {
         deposit(alice, 123e18);
@@ -350,6 +363,12 @@ contract OrigamiErc4626TestDeposit is OrigamiErc4626TestBase {
         assertEq(vault.balanceOf(alice), expectedShares);
         assertEq(vault.totalSupply(), 121.872575000000000005e18);
         assertEq(vault.totalAssets(), 123e18 + 0.1e18);
+    }
+
+    function test_deposit_fail_paused() public {
+        vault.setPaused(true, false);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
+        vault.deposit(100, alice);
     }
 
     function test_deposit_fail_zeroAssets() public {
@@ -461,6 +480,12 @@ contract OrigamiErc4626TestMint is OrigamiErc4626TestBase {
         assertEq(vault.balanceOf(alice), 123e18);
         assertEq(vault.totalSupply(), 123e18 + 0.0995e18);
         assertEq(vault.totalAssets(), expectedAssets);
+    }
+
+    function test_mint_fail_paused() public {
+        vault.setPaused(true, false);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
+        vault.mint(100, alice);
     }
 
     function test_mint_fail_zeroShares() public {
@@ -596,6 +621,22 @@ contract OrigamiErc4626TestWithdraw is OrigamiErc4626TestBase {
         assertEq(vault.totalAssets(), 73e18 + 0.1e18);
     }
 
+    function test_withdraw_fail_paused() public {
+        deposit(alice, 123e18);
+        vm.startPrank(alice);
+
+        vault.setPaused(false, true);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
+        vault.withdraw(100, alice, alice);
+    }
+
+    function test_withdraw_fail_badReceiver() public {
+        deposit(alice, 123e18);
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
+        vault.withdraw(1e18, address(0), alice);
+    }
+
     function test_withdraw_fail_zeroAssets() public {
         vault = new MockErc4626VaultWithFees(
             origamiMultisig, 
@@ -727,7 +768,7 @@ contract OrigamiErc4626TestWithdraw is OrigamiErc4626TestBase {
         assertEq(vault.convertToAssets(1e18), 1.130165083353554820e18);
     }
 
-    function test_maxWithdraw_addressZero() public {
+    function test_maxWithdraw_addressZero() public view {
         // Default implementation has no constraints
         assertEq(vault.maxWithdraw(address(0)), type(uint256).max);
     }
@@ -744,6 +785,22 @@ contract OrigamiErc4626TestRedeem is OrigamiErc4626TestBase {
         assertEq(vault.balanceOf(alice), 71.773075000000000005e18);
         assertEq(vault.totalSupply(), 71.872575000000000005e18);
         assertEq(vault.totalAssets(), 73.606502385791060871e18);
+    }
+
+    function test_redeem_fail_paused() public {
+        deposit(alice, 123e18);
+        vm.startPrank(alice);
+
+        vault.setPaused(false, true);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
+        vault.redeem(100, alice, alice);
+    }
+
+    function test_redeem_fail_badReceiver() public {
+        deposit(alice, 123e18);
+        vm.startPrank(alice);
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
+        vault.redeem(1e18, address(0), alice);
     }
 
     function test_redeem_ok_zeroShares() public {
@@ -873,7 +930,7 @@ contract OrigamiErc4626TestRedeem is OrigamiErc4626TestBase {
         assertEq(vault.convertToAssets(1e18), 1.133602462014720876e18);
     }
 
-    function test_maxRedeem_addressZero() public {
+    function test_maxRedeem_addressZero() public view {
         // Default implementation has no constraints
         assertEq(vault.maxRedeem(address(0)), type(uint256).max);
     }

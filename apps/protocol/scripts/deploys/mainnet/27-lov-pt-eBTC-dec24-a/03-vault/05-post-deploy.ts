@@ -68,7 +68,6 @@ async function updatePricesSafeBatch(contract: TokenPrices) {
   const encodedPrices = getEncodedPrices();
 
   const batch = createSafeBatch(
-    1,
     [
       setTokenPriceFunction(contract, ADDRS.EXTERNAL.ETHERFI.EBTC_TOKEN,
         encodedPrices.eBtcToUsd

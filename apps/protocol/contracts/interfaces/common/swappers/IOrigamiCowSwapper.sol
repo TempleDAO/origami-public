@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/common/swappers/IOrigamiCowSwapper.sol)
 
@@ -78,9 +78,11 @@ interface IOrigamiCowSwapper is IConditionalOrder {
         /// sell amount, with a cap of maxSellAmount
         bool useCurrentBalanceForSellAmount;
 
-        /// @dev How many basis points premium above the `limitPriceOracle` is the limit order set.
-        /// Not used if set to zero
-        uint16 limitPricePremiumBps;
+        /// @dev How many basis points above or below the `limitPriceOracle` is the limit order set.
+        ///     - negative value: Accept trades where the price is greater than or equal `limitPriceOracle` minus this discount
+        ///     - positive value: Accept trades where the price is greater than or equal to `limitPriceOracle` plus this premium
+        ///     - zero: Use the exact oracle price
+        int16 limitPriceAdjustmentBps;
 
         /// @dev The acceptable slippage (in basis points) to the unrounded buyAmount between
         /// T1. The order being picked up by watchtower. 
@@ -141,11 +143,11 @@ interface IOrigamiCowSwapper is IConditionalOrder {
     /**
      * @notice A convenience function to update the maxSellAmount, minBuyAmount and price premium on future discrete orders.
      */
-    function updateAmountsAndPremiumBps(
+    function updateAmountsAndAdjustmentBps(
         address sellToken, 
         uint96 maxSellAmount,
         uint96 minBuyAmount,
-        uint16 limitPricePremiumBps
+        int16 limitPriceAdjustmentBps
     ) external;
 
     /**
@@ -182,7 +184,7 @@ interface IOrigamiCowSwapper is IConditionalOrder {
     /**
      * @notice Calculate the buyAmount as of now for a given sellToken. 
      * @dev If it's a MARKET order, this is set to the `minBuyAmount`
-     * If it's a LIMIT order it is derived from the `limitPriceOracle` + `limitPricePremiumBps`
+     * If it's a LIMIT order it is derived from the `limitPriceOracle` + `limitPriceAdjustmentBps`
      * (floored by the `minBuyAmount`)
      * `roundedBuyAmount` is the `unroundedBuyAmount` rounded down to the nearest `roundDownDivisor`
      */

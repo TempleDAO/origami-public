@@ -1,0 +1,189 @@
+{
+  "chainId": "1",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0x5BaE9a5D67d1CA5b09B14c91935f635CFBF3b685",
+        "fnCalldata": "0x04b39534000000000000000000000000412f3daca3150fb10b5e61ac9cebd63accdd713900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "to": "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205",
+        "fnCalldata": "0x7eb11c63000000000000000000000000bd46abf8999e979c4ec507e8be06b5d4402a0205"
+      }
+    },
+    {
+      "to": "0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xBB051daD562eFE87a594Cd1DD0A2263706ABe125",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x50e4b5c8F18CdFd78F21D5dd1f89cf22F48638e8",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "_maxTotalSupply",
+            "type": "uint256"
+          }
+        ],
+        "name": "setMaxTotalSupply",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_maxTotalSupply": "1000000000000000000000000"
+      }
+    },
+    {
+      "to": "0x5BaE9a5D67d1CA5b09B14c91935f635CFBF3b685",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205",
+        "amount": "3000000000000000000000"
+      }
+    },
+    {
+      "to": "0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "investWithToken",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "fromToken",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "fromTokenAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "maxSlippageBps",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "deadline",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "expectedInvestmentAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "minInvestmentAmount",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "underlyingInvestmentQuoteData",
+                "type": "bytes"
+              }
+            ],
+            "internalType": "struct IOrigamiInvestment.InvestQuoteData",
+            "name": "quoteData",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "quoteData": "[\"0x5BaE9a5D67d1CA5b09B14c91935f635CFBF3b685\",\"3000000000000000000000\",\"0\",\"0\",\"3000000000000000000000\",\"3000000000000000000000\",\"0x\"]"
+      }
+    }
+  ]
+}

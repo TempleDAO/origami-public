@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -75,7 +75,7 @@ contract OrigamiAaveV3BorrowAndLendTestAdmin is OrigamiAaveV3BorrowAndLendTestBa
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
     event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(borrowLend.aavePool()), SPARK_POOL);
         assertEq(address(borrowLend.aaveAToken()), SPARK_WSTETH_A_TOKEN);
         assertEq(address(borrowLend.aaveDebtToken()), SPARK_WETH_DEBT_TOKEN);
@@ -513,7 +513,7 @@ contract OrigamiAaveV3BorrowAndLendTestViews is OrigamiAaveV3BorrowAndLendTestBa
         assertEq(borrowLend.aaveDebtToken().balanceOf(address(borrowLend)), 25.742658211257227091e18);
     }
 
-    function test_isSafeAlRatio_ethEMode() public {
+    function test_isSafeAlRatio_ethEMode() public view {
         // 90% LTV
         assertEq(borrowLend.isSafeAlRatio(1.112e18), true);
         assertEq(borrowLend.isSafeAlRatio(1.111111111111111111e18), true);

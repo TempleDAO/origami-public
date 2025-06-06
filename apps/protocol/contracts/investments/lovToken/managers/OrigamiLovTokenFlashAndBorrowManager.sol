@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/lovToken/managers/OrigamiLovTokenFlashAndBorrowManager.sol)
 
@@ -49,7 +49,7 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
     /**
      * @notice The contract responsible for borrow/lend via external markets
      */
-    IOrigamiBorrowAndLend public borrowLend;
+    IOrigamiBorrowAndLend public override borrowLend;
 
     /**
      * @notice The Origami flashLoan provider contract, which may be via Aave/Spark/Balancer/etc
@@ -491,12 +491,10 @@ contract OrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenFlashAndBorrowM
      */
     function _depositIntoReserves(address fromToken, uint256 fromTokenAmount) internal override returns (uint256 newReservesAmount) {
         if (fromToken == address(_reserveToken)) {
-            newReservesAmount = fromTokenAmount;
-
             // Supply into the money market
             IOrigamiBorrowAndLend _borrowLend = borrowLend;
             _reserveToken.safeTransfer(address(_borrowLend), fromTokenAmount);
-            _borrowLend.supply(fromTokenAmount);
+            newReservesAmount = _borrowLend.supply(fromTokenAmount);
         } else {
             revert CommonEventsAndErrors.InvalidToken(fromToken);
         }

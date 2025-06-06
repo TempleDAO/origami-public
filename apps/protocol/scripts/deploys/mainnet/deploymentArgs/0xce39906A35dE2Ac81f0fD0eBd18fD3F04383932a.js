@@ -1,0 +1,8 @@
+// mainnet: VAULTS.hOHM.TELEPORTER=0xce39906A35dE2Ac81f0fD0eBd18fD3F04383932a
+// yarn hardhat verify --network mainnet 0xce39906A35dE2Ac81f0fD0eBd18fD3F04383932a --constructor-args scripts/deploys/mainnet/deploymentArgs/0xce39906A35dE2Ac81f0fD0eBd18fD3F04383932a.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x1DB1591540d7A6062Be0837ca3C808aDd28844F6",
+  "0x1a44076050125825900e736c501f859c50fE728c",
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80"
+];

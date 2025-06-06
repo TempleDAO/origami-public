@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/borrowAndLend/OrigamiMorphoBorrowAndLend.sol)
 
@@ -184,8 +184,9 @@ contract OrigamiMorphoBorrowAndLend is IOrigamiMorphoBorrowAndLend, IMorphoSuppl
      */
     function supply(
         uint256 supplyAmount
-    ) external override onlyPositionOwnerOrElevated {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 supplied) {
         _supply(supplyAmount, getMarketParams(), "");
+        supplied = supplyAmount;
     }
 
     /**
@@ -205,8 +206,8 @@ contract OrigamiMorphoBorrowAndLend is IOrigamiMorphoBorrowAndLend, IMorphoSuppl
     function borrow(
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwnerOrElevated {
-        _borrow(borrowAmount, recipient, getMarketParams());
+    ) external override onlyPositionOwnerOrElevated returns (uint256 borrowedAmount) {
+        borrowedAmount = _borrow(borrowAmount, recipient, getMarketParams());
     }
 
     /**
@@ -247,10 +248,10 @@ contract OrigamiMorphoBorrowAndLend is IOrigamiMorphoBorrowAndLend, IMorphoSuppl
         uint256 supplyAmount, 
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwnerOrElevated {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 suppliedAmount, uint256 borrowedAmount) {
         MorphoMarketParams memory marketParams = getMarketParams();
-        _supply(supplyAmount, marketParams, "");
-        _borrow(borrowAmount, recipient, marketParams);
+        suppliedAmount = _supply(supplyAmount, marketParams, "");
+        borrowedAmount = _borrow(borrowAmount, recipient, marketParams);
     }
 
     /**
@@ -510,8 +511,9 @@ contract OrigamiMorphoBorrowAndLend is IOrigamiMorphoBorrowAndLend, IMorphoSuppl
         }
     }
 
-    function _supply(uint256 supplyAmount, MorphoMarketParams memory marketParams, bytes memory data) internal {
+    function _supply(uint256 supplyAmount, MorphoMarketParams memory marketParams, bytes memory data) internal returns (uint256 suppliedAmount){
         morpho.supplyCollateral(marketParams, supplyAmount, address(this), data);
+        suppliedAmount = supplyAmount;
     }
 
     function _withdraw(uint256 withdrawAmount, address recipient, MorphoMarketParams memory marketParams) internal returns (uint256 amountWithdrawn) {
@@ -520,8 +522,8 @@ contract OrigamiMorphoBorrowAndLend is IOrigamiMorphoBorrowAndLend, IMorphoSuppl
         morpho.withdrawCollateral(marketParams, amountWithdrawn, address(this), recipient);
     }
 
-    function _borrow(uint256 borrowAmount, address recipient, MorphoMarketParams memory marketParams) internal {
-        (uint256 assetsBorrowed,) = morpho.borrow(
+    function _borrow(uint256 borrowAmount, address recipient, MorphoMarketParams memory marketParams) internal returns (uint256 assetsBorrowed) {
+        (assetsBorrowed,) = morpho.borrow(
             marketParams, borrowAmount, 0, address(this), recipient
         );
         if (assetsBorrowed != borrowAmount) revert CommonEventsAndErrors.InvalidAmount(address(_borrowToken), assetsBorrowed);

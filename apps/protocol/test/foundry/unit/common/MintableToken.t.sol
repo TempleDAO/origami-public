@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -19,7 +19,7 @@ contract MintableTokenTestAdmin is MintableTokenTestBase {
     event AddedMinter(address indexed account);
     event RemovedMinter(address indexed account);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(token.name(), "TOKEN");
         assertEq(token.symbol(), "TKN");
         assertEq(token.decimals(), 18);

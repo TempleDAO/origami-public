@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/investments/lovToken/managers/IOrigamiLovTokenFlashAndBorrowManager.sol)
 
@@ -7,6 +7,7 @@ import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSw
 import { IOrigamiLovTokenManager } from "contracts/interfaces/investments/lovToken/managers/IOrigamiLovTokenManager.sol";
 import { IOrigamiFlashLoanReceiver } from "contracts/interfaces/common/flashLoan/IOrigamiFlashLoanReceiver.sol";
 import { IOrigamiFlashLoanProvider } from "contracts/interfaces/common/flashLoan/IOrigamiFlashLoanProvider.sol";
+import { IOrigamiBorrowAndLend } from "contracts/interfaces/common/borrowAndLend/IOrigamiBorrowAndLend.sol";
 
 /**
  * @title Origami lovToken Manager
@@ -97,6 +98,11 @@ interface IOrigamiLovTokenFlashAndBorrowManager is IOrigamiLovTokenManager, IOri
      * @dev Separate function to above to have stricter control on who can force
      */
     function forceRebalanceDown(RebalanceDownParams calldata params) external;
+
+    /**
+     * @notice The contract responsible for borrow/lend via external markets
+     */
+    function borrowLend() external view returns (IOrigamiBorrowAndLend);
 
     /**
      * @notice The flashLoan provider contract, which may be through Aave/Spark/Balancer/etc

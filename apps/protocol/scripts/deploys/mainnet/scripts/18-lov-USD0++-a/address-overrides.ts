@@ -2,7 +2,7 @@ import { ContractAddresses } from "../../contract-addresses/types";
 
 export function applyOverrides(addrs: ContractAddresses): ContractAddresses {
   addrs.ORACLES.USD0pp_USD0 = '0x6c383Ef7C9Bf496b5c847530eb9c49a3ED6E4C56';
-  addrs.ORACLES.USD0pp_USDC = '0xAAF0F531b7947e8492f21862471d61d5305f7538';
+  addrs.ORACLES.USD0pp_USDC_PEGGED = '0xAAF0F531b7947e8492f21862471d61d5305f7538';
   addrs.ORACLES.USD0_USDC = '0x2aA12f98795E7A65072950AfbA9d1E023D398241';
   addrs.LOV_USD0pp_A = {
     OVERLORD_WALLET: addrs.CORE.MULTISIG,

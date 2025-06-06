@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -16,6 +16,7 @@ contract RangeTest is OrigamiTest {
         });
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_set_failure() public {
         assertEq(range.floor, 1e18);
         assertEq(range.ceiling, 100e18);

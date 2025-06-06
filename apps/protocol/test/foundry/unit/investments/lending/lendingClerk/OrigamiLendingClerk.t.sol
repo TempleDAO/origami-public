@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IOrigamiLendingClerk } from "contracts/interfaces/investments/lending/IOrigamiLendingClerk.sol";
@@ -983,7 +983,7 @@ contract OrigamiLendingClerkTestViews is OrigamiLendingClerkTestBase {
         assertEq(lendingClerk.borrowerUtilisationRatio(address(borrower)), type(uint256).max);
     }
 
-    function test_borrowerBalanceSheet_unknownBorrower() public {
+    function test_borrowerBalanceSheet_unknownBorrower() public view {
         (
             IOrigamiLendingBorrower.AssetBalance[] memory assetBalances,
             uint256 debtTokenBalance

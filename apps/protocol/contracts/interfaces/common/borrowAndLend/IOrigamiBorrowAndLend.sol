@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/common/borrowAndLend/IOrigamiBorrowAndLend.sol)
 
@@ -20,7 +20,7 @@ interface IOrigamiBorrowAndLend {
      */
     function supply(
         uint256 supplyAmount
-    ) external;
+    ) external returns (uint256 suppliedAmount);
 
     /**
      * @notice Withdraw collateral tokens to recipient
@@ -37,7 +37,7 @@ interface IOrigamiBorrowAndLend {
     function borrow(
         uint256 borrowAmount,
         address recipient
-    ) external;
+    ) external returns (uint256 borrowedAmount);
 
     /**
      * @notice Repay debt. 
@@ -74,7 +74,10 @@ interface IOrigamiBorrowAndLend {
         uint256 supplyAmount, 
         uint256 borrowAmount, 
         address recipient
-    ) external;
+    ) external returns (
+        uint256 suppliedAmount, 
+        uint256 borrowedAmount
+    );
 
     /**
      * @notice The approved owner of the borrow/lend position

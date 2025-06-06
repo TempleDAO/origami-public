@@ -55,7 +55,6 @@ async function updatePricesSafeBatch(contract: TokenPrices) {
   const encodedPrices = getEncodedPrices();
 
   const batch = createSafeBatch(
-    1,
     [
       setTokenPriceFunction(contract, ADDRS.EXTERNAL.PENDLE.SUSDE_MAR_2025.PT_TOKEN,
         encodedPrices.ptToUsd

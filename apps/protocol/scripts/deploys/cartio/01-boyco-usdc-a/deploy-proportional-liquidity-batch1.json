@@ -1,0 +1,208 @@
+{
+  "chainId": "80000",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xAbe877df4591854B17439EeFD6ceb8e5B453ba2D",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_token",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "_to",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "recoverToken",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_token": "0x015fd589F4f1A33ce4487E12714e1B15129c9329",
+        "_to": "0x6C173dD7c662ce719CF14F108146A48D43444A21",
+        "_amount": "68987088056282"
+      }
+    },
+    {
+      "to": "0x015fd589F4f1A33ce4487E12714e1B15129c9329",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0xA81F0019d442f19f66880bcf2698B4E5D5Ec249A",
+        "amount": "34790694240327"
+      }
+    },
+    {
+      "to": "0xA81F0019d442f19f66880bcf2698B4E5D5Ec249A",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "asset",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "receiver",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "expectBasketMode",
+            "type": "bool"
+          }
+        ],
+        "name": "mint",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "asset": "0x015fd589F4f1A33ce4487E12714e1B15129c9329",
+        "amount": "34790694240327",
+        "receiver": "0x6C173dD7c662ce719CF14F108146A48D43444A21",
+        "expectBasketMode": "false"
+      }
+    },
+    {
+      "to": "0x015fd589F4f1A33ce4487E12714e1B15129c9329",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0x9C8a5c82e797e074Fe3f121B326b140CEC4bcb33",
+        "amount": "34196393815954"
+      }
+    },
+    {
+      "to": "0xd137593CDB341CcC78426c54Fb98435C60Da193c",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0x9C8a5c82e797e074Fe3f121B326b140CEC4bcb33",
+        "amount": "34721112851846346000000000"
+      }
+    },
+    {
+      "to": "0x9C8a5c82e797e074Fe3f121B326b140CEC4bcb33",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "joinPool",
+        "payable": true,
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "poolId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "sender",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "recipient",
+            "type": "address"
+          },
+          {
+            "components": [
+              {
+                "internalType": "address[]",
+                "name": "assets",
+                "type": "address[]"
+              },
+              {
+                "internalType": "uint256[]",
+                "name": "maxAmountsIn",
+                "type": "uint256[]"
+              },
+              {
+                "internalType": "bytes",
+                "name": "userData",
+                "type": "bytes"
+              },
+              {
+                "internalType": "bool",
+                "name": "fromInternalBalance",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IBalancerVault.JoinPoolRequest",
+            "name": "request",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "poolId": "0xf7f214a9543c1153ef5df2edcd839074615f248c000000000000000000000005",
+        "sender": "0x6C173dD7c662ce719CF14F108146A48D43444A21",
+        "recipient": "0x6C173dD7c662ce719CF14F108146A48D43444A21",
+        "request": "[[\"0x015fd589F4f1A33ce4487E12714e1B15129c9329\",\"0xd137593CDB341CcC78426c54Fb98435C60Da193c\",\"0xF7F214A9543c1153eF5DF2edCd839074615F248c\"],[\"34196393815954\",\"34721112851846346000000000\",\"0\"],\"0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000038fe0f7602fd89a46fbf85000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000001f19f7e7ef920000000000000000000000000000000000000000001cb87b4c9bee2da6eb6400\",false]"
+      }
+    }
+  ]
+}

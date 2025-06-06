@@ -3,11 +3,9 @@ import { BigNumber, Signer } from "ethers";
 import { expect } from "chai";
 import { 
     DummyOrigamiInvestment, DummyOrigamiInvestment__factory, 
-    DummyOrigamiInvestmentManager, DummyOrigamiInvestmentManager__factory,
     OrigamiInvestmentVault, OrigamiInvestmentVault__factory, 
     TokenPrices, TokenPrices__factory,
     MintableToken, DummyMintableToken__factory,
-    IOrigamiInvestment,
     DummyOracle, DummyOracle__factory,
     DummyProtocolWrapper, DummyProtocolWrapper__factory, CommonEventsAndErrors__factory,
 } from "../../../typechain";
@@ -48,7 +46,6 @@ describe("Origami Investment Vault", async () => {
     let oToken: DummyOrigamiInvestment;
     let ovToken: OrigamiInvestmentVault;
     let tokenPrices: TokenPrices;
-    let investmentManager: DummyOrigamiInvestmentManager;
     let underlyingInvestToken: MintableToken;
     let underlyingExitToken: MintableToken;
     let rewardToken1: MintableToken;
@@ -91,14 +88,6 @@ describe("Origami Investment Vault", async () => {
         {
             rewardToken1 = await new DummyMintableToken__factory(gov).deploy(govAddr, "rwd1", "rwd1", 18);
             rewardToken2 = await new DummyMintableToken__factory(gov).deploy(govAddr, "rwd2", "rwd2", 18);
-            investmentManager = await new DummyOrigamiInvestmentManager__factory(gov).deploy(
-                [rewardToken1.address, rewardToken2.address],
-                [
-                    ethers.utils.parseEther("0.000028935185185185"), // 2.5 per day, 912.5 per year
-                    ethers.utils.parseEther("0.000017361111111111"), // 1.5 per day, 547.5 per year
-                ],
-                ovToken.address,
-            );
         }
 
         // Setup tokenPrices
@@ -146,7 +135,6 @@ describe("Origami Investment Vault", async () => {
             tokenPrices,
             rewardToken1,
             rewardToken2,
-            investmentManager,
             underlyingInvestToken,
             underlyingExitToken,
         }
@@ -159,7 +147,6 @@ describe("Origami Investment Vault", async () => {
             tokenPrices,
             rewardToken1,
             rewardToken2,
-            investmentManager,
             underlyingInvestToken,
             underlyingExitToken,
         } = await loadFixture(setup));

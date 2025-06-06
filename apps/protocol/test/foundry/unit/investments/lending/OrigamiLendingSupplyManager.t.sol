@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -59,7 +59,7 @@ contract OrigamiLendingSupplyManagerTestAdmin is OrigamiLendingSupplyManagerTest
     event FeeCollectorSet(address indexed feeCollector);
     event ExitFeeBpsSet(uint256 feeBps);
     
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(supplyManager.owner(), origamiMultisig);
         assertEq(address(supplyManager.asset()), address(usdcToken));
         assertEq(supplyManager.baseToken(), address(usdcToken));
@@ -194,7 +194,7 @@ contract OrigamiLendingSupplyManagerTestAccess is OrigamiLendingSupplyManagerTes
 }
 
 contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManagerTestBase {
-    function test_maxInvest() public {
+    function test_maxInvest() public view {
         assertEq(supplyManager.maxInvest(bob), 0);
         assertEq(supplyManager.maxInvest(address(usdcToken)), type(uint256).max);
     }
@@ -219,7 +219,7 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
         assertEq(supplyManager.maxExit(address(usdcToken)), 2_002_002.002002002002002002e18);
     }
 
-    function test_investQuote_success() public {
+    function test_investQuote_success() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = supplyManager.investQuote(
             100e6,
             address(usdcToken),
@@ -256,7 +256,7 @@ contract OrigamiLendingSupplyManagerTestInvestExit is OrigamiLendingSupplyManage
         );
     }
 
-    function test_exitQuote_success() public {
+    function test_exitQuote_success() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = supplyManager.exitQuote(
             100e18,
             address(usdcToken),

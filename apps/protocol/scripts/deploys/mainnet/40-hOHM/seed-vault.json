@@ -1,0 +1,74 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x0ab87046fBb341D058F17CBC4c1133F25a20a52f",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0x1DB1591540d7A6062Be0837ca3C808aDd28844F6",
+        "amount": "1000000000000000000"
+      }
+    },
+    {
+      "to": "0x1DB1591540d7A6062Be0837ca3C808aDd28844F6",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256[]",
+            "name": "assetAmounts",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "liabilityAmounts",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "sharesToMint",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "receiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "newMaxTotalSupply",
+            "type": "uint256"
+          }
+        ],
+        "name": "seed",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "assetAmounts": "[\"1000000000000000000\"]",
+        "liabilityAmounts": "[\"2961640000000000000000\"]",
+        "sharesToMint": "269238508004000000000000",
+        "receiver": "0x781B4c57100738095222bd92D37B07ed034AB696",
+        "newMaxTotalSupply": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "chainId": "80000",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x6Ab89A2265aC2f2949b45eEf89EcB0A427Dc4632",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xD21779985da1677df0fFD08a610E905E3F1eA3BD",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xcCF6AEC56d368DE2C04686C2bDbB5E8B6557c714",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xAbe877df4591854B17439EeFD6ceb8e5B453ba2D",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

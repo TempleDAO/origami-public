@@ -1,0 +1,143 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x43947Fe908C9C1F9F64857C2429bF2bb1DD0D111",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "canPause",
+            "type": "bool"
+          }
+        ],
+        "name": "setPauser",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0x781B4c57100738095222bd92D37B07ed034AB696",
+        "canPause": "true"
+      }
+    },
+    {
+      "to": "0x43947Fe908C9C1F9F64857C2429bF2bb1DD0D111",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,true]"
+      }
+    },
+    {
+      "to": "0x43947Fe908C9C1F9F64857C2429bF2bb1DD0D111",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint128",
+            "name": "floor",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "ceiling",
+            "type": "uint128"
+          }
+        ],
+        "name": "setUserALRange",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "floor": "1250000000000000000",
+        "ceiling": "340282366920938463463374607431768211455"
+      }
+    },
+    {
+      "to": "0x43947Fe908C9C1F9F64857C2429bF2bb1DD0D111",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint128",
+            "name": "floor",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "ceiling",
+            "type": "uint128"
+          }
+        ],
+        "name": "setRebalanceALRange",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "floor": "1265900000000000000",
+        "ceiling": "340282366920938463463374607431768211455"
+      }
+    },
+    {
+      "to": "0x43947Fe908C9C1F9F64857C2429bF2bb1DD0D111",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint16",
+            "name": "_minDepositFeeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "_minExitFeeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint24",
+            "name": "_feeLeverageFactor",
+            "type": "uint24"
+          }
+        ],
+        "name": "setFeeConfig",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_minDepositFeeBps": "0",
+        "_minExitFeeBps": "0",
+        "_feeLeverageFactor": "0"
+      }
+    }
+  ]
+}

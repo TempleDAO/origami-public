@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -43,7 +43,7 @@ contract OrigamiAaveV3IdleStrategyTest is OrigamiTest {
         lendingPool.borrow(usdcToken, idleUsdc - 15_000e6, 2, 0, bob);
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(idleStrategy.owner()), origamiMultisig);
         assertEq(address(idleStrategy.asset()), usdcToken);
         assertEq(address(idleStrategy.lendingPool()), 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2);

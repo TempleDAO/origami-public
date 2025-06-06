@@ -1,9 +1,9 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/investments/IOrigamiInvestment.sol)
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
+import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 /**
  * @title Origami Investment
@@ -16,7 +16,7 @@ interface IOrigamiInvestment is IERC20Metadata, IERC20Permit {
     event PerformanceFeeSet(uint256 fee);
     
     /**
-     * @notice Track the depoyed version of this contract. 
+     * @notice Track the deployed version of this contract. 
      */
     function apiVersion() external pure returns (string memory);
 

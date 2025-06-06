@@ -4,7 +4,7 @@ import { getImplementationAddress, ProxyKindOption } from '@openzeppelin/upgrade
 import { isAddress } from "ethers/lib/utils";
 import axios from 'axios';
 import { stringify as qsStringify } from 'qs';
-import { OrigamiGmxRewardsAggregator, IOrigamiElevatedAccess, TokenPrices__factory, PendlePYLpOracle__factory, IPMarket__factory } from "../../typechain";
+import { IOrigamiElevatedAccess, TokenPrices__factory, PendlePYLpOracle__factory, IPMarket__factory } from "../../typechain";
 import * as fs from 'fs';
 import * as path from 'path';
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -160,45 +160,16 @@ export async function deployProxyAndMine<T extends Initializable, D extends (...
   return contract;
 };
 
-/**
- * Check if process.env.MAINNET_ADDRESS_PRIVATE_KEY (required when doing deploy)
- */
-export function expectAddressWithPrivateKey() {
-  if (network.name == 'mainnet' && !process.env.MAINNET_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable MAINNET_ADDRESS_PRIVATE_KEY. A mainnet address private key with eth is required to deploy/manage contracts");
+function checkVar(chainName: string, varName: string): boolean {
+  if (network.name == chainName && !(varName in process.env)) {
+    console.log(`Missing environment variable ${varName}.`);
+    return false;
   }
-
-  if (network.name == 'arbitrum' && !process.env.ARBITRUM_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable ARBITRUM_ADDRESS_PRIVATE_KEY. A mainnet arbitrum address private key with eth is required to deploy/manage contracts");
-  }
-
-  if (network.name == 'avalanche' && !process.env.AVALANCHE_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable AVALANCHE_ADDRESS_PRIVATE_KEY. A mainnet avalanche address private key with eth is required to deploy/manage contracts");
-  }
-
-  if (network.name == 'goerli' && !process.env.GOERLI_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable GOERLI_ADDRESS_PRIVATE_KEY. A goerli address private key with eth is required to deploy/manage contracts");
-  }
-
-  if (network.name == 'polygonMumbai' && !process.env.MUMBAI_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable MUMBAI_ADDRESS_PRIVATE_KEY. A mumbai address private key with eth is required to deploy/manage contracts");
-  }
-
-  if (network.name == 'polygon' && !process.env.POLYGON_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable POLYGON_ADDRESS_PRIVATE_KEY. A mumbai address private key with eth is required to deploy/manage contracts");
-  }
-
-  if (network.name == 'sepolia' && !process.env.SEPOLIA_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable SEPOLIA_ADDRESS_PRIVATE_KEY. A sepolia address private key with eth is required to deploy/manage contracts");
-  }
-
-  if (network.name == 'holesky' && !process.env.HOLESKY_ADDRESS_PRIVATE_KEY) {
-    throw new Error("Missing environment variable HOLESKY_ADDRESS_PRIVATE_KEY. A holesky address private key with eth is required to deploy/manage contracts");
-  }
+  return true;
 }
 
 const expectedEnvvars: { [key: string]: string[] } = {
-  mainnet: ['MAINNET_ADDRESS_PRIVATE_KEY', 'MAINNET_RPC_URL', 'MAINNET_GAS_IN_GWEI'],
+  mainnet: ['MAINNET_ADDRESS_PRIVATE_KEY', 'MAINNET_RPC_URL'],
   arbitrum: ['ARBITRUM_ADDRESS_PRIVATE_KEY', 'ARBITRUM_RPC_URL', 'ARBITRUM_GAS_IN_GWEI'],
   avalanche: ['AVALANCHE_ADDRESS_PRIVATE_KEY', 'AVALANCHE_RPC_URL', 'AVALANCHE_GAS_IN_GWEI'],
   goerli: ['GOERLI_ADDRESS_PRIVATE_KEY', 'GOERLI_RPC_URL'],
@@ -207,6 +178,10 @@ const expectedEnvvars: { [key: string]: string[] } = {
   matic: ['MATIC_ADDRESS_PRIVATE_KEY', 'MATIC_RPC_URL'],
   sepolia: ['SEPOLIA_ADDRESS_PRIVATE_KEY', 'SEPOLIA_RPC_URL'],
   holesky: ['HOLESKY_ADDRESS_PRIVATE_KEY', 'HOLESKY_RPC_URL'],
+  bartio: ['BARTIO_ADDRESS_PRIVATE_KEY', 'BARTIO_RPC_URL'],
+  cartio: ['CARTIO_ADDRESS_PRIVATE_KEY', 'CARTIO_RPC_URL'],
+  berachain: ['BERACHAIN_ADDRESS_PRIVATE_KEY', 'BERACHAIN_RPC_URL'],
+  bepolia: ['BEPOLIA_ADDRESS_PRIVATE_KEY', 'BEPOLIA_RPC_URL'],
   anvil: [],
   localhost: [],
 }
@@ -217,8 +192,9 @@ const expectedEnvvars: { [key: string]: string[] } = {
 export function ensureExpectedEnvvars() {
   let hasAllExpectedEnvVars = true;
   for (const envvarName of expectedEnvvars[network.name]) {
+    checkVar(network.name, envvarName);
     if (!process.env[envvarName]) {
-      console.error(`Missing environment variable ${envvarName}`);
+      console.error(`missing envvar: ${envvarName}`);
       hasAllExpectedEnvVars = false;
     }
   }
@@ -227,12 +203,6 @@ export function ensureExpectedEnvvars() {
     throw new Error(`Expected envvars missing`);
   }
 }
-
-// Matches IOrigamiGmxEarnAccount.VaultType
-export enum GmxVaultType {
-    GLP = 0,
-    GMX,
-};
 
 export type ZeroExQuoteParams = {
     sellToken: string,
@@ -276,23 +246,6 @@ const investQuoteTypes = 'tuple(address fromToken, uint256 fromTokenAmount, uint
 const exitQuoteTypes = 'tuple(uint256 investmentTokenAmount, address toToken, uint256 maxSlippageBps, ' + 
     'uint256 deadline, uint256 expectedToTokenAmount, uint256 minToTokenAmount, bytes underlyingInvestmentQuoteData)';
 
-export const encodeGlpHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGlpParamsStruct): string => {
-    const types = `tuple(${exitQuoteTypes} oGmxExitQuoteData, bytes gmxToNativeSwapData, ` +
-        `${investQuoteTypes} oGlpInvestQuoteData, uint256 addToReserveAmountPct)`;
-    return ethers.utils.defaultAbiCoder.encode(
-        [types], 
-        [params],
-    );
-}
-
-export const encodeGmxHarvestParams = (params: OrigamiGmxRewardsAggregator.HarvestGmxParamsStruct): string => {
-    const types = `tuple(bytes nativeToGmxSwapData, ${investQuoteTypes} oGmxInvestQuoteData, uint256 addToReserveAmountPct)`; 
-    return ethers.utils.defaultAbiCoder.encode(
-        [types], 
-        [params],
-    );
-}
-
 export async function setExplicitAccess(contract: Contract, allowedCaller: string, fnNames: string[], value: boolean) {
   const access: IOrigamiElevatedAccess.ExplicitAccessStruct[] = fnNames.map(fn => {
       return {
@@ -318,6 +271,14 @@ export async function impersonateAndFund(owner: SignerWithAddress, address: stri
   }));
   const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
   await provider.send('anvil_impersonateAccount', [address]);
+  return provider.getSigner(address);
+}
+
+// For local fork testing/impersonation in anvil
+export async function impersonateAndFund2(address: string) {
+  const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
+  await provider.send('anvil_impersonateAccount', [address]);
+  await provider.send('anvil_setBalance', [address, ethers.utils.parseEther("1").toHexString()]);
   return provider.getSigner(address);
 }
 
@@ -370,15 +331,18 @@ export enum RoundingMode {
 }
 
 export const encodedOraclePrice = (oracle: string, stalenessThreshold: number): string => encodeFunction("oraclePrice", oracle, stalenessThreshold);
-export const encodedGmxVaultPrice = (vault: string, token: string): string => encodeFunction("gmxVaultPrice", vault, token);
-export const encodedGlpPrice = (glpManager: string): string => encodeFunction("glpPrice", glpManager);
 export const encodedUniV3Price = (pool: string, inQuotedOrder: boolean): string => encodeFunction("univ3Price", pool, inQuotedOrder);
+export const encodedKodiakV3Price = (pool: string, inQuotedOrder: boolean): string => encodeFunction("kodiakV3Price", pool, inQuotedOrder);
+export const encodedKodiakIslandPrice = (island: string): string => encodeFunction("kodiakIslandPrice", island);
+export const encodedBalancerV2BptPrice = (balancerVault: string, bptToken: string): string => encodeFunction("balancerV2BptPrice", balancerVault, bptToken);
 export const encodedMulPrice = (v1: string, v2: string): string => encodeFunction("mul", v1, v2);
 export const encodedDivPrice = (numerator: string, denominator: string): string => encodeFunction("div", numerator, denominator);
 export const encodedAliasFor = (sourceToken: string): string => encodeFunction("aliasFor", sourceToken);
 export const encodedRepricingTokenPrice = (repricingToken: string): string => encodeFunction("repricingTokenPrice", repricingToken);
 export const encodedErc4626TokenPrice = (vault: string): string => encodeFunction("erc4626TokenPrice", vault);
+export const encodedTokenizedBalanceSheetTokenPrice = (vault: string): string => encodeFunction("tokenizedBalanceSheetTokenPrice", vault);
 export const encodedWstEthRatio = (stEthToken: string): string => encodeFunction("wstEthRatio", stEthToken);
 export const encodedOrigamiOraclePrice = (oracleAddress: string, priceType: PriceType, roundingMode: RoundingMode): string => 
   encodeFunction("origamiOraclePrice", oracleAddress, priceType, roundingMode);
 export const encodedScalar = (amount: BigNumberish): string => encodeFunction("scalar", amount);
+export const encodedTokenPrice = (token: string): string => encodeFunction("tokenPrice", token);
