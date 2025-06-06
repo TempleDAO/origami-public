@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiIdleStrategyTestBase } from "./OrigamiIdleStrategyTestBase.t.sol";
@@ -9,7 +9,7 @@ contract OrigamiIdleStrategyManagerTestAdmin is OrigamiIdleStrategyTestBase {
     event DepositsEnabledSet(bool value);
     event ThresholdsSet(uint256 depositThreshold, uint256 withdrawalBuffer);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(manager.owner()), origamiMultisig);
         assertEq(manager.version(), "1.0.0");
         assertEq(manager.name(), "IdleStrategyManager");

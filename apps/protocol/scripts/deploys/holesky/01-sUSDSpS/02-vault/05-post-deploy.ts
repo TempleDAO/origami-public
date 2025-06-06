@@ -53,7 +53,6 @@ async function updatePricesSafeBatch(contract: TokenPrices) {
   const encodedPrices = getEncodedPrices();
 
   const batch = createSafeBatch(
-    1,
     [
       setTokenPriceFunction(contract, ADDRS.EXTERNAL.SKY.USDS_TOKEN,
         encodedPrices.usdsToUsd
@@ -94,7 +93,7 @@ async function setupCowSwapper() {
         roundDownDivisor: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.ROUND_DOWN_DIVISOR,
         partiallyFillable: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.PARTIALLY_FILLABLE,
         useCurrentBalanceForSellAmount: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.USE_CURRENT_BALANCE_FOR_SELL_AMOUNT,
-        limitPricePremiumBps: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.LIMIT_PRICE_PREMIUM_BPS,
+        limitPriceAdjustmentBps: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.LIMIT_PRICE_PREMIUM_BPS,
         verifySlippageBps: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.VERIFY_SLIPPAGE_BPS,
         expiryPeriodSecs: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.EXACT_SKY_TO_USDS.EXPIRY_PERIOD_SECS,
         recipient: ADDRS.VAULTS.SUSDSpS.MANAGER,

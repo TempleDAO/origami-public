@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";

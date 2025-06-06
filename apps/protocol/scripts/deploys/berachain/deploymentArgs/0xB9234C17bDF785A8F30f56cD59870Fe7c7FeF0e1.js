@@ -1,0 +1,6 @@
+// berachain: VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBERA_A.SWAPPER=0xB9234C17bDF785A8F30f56cD59870Fe7c7FeF0e1
+// yarn hardhat verify --network berachain 0xB9234C17bDF785A8F30f56cD59870Fe7c7FeF0e1 --constructor-args scripts/deploys/berachain/deploymentArgs/0xB9234C17bDF785A8F30f56cD59870Fe7c7FeF0e1.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0xE3EeB9e48934634d8B5B39A0d15DD89eE0F969C4"
+];

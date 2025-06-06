@@ -1,0 +1,13 @@
+import { ContractAddresses } from "../../contract-addresses/types";
+
+export function applyOverrides(addrs: ContractAddresses): ContractAddresses {
+  addrs.SWAPPERS.DIRECT_SWAPPER = '0xc6e7DF5E7b4f2A278906862b61205850344D4e7d';
+  addrs.ORACLES.IBGT_WBERA = '0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f';
+  addrs.ORACLES.ORIBGT_WBERA = '0x4A679253410272dd5232B3Ff7cF5dbB88f295319';
+  
+  addrs.LOV_ORIBGT_A.OVERLORD_WALLET = addrs.CORE.MULTISIG;
+  addrs.LOV_ORIBGT_A.EULER_V2_BORROW_LEND = '0x7a2088a1bFc9d81c55368AE168C2C02570cB814F';
+  addrs.LOV_ORIBGT_A.TOKEN = '0x09635F643e140090A9A8Dcd712eD6285858ceBef';
+  addrs.LOV_ORIBGT_A.MANAGER = '0xc5a5C42992dECbae36851359345FE25997F5C42d';
+  return addrs;
+}

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -148,7 +148,7 @@ contract OrigamiErc4626With6dpTestAdmin is OrigamiErc4626With6dpTestBase {
         );
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(vault.owner(), origamiMultisig);
         assertEq(vault.name(), "VAULT");
         assertEq(vault.symbol(), "VLT");
@@ -176,7 +176,7 @@ contract OrigamiErc4626With6dpTestAdmin is OrigamiErc4626With6dpTestBase {
         assertEq(vault.DOMAIN_SEPARATOR(), bytes32(0xf07a1e21026e15847c4f454c9eb8f87a35787510bc37aee10796c2c8aa85ff16));
     }
 
-    function test_supportsInterface() public {
+    function test_supportsInterface() public view {
         assertEq(vault.supportsInterface(type(IERC4626).interfaceId), true);
         assertEq(vault.supportsInterface(type(IERC20Permit).interfaceId), true);
         assertEq(vault.supportsInterface(type(EIP712).interfaceId), true);

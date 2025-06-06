@@ -1,43 +1,60 @@
-interface IType {
-  OVERLORD_WALLET: string;
-  TOKEN: string;
-  MANAGER: string;
-}
+type Address = `0x${string}`;
 
 export interface ContractAddresses {
   CORE: {
-    MULTISIG: string;
-    FEE_COLLECTOR: string;
+    MULTISIG: Address;
+    FEE_COLLECTOR: Address;
     TOKEN_PRICES: {
-      V3: string;
+      V3: Address;
+      V4: Address;
     };
-  },
+  };
 
   VAULTS: {
     SUSDSpS: {
-      OVERLORD_WALLET: string;
-      TOKEN: string;
-      MANAGER: string;
-      COW_SWAPPER: string;
-    },
-  },
+      OVERLORD_WALLET: Address;
+      TOKEN: Address;
+      MANAGER: Address;
+      COW_SWAPPER: Address;
+    };
+    hOHM: {
+      TOKEN: Address;
+      MANAGER: Address;
+      SWEEP_SWAPPER: Address;
+      DUMMY_DEX_ROUTER: Address;
+      TELEPORTER: Address;
+    }
+  };
     
   EXTERNAL: {
+    WETH_TOKEN: Address;
+    
     SKY: {
-      USDS_TOKEN: string;
-      SUSDS_TOKEN: string;
-      SKY_TOKEN: string;
-      SDAO_TOKEN: string;
+      USDS_TOKEN: Address;
+      SUSDS_TOKEN: Address;
+      SKY_TOKEN: Address;
+      SDAO_TOKEN: Address;
+      DAI_TO_USDS: Address;
 
       STAKING_FARMS: {
-        USDS_SKY: string;
-        USDS_SDAO: string;
+        USDS_SKY: Address;
+        USDS_SDAO: Address;
       };
-    },
+    };
   
     COW_SWAP: {
-      VAULT_RELAYER: string;
-      SETTLEMENT: string;
-    },
-  },
+      VAULT_RELAYER: Address;
+      SETTLEMENT: Address;
+    };
+
+    OLYMPUS: {
+      OHM_TOKEN: Address;
+      GOHM_TOKEN: Address;
+      MONO_COOLER: Address;
+    };
+
+    LAYER_ZERO: {
+      ENDPOINT: Address;
+    }
+  };
 }

@@ -40,6 +40,7 @@ async function main() {
     DEFAULT_SETTINGS.EXTERNAL.SUSDE_INTEREST_RATE
   ));
 
+  // New sepolia market created via: https://github.com/TempleDAO/morpho-deployer
   const morphoMarketParams = {
     loanToken: ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN,
     collateralToken: ADDRS.EXTERNAL.ETHENA.SUSDE_TOKEN,
@@ -48,20 +49,6 @@ async function main() {
     lltv: DEFAULT_SETTINGS.LOV_SUSDE_5X.MORPHO_BORROW_LEND.LIQUIDATION_LTV,
   };
 
-  // Setup morpho
-  {
-    await mine(INSTANCES.EXTERNAL.MORPHO.SINGLETON.enableIrm(
-      ADDRS.EXTERNAL.MORPHO.IRM
-    ));
-
-    await mine(INSTANCES.EXTERNAL.MORPHO.SINGLETON.enableLltv(
-      DEFAULT_SETTINGS.LOV_SUSDE_5X.MORPHO_BORROW_LEND.LIQUIDATION_LTV
-    ));
-
-    await mine(INSTANCES.EXTERNAL.MORPHO.SINGLETON.createMarket(
-      morphoMarketParams
-    ));
-  }
 
   // Seed with DAI liquidity
   {

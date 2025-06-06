@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { 
@@ -99,7 +99,7 @@ contract OrigamiMorphoBorrowAndLendTestAdmin is OrigamiMorphoBorrowAndLendTestBa
     event SwapperSet(address indexed swapper);
     event PositionOwnerSet(address indexed account);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(borrowLend.morpho()), MORPHO);
         assertEq(address(borrowLend.supplyToken()), address(sUsdeToken));
         assertEq(address(borrowLend.borrowToken()), address(daiToken));
@@ -492,7 +492,7 @@ contract OrigamiMorphoBorrowAndLendTestViews is OrigamiMorphoBorrowAndLendTestBa
         assertEq(borrowLend.availableToBorrow(), 99_960.000000000000000012e18);
     }
 
-    function test_isSafeAlRatio() public {
+    function test_isSafeAlRatio() public view {
         assertEq(borrowLend.isSafeAlRatio(1.333333333333333333e18), true);
         assertEq(borrowLend.isSafeAlRatio(1.333333333333333334e18), true);
         assertEq(borrowLend.isSafeAlRatio(1.333333333333333332e18), false);
@@ -521,7 +521,7 @@ contract OrigamiMorphoBorrowAndLendTestViews is OrigamiMorphoBorrowAndLendTestBa
         assertEq(available, type(uint256).max);
     }
 
-    function test_getMarketParams() public {
+    function test_getMarketParams() public view {
         MorphoMarketParams memory params = borrowLend.getMarketParams();
         assertEq(params.loanToken, address(daiToken));
         assertEq(params.collateralToken, address(sUsdeToken));

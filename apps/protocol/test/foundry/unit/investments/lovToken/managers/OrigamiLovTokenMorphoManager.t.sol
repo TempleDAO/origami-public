@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -28,6 +28,7 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { DummyOracle } from "contracts/test/common/DummyOracle.sol";
 import { OrigamiCrossRateOracle } from "contracts/common/oracle/OrigamiCrossRateOracle.sol";
 import { OrigamiMorphoBorrowAndLend } from "contracts/common/borrowAndLend/OrigamiMorphoBorrowAndLend.sol";
+import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
 
 contract OrigamiLovTokenMorphoManagerTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -377,21 +378,42 @@ contract OrigamiLovTokenMorphoManagerTestAdmin is OrigamiLovTokenMorphoManagerTe
     }
 
     function test_constructor_fail() public virtual {
-        // 6dp reserves
+        // 19dp reserves
         {
-            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, USDT_ADDRESS));
+            DummyMintableToken token = new DummyMintableToken(origamiMultisig, "fake", "fake", 19);
+
+            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, token));
             manager = new OrigamiLovTokenMorphoManager(
                 origamiMultisig, 
-                USDT_ADDRESS, // 6dp 
+                address(token),
                 address(daiToken), 
+                address(usdeToken),
+                address(lovToken),
+                address(borrowLend)
+            );
+
+            vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, token));
+            manager = new OrigamiLovTokenMorphoManager(
+                origamiMultisig, 
+                address(daiToken), 
+                address(token),
                 address(usdeToken),
                 address(lovToken),
                 address(borrowLend)
             );
         }
 
-        // 6dp debt - ok
+        // 6dp debt or reserves - ok
         {
+            manager = new OrigamiLovTokenMorphoManager(
+                origamiMultisig, 
+                USDT_ADDRESS,  // 6dp 
+                address(sUsdeToken),
+                address(usdeToken),
+                address(lovToken),
+                address(borrowLend)
+            );
+
             manager = new OrigamiLovTokenMorphoManager(
                 origamiMultisig, 
                 address(sUsdeToken), 
@@ -1391,7 +1413,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         });
 
         vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(daiToken), 10e18));
+        vm.expectPartialRevert(IOrigamiLovTokenManager.ALTooHigh.selector);
         manager.rebalanceUp(params);
     }
 
@@ -1415,7 +1437,7 @@ contract OrigamiLovTokenMorphoManagerTestRebalanceUp is OrigamiLovTokenMorphoMan
         deal(address(daiToken), address(swapper), 10e18);
 
         vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(daiToken), 10e18));
+        vm.expectPartialRevert(IOrigamiLovTokenManager.ALTooHigh.selector);
         manager.rebalanceUp(params);
     }
 

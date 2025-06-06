@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/OrigamiInvestment.sol)
 
@@ -15,7 +15,7 @@ abstract contract OrigamiInvestment is IOrigamiInvestment, MintableToken, Reentr
     string public constant API_VERSION = "0.2.0";
     
     /**
-     * @notice Track the depoyed version of this contract. 
+     * @notice Track the deployed version of this contract. 
      */
     function apiVersion() external override pure returns (string memory) {
         return API_VERSION;

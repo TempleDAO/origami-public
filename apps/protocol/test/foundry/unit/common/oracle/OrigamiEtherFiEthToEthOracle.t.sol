@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -68,7 +68,7 @@ contract OrigamiEtherFiEthToEthOracleTestBase is OrigamiTest {
 contract OrigamiEtherFiEthToEthOracleTestAdmin is OrigamiEtherFiEthToEthOracleTestBase {
     event MaxRelativeToleranceBpsSet(uint256 bps);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(address(oWeEthToEthOracle.spotPriceOracle()), address(redstoneWeEthToEthOracle));
         assertEq(oWeEthToEthOracle.spotPriceStalenessThreshold(), stalenessThreshold);
         assertEq(oWeEthToEthOracle.spotPricePrecisionScalar(), 1e10);
@@ -100,7 +100,7 @@ contract OrigamiEtherFiEthToEthOracleTestAccess is OrigamiEtherFiEthToEthOracleT
 }
 
 contract OrigamiEtherFiEthToEthOracleTestPrice is OrigamiEtherFiEthToEthOracleTestBase {
-    function test_latestPrice_spot_underThreshold() public {
+    function test_latestPrice_spot_underThreshold() public view {
         assertEq(
             oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             1.03457952e18
@@ -160,7 +160,7 @@ contract OrigamiEtherFiEthToEthOracleTestPrice is OrigamiEtherFiEthToEthOracleTe
     }
 
 
-    function test_latestPrice_historic_underThreshold() public {
+    function test_latestPrice_historic_underThreshold() public view {
         assertEq(
             oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             1.036311707261417860e18

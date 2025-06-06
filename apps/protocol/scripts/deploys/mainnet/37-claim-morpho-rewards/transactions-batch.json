@@ -1,0 +1,450 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xb48aC9c5585e5F3c88c63CF9bcbAEdC921F76Df2",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0xd42c38b2cebb59e77fc985d0cb0d340f15053bcd",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0xEfc8eDaA7cFd0Cf272a0f55de37d62F0ADFb7e93",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0xca0678c3a9b1acb50276245ddda06c91ab072fdd",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0xC8a26A2ddC176E02A8FD67cB3c8548aA6c8bE32C",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0xcd745c7eb39472c804db981b1829c99ce0b26ce0",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0xF919e7a09d6c9dC2db9c3DdD9c667ed5949C322c",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x40557e20e0ffb01849782a09fcb681d5e8d9d229",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0x4e568666DED61D6077EFf8979733cEe4610a5eA2",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x956442579a697f9a502fbbf589d8352536161fa0",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0x9e0457B5BcD95F4e2fc7FabCC41faAD0D443B4F7",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x6f4C6D6f836394BB8c0f46121e963821B8B3a822",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0x415A37462350C7B428D3310629f8B5520e18dDB1",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x39a9e58ae15e70350eeb147d59f9182d4b891e4d",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0x727224CdeC0ca8200909e5b7ed1944bd899eEF27",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0xfa18305212046966dca26dece54e29354389fa80",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0xe6B1F872b1073408a1E619319718E0Bce3E48F17",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x7784d68076c829fef27b7a270d1fea070996ec11",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0xBB051daD562eFE87a594Cd1DD0A2263706ABe125",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x0842907f05fbb2cd4b781b16a52ad9555e9f2f65",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0x9dE4AA3BD78d92468208465c28E5609354680667",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x14aa974d85D601c46A1cc509d1A71CcbAF8eCbab",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    },
+    {
+      "to": "0xDF3D394669Fe433713D170c6DE85f02E260c1c34",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x39a9e58ae15e70350eeb147d59f9182d4b891e4d",
+        "_access": "[[\"0xa7229fd9\",true],[\"0x35403023\",true]]"
+      }
+    }
+  ]
+}

@@ -1,17 +1,28 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
 import { OrigamiDexAggregatorSwapper } from "contracts/common/swappers/OrigamiDexAggregatorSwapper.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
+import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.sol";
+
+contract MockToken is ERC20 {
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
+    
+    function allowance(address, address) public pure override returns (uint256) {
+        return type(uint256).max;
+    }
+}
 
 /* solhint-disable func-name-mixedcase, contract-name-camelcase, not-rely-on-time */
 contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
     OrigamiDexAggregatorSwapper public swapper;
     address public constant router = 0x1111111254EEB25477B68fb85Ed929f73A960582;
+    DummyDexRouter internal dummyRouter;
 
     IERC20 public constant DAI = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
     IERC20 public constant USDC = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
@@ -23,12 +34,15 @@ contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
     function setUp() public {
         fork("mainnet", 18725488);
         swapper = new OrigamiDexAggregatorSwapper(origamiMultisig);
+        dummyRouter = new DummyDexRouter();
 
-        vm.prank(origamiMultisig);
+        vm.startPrank(origamiMultisig);
         swapper.whitelistRouter(router, true);
+        swapper.whitelistRouter(address(dummyRouter), true);
+        vm.stopPrank();
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(swapper.owner(), origamiMultisig);
     }
 
@@ -148,6 +162,58 @@ curl -X GET \
         swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 
+    function test_execute_fail_sellTokenSurplus() public {
+        uint256 sellTokenAmount = 1_000e18;
+        bytes memory data = abi.encodeCall(
+            DummyDexRouter.doExactSwap, 
+            (address(DAI), sellTokenAmount-1, address(USDC), 1000e6)
+        );
+
+        vm.startPrank(alice);
+        deal(address(DAI), alice, sellTokenAmount*2, true);
+        DAI.approve(address(swapper), sellTokenAmount);
+
+        deal(address(USDC), address(dummyRouter), 1000e6, true);
+
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
+        swapper.execute(
+            DAI,
+            sellTokenAmount,
+            USDC,
+            abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+                router: address(dummyRouter),
+                data: data
+            }))
+        );
+    }
+
+    function test_execute_fail_sellTokenDefecit() public {
+        uint256 sellTokenAmount = 1_000e18;
+        MockToken sellToken = new MockToken("SELL_TOKEN", "SELL_TOKEN");
+        bytes memory data = abi.encodeCall(
+            DummyDexRouter.doExactSwap, 
+            (address(sellToken), sellTokenAmount+1, address(USDC), 1000e6)
+        );
+
+        vm.startPrank(alice);
+        deal(address(sellToken), alice, sellTokenAmount, true);
+        sellToken.approve(address(swapper), sellTokenAmount);
+
+        deal(address(USDC), address(dummyRouter), 1000e6, true);
+        deal(address(sellToken), address(swapper), sellTokenAmount, true);
+
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
+        swapper.execute(
+            sellToken,
+            sellTokenAmount,
+            USDC,
+            abi.encode(OrigamiDexAggregatorSwapper.RouteData({
+                router: address(dummyRouter),
+                data: data
+            }))
+        );
+    }
+
     function test_execute_fail_zeroSellAmount() public {
         bytes memory data = getQuoteData();
 
@@ -259,7 +325,7 @@ curl -X GET \
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.UnknownSwapError.selector, ""));
+        vm.expectRevert("Address: low-level call failed");
         swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 
@@ -271,7 +337,7 @@ curl -X GET \
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.UnknownSwapError.selector, ""));
+        vm.expectRevert("Address: low-level call failed");
         swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
 }

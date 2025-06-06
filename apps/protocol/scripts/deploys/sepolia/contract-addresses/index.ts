@@ -3,9 +3,9 @@ import {
   TokenPrices, TokenPrices__factory,
   OrigamiCowSwapper, OrigamiCowSwapper__factory,
   DummyMintableToken, DummyMintableToken__factory,
-  OrigamiSuperSavingsUsdsVault,
+  OrigamiDelegated4626Vault,
+  OrigamiDelegated4626Vault__factory,
   OrigamiSuperSavingsUsdsManager,
-  OrigamiSuperSavingsUsdsVault__factory,
   OrigamiSuperSavingsUsdsManager__factory,
   MockSDaiToken,
   MockSDaiToken__factory,
@@ -65,7 +65,7 @@ export interface ContractInstances {
 
   VAULTS: {
     SUSDSpS: {
-      TOKEN: OrigamiSuperSavingsUsdsVault;
+      TOKEN: OrigamiDelegated4626Vault;
       MANAGER: OrigamiSuperSavingsUsdsManager;
       COW_SWAPPER: OrigamiCowSwapper;
     };
@@ -98,7 +98,7 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
     },
     VAULTS: {
       SUSDSpS: {
-        TOKEN: OrigamiSuperSavingsUsdsVault__factory.connect(ADDRS.VAULTS.SUSDSpS.TOKEN, owner),
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.SUSDSpS.TOKEN, owner),
         MANAGER: OrigamiSuperSavingsUsdsManager__factory.connect(ADDRS.VAULTS.SUSDSpS.MANAGER, owner),
         COW_SWAPPER: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER, owner),
       },

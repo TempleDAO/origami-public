@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -38,7 +38,7 @@ contract OrigamiOTokenWithNativeTestAccess is OrigamiOTokenWithNativeTestBase {
 contract OrigamiOTokenWithNativeTestAdmin is OrigamiOTokenWithNativeTestBase {
     event ManagerSet(address indexed manager);
 
-    function test_constructor() public {
+    function test_constructor() public view {
         assertEq(oToken.apiVersion(), "0.2.0");
         assertEq(oToken.owner(), origamiMultisig);
         assertEq(oToken.name(), "O Token");
@@ -82,17 +82,17 @@ contract OrigamiOTokenWithNativeTestAdmin is OrigamiOTokenWithNativeTestBase {
         assertEq(address(oToken.manager()), address(newManager));
     }
 
-    function test_baseToken() public {
+    function test_baseToken() public view {
         assertEq(oToken.baseToken(), ZERO_ADDRESS);
     }
 
-    function test_acceptedInvestTokens() public {
+    function test_acceptedInvestTokens() public view {
         address[] memory tokens = oToken.acceptedInvestTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], ZERO_ADDRESS);
     }
 
-    function test_acceptedExitTokens() public {
+    function test_acceptedExitTokens() public view {
         address[] memory tokens = oToken.acceptedExitTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], ZERO_ADDRESS);

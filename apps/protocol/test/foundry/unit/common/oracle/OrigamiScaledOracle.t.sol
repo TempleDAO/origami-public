@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -252,7 +252,7 @@ contract OrigamiScaledOracleTestLatestPriceMultiply is OrigamiScaledOracleTestBa
         vm.startPrank(origamiMultisig);
     }
 
-    function test_latestPrice_success() public {
+    function test_latestPrice_success() public view {
         assertEq(
             scaledOracleMultiply.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             REF_PRICE * SCALAR / 1e18
@@ -264,7 +264,7 @@ contract OrigamiScaledOracleTestLatestPriceMultiply is OrigamiScaledOracleTestBa
         );
     }
 
-    function test_convertAmount() public {
+    function test_convertAmount() public view {
         assertEq(
             scaledOracleMultiply.convertAmount(
                 token1,
@@ -311,7 +311,7 @@ contract OrigamiScaledOracleTestLatestPriceDivide is OrigamiScaledOracleTestBase
         vm.startPrank(origamiMultisig);
     }
 
-    function test_latestPrice_success() public {
+    function test_latestPrice_success() public view {
         assertEq(
             scaledOracleDivide.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             1e18 * REF_PRICE / SCALAR
@@ -358,7 +358,7 @@ contract OrigamiScaledOracleTestLatestPriceDivide is OrigamiScaledOracleTestBase
         scaledOracleDivide.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
-    function test_convertAmount() public {
+    function test_convertAmount() public view {
         assertEq(
             scaledOracleDivide.convertAmount(
                 token1,

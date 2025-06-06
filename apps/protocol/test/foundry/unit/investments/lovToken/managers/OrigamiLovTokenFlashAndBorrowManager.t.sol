@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -30,6 +30,15 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { DummyOracle } from "contracts/test/common/DummyOracle.sol";
 import { OrigamiCrossRateOracle } from "contracts/common/oracle/OrigamiCrossRateOracle.sol";
 import { OrigamiAaveV3BorrowAndLend } from "contracts/common/borrowAndLend/OrigamiAaveV3BorrowAndLend.sol";
+
+// The forked tests (for thhose blocks) still use the old legacy interface
+// To use the new interface, the block number would need a refresh
+interface IAavePoolLegacy {
+    function configureEModeCategory(
+        uint8 id,
+        AaveDataTypes.EModeCategoryLegacy calldata category
+    ) external;
+}
 
 contract OrigamiLovTokenFlashAndBorrowManagerTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -318,7 +327,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestAdmin is OrigamiLovTokenFlashAn
     event FlashLoanProviderSet(address indexed provider);
     event BorrowLendSet(address indexed addr);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(manager.owner(), origamiMultisig);
         assertEq(address(manager.lovToken()), address(lovToken));
 
@@ -686,7 +695,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestViews is OrigamiLovTokenFlashAn
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 277.694424123133888682e18);
     }
 
-    function test_liabilities_zeroDebt() public {
+    function test_liabilities_zeroDebt() public view {
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.SPOT_PRICE), 0);
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 0);
     }
@@ -757,7 +766,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestViews is OrigamiLovTokenFlashAn
         assertEq(manager.liabilities(IOrigamiOracle.PriceType.HISTORIC_PRICE), 404.409355519127022552e18);
     }
 
-    function test_getDynamicFeesBps() public {
+    function test_getDynamicFeesBps() public view {
         (uint256 depositFee, uint256 exitFee) = lovToken.getDynamicFeesBps();
         assertEq(depositFee, 46);
         assertEq(exitFee, 50);
@@ -767,7 +776,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestViews is OrigamiLovTokenFlashAn
 contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashAndBorrowManagerTestBase {
     using OrigamiMath for uint256;
     
-    function test_maxInvest_fail_badAsset() public {
+    function test_maxInvest_fail_badAsset() public view {
         assertEq(manager.maxInvest(alice), 0);
     }
 
@@ -955,7 +964,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
         assertEq(manager.maxInvest(address(wstEthToken)), 1e18);
     }
 
-    function test_investQuote_badToken_gives0() public {
+    function test_investQuote_badToken_gives0() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
             100,
             alice,
@@ -974,7 +983,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
         assertEq(investFeeBps[0], 46);
     }
 
-    function test_investQuote_reserveToken() public {
+    function test_investQuote_reserveToken() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = manager.investQuote(
             1e18,
             address(wstEthToken),
@@ -1051,9 +1060,9 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
         // Lower the upstream LTV
         {
             vm.startPrank(IPoolAddressesProvider(SPARK_POOL_ADDRESS_PROVIDER).getPoolConfigurator());
-            AaveDataTypes.EModeCategory memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
+            AaveDataTypes.EModeCategoryLegacy memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
             catData.ltv = 8900;
-            borrowLend.aavePool().configureEModeCategory(SPARK_EMODE_ETH, catData);
+            IAavePoolLegacy(address(borrowLend.aavePool())).configureEModeCategory(SPARK_EMODE_ETH, catData);
         }
 
         // The invest still works, as this is lowering the LTV anyway
@@ -1071,7 +1080,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestInvest is OrigamiLovTokenFlashA
 contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAndBorrowManagerTestBase {
     using OrigamiMath for uint256;
     
-    function test_maxExit_fail_badAsset() public {
+    function test_maxExit_fail_badAsset() public view {
         assertEq(manager.maxExit(alice), 0);
     }
 
@@ -1130,7 +1139,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
         // Do a large external borrow to use all the wstETH supply up
         {
             IAavePool pool = borrowLend.aavePool();
-            AaveDataTypes.ReserveData memory _reserveData = pool.getReserveData(address(wstEthToken));
+            AaveDataTypes.ReserveDataLegacy memory _reserveData = pool.getReserveData(address(wstEthToken));
 
             // Set the borrow cap to the supply cap
             {
@@ -1162,7 +1171,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
         }
     }
 
-    function test_exitQuote_badToken_gives0() public {
+    function test_exitQuote_badToken_gives0() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
             100,
             alice,
@@ -1181,7 +1190,7 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
         assertEq(exitFeeBps[0], 50);
     }
 
-    function test_exitQuote_reserveToken() public {
+    function test_exitQuote_reserveToken() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = manager.exitQuote(
             1e18,
             address(wstEthToken),
@@ -1267,9 +1276,9 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestExit is OrigamiLovTokenFlashAnd
         // Lower the upstream LTV
         {
             vm.startPrank(IPoolAddressesProvider(SPARK_POOL_ADDRESS_PROVIDER).getPoolConfigurator());
-            AaveDataTypes.EModeCategory memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
+            AaveDataTypes.EModeCategoryLegacy memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
             catData.ltv = 8000;
-            borrowLend.aavePool().configureEModeCategory(SPARK_EMODE_ETH, catData);
+            IAavePoolLegacy(address(borrowLend.aavePool())).configureEModeCategory(SPARK_EMODE_ETH, catData);
         }
 
         vm.startPrank(address(lovToken));
@@ -1416,9 +1425,9 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceDown is OrigamiLovToke
         // Lower the upstream LTV
         {
             vm.startPrank(IPoolAddressesProvider(SPARK_POOL_ADDRESS_PROVIDER).getPoolConfigurator());
-            AaveDataTypes.EModeCategory memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
+            AaveDataTypes.EModeCategoryLegacy memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
             catData.ltv = 8900;
-            borrowLend.aavePool().configureEModeCategory(SPARK_EMODE_ETH, catData);
+            IAavePoolLegacy(address(borrowLend.aavePool())).configureEModeCategory(SPARK_EMODE_ETH, catData);
         }
 
         vm.startPrank(origamiMultisig);
@@ -1803,9 +1812,9 @@ contract OrigamiLovTokenFlashAndBorrowManagerTestRebalanceUp is OrigamiLovTokenF
         // Lower the upstream LTV
         {
             vm.startPrank(IPoolAddressesProvider(SPARK_POOL_ADDRESS_PROVIDER).getPoolConfigurator());
-            AaveDataTypes.EModeCategory memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
+            AaveDataTypes.EModeCategoryLegacy memory catData = borrowLend.aavePool().getEModeCategoryData(SPARK_EMODE_ETH);
             catData.ltv = 8000;
-            borrowLend.aavePool().configureEModeCategory(SPARK_EMODE_ETH, catData);
+            IAavePoolLegacy(address(borrowLend.aavePool())).configureEModeCategory(SPARK_EMODE_ETH, catData);
         }
 
         targetAL = TARGET_AL + 0.05e18;

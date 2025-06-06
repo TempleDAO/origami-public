@@ -21,7 +21,6 @@ async function main() {
 
   if (network.name != "localhost") {
     const batch = createSafeBatch(
-      1,
       [
         acceptOwner(INSTANCES.MAINNET_TEST.SWAPPERS.COW_SWAPPER_1),
       ],

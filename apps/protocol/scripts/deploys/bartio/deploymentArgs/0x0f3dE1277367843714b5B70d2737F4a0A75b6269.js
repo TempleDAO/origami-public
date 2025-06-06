@@ -1,0 +1,11 @@
+// bartio: LOV_WBERA_LONG_A.TOKEN=0x0f3dE1277367843714b5B70d2737F4a0A75b6269
+// yarn hardhat verify --network bartio 0x0f3dE1277367843714b5B70d2737F4a0A75b6269 --constructor-args scripts/deploys/bartio/deploymentArgs/0x0f3dE1277367843714b5B70d2737F4a0A75b6269.js
+module.exports = [
+  "0xE00F5CB480AaAECb749dA37cb13Ee3408AF13d06",
+  "Origami lov-WBERA-long-a",
+  "lov-WBERA-long-a",
+  1000,
+  "0xE00F5CB480AaAECb749dA37cb13Ee3408AF13d06",
+  "0xD21779985da1677df0fFD08a610E905E3F1eA3BD",
+  "1000000000000000000000000"
+];

@@ -1,15 +1,16 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { PRBMath_MulDiv_Overflow } from "@prb/math/src/Common.sol";
+import { stdError } from "forge-std/StdError.sol";
 
 contract OrigamiMathTest is OrigamiTest {
     using OrigamiMath for uint256;
 
-    function test_scaleUp() public {
+    function test_scaleUp() public pure {
         assertEq(OrigamiMath.scaleUp(123.123450e6, 1e12), 123.123450e18);
         assertEq(OrigamiMath.scaleUp(123.123454e6, 1e12), 123.123454e18);
         assertEq(OrigamiMath.scaleUp(123.123455e6, 1e12), 123.123455e18);
@@ -20,7 +21,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.scaleUp(123.1234565e18, 1), 123.1234565e18);
         assertEq(OrigamiMath.scaleUp(123.1234566e18, 1), 123.1234566e18);
     }
-    function test_scaleDown() public {
+    function test_scaleDown() public pure {
         assertEq(uint256(10) ** (18 - 18), 1);
 
         assertEq(OrigamiMath.scaleDown(123.1234560e18, 1e12, OrigamiMath.Rounding.ROUND_DOWN), 123.123456e6);
@@ -46,7 +47,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.scaleDown(type(uint256).max, 1, OrigamiMath.Rounding.ROUND_UP), type(uint256).max);
     }
 
-    function test_scaleDown_max() public {
+    function test_scaleDown_max() public pure {
         assertEq(OrigamiMath.scaleDown(type(uint256).max, 1, OrigamiMath.Rounding.ROUND_DOWN), type(uint256).max);
         assertEq(OrigamiMath.scaleDown(type(uint256).max, type(uint256).max, OrigamiMath.Rounding.ROUND_DOWN), 1);
         assertEq(OrigamiMath.scaleDown(type(uint256).max, type(uint256).max, OrigamiMath.Rounding.ROUND_UP), 1);
@@ -54,11 +55,12 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.scaleDown(type(uint256).max, type(uint256).max-1, OrigamiMath.Rounding.ROUND_UP), 2);
     }
 
-    function test_mulDiv() public {
+    function test_mulDiv() public pure {
         assertEq(OrigamiMath.mulDiv(123.456789123456789e18, 3.123e18, 4.4567e18, OrigamiMath.Rounding.ROUND_DOWN), 86.511443990521137174e18);
         assertEq(OrigamiMath.mulDiv(123.456789123456789e18, 3.123e18, 4.4567e18, OrigamiMath.Rounding.ROUND_UP), 86.511443990521137175e18);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_muldiv_max() public {
         assertEq(OrigamiMath.mulDiv(type(uint256).max, type(uint256).max, type(uint256).max, OrigamiMath.Rounding.ROUND_UP), type(uint256).max);
         assertEq(OrigamiMath.mulDiv(type(uint256).max, type(uint256).max-1, type(uint256).max, OrigamiMath.Rounding.ROUND_UP), type(uint256).max-1);
@@ -68,7 +70,13 @@ contract OrigamiMathTest is OrigamiTest {
         // Warning - execution of test will stop here, it's unreachable when the error is thrown via an internal library.
     }
 
-    function test_addBps_roundup() public {
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_addBps_failOverflow() public {
+        vm.expectRevert(stdError.arithmeticError);
+        OrigamiMath.addBps(123, type(uint256).max-123, OrigamiMath.Rounding.ROUND_UP);
+    }
+
+    function test_addBps_roundup() public pure {
         // 0%
         assertEq(OrigamiMath.addBps(100.123e3, 0, OrigamiMath.Rounding.ROUND_UP), 100.123e3);
 
@@ -85,7 +93,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.addBps(100.123e3, 11_000, OrigamiMath.Rounding.ROUND_UP), 210.259e3);
     }
 
-    function test_addBps_rounddown() public {
+    function test_addBps_rounddown() public pure {
         // 0%
         assertEq(OrigamiMath.addBps(100.123e3, 0, OrigamiMath.Rounding.ROUND_DOWN), 100.123e3);
 
@@ -102,7 +110,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.addBps(100.123e3, 11_000, OrigamiMath.Rounding.ROUND_DOWN), 210.258e3);
     }
 
-    function test_subtractBps_roundup() public {
+    function test_subtractBps_roundup() public pure {
         // 0%
         assertEq(OrigamiMath.subtractBps(100.123e3, 0, OrigamiMath.Rounding.ROUND_DOWN), 100.123e3);
         
@@ -119,7 +127,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.subtractBps(100.123e3, 11_000, OrigamiMath.Rounding.ROUND_DOWN), 0);
     }
 
-    function test_subtractBps_rounddown() public {
+    function test_subtractBps_rounddown() public pure {
         // 0%
         assertEq(OrigamiMath.subtractBps(100.123e3, 0, OrigamiMath.Rounding.ROUND_UP), 100.123e3);
         
@@ -136,7 +144,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(OrigamiMath.subtractBps(100.123e3, 11_000, OrigamiMath.Rounding.ROUND_UP), 0);
     }
 
-    function test_splitSubtractBps_roundup() public {
+    function test_splitSubtractBps_roundup() public pure {
         uint256 rate = 3_330; // 33.3%
 
         uint256 amount = 600;
@@ -150,7 +158,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(removed, 200);
     }
 
-    function test_splitSubtractBps_rounddown() public {
+    function test_splitSubtractBps_rounddown() public pure {
         uint256 rate = 3_330; // 33.3%
 
         uint256 amount = 600;
@@ -164,13 +172,28 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(removed, 201);
     }
 
+    function test_splitSubtractBps_zeroBps() public pure {
+        uint256 rate = 0;
+
+        uint256 amount = 600;
+        (uint256 result, uint256 removed) = amount.splitSubtractBps(rate, OrigamiMath.Rounding.ROUND_DOWN);
+        assertEq(result, amount);
+        assertEq(removed, 0);
+
+        amount = 601;
+        (result, removed) = amount.splitSubtractBps(rate, OrigamiMath.Rounding.ROUND_DOWN);
+        assertEq(result, amount);
+        assertEq(removed, 0);
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_inverseSubtractBps_fail() public {
         uint256 amount = 600;
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         amount.inverseSubtractBps(10_000 + 1, OrigamiMath.Rounding.ROUND_UP);
     }
 
-    function test_inverseSubtractBps_roundup() public {
+    function test_inverseSubtractBps_roundup() public pure {
         uint256 rate = 3_330; // 33.3%
 
         uint256 amount = 400;       
@@ -185,7 +208,7 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(amount.inverseSubtractBps(0, OrigamiMath.Rounding.ROUND_UP), amount);
     }
 
-    function test_inverseSubtractBps_rounddown() public {
+    function test_inverseSubtractBps_rounddown() public pure {
         uint256 rate = 3_330; // 33.3%
 
         uint256 amount = 400;       
@@ -200,12 +223,13 @@ contract OrigamiMathTest is OrigamiTest {
         assertEq(amount.inverseSubtractBps(0, OrigamiMath.Rounding.ROUND_DOWN), amount);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_relativeDifferenceBps_zeroRefValue() public {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         OrigamiMath.relativeDifferenceBps(100, 0, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
-    function test_relativeDifferenceBps_lt_RefValue() public {
+    function test_relativeDifferenceBps_lt_RefValue() public pure {
         assertEq(
             OrigamiMath.relativeDifferenceBps(100e18, 110e18, OrigamiMath.Rounding.ROUND_DOWN),
             909
@@ -217,7 +241,7 @@ contract OrigamiMathTest is OrigamiTest {
         );
     }
 
-    function test_relativeDifferenceBps_gt_RefValue() public {
+    function test_relativeDifferenceBps_gt_RefValue() public pure {
         assertEq(
             OrigamiMath.relativeDifferenceBps(120e18, 110e18, OrigamiMath.Rounding.ROUND_DOWN),
             909
@@ -229,7 +253,7 @@ contract OrigamiMathTest is OrigamiTest {
         );
     }
 
-    function test_relativeDifferenceBps_eq_RefValue() public {
+    function test_relativeDifferenceBps_eq_RefValue() public pure {
         assertEq(
             OrigamiMath.relativeDifferenceBps(110e18, 110e18, OrigamiMath.Rounding.ROUND_DOWN),
             0

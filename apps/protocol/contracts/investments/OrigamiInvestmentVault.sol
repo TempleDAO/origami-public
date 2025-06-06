@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/OrigamiInvestmentVault.sol)
 
@@ -54,7 +54,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
     }
     
     /**
-     * @notice Track the depoyed version of this contract. 
+     * @notice Track the deployed version of this contract. 
      */
     function apiVersion() external override pure returns (string memory) {
         return API_VERSION;
@@ -62,7 +62,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
 
     /**
      * @notice The underlying token this investment wraps. 
-     * @dev For an investment vault, this is the underyling reserve token
+     * @dev For an investment vault, this is the underlying reserve token
      */
     function baseToken() external view returns (address) {
         return reserveToken;
@@ -102,7 +102,7 @@ contract OrigamiInvestmentVault is IOrigamiInvestmentVault, RepricingToken, Whit
     }
 
     /// @dev The reseve token is a valid invest/exit token, and needs to be appended.
-    /// Unforunately needs to copy the input array as this is memory defined storage.
+    /// Unfortunately needs to copy the input array as this is memory defined storage.
     function appendReserveToken(address[] memory items) private view returns (address[] memory newItems) {
         newItems = new address[](items.length+1);
 

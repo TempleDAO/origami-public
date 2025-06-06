@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -32,7 +32,7 @@ contract OrigamiCircuitBreakerProxyTest is OrigamiTest {
         daiCircuitBreaker = new OrigamiCircuitBreakerAllUsersPerPeriod(origamiMultisig, address(circuitBreakerProxy), 26 hours, 13, 1_000e18);
     }
 
-    function test_initialisation() public {
+    function test_initialisation() public view {
         assertEq(circuitBreakerProxy.owner(), origamiMultisig);
         bytes32[] memory ids = circuitBreakerProxy.identifiers();
         assertEq(ids.length, 0);

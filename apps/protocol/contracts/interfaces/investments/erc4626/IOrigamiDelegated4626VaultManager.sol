@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/erc4626/IOrigamiDelegated4626VaultManager.sol)
 
@@ -17,8 +17,9 @@ interface IOrigamiDelegated4626VaultManager is IERC165 {
     event FeeCollectorSet(address indexed feeCollector);
 
     /// @notice Deposit tokens into the underlying protocol
-    /// @dev Implementation may assume the tokens have already been sent to this contract
-    /// type(uint256).max is accepted, meaning the entire balance
+    /// @dev Implementation SHOULD assume the tokens have already been sent to this contract
+    /// @param assetsAmount The amount of assets to deposit. Implementation MAY choose to accept 
+    /// type(uint256).max as a special value indicating the full balance of the contract
     function deposit(uint256 assetsAmount) external returns (
         uint256 assetsDeposited
     );
@@ -48,9 +49,22 @@ interface IOrigamiDelegated4626VaultManager is IERC165 {
     /// - MUST NOT revert.
     function totalAssets() external view returns (uint256 totalManagedAssets);
 
+    /// @notice Returns the amount of the underlying asset that is not yet allocated to any strategy
+    function unallocatedAssets() external view returns (uint256);
+    
+    /// @notice The performance fee to the caller (to compensate for gas) and Origami treasury.
+    /// @dev Represented in basis points.
+    function performanceFeeBps() external view returns (uint16 forCaller, uint16 forOrigami);
+
     /// @notice Whether deposits and mints are currently paused
     function areDepositsPaused() external view returns (bool);
 
     /// @notice Whether withdrawals and redemptions are currently paused
     function areWithdrawalsPaused() external view returns (bool);
+
+    /// @notice The current deposit fee in basis points
+    function depositFeeBps() external view returns (uint16);
+
+    /// @notice The current withdrawal fee in basis points
+    function withdrawalFeeBps() external view returns (uint16);
 }

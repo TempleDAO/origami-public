@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/swappers/OrigamiErc4626AndDexAggregatorSwapper.sol)
 
@@ -20,6 +20,13 @@ import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
  * @dev This is intentionally kept quite specific to one use case and will be redundant 
  * once 1inch supports the route directly
  * The amount of tokens bought is expected to be checked for slippage in the calling contract
+ * 
+ * Intended to be used synchronously from another contract:
+ *  - Each deployed instance can be used by multiple client contracts.
+ *  - Permisionless to call execute()
+ *  - sellToken's are pulled from the client contract within execute()
+ *  - Not allowed to have new residual sellToken's after the swap.
+ *  - Caller is responsible for any required slippage checks.
  */
 contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
@@ -91,8 +98,10 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
 
         if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
 
+        // revertOnSurplusSellToken=true in both cases, to force that there's no surplus. Otherwise if there is surplus
+        // another address could call execute() afterwards and drain those tokens for free.
         if (routeData.routeType == RouteType.VIA_DEX_AGGREGATOR_ONLY) {
-            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, buyToken, routeData.data);
+            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, buyToken, routeData.data, true);
 
             // Transfer back to the caller
             buyToken.safeTransfer(msg.sender, buyTokenAmount);
@@ -102,7 +111,7 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
             if (address(buyToken) != address(vault)) revert CommonEventsAndErrors.InvalidToken(address(buyToken));
 
             // First swap from the sellToken to the vault deposit token
-            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, vaultUnderlyingAsset, routeData.data);
+            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, vaultUnderlyingAsset, routeData.data, true);
 
             // Now deposit 100% of the bought tokens into the vault
             vaultUnderlyingAsset.forceApprove(address(vault), buyTokenAmount);

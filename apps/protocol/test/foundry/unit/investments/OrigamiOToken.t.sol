@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -47,7 +47,7 @@ contract OrigamiOTokenTestAccess is OrigamiOTokenTestBase {
 contract OrigamiOTokenTestAdmin is OrigamiOTokenTestBase {
     event ManagerSet(address indexed manager);
 
-    function test_constructor() public {
+    function test_constructor() public view {
         assertEq(oToken.apiVersion(), "0.2.0");
         assertEq(oToken.owner(), origamiMultisig);
         assertEq(oToken.name(), "O Token");
@@ -79,17 +79,17 @@ contract OrigamiOTokenTestAdmin is OrigamiOTokenTestBase {
         assertEq(address(oToken.manager()), address(newManager));
     }
 
-    function test_baseToken() public {
+    function test_baseToken() public view {
         assertEq(oToken.baseToken(), address(depositToken));
     }
 
-    function test_acceptedInvestTokens() public {
+    function test_acceptedInvestTokens() public view {
         address[] memory tokens = oToken.acceptedInvestTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], address(depositToken));
     }
 
-    function test_acceptedExitTokens() public {
+    function test_acceptedExitTokens() public view {
         address[] memory tokens = oToken.acceptedExitTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], address(depositToken));
@@ -115,13 +115,13 @@ contract OrigamiOTokenTestAdmin is OrigamiOTokenTestBase {
 contract OrigamiOTokenTestInvest is OrigamiOTokenTestBase {
     event Invested(address indexed user, uint256 fromTokenAmount, address indexed fromToken, uint256 investmentAmount);
 
-    function test_maxInvest() public {
+    function test_maxInvest() public view {
         // Calls the underlying manager
         assertEq(oToken.maxInvest(address(depositToken)), oTokenManager.maxInvest(address(depositToken)));
         assertEq(oToken.maxInvest(address(depositToken)), 123e18);
     }
 
-    function test_investQuote() public {
+    function test_investQuote() public view {
         (IOrigamiInvestment.InvestQuoteData memory quoteData, uint256[] memory investFeeBps) = oToken.investQuote(
             1e18,
             address(depositToken),
@@ -212,13 +212,13 @@ contract OrigamiOTokenTestInvest is OrigamiOTokenTestBase {
 contract OrigamiOTokenTestExit is OrigamiOTokenTestBase {
     event Exited(address indexed user, uint256 investmentAmount, address indexed toToken, uint256 toTokenAmount, address indexed recipient);
 
-    function test_maxExit() public {
+    function test_maxExit() public view {
         // Calls the underlying manager
         assertEq(oToken.maxExit(address(depositToken)), oTokenManager.maxExit(address(depositToken)));
         assertEq(oToken.maxExit(address(depositToken)), 456e18);
     }
 
-    function test_exitQuote() public {
+    function test_exitQuote() public view {
         (IOrigamiInvestment.ExitQuoteData memory quoteData, uint256[] memory exitFeeBps) = oToken.exitQuote(
             1e18,
             address(depositToken),

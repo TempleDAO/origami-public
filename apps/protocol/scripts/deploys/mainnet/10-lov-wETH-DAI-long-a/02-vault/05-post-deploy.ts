@@ -34,7 +34,6 @@ async function updatePrices(contract: TokenPrices) {
 
 async function updatePricesSafeBatch(contract: TokenPrices) {
   const batch = createSafeBatch(
-    1,
     [
       setTokenPriceFunction(contract, ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN,
         encodedOraclePrice(

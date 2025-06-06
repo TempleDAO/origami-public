@@ -1,0 +1,94 @@
+{
+  "chainId": "80094",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xc3d19aC9b79A8D89272a7ef88Ddc1786fE36d747",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x1A0730d90A253DeD0177E5a1dBCfD169c5E3f67F",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x252Cb44075a48526A77ccFdABCD1FCCC94486384",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xe49Bc7d8FF2a5B7157c8eA9E2bDfcD18342288fA",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xd7F54C425f64B6cd87b6B39b0a53487bcafFfB0C",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x3190EEfb845FB739293979B2011D02dd7F247B89",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xDb15910600700f776ef615dd0906216Cc4a7b754",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xfCb6C2A149dA114fd3f3D0FDF3f4935840b0dF8a",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

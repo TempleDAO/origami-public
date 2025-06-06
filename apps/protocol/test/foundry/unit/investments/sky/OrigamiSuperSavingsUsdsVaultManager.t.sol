@@ -1,11 +1,11 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
 import { MockSUsdsToken } from "contracts/test/external/maker/MockSUsdsToken.m.sol";
-import { OrigamiSuperSavingsUsdsVault } from "contracts/investments/sky/OrigamiSuperSavingsUsdsVault.sol";
+import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiSuperSavingsUsdsManager } from "contracts/investments/sky/OrigamiSuperSavingsUsdsManager.sol";
 import { IOrigamiSuperSavingsUsdsManager } from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
 import { TokenPrices } from "contracts/common/TokenPrices.sol";
@@ -21,7 +21,7 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
 
     DummyMintableToken public asset;
     MockSUsdsToken public sUSDS; 
-    OrigamiSuperSavingsUsdsVault public vault;
+    OrigamiDelegated4626Vault public vault;
     OrigamiSuperSavingsUsdsManager public manager;
     TokenPrices public tokenPrices;
     address public swapper = makeAddr("swapper");
@@ -54,7 +54,7 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
         doMint(asset, address(sUSDS), BOOTSTRAPPED_USDS_AMOUNT);
 
         tokenPrices = new TokenPrices(30);
-        vault = new OrigamiSuperSavingsUsdsVault(
+        vault = new OrigamiDelegated4626Vault(
             origamiMultisig, 
             "Origami sUSDS+s", 
             "sUSDS+s",
@@ -152,7 +152,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         );
     }
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(manager.owner(), origamiMultisig);
         assertEq(address(manager.vault()), address(vault));
         assertEq(manager.asset(), address(asset));
@@ -600,15 +600,16 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
     event Referral(uint16 indexed referral, address indexed user, uint256 amount);
     event Referral(uint16 indexed referral, address indexed owner, uint256 assets, uint256 shares);
 
-    function test_deposit_failPaused() public {
+    function test_deposit_pausedOK() public {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(true, false));
 
         assertEq(manager.areDepositsPaused(), true);
         assertEq(manager.areWithdrawalsPaused(), false);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
-        depositAll();
+
+        // The manager itself doesn't pause - it's checked within the OrigamiERC4626
+        assertEq(depositAll(), 0);
     }
 
     function test_deposit_successNothing() public {
@@ -804,7 +805,10 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
 }
 
 contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsManagerTestBase {
-    function test_withdraw_failPaused() public {
+    function test_withdraw_pausedOK() public {
+        deal(address(asset), address(manager), 100e18);
+        assertEq(depositAll(), 100e18);
+
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(false, true));
@@ -812,8 +816,9 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
         assertEq(manager.areDepositsPaused(), false);
         assertEq(manager.areWithdrawalsPaused(), true);
         vm.startPrank(address(vault));
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.IsPaused.selector));
-        manager.withdraw(100, alice);
+
+        // The manager itself doesn't pause - it's checked within the OrigamiERC4626
+        assertEq(manager.withdraw(100, alice), 100);
     }
 
     function test_withdraw_sUSDS_successNothing() public {
@@ -1444,7 +1449,7 @@ contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsMan
 }
 
 contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManagerTestBase {
-    function test_supportsInterface() public {
+    function test_supportsInterface() public view {
         assertEq(manager.supportsInterface(type(IOrigamiSuperSavingsUsdsManager).interfaceId), true);
         assertEq(manager.supportsInterface(type(IERC165).interfaceId), true);
         assertEq(manager.supportsInterface(type(IOrigamiManagerPausable).interfaceId), false);

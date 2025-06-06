@@ -1,0 +1,9 @@
+// holesky: VAULTS.hOHM.TOKEN=0xA023094bC7606794A326631c56dAD375c27BA392
+// yarn hardhat verify --network holesky 0xA023094bC7606794A326631c56dAD375c27BA392 --constructor-args scripts/deploys/holesky/deploymentArgs/0xA023094bC7606794A326631c56dAD375c27BA392.js
+module.exports = [
+  "0xA7F0F04efB55eaEfBC4649C523F7a773f91D5526",
+  "Origami hOHM",
+  "hOHM",
+  "0xAfa204D01E67AF2BFFE590781eB6cBB91c22c627",
+  "0x4d368172cBd01d7690F5665914560f8da9451f46"
+];

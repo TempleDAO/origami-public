@@ -16,7 +16,7 @@ async function main() {
 
   const factory = new OrigamiFixedPriceOracle__factory(owner);
   await deployAndMine(
-    'ORACLES.USD0pp_USDC',
+    'ORACLES.USD0pp_USDC_PEGGED',
     factory,
     factory.deploy,
     {
@@ -26,7 +26,7 @@ async function main() {
       quoteAssetAddress: ADDRS.EXTERNAL.CIRCLE.USDC_TOKEN,
       quoteAssetDecimals: await INSTANCES.EXTERNAL.CIRCLE.USDC_TOKEN.decimals(),
     },
-    DEFAULT_SETTINGS.ORACLES.USD0pp_USDC.FIXED_PRICE,
+    DEFAULT_SETTINGS.ORACLES.USD0pp_USDC_PEGGED.FIXED_PRICE,
     ADDRS.ORACLES.USD0pp_USD0,
   );
 }

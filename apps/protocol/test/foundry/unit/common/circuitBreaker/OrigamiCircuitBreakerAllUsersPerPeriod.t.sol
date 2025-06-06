@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -55,7 +55,7 @@ contract OrigamiCircuitBreakerTestAdmin is OrigamiCircuitBreakerTestBase {
     event ConfigSet(uint32 periodDuration, uint32 nBuckets, uint128 cap);
     event CapSet(uint128 cap);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(breaker.nBuckets(), 24);
         assertEq(breaker.periodDuration(), 1 days); 
         assertEq(breaker.secondsPerBucket(), 60*60);

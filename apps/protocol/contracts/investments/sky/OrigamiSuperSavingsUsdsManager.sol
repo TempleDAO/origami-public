@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (investments/sky/OrigamiSuperSavingsUsdsManager.sol)
 
@@ -11,7 +11,7 @@ import { ISkyStakingRewards } from "contracts/interfaces/external/sky/ISkyStakin
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
 import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 import { IOrigamiSuperSavingsUsdsManager } from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
-import { OrigamiSuperSavingsUsdsVault } from "contracts/investments/sky/OrigamiSuperSavingsUsdsVault.sol";
+import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
@@ -78,6 +78,12 @@ contract OrigamiSuperSavingsUsdsManager is
 
     uint256 private constant MAX_FARMS = 100;
 
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint16 public override constant depositFeeBps = 0;
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint16 public override constant withdrawalFeeBps = 0;
+
     constructor(
         address initialOwner_,
         address vault_,
@@ -127,7 +133,7 @@ contract OrigamiSuperSavingsUsdsManager is
             );
         }
 
-        OrigamiSuperSavingsUsdsVault(address(vault)).logPerformanceFeesSet(newTotalFee);
+        OrigamiDelegated4626Vault(address(vault)).logPerformanceFeesSet(newTotalFee);
         _performanceFeeBpsForCaller = callerFeeBps;
         _performanceFeeBpsForOrigami = origamiFeeBps;
     }
@@ -216,7 +222,6 @@ contract OrigamiSuperSavingsUsdsManager is
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     function deposit(uint256 assetsAmount) external override returns (uint256 assetsDeposited) {
         // Note: Intentionally permisionless since donations are allowed anyway
-        if (_paused.investmentsPaused) revert CommonEventsAndErrors.IsPaused();
         uint32 _currentFarmIndex = currentFarmIndex;
 
         // Deposit all at hand, including any donations.
@@ -230,8 +235,6 @@ contract OrigamiSuperSavingsUsdsManager is
         uint256 usdsAmount,
         address receiver
     ) external override onlyVault returns (uint256 usdsWithdrawn) {
-        if (_paused.exitsPaused) revert CommonEventsAndErrors.IsPaused();
-
         uint32 _currentFarmIndex = currentFarmIndex;
 
         usdsWithdrawn = (_currentFarmIndex == 0)
@@ -338,10 +341,7 @@ contract OrigamiSuperSavingsUsdsManager is
     function totalAssets() external override view returns (uint256 totalManagedAssets) {
         // This contract may have a balance of USDS, from Cow Swapper rewards and/or donations
         // And also included sUSDS deposits (also may be donations)
-        totalManagedAssets = (
-            USDS.balanceOf(address(this)) +
-            sUSDS.maxWithdraw(address(this))
-        );
+        totalManagedAssets = _unallocatedAssets();
 
         // Intentionally does not consider earned but not yet claimed rewards
         // since they are in different tokens which need swapping first.
@@ -349,6 +349,15 @@ contract OrigamiSuperSavingsUsdsManager is
         if (_currentFarmIndex > 0) {
             totalManagedAssets += _farms[_currentFarmIndex].staking.balanceOf(address(this));
         }
+    }
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    function unallocatedAssets() external override view returns (uint256) {
+        return _unallocatedAssets();
+    }
+
+    function _unallocatedAssets() private view returns (uint256) {
+        return USDS.balanceOf(address(this)) + sUSDS.maxWithdraw(address(this));
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager

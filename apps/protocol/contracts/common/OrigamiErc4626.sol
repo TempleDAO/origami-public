@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/OrigamiErc4626.sol)
 
@@ -47,7 +47,7 @@ contract OrigamiErc4626 is
     using SafeERC20 for IERC20;
     using OrigamiMath for uint256;
 
-    // Note the `_maxTotalSupply` is initally set to zero.
+    // Note the `_maxTotalSupply` is initially set to zero.
     // It is first set upon elevated access calling `seedDeposit()`
     uint256 private _maxTotalSupply;
 
@@ -101,6 +101,7 @@ contract OrigamiErc4626 is
     ) external override onlyElevatedAccess returns (uint256 shares) {
         // Only to be used for the first deposit
         if (totalSupply() != 0) revert CommonEventsAndErrors.InvalidParam();
+        if (assets == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
         // The new maxTotalSupply needs to be at least the size of the
         // new shares minted, or the deposit() will revert.
@@ -167,7 +168,7 @@ contract OrigamiErc4626 is
 
     /// @inheritdoc IERC4626
     function maxRedeem(address sharesOwner) public override view returns (uint256 maxShares) {
-        return _maxRedeem(sharesOwner, withdrawalFeeBps());
+        return _maxRedeem(sharesOwner);
     }
 
     /// @inheritdoc IERC4626
@@ -261,7 +262,7 @@ contract OrigamiErc4626 is
         address sharesOwner
     ) public virtual override nonReentrant returns (uint256) {
         uint256 feeBps = withdrawalFeeBps();
-        uint256 maxShares = _maxRedeem(sharesOwner, feeBps);
+        uint256 maxShares = _maxRedeem(sharesOwner);
         if (shares > maxShares) {
             revert ERC4626ExceededMaxRedeem(sharesOwner, shares, maxShares);
         }
@@ -297,12 +298,12 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function areDepositsPaused() external virtual override view returns (bool) {
+    function areDepositsPaused() public virtual override view returns (bool) {
         return false;
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function areWithdrawalsPaused() external virtual override view returns (bool) {
+    function areWithdrawalsPaused() public virtual override view returns (bool) {
         return false;
     }
 
@@ -367,7 +368,7 @@ contract OrigamiErc4626 is
      * @param to Recipient address
      * @param amount Amount to recover
      */
-    function recoverToken(address token, address to, uint256 amount) external onlyElevatedAccess {
+    function recoverToken(address token, address to, uint256 amount) external virtual onlyElevatedAccess {
         if (token == asset()) revert CommonEventsAndErrors.InvalidToken(token);
 
         emit CommonEventsAndErrors.TokenRecovered(to, token, amount);
@@ -427,8 +428,7 @@ contract OrigamiErc4626 is
      * from the underlying asset deployment
      */
     function _maxRedeem(
-        address sharesOwner,
-        uint256 /*feeBps*/
+        address sharesOwner
     ) internal virtual view returns (uint256 maxShares) {
         return sharesOwner == address(0)
             ? type(uint256).max
@@ -498,6 +498,8 @@ contract OrigamiErc4626 is
      * @dev Deposit/mint common workflow.
      */
     function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual {
+        if (areDepositsPaused()) revert CommonEventsAndErrors.IsPaused();
+
         _depositHook(caller, assets);
 
         _mint(receiver, shares);
@@ -523,6 +525,9 @@ contract OrigamiErc4626 is
         uint256 assets,
         uint256 shares
     ) internal virtual {
+        if (receiver == address(0)) revert CommonEventsAndErrors.InvalidAddress(receiver);
+        if (areWithdrawalsPaused()) revert CommonEventsAndErrors.IsPaused();
+
         if (caller != sharesOwner) {
             _spendAllowance(sharesOwner, caller, shares);
         }

@@ -6,7 +6,7 @@ import { BigNumber } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ContractAddresses } from "../../contract-addresses/types";
 import { IERC20Metadata, OrigamiAaveV3BorrowAndLend, OrigamiLovToken, OrigamiLovTokenFlashAndBorrowManager, OrigamiOracleBase } from "../../../../../typechain";
-import { getSwap } from "../swaps/kyberswap";
+import { getSwap } from "../../../swaps/kyberswap";
 
 
 let ADDRS: ContractAddresses;

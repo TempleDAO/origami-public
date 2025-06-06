@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -487,7 +487,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_1_2 is OrigamiCrossRateOracleTest
         assertEq(crOracle_1_2.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             crOracle_1_2.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
             0.003003003003003003e18
@@ -498,7 +498,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_1_2 is OrigamiCrossRateOracleTest
         );
     }
 
-    function test_spot_convertAmount_quoteToBase() public {
+    function test_spot_convertAmount_quoteToBase() public view {
         assertEq(
             crOracle_1_2.convertAmount(
                 token2,
@@ -693,7 +693,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_2_3 is OrigamiCrossRateOracleTest
         assertEq(crOracle_2_3.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             crOracle_2_3.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
             336.363636363636363636e18
@@ -704,7 +704,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_2_3 is OrigamiCrossRateOracleTest
         );
     }
 
-    function test_spot_convertAmount_quoteToBase() public {
+    function test_spot_convertAmount_quoteToBase() public view {
         assertEq(
             crOracle_2_3.convertAmount(
                 token3,
@@ -744,7 +744,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_2_3 is OrigamiCrossRateOracleTest
         );
     }
 
-    function test_spot_convertAmount() public {
+    function test_spot_convertAmount() public view {
         assertEq(
             crOracle_2_3.convertAmount(
                 token2,
@@ -892,7 +892,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_1_2_3 is OrigamiCrossRateOracleTe
         assertEq(crOracle_1_2_3.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             crOracle_1_2_3.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
             0.003003003003003003e18
@@ -903,7 +903,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_1_2_3 is OrigamiCrossRateOracleTe
         );
     }
 
-    function test_spot_convertAmount_quoteToBase() public {
+    function test_spot_convertAmount_quoteToBase() public view {
         assertEq(
             crOracle_1_2_3.convertAmount(
                 token2,
@@ -1141,7 +1141,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_2_3_Multiply is OrigamiCrossRateO
         assertEq(crOracle_2_3_inverse.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             crOracle_2_3_inverse.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
             336.363636363636363633e18
@@ -1152,7 +1152,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_2_3_Multiply is OrigamiCrossRateO
         );
     }
 
-    function test_spot_convertAmount_quoteToBase() public {
+    function test_spot_convertAmount_quoteToBase() public view {
         assertEq(
             crOracle_2_3_inverse.convertAmount(
                 token3,
@@ -1192,7 +1192,7 @@ contract OrigamiCrossRateOracleTestLatestPrice_2_3_Multiply is OrigamiCrossRateO
         );
     }
 
-    function test_spot_convertAmount() public {
+    function test_spot_convertAmount() public view {
         assertEq(
             crOracle_2_3_inverse.convertAmount(
                 token2,

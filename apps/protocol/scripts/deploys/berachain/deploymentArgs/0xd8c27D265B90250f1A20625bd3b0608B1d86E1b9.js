@@ -1,0 +1,6 @@
+// berachain: VAULTS.INFRARED_AUTO_COMPOUNDER_RUSD_HONEY_A.SWAPPER=0xd8c27D265B90250f1A20625bd3b0608B1d86E1b9
+// yarn hardhat verify --network berachain 0xd8c27D265B90250f1A20625bd3b0608B1d86E1b9 --constructor-args scripts/deploys/berachain/deploymentArgs/0xd8c27D265B90250f1A20625bd3b0608B1d86E1b9.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x7fd165B73775884a38AA8f2B384A53A3Ca7400E6"
+];

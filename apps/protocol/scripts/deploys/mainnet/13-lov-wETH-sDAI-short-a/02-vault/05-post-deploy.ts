@@ -40,7 +40,6 @@ async function updatePrices(contract: TokenPrices) {
 
 async function updatePricesSafeBatch(contract: TokenPrices) {
   const batch = createSafeBatch(
-    1,
     [
       setTokenPriceFunction(contract, ADDRS.LOV_WETH_SDAI_SHORT_A.TOKEN,
         encodedRepricingTokenPrice(ADDRS.LOV_WETH_SDAI_SHORT_A.TOKEN)

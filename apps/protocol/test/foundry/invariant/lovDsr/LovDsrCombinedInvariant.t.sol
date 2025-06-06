@@ -1,11 +1,11 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { ExternalContracts, OUsdcContracts, LovTokenContracts, OrigamiLovTokenTestDeployer } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestDeployer.t.sol";
+import { ExternalContracts, OUsdcContracts, LovTokenContracts, OrigamiLovTokenTestDeployer } from "test/foundry-integration/deploys/lovDsr/OrigamiLovTokenTestDeployer.t.sol";
 import { OvUsdcHandler } from "test/foundry/invariant/handlers/lovDsr/OvUsdcHandler.sol";
 import { LovDsrHandler } from "test/foundry/invariant/handlers/lovDsr/LovDsrHandler.sol";
 import { BaseInvariantTest } from "test/foundry/invariant/BaseInvariant.t.sol";
-import { OrigamiLovTokenTestConstants as Constants } from "test/foundry/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
+import { OrigamiLovTokenTestConstants as Constants } from "test/foundry-integration/deploys/lovDsr/OrigamiLovTokenTestConstants.t.sol";
 import { IOrigamiDebtToken } from "contracts/interfaces/investments/lending/IOrigamiDebtToken.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 

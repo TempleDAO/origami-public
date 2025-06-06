@@ -13,12 +13,8 @@ import {
   OrigamiMorphoBorrowAndLend__factory,
   OrigamiLovTokenMorphoManager__factory,
   DummyMintableToken__factory,
-  Morpho,
-  AdaptiveCurveIrm,
-  MorphoChainlinkOracleV2,
-  Morpho__factory,
-  AdaptiveCurveIrm__factory,
-  MorphoChainlinkOracleV2__factory
+  IMorpho,
+  IMorpho__factory,
 } from "../../../../../typechain";
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
@@ -59,9 +55,7 @@ export interface ContractInstances {
       USDE_USD_ORACLE: RelayedOracle;
     },
     MORPHO: {
-      SINGLETON: Morpho,
-      IRM: AdaptiveCurveIrm,
-      USDE_USD_ORACLE: MorphoChainlinkOracleV2,
+      SINGLETON: IMorpho,
     }
   },
 }
@@ -93,9 +87,7 @@ export function connectToContracts(owner: Signer): ContractInstances {
           USDE_USD_ORACLE: RelayedOracle__factory.connect(ADDRS.EXTERNAL.REDSTONE.USDE_USD_ORACLE, owner),
         },
         MORPHO: {
-          SINGLETON: Morpho__factory.connect(ADDRS.EXTERNAL.MORPHO.SINGLETON, owner),
-          IRM: AdaptiveCurveIrm__factory.connect(ADDRS.EXTERNAL.MORPHO.IRM, owner),
-          USDE_USD_ORACLE: MorphoChainlinkOracleV2__factory.connect(ADDRS.EXTERNAL.MORPHO.USDE_USD_ORACLE, owner),
+          SINGLETON: IMorpho__factory.connect(ADDRS.EXTERNAL.MORPHO.SINGLETON, owner),
         },
       },
     }

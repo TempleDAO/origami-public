@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -34,7 +34,8 @@ contract OrigamiCowSwapperTestBase is OrigamiTest {
     address public DAI;
     address public USDC;
 
-    uint16 public constant PRICE_PREMIUM_BPS = 30;
+    int16 public constant PRICE_PREMIUM_BPS = 30;
+    int16 public constant PRICE_DISCOUNT_BPS = -30;
     uint16 public constant VERIFY_SLIPPAGE_BPS = 3;
     uint96 public constant ROUND_DOWN_DIVISOR = 10e6; // In buyToken decimals
     uint24 public constant EXPIRY_PERIOD_SECS = 5 minutes;
@@ -79,7 +80,7 @@ contract OrigamiCowSwapperTestBase is OrigamiTest {
             roundDownDivisor: ROUND_DOWN_DIVISOR,
             partiallyFillable: true,
             useCurrentBalanceForSellAmount: false,
-            limitPricePremiumBps: PRICE_PREMIUM_BPS,
+            limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS,
             appData: APP_DATA
@@ -91,6 +92,16 @@ contract OrigamiCowSwapperTestBase is OrigamiTest {
         swapper.setOrderConfig(
             DAI,
             defaultOrderConfig()
+        );
+    }
+
+    function configureDaiWithDiscount() internal {
+        vm.startPrank(origamiMultisig);
+        IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
+        config.limitPriceAdjustmentBps = PRICE_DISCOUNT_BPS;
+        swapper.setOrderConfig(
+            DAI,
+            config
         );
     }
 
@@ -120,7 +131,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
     event OrderConfigRemoved(address indexed sellToken);
     event PausedSet(bool paused);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(swapper.owner(), origamiMultisig);
         assertEq(swapper.isPaused(), false);
     }
@@ -207,15 +218,15 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
         swapper.setOrderConfig(DAI, config);
 
-        // Zero oracle but non zero limitPricePremiumBps
+        // Zero oracle but non zero limitPriceAdjustmentBps
         config.recipient = address(swapper);
         config.limitPriceOracle = OrigamiFixedPriceOracle(address(0));
-        config.limitPricePremiumBps = 123;
+        config.limitPriceAdjustmentBps = 123;
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         swapper.setOrderConfig(DAI, config);
 
         // Non matching price oracle
-        config.limitPricePremiumBps = 0;
+        config.limitPriceAdjustmentBps = 0;
         config.limitPriceOracle = new OrigamiFixedPriceOracle(
             IOrigamiOracle.BaseOracleParams(
                 "alice/USDC",
@@ -251,7 +262,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
             assertEq(newConfig.partiallyFillable, true);
             assertEq(newConfig.useCurrentBalanceForSellAmount, false);
             assertEq(address(newConfig.limitPriceOracle), address(limitPriceOracle));
-            assertEq(newConfig.limitPricePremiumBps, PRICE_PREMIUM_BPS);
+            assertEq(newConfig.limitPriceAdjustmentBps, PRICE_PREMIUM_BPS);
             assertEq(newConfig.roundDownDivisor, ROUND_DOWN_DIVISOR);
             assertEq(newConfig.verifySlippageBps, VERIFY_SLIPPAGE_BPS);
             assertEq(newConfig.expiryPeriodSecs, EXPIRY_PERIOD_SECS);
@@ -261,6 +272,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
 
         // Update in place
         config.maxSellAmount = 123e18;
+        config.limitPriceAdjustmentBps = PRICE_DISCOUNT_BPS;
         vm.expectEmit(address(swapper));
         emit OrderConfigSet(DAI);
         swapper.setOrderConfig(DAI, config);
@@ -272,7 +284,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
             assertEq(newConfig.partiallyFillable, true);
             assertEq(newConfig.useCurrentBalanceForSellAmount, false);
             assertEq(address(newConfig.limitPriceOracle), address(limitPriceOracle));
-            assertEq(newConfig.limitPricePremiumBps, PRICE_PREMIUM_BPS);
+            assertEq(newConfig.limitPriceAdjustmentBps, PRICE_DISCOUNT_BPS);
             assertEq(newConfig.roundDownDivisor, ROUND_DOWN_DIVISOR);
             assertEq(newConfig.verifySlippageBps, VERIFY_SLIPPAGE_BPS);
             assertEq(newConfig.expiryPeriodSecs, EXPIRY_PERIOD_SECS);
@@ -304,50 +316,53 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         assertEq(address(newConfig.buyToken), address(0));
     }
 
-    function test_updateAmountsAndPremiumBps_failNotConfigured() public {
+    function test_updateAmountsAndAdjustmentBps_failNotConfigured() public {
         vm.startPrank(origamiMultisig);
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.InvalidSellToken.selector, DAI));
-        swapper.updateAmountsAndPremiumBps(DAI, 123, 123, 123);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 123, 123);
     }
 
-    function test_updateAmountsAndPremiumBps_failBadParams() public {
+    function test_updateAmountsAndAdjustmentBps_failBadParams() public {
         configureDai();
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
-        swapper.updateAmountsAndPremiumBps(DAI, 0, 123, 123);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 0, 123, 123);
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
-        swapper.updateAmountsAndPremiumBps(DAI, 123, 0, 123);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 0, 123);
     }
 
-    function test_updateAmountsAndPremiumBps_failLimitPricePremium() public {
+    function test_updateAmountsAndAdjustmentBps_failLimitPricePremium() public {
         vm.startPrank(origamiMultisig);
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         config.limitPriceOracle = IOrigamiOracle(address(0));
-        config.limitPricePremiumBps = 0;
+        config.limitPriceAdjustmentBps = 0;
         swapper.setOrderConfig(
             DAI,
             config
         );
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
-        swapper.updateAmountsAndPremiumBps(DAI, 123, 123, 123);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 123, 123);
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 123, -123);
 
         // ok with zero premium
-        swapper.updateAmountsAndPremiumBps(DAI, 123, 123, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 123, 0);
     }
 
-    function test_updateAmountsAndPremiumBps_success() public {
+    function test_updateAmountsAndAdjustmentBps_success() public {
         configureDai();
         vm.expectEmit(address(swapper));
         emit OrderConfigSet(DAI);
-        swapper.updateAmountsAndPremiumBps(DAI, 123, 456, 789);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 456, -789);
         
         IOrigamiCowSwapper.OrderConfig memory newConfig = swapper.orderConfig(DAI);
         assertEq(newConfig.maxSellAmount, 123);
         assertEq(newConfig.minBuyAmount, 456);
-        assertEq(newConfig.limitPricePremiumBps, 789);
+        assertEq(newConfig.limitPriceAdjustmentBps, -789);
     }
 
     function test_recoverToken() public {
@@ -380,9 +395,9 @@ contract OrigamiCowSwapperTestAccess is OrigamiCowSwapperTestBase {
         swapper.removeOrderConfig(DAI);
     }
 
-    function test_access_updateLimitPricePremiumBps() public {
+    function test_access_updatelimitPriceAdjustmentBps() public {
         expectElevatedAccess();
-        swapper.updateAmountsAndPremiumBps(DAI, 123, 456, 789);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 123, 456, 789);
     }
 
     function test_access_recoverToken() public {
@@ -414,7 +429,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         swapper.createConditionalOrder(DAI);
     }
 
-    function test_createConditionalOrder_fail_success() public {
+    function test_createConditionalOrder_success() public {
         configureDai();
 
         vm.expectEmit(address(swapper));
@@ -572,7 +587,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
             roundDownDivisor: 5e18,
             partiallyFillable: false,
             useCurrentBalanceForSellAmount: false,
-            limitPricePremiumBps: PRICE_PREMIUM_BPS,
+            limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS*3/2,
             appData: bytes32("abc")
@@ -606,6 +621,29 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
         assertEq(order.partiallyFillable, false);
+        assertEq(order.sellTokenBalance, GPv2Order.BALANCE_ERC20);
+        assertEq(order.buyTokenBalance, GPv2Order.BALANCE_ERC20);
+
+        assertEq(signature, abi.encode(order));
+    }
+
+    // Use a discount adjustment rather than a premium
+    function test_getTradeableOrderWithSignature_success_3() public {
+        configureDaiWithDiscount();
+
+        (GPv2Order.Data memory order, bytes memory signature) = getDefaultOrder();
+
+        assertEq(address(order.sellToken), DAI);
+        assertEq(address(order.buyToken), USDC);
+        assertEq(order.receiver, address(swapper));
+        assertEq(order.sellAmount, DAI_SELL_AMOUNT);
+        assertEq(order.buyAmount, 947_150e6);
+        // Was right at 00:00
+        assertEq(order.validTo, block.timestamp + 5 minutes); 
+        assertEq(order.appData, APP_DATA);
+        assertEq(order.feeAmount, 0);
+        assertEq(order.kind, GPv2Order.KIND_SELL);
+        assertEq(order.partiallyFillable, true);
         assertEq(order.sellTokenBalance, GPv2Order.BALANCE_ERC20);
         assertEq(order.buyTokenBalance, GPv2Order.BALANCE_ERC20);
 
@@ -718,6 +756,35 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 1_015_684.614e6, 1_016_720e6));
         swapper.isValidSignature(hash, signature);
+    }
+
+    function test_isValidSignature_success_lowerDiscounted() public {
+        // First configure and get the order/sig
+        configureDaiWithDiscount();
+
+        // Force an odd amount to see effects of rounding
+        uint256 forcedAmount = 1_000_000e6;
+        vm.mockCall(
+            address(limitPriceOracle),
+            abi.encodeWithSelector(IOrigamiOracle.convertAmount.selector),
+            abi.encode(forcedAmount)
+        );
+
+        (GPv2Order.Data memory order, bytes memory signature) = getDefaultOrder();
+        bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
+
+        // The forceAmount - price discount, rounded down to nearest 10e6
+        assertEq(order.buyAmount, 997_000e6);
+
+        // Move the price a little lower buy within the discount
+        vm.mockCall(
+            address(limitPriceOracle),
+            abi.encodeWithSelector(IOrigamiOracle.convertAmount.selector),
+            abi.encode(997_001e6)
+        );
+
+        // This succeeds instead of failing
+        assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
     
     function test_isValidSignature_fail_recipient() public {
@@ -868,7 +935,7 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
                 roundDownDivisor: ROUND_DOWN_DIVISOR,
                 partiallyFillable: true,
                 useCurrentBalanceForSellAmount: false,
-                limitPricePremiumBps: PRICE_PREMIUM_BPS,
+                limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
                 verifySlippageBps: VERIFY_SLIPPAGE_BPS,
                 expiryPeriodSecs: EXPIRY_PERIOD_SECS,
                 appData: APP_DATA
@@ -895,7 +962,7 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
                 roundDownDivisor: ROUND_DOWN_DIVISOR,
                 partiallyFillable: true,
                 useCurrentBalanceForSellAmount: true,
-                limitPricePremiumBps: PRICE_PREMIUM_BPS,
+                limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
                 verifySlippageBps: VERIFY_SLIPPAGE_BPS,
                 expiryPeriodSecs: EXPIRY_PERIOD_SECS,
                 appData: APP_DATA
@@ -922,7 +989,7 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
                 roundDownDivisor: ROUND_DOWN_DIVISOR,
                 partiallyFillable: true,
                 useCurrentBalanceForSellAmount: false,
-                limitPricePremiumBps: PRICE_PREMIUM_BPS,
+                limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
                 verifySlippageBps: VERIFY_SLIPPAGE_BPS,
                 expiryPeriodSecs: EXPIRY_PERIOD_SECS,
                 appData: APP_DATA
@@ -970,9 +1037,9 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
             abi.encode(forcedAmount)
         );
 
-        // limitPricePremiumBps are added on - this is the profit we expect to get
+        // limitPriceAdjustmentBps are added on - this is the profit we expect to get
         (uint256 buyAmount, uint256 roundedBuyAmount) = swapper.getBuyAmount(DAI);
-        assertEq(buyAmount, forcedAmount * (10_000 + PRICE_PREMIUM_BPS) / 10_000);
+        assertEq(buyAmount, forcedAmount * (10_000 + uint16(PRICE_PREMIUM_BPS)) / 10_000); // PRICE_PREMIUM_BPS is +ve
         assertEq(roundedBuyAmount, 1_015_380e6);
     }
 
@@ -989,7 +1056,7 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
                 roundDownDivisor: 0.5e6,
                 partiallyFillable: true,
                 useCurrentBalanceForSellAmount: false,
-                limitPricePremiumBps: PRICE_PREMIUM_BPS,
+                limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
                 verifySlippageBps: VERIFY_SLIPPAGE_BPS,
                 expiryPeriodSecs: EXPIRY_PERIOD_SECS,
                 appData: APP_DATA
@@ -1010,7 +1077,7 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
         assertEq(roundedBuyAmount, 1_015_382.5e6);
     }
 
-    function test_supportsInterface() public {
+    function test_supportsInterface() public view {
         assertEq(swapper.supportsInterface(type(IOrigamiCowSwapper).interfaceId), true);
         assertEq(swapper.supportsInterface(type(IConditionalOrder).interfaceId), true);
         assertEq(swapper.supportsInterface(type(IERC165).interfaceId), true);
@@ -1033,7 +1100,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
             roundDownDivisor: 0,
             partiallyFillable: false,
             useCurrentBalanceForSellAmount: true,
-            limitPricePremiumBps: 0,
+            limitPriceAdjustmentBps: 0,
             verifySlippageBps: 100,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS,
             appData: APP_DATA
@@ -1083,7 +1150,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
             roundDownDivisor: 5e18,
             partiallyFillable: false,
             useCurrentBalanceForSellAmount: true,
-            limitPricePremiumBps: 0,
+            limitPriceAdjustmentBps: 0,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS*3/2,
             appData: bytes32("abc")
@@ -1152,7 +1219,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is LOWER
-        swapper.updateAmountsAndPremiumBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*0.8e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*0.8e6/1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1167,7 +1234,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a little higher
-        swapper.updateAmountsAndPremiumBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.009e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.009e6/1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1182,7 +1249,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a little higher
-        swapper.updateAmountsAndPremiumBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.01e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.01e6/1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1198,7 +1265,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a LOT higher
-        swapper.updateAmountsAndPremiumBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.0101e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.0101e6/1e6, 0);
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 5_050.796890e6, 5_051.296968e6));
         swapper.isValidSignature(hash, signature);
@@ -1316,7 +1383,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
             roundDownDivisor: 0,
             partiallyFillable: false,
             useCurrentBalanceForSellAmount: false,
-            limitPricePremiumBps: 0,
+            limitPriceAdjustmentBps: 0,
             verifySlippageBps: 0,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS,
             appData: APP_DATA
@@ -1365,7 +1432,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
             roundDownDivisor: 5e18,
             partiallyFillable: false,
             useCurrentBalanceForSellAmount: true,
-            limitPricePremiumBps: 0,
+            limitPriceAdjustmentBps: 0,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
             expiryPeriodSecs: EXPIRY_PERIOD_SECS*3/2,
             appData: bytes32("abc")
@@ -1459,7 +1526,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is LOWER
-        swapper.updateAmountsAndPremiumBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*0.8e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*0.8e6/1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1474,7 +1541,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a LOT higher
-        swapper.updateAmountsAndPremiumBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.0101e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.0101e6/1e6, 0);
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 9_500e6, 9_595.95e6));
         swapper.isValidSignature(hash, signature);

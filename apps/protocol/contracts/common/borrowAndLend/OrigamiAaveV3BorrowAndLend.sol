@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/borrowAndLend/OrigamiAaveV3BorrowAndLend.sol)
 
@@ -180,8 +180,9 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
      */
     function supply(
         uint256 supplyAmount
-    ) external override onlyPositionOwnerOrElevated {
+    ) external override onlyPositionOwnerOrElevated returns (uint256 supplied) {
         _supply(supplyAmount);
+        supplied = supplyAmount;
     }
 
     /**
@@ -201,8 +202,8 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
     function borrow(
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwnerOrElevated {
-        _borrow(borrowAmount, recipient);
+    ) external override onlyPositionOwnerOrElevated returns (uint256 borrowedAmount) {
+        borrowedAmount = _borrow(borrowAmount, recipient);
     }
 
     /**
@@ -242,9 +243,9 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         uint256 supplyAmount, 
         uint256 borrowAmount, 
         address recipient
-    ) external override onlyPositionOwnerOrElevated {
-        _supply(supplyAmount);
-        _borrow(borrowAmount, recipient);
+    ) external override onlyPositionOwnerOrElevated returns (uint256 suppliedAmount, uint256 borrowedAmount) {
+        suppliedAmount =_supply(supplyAmount);
+        borrowedAmount =_borrow(borrowAmount, recipient);
     }
 
     /**
@@ -320,7 +321,7 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
      * from the entire protocol
      */
     function availableToBorrow() external override view returns (uint256 available) {
-        AaveDataTypes.ReserveData memory _reserveData = aavePool.getReserveData(borrowToken);
+        AaveDataTypes.ReserveDataLegacy memory _reserveData = aavePool.getReserveData(borrowToken);
         uint256 borrowCap = _reserveData.configuration.getBorrowCap() * (10 ** _reserveData.configuration.getDecimals());
         available = IERC20(borrowToken).balanceOf(_reserveData.aTokenAddress);
 
@@ -336,7 +337,7 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         uint256 supplyCap,
         uint256 available
     ) {
-        AaveDataTypes.ReserveData memory _reserveData = aavePool.getReserveData(supplyToken);
+        AaveDataTypes.ReserveDataLegacy memory _reserveData = aavePool.getReserveData(supplyToken);
 
         // The supply cap needs to be scaled by decimals
         uint256 unscaledCap = _reserveData.configuration.getSupplyCap();
@@ -378,10 +379,11 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         return aavePool.getUserAccountData(address(this));
     }
 
-    function _supply(uint256 supplyAmount) internal {
+    function _supply(uint256 supplyAmount) internal returns (uint256 suppliedAmount) {
         uint256 sharesBefore = aaveAToken.scaledBalanceOf(address(this));
         aavePool.supply(supplyToken, supplyAmount, address(this), referralCode);
         _aTokenShares = _aTokenShares + aaveAToken.scaledBalanceOf(address(this)) - sharesBefore;
+        suppliedAmount = supplyAmount;
     }
 
     function _withdraw(uint256 withdrawAmount, address recipient) internal returns (uint256 amountWithdrawn) {
@@ -390,9 +392,10 @@ contract OrigamiAaveV3BorrowAndLend is IOrigamiAaveV3BorrowAndLend, OrigamiEleva
         _aTokenShares = _aTokenShares + aaveAToken.scaledBalanceOf(address(this)) - sharesBefore;
     }
 
-    function _borrow(uint256 borrowAmount, address recipient) internal {
+    function _borrow(uint256 borrowAmount, address recipient) internal returns (uint256 borrowedAmount) {
         aavePool.borrow(borrowToken, borrowAmount, INTEREST_RATE_MODE, referralCode, address(this));
         IERC20(borrowToken).safeTransfer(recipient, borrowAmount);
+        borrowedAmount = borrowAmount;
     }
     
     function _repay(uint256 repayAmount) internal returns (uint256 debtRepaidAmount) {

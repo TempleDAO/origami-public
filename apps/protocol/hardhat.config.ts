@@ -2,21 +2,19 @@ require('dotenv').config();
 
 import '@nomicfoundation/hardhat-chai-matchers';
 import '@typechain/hardhat';
+import '@nomicfoundation/hardhat-verify';
 import '@nomiclabs/hardhat-ethers';
-import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-vyper';
 import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-contract-sizer';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
-import fs from "fs";
+import "@nomicfoundation/hardhat-foundry";
 
-function getRemappings() {
-    return fs
-      .readFileSync("remappings.txt", "utf8")
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => line.trim().split("="));
+function getMaxGasInWei(envVar: string | undefined): number | undefined {
+    return envVar
+        ? parseInt(envVar) * 1000000000
+        : undefined;
 }
 
 /**
@@ -28,48 +26,14 @@ module.exports = {
         artifacts: "./artifacts-hardhat",
         cache: "./cache-hardhat", // Use a different cache for Hardhat than Foundry
     },
-    // This fully resolves paths for imports in the ./lib directory for Hardhat
-    // https://book.getfoundry.sh/config/hardhat#instructions
-    preprocess: {
-        eachLine: (_: unknown) => ({
-            transform: (line: string) => {
-                if (line.match(/^\s*import /i)) {
-                    getRemappings().forEach(([find, replace]) => {
-                        if (line.match(find)) {
-                            line = line.replace(find, replace);
-                        }
-                    });
-                }
-                return line;
-            },
-        }),
-    },
     solidity: {
         compilers: [
             {
-                version: '0.8.21',
+                version: '0.8.22',
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 10_000,
-                    },
-                },
-            },
-            {
-                version: '0.8.19',
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 10_000,
-                    },
-                },
-            },
-            {
-                version: '0.6.12',
-                settings: {
-                    optimizer: {
-                        enabled: true,
-                        runs: 1, // Inline with GMX.io's deploys - required to get the contract size < 32 bytes
+                        runs: 9_999,
                     },
                 },
             },
@@ -101,28 +65,63 @@ module.exports = {
             accounts: process.env.AVALANCHE_ADDRESS_PRIVATE_KEY
                 ? [process.env.AVALANCHE_ADDRESS_PRIVATE_KEY]
                 : [],
-            gasPrice: parseInt(process.env.AVALANCHE_GAS_IN_GWEI || '0') * 1000000000,
+            gasPrice: getMaxGasInWei(process.env.AVALANCHE_GAS_IN_GWEI),
         },
         polygon: {
             url: process.env.POLYGON_RPC_URL || '',
             accounts: process.env.POLYGON_ADDRESS_PRIVATE_KEY
                 ? [process.env.POLYGON_ADDRESS_PRIVATE_KEY]
                 : [],
-            gasPrice: parseInt(process.env.POLYGON_GAS_IN_GWEI || '0') * 1000000000,
+            gasPrice: getMaxGasInWei(process.env.AVALANCHE_GAS_IN_GWEI),
         },
         mainnet: {
             url: process.env.MAINNET_RPC_URL || '',
             accounts: process.env.MAINNET_ADDRESS_PRIVATE_KEY
                 ? [process.env.MAINNET_ADDRESS_PRIVATE_KEY]
                 : [],
-            gasPrice: parseInt(process.env.MAINNET_GAS_IN_GWEI || '0') * 1000000000,
         },
         sepolia: {
             url: process.env.SEPOLIA_RPC_URL || '',
             accounts: process.env.SEPOLIA_ADDRESS_PRIVATE_KEY
                 ? [process.env.SEPOLIA_ADDRESS_PRIVATE_KEY]
                 : [],
-            gasPrice: parseInt(process.env.SEPOLIA_GAS_IN_GWEI || '0') * 1000000000,
+            gasPrice: getMaxGasInWei(process.env.AVALANCHE_GAS_IN_GWEI),
+        },
+        holesky: {
+            chainId: 17000,
+            url: process.env.HOLESKY_RPC_URL || '',
+            accounts: process.env.HOLESKY_ADDRESS_PRIVATE_KEY
+                ? [process.env.HOLESKY_ADDRESS_PRIVATE_KEY]
+                : [],
+            gasPrice: getMaxGasInWei(process.env.AVALANCHE_GAS_IN_GWEI),
+        },
+        bartio: {
+            url: process.env.BARTIO_RPC_URL || '',
+            accounts: process.env.BARTIO_ADDRESS_PRIVATE_KEY
+                ? [process.env.BARTIO_ADDRESS_PRIVATE_KEY]
+                : [],
+            chainId: 80084,
+        },
+        cartio: {
+            url: process.env.CARTIO_RPC_URL || '',
+            accounts: process.env.CARTIO_ADDRESS_PRIVATE_KEY
+                ? [process.env.CARTIO_ADDRESS_PRIVATE_KEY]
+                : [],
+            chainId: 80000,
+        },
+        berachain: {
+            url: process.env.BERACHAIN_RPC_URL || '',
+            accounts: process.env.BERACHAIN_ADDRESS_PRIVATE_KEY
+                ? [process.env.BERACHAIN_ADDRESS_PRIVATE_KEY]
+                : [],
+            chainId: 80094,
+        },
+        bepolia: {
+            url: process.env.BEPOLIA_RPC_URL || '',
+            accounts: process.env.BEPOLIA_ADDRESS_PRIVATE_KEY
+                ? [process.env.BEPOLIA_ADDRESS_PRIVATE_KEY]
+                : [],
+            chainId: 80069,
         },
         anvil: {
             url: "http://127.0.0.1:8545/",
@@ -137,8 +136,70 @@ module.exports = {
             polygon: process.env.POLYGONSCAN_API_KEY,
             arbitrumOne: process.env.ARBISCAN_API_KEY,
             sepolia: process.env.ETHERSCAN_API_KEY,
+            holesky: process.env.ETHERSCAN_API_KEY,
             mainnet: process.env.ETHERSCAN_API_KEY,
+            bartio: "berachainbArtio", // unused
+            cartio: "berachaincArtio", // unused
+            berachain: process.env.BERASCAN_API_KEY,
+            bepolia: "berachainbepolia", // unused
         },
+        customChains: [
+            {
+                network: "bartio",
+                chainId: 80084,
+                urls: {
+                    apiURL:
+                        "https://api.routescan.io/v2/network/testnet/evm/80084/etherscan/api/",
+                    browserURL: "https://bartio.beratrail.io/",
+                },
+            },
+            {
+                network: "cartio",
+                chainId: 80000,
+                urls: {
+                    apiURL:
+                        "https://api.routescan.io/v2/network/mainnet/evm/80000/etherscan",
+                    browserURL: "https://80000.testnet.routescan.io/",
+                },
+            },
+            {
+                network: "berachain",
+                chainId: 80094,
+                urls: {
+                    // For Routescan if required (API key is unused, so can be anything)
+                    // apiURL:
+                    // "https://api.routescan.io/v2/network/mainnet/evm/80094/etherscan",
+                    // browserURL: "https://80094.routescan.io/",
+
+                    // For Berascan
+                    apiURL:
+                        "https://api.berascan.com/api",
+                    browserURL: "https://berascan.com//",
+                },
+            },
+            {
+                network: "bepolia",
+                chainId: 80069,
+                urls: {
+                    apiURL:
+                        "https://api.routescan.io/v2/network/testnet/evm/80069/etherscan",
+                    browserURL: "https://bepolia.beratrail.io/",
+                },
+            },
+            {
+                network: "holesky",
+                chainId: 17000,
+                urls: {
+                    apiURL: "https://api-holesky.etherscan.io/api/",
+                    browserURL: "https://holesky.etherscan.io/",
+                },
+            },
+        ],
+    },
+    sourcify: {
+        // Disabled by default
+        // Doesn't need an API key
+        enabled: false
     },
     mocha: {
         timeout: 120000,

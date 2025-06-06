@@ -1,0 +1,468 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x7FC862A47BBCDe3812CA772Ae851d0A9D1619eDa",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x0b53Afe5de9f9df65C3Fe8A9DA81dC410d14d4d4",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0xE567DCf433F97d787dF2359bDBF95dFd2B7aBF4E",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x7D7609bF7c3A3c91D524C718FcBfD93398C76603",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0xC65a88A7b7752873a3106BD864BBCd717e35d2e5",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x2eC7777838A49E2C83152d455B3CA753c6d08b79",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0x9fA6D162E32A08B323ADEaE2560F0E44D6dBE53c",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x5383bfABbfCF670cEAC0C7cAd0e5E0a141B23b79",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0x9C1F7237480c030Cb14375Ff6b650606248A5247",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x43947Fe908C9C1F9F64857C2429bF2bb1DD0D111",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0x235e2afeAA56497436987E87bb475D04BEFC1394",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xBfa722C4fdf41632A8648C5F1Ae129242b1a9CE6",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0xC3979edD2bC308D536964b9515161C8551D0aE3a",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xd414c46Ac45e14f3171e857e35eC12D8E38598fe",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0x26DF9465964C2cEF869281c09a10F7Dd7b1321a7",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xED95cf020eCE657a10793488622Ed2f837F1e83c",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0xdE6d401E4B651F313edB7da0A11e072EEf4Ce7BE",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xc387Db4203d81723367CFf6Bcd14Ad2099A7Fbce",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0x71520ce2DB377AFa999bc6fdc1af896B21b2F26a",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x2f80eE76E44047E3CbB40FC4C0CC2f7f04fA1709",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    },
+    {
+      "to": "0x5Ca7539f4a3D0E5006523C1380898898457E927f",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "collectPerformanceFees",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xC8462C87F7b7446D99C7F1c2F4915A67D711b2aC",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setPaused",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "bool",
+                "name": "investmentsPaused",
+                "type": "bool"
+              },
+              {
+                "internalType": "bool",
+                "name": "exitsPaused",
+                "type": "bool"
+              }
+            ],
+            "internalType": "struct IOrigamiManagerPausable.Paused",
+            "name": "updatedPaused",
+            "type": "tuple"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "updatedPaused": "[true,false]"
+      }
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/swappers/OrigamiCowSwapper.sol)
 
@@ -76,8 +76,8 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
             if (!config.limitPriceOracle.matchAssets(sellToken, address(config.buyToken)))
                 revert CommonEventsAndErrors.InvalidParam();
         } else {
-            // If the price oracle is not set, then there should not be a limitPricePremiumBps
-            if (config.limitPricePremiumBps > 0) revert CommonEventsAndErrors.InvalidParam();
+            // If the price oracle is not set, then there should not be a limitPriceAdjustmentBps
+            if (config.limitPriceAdjustmentBps != 0) revert CommonEventsAndErrors.InvalidParam();
         }
 
         if (config.recipient == address(0)) revert CommonEventsAndErrors.InvalidAddress(config.recipient);
@@ -97,11 +97,11 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     }
 
     /// @inheritdoc IOrigamiCowSwapper
-    function updateAmountsAndPremiumBps(
+    function updateAmountsAndAdjustmentBps(
         address sellToken, 
         uint96 maxSellAmount,
         uint96 minBuyAmount,
-        uint16 limitPricePremiumBps
+        int16 limitPriceAdjustmentBps
     ) external override onlyElevatedAccess { 
         if (maxSellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (minBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -109,21 +109,21 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         // Ensure it's configured first.
         OrderConfig storage config = _getOrderConfig(IERC20(sellToken));
 
-        // If the price oracle is not set, then there should not be a limitPricePremiumBps
+        // If the price oracle is not set, then there should not be a limitPriceAdjustmentBps
         if (address(config.limitPriceOracle) == address(0)) {
-            if (limitPricePremiumBps > 0) revert CommonEventsAndErrors.InvalidParam();
+            if (limitPriceAdjustmentBps != 0) revert CommonEventsAndErrors.InvalidParam();
         }
 
         config.maxSellAmount = maxSellAmount;
         config.minBuyAmount = minBuyAmount;
-        config.limitPricePremiumBps = limitPricePremiumBps;
+        config.limitPriceAdjustmentBps = limitPriceAdjustmentBps;
 
         emit OrderConfigSet(sellToken);
     }
 
     /**
      * @notice Recover any token
-     * @dev The default implementaiton allows elevated access to recover any token. This may need
+     * @dev The default implementation allows elevated access to recover any token. This may need
      * to be restricted for specific implementations (eg restricted from pulling vault reserve tokens)
      * @param token Token to recover
      * @param to Recipient address
@@ -382,10 +382,12 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
                 OrigamiMath.Rounding.ROUND_DOWN
             );
 
-            // Add the premium to the buyToken amount
-            uint256 limitPricePremiumBps = config.limitPricePremiumBps;
-            if (limitPricePremiumBps > 0) {
-                unroundedBuyAmount = unroundedBuyAmount.addBps(config.limitPricePremiumBps, OrigamiMath.Rounding.ROUND_DOWN);
+            // Adjust the oracle price to determine the buyAmount limit
+            int16 limitPriceAdjustmentBps = config.limitPriceAdjustmentBps;
+            if (limitPriceAdjustmentBps > 0) {
+                unroundedBuyAmount = unroundedBuyAmount.addBps(uint16(limitPriceAdjustmentBps), OrigamiMath.Rounding.ROUND_DOWN);
+            } else if (limitPriceAdjustmentBps < 0) {
+                unroundedBuyAmount = unroundedBuyAmount.subtractBps(uint16(-limitPriceAdjustmentBps), OrigamiMath.Rounding.ROUND_DOWN);
             }
         }
 

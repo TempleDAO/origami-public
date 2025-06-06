@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -139,7 +139,7 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         );
     }
 
-    function test_latestPrices() public {
+    function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oWstEthToEthOracle.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE, 
             OrigamiMath.Rounding.ROUND_UP,

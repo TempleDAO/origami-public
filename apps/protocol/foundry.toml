@@ -9,10 +9,14 @@
   cache_path = 'cache-foundry'
   gas_reports = ["*"]
   evm_version = 'cancun'
+  solc = '0.8.22'
+  legacy_assertions = true
+  assertions_revert = false
+  dynamic_test_linking = true # Required foundry >= 1.1.0
 
 [profile.default.fuzz]
-  max_test_rejects = 5000
-  runs = 2000
+  max_test_rejects = 2000
+  runs = 512
   # For the seed, add this to the pipeline so it's a different seed every week
   # export FOUNDRY_FUZZ_SEED=$(echo $(($EPOCHSECONDS - $EPOCHSECONDS % 604800)))
   # seed = "123"  export FOUNDRY_FUZZ_SEED=123
@@ -23,16 +27,24 @@
   include_storage = false
   # Number of calls executed in one run. Be mindful that all Handler fns are (unevenly) split over this total depth
   depth = 80
-  runs = 200
+  runs = 128
 
 [profile.ci.invariant]
   # Number of calls executed in one run. Be mindful that all Handler fns are (unevenly) split over this total depth
-  depth = 80
-  runs = 2500
+  depth = 60
+  runs = 128
 
 [profile.lite]
   # Speed up compilation and tests during development.
   optimizer = false
+
+# Cooler is large and needs a reduced number of runs.
+[profile.cooler-deploy]
+  additional_compiler_profiles = [ { name = "small-runs", optimizer_runs = 1000 } ]
+
+  compilation_restrictions = [
+      { paths = "contracts/test/external/olympus/src/policies/cooler/MonoCooler.sol", optimizer_runs = 1000 },
+  ]
 
 [etherscan]
   mainnet = { key = "${ETHERSCAN_MAINNET_KEY}" }

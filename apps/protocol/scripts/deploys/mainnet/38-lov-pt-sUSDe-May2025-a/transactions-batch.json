@@ -1,0 +1,89 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0xb7de5dFCb74d25c2f21841fbd6230355C50d9308",
+        "fnCalldata": "0x04b3953400000000000000000000000099d53bb57fdbe260fdf6898f14043057c22a319a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "to": "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "tokenAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "fnCalldata",
+            "type": "bytes"
+          }
+        ],
+        "name": "setTokenPriceFunction",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "tokenAddress": "0x31C1556658D928c32393a32D8A375d7dfB1E4C7a",
+        "fnCalldata": "0x7eb11c6300000000000000000000000031c1556658d928c32393a32d8a375d7dfb1e4c7a"
+      }
+    },
+    {
+      "to": "0x31C1556658D928c32393a32D8A375d7dfB1E4C7a",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x3c3c116aEb62B6dBf7c8fA6A9F2cc7Cf8f3CfDf0",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x78F37AC8407aE3c99cE56600Afcd0AD85A34bFAf",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

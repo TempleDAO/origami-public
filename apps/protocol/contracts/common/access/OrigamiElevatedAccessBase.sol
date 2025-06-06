@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/access/OrigamiElevatedAccessBase.sol)
 
@@ -58,7 +58,7 @@ abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
      * @notice Caller accepts the role as new Owner.
      * Can only be called by the proposed owner
      */
-    function acceptOwner() external override {
+    function acceptOwner() public virtual override {
         if (msg.sender != _proposedNewOwner) revert CommonEventsAndErrors.InvalidAccess();
 
         emit NewOwnerAccepted(owner, msg.sender);

@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -46,7 +46,7 @@ contract ChainlinkTest is OrigamiTest {
         chainlinkMock = new ChainlinkMock();
     }
 
-    function test_scalingFactor() public {
+    function test_scalingFactor() public view {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         assertEq(scalar, 1e10);
         assertEq(scaleDown, false);

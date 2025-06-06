@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiLovTokenTestBase } from "test/foundry/unit/investments/lovToken/OrigamiLovTokenBase.t.sol";
@@ -18,7 +18,7 @@ contract OrigamiLovTokenTestAdmin is OrigamiLovTokenTestBase {
     event TokenPricesSet(address indexed tokenPrices);
     event MaxTotalSupplySet(uint256 maxTotalSupply);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(lovToken.owner(), origamiMultisig);
         assertEq(address(lovToken.manager()), address(manager));
 
@@ -269,7 +269,7 @@ contract OrigamiLovTokenTestViews is OrigamiLovTokenTestBase {
         assertEq(manager.effectiveExposure(IOrigamiOracle.PriceType.SPOT_PRICE), ee);
     }
 
-    function test_userALRange() public {
+    function test_userALRange() public view {
         (uint128 floor, uint128 ceiling) = lovToken.userALRange();
         (uint128 mfloor, uint128 mceiling) = manager.userALRange();
         assertEq(floor, 1.001e18);
@@ -278,7 +278,7 @@ contract OrigamiLovTokenTestViews is OrigamiLovTokenTestBase {
         assertEq(ceiling, mceiling);
     }
 
-    function test_getDynamicFeesBps() public {
+    function test_getDynamicFeesBps() public view {
         (uint256 depositFee, uint256 exitFee) = lovToken.getDynamicFeesBps();
         assertEq(depositFee, 20);
         assertEq(exitFee, 50);
@@ -300,7 +300,7 @@ contract OrigamiLovTokenTestInvest is OrigamiLovTokenTestBase {
     }
 
     // Not testing the mock manager implementation here - just that it passes through to the manager.
-    function test_maxInvest() public {
+    function test_maxInvest() public view {
         assertEq(lovToken.maxInvest(address(daiToken)), 10_020_040.080160320641282565e18);
     }
 

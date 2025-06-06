@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -102,7 +102,7 @@ contract OrigamiAaveV3BorrowAndLendMultiDecimalsTestBase is OrigamiTest {
         borrowLend.setPositionOwner(posOwner);
         vm.stopPrank();
 
-        AaveDataTypes.ReserveData memory _reserveData = IAavePool(Constants.SPARK_POOL).getReserveData(_supplyToken);
+        AaveDataTypes.ReserveDataLegacy memory _reserveData = IAavePool(Constants.SPARK_POOL).getReserveData(_supplyToken);
         address supplyAToken = _reserveData.aTokenAddress;
 
         _reserveData = IAavePool(Constants.SPARK_POOL).getReserveData(_borrowToken);
@@ -167,7 +167,7 @@ contract OrigamiAaveV3BorrowAndLendMultiDecimalsTestAdmin is OrigamiAaveV3Borrow
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
     event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         for(uint256 ind; ind < borrowLendCount; ++ind) {
             BorrowLendContract storage info = borrowLendContracts[ind];
 
@@ -719,7 +719,7 @@ contract OrigamiAaveV3BorrowAndLendMultiDecimalsTestViews is OrigamiAaveV3Borrow
         }
     }
 
-    function test_isSafeAlRatio_ethEMode() public {
+    function test_isSafeAlRatio_ethEMode() public view {
         for(uint256 ind; ind < borrowLendCount; ++ind) {
             BorrowLendContract storage info = borrowLendContracts[ind];
             OrigamiAaveV3BorrowAndLend borrowLendItem = info.borrowLend;
@@ -770,7 +770,7 @@ contract OrigamiAaveV3BorrowAndLendMultiDecimalsTestViews is OrigamiAaveV3Borrow
             BorrowLendContract storage info = borrowLendContracts[ind];
             OrigamiAaveV3BorrowAndLend borrowLendItem = info.borrowLend;
 
-            AaveDataTypes.ReserveData memory _reserveData = IAavePool(Constants.SPARK_POOL).getReserveData(address(info.borrowToken));
+            AaveDataTypes.ReserveDataLegacy memory _reserveData = IAavePool(Constants.SPARK_POOL).getReserveData(address(info.borrowToken));
             uint256 borrowCap = _reserveData.configuration.getBorrowCap() * (10 ** _reserveData.configuration.getDecimals());
             uint256 balance = info.borrowToken.balanceOf(_reserveData.aTokenAddress);
 
@@ -809,7 +809,7 @@ contract OrigamiAaveV3BorrowAndLendMultiDecimalsTestViews is OrigamiAaveV3Borrow
                 uint256 available
             ) = borrowLendItem.availableToSupply();
 
-            AaveDataTypes.ReserveData memory reserveinfo = IAavePool(Constants.SPARK_POOL).getReserveData(address(info.supplyToken));
+            AaveDataTypes.ReserveDataLegacy memory reserveinfo = IAavePool(Constants.SPARK_POOL).getReserveData(address(info.supplyToken));
 
             assertEq(supplyCap, reserveinfo.configuration.getSupplyCap() * (10 ** reserveinfo.configuration.getDecimals()));
             assertEq(available, availableAmounts[ind]);

@@ -1,11 +1,11 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
 import { MockSDaiToken } from "contracts/test/external/maker/MockSDaiToken.m.sol";
-import { OrigamiSuperSavingsUsdsVault } from "contracts/investments/sky/OrigamiSuperSavingsUsdsVault.sol";
+import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiSuperSavingsUsdsManager } from "contracts/investments/sky/OrigamiSuperSavingsUsdsManager.sol";
 import { TokenPrices } from "contracts/common/TokenPrices.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
@@ -16,7 +16,7 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
 
     DummyMintableToken public asset;
     MockSDaiToken public sUSDS; 
-    OrigamiSuperSavingsUsdsVault public vault;
+    OrigamiDelegated4626Vault public vault;
     OrigamiSuperSavingsUsdsManager public manager;
     TokenPrices public tokenPrices;
     address public swapper = makeAddr("swapper");
@@ -42,7 +42,7 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
         doMint(asset, address(sUSDS), BOOTSTRAPPED_USDS_AMOUNT);
 
         tokenPrices = new TokenPrices(30);
-        vault = new OrigamiSuperSavingsUsdsVault(
+        vault = new OrigamiDelegated4626Vault(
             origamiMultisig, 
             "Origami sUSDS+s", 
             "sUSDS+s",
@@ -137,7 +137,7 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
     event TokenPricesSet(address indexed tokenPrices);
     event ManagerSet(address indexed manager);
 
-    function test_initialization() public {
+    function test_initialization() public view {
         assertEq(vault.owner(), origamiMultisig);
         assertEq(vault.name(), "Origami sUSDS+s");
         assertEq(vault.symbol(), "sUSDS+s");
@@ -267,8 +267,13 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
-        assertEq(asset.balanceOf(address(manager)), 0); // donation was added into sUSDS
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 233e18 + 0.1e18);
+        // NOTE(chachlex): the vault no longer calls deposit with uint256.max in _depositHook so 
+        // changes to the manager need to be made for this test to pass.
+        // the mainnet-deployed contract will auto invest the donated amount
+        // assertEq(asset.balanceOf(address(manager)), 0); // donation was added into sUSDS
+        // assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 233e18 + 0.1e18);
+        assertEq(asset.balanceOf(address(manager)), 10e18); // donation was added into sUSDS
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 223e18 + 0.1e18);
         assertEq(vault.balanceOf(alice), 111.828337874659400545e18);
         assertEq(vault.totalSupply(), 211.928337874659400545e18);
         assertEq(vault.totalAssets(), 233e18 + 0.1e18);
@@ -325,8 +330,14 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
-        assertEq(asset.balanceOf(address(manager)), 0);
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 245.387712287712287713e18);
+        
+        // NOTE(chachlex): the vault no longer calls deposit with uint256.max in _depositHook so 
+        // changes to the manager need to be made for this test to pass.
+        // the mainnet-deployed contract will auto invest the donated amount
+        // assertEq(asset.balanceOf(address(manager)), 0);
+        // assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 245.387712287712287713e18);
+        assertEq(asset.balanceOf(address(manager)), 10e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 235.387712287712287713e18);
         assertEq(vault.balanceOf(alice), 123e18);
         assertEq(vault.totalSupply(), 223e18 + 0.1e18);
 

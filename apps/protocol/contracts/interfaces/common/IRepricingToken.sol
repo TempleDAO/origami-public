@@ -1,9 +1,9 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/common/IRepricingToken.sol)
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
+import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 /// @notice A re-pricing token which implements the ERC20 interface.
 /// Each minted RepricingToken represents 1 share.

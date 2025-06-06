@@ -1,0 +1,11 @@
+// bartio: LOV_WETH_LONG_A.TOKEN=0xC85Fa2A6A2fDb75Aac44D24875787B1B01440dfE
+// yarn hardhat verify --network bartio 0xC85Fa2A6A2fDb75Aac44D24875787B1B01440dfE --constructor-args scripts/deploys/bartio/deploymentArgs/0xC85Fa2A6A2fDb75Aac44D24875787B1B01440dfE.js
+module.exports = [
+  "0xE00F5CB480AaAECb749dA37cb13Ee3408AF13d06",
+  "Origami lov-WETH-long-a",
+  "lov-WETH-long-a",
+  1000,
+  "0xE00F5CB480AaAECb749dA37cb13Ee3408AF13d06",
+  "0xD21779985da1677df0fFD08a610E905E3F1eA3BD",
+  "1000000000000000000000000"
+];

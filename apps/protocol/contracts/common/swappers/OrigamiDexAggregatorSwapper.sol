@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/swappers/OrigamiDexAggregatorSwapper.sol)
 
@@ -15,6 +15,13 @@ import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
  * possibly others which obtain quote calldata offchain and then execute via a low level call
  * to perform the swap onchain.
  * @dev The amount of tokens bought is expected to be checked for slippage in the calling contract
+ * 
+ * Intended to be used synchronously from another contract:
+ *  - Each deployed instance can be used by multiple client contracts.
+ *  - Permisionless to call execute()
+ *  - sellToken's are pulled from the client contract within execute()
+ *  - Not allowed to have new residual sellToken's after the swap.
+ *  - Caller is responsible for any required slippage checks.
  */
 contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
@@ -66,7 +73,9 @@ contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
 
         if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
 
-        buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, buyToken, routeData.data);
+        // revertOnSurplusSellToken=true, to force that there's no surplus. Otherwise if there is surplus
+        // another address could call execute() afterwards and drain those tokens for free.
+        buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, buyToken, routeData.data, true);
 
         // Transfer back to the caller
         buyToken.safeTransfer(msg.sender, buyTokenAmount);

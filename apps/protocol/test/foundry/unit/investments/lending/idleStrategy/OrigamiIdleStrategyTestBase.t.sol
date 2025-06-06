@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -20,7 +20,7 @@ contract OrigamiIdleStrategyTestBase is OrigamiTest {
         manager = new OrigamiIdleStrategyManager(origamiMultisig, address(asset));
     }
 
-    function checkLatestAssetBalances(uint256 expectedAmount) internal {
+    function checkLatestAssetBalances(uint256 expectedAmount) internal view {
         IOrigamiLendingBorrower.AssetBalance[] memory assetBalances = manager.latestAssetBalances();
         assertEq(assetBalances.length, 1);
         assertEq(assetBalances[0].asset, address(asset));

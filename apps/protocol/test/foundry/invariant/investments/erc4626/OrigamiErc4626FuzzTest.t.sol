@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -73,7 +73,7 @@ contract ERC4626FuzzTest is ERC4626Test, OrigamiTest {
             // @note Updated: bound to the max depositable by the user (would just error otherwise slowing things down)
             uint256 maxDeposit = vault.maxDeposit(user);
             uint256 minDeposit = maxDeposit > 0 ? 1 : 0; // Attempt to deposit at least 1
-            uint shares = bound(init.share[i], minDeposit, maxDeposit);
+            uint shares = _bound(init.share[i], minDeposit, maxDeposit);
 
             try underlying.mint(user, shares) {} catch { vm.assume(false); }
             _approve(_underlying_, user, _vault_, shares);
@@ -82,7 +82,7 @@ contract ERC4626FuzzTest is ERC4626Test, OrigamiTest {
 
             // assets
             // @note Updated: bound to 100x the shares such that the share price isn't crazy big            
-            uint assets = bound(init.asset[i], 0, shares*100);
+            uint assets = _bound(init.asset[i], 0, shares*100);
 
             try underlying.mint(user, assets) {} catch { vm.assume(false); }
         }
@@ -92,7 +92,7 @@ contract ERC4626FuzzTest is ERC4626Test, OrigamiTest {
         //   Otherwise there's many cases of minting zero shares (which will revert later) causing 
         //   a lot of unnecessary re-runs.
         uint256 totalAssets = underlying.balanceOf(address(vault));
-        init.yield = bound(init.yield, -int256(totalAssets)*11/10, int256(totalAssets)*11/10);
+        init.yield = _bound(init.yield, -int256(totalAssets)*11/10, int256(totalAssets)*11/10);
         setUpYield(init);
     }
 

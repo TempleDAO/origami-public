@@ -1,4 +1,4 @@
 {
     "detectors_to_exclude": "naming-convention,similar-names,solc-version",
-    "filter_paths": "(node_modules/|contracts/test/|test/|lib/)"
+    "filter_paths": "(node_modules/|contracts/test/|test/|lib/|contracts/external/)"
 }

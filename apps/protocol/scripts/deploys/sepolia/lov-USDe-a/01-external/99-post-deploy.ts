@@ -15,6 +15,7 @@ async function main() {
   const INSTANCES = connectToContracts(owner);
   const ADDRS = getDeployedContracts();
 
+  // New sepolia market created via: https://github.com/TempleDAO/morpho-deployer
   const morphoMarketParams = {
     loanToken: ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN,
     collateralToken: ADDRS.EXTERNAL.ETHENA.USDE_TOKEN,
@@ -22,24 +23,7 @@ async function main() {
     irm: ADDRS.EXTERNAL.MORPHO.IRM,
     lltv: DEFAULT_SETTINGS.LOV_USDE.MORPHO_BORROW_LEND.LIQUIDATION_LTV,
   };
-
-  const morphoOwnerAddr = await INSTANCES.EXTERNAL.MORPHO.SINGLETON.owner();
-
-  // This works in local fork testing. For actual testnet deploy, a multisig
-  // operation will be required instead.
-  const morphoOwner = await impersonateAndFund(owner, morphoOwnerAddr);
-
-  // Setup morpho
-  {
-    await mine(INSTANCES.EXTERNAL.MORPHO.SINGLETON.connect(morphoOwner).enableLltv(
-      DEFAULT_SETTINGS.LOV_USDE.MORPHO_BORROW_LEND.LIQUIDATION_LTV
-    ));
-
-    await mine(INSTANCES.EXTERNAL.MORPHO.SINGLETON.createMarket(
-      morphoMarketParams
-    ));
-  }
-
+  
   // Seed with DAI liquidity
   {
     const amount = ethers.utils.parseEther("10000000");

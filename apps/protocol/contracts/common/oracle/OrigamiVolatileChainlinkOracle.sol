@@ -1,10 +1,9 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (common/oracle/OrigamiVolatileChainlinkOracle.sol)
 
 import { IAggregatorV3Interface } from "contracts/interfaces/external/chainlink/IAggregatorV3Interface.sol";
 import { OrigamiOracleBase } from "contracts/common/oracle/OrigamiOracleBase.sol";
-import { Range } from "contracts/libraries/Range.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { Chainlink } from "contracts/libraries/Chainlink.sol";
 
@@ -18,9 +17,6 @@ import { Chainlink } from "contracts/libraries/Chainlink.sol";
  * eg: https://docs.chain.link/data-feeds/l2-sequencer-feeds#example-code
  */
 contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
-    using Range for Range.Data;
-    using OrigamiMath for uint256;
-
     /**
      * @notice The Chainlink oracle for spot and the historic reference price
      */

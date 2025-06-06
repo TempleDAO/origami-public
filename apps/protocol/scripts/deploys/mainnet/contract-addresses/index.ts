@@ -7,11 +7,8 @@ import {
   OrigamiLovTokenMorphoManager, OrigamiLovTokenMorphoManager__factory,
   OrigamiMorphoBorrowAndLend, OrigamiMorphoBorrowAndLend__factory,
   OrigamiErc4626Oracle, OrigamiErc4626Oracle__factory,
-  AdaptiveCurveIrm, AdaptiveCurveIrm__factory,
-  MorphoChainlinkOracleV2, MorphoChainlinkOracleV2__factory,
   OrigamiErc4626AndDexAggregatorSwapper, OrigamiErc4626AndDexAggregatorSwapper__factory,
   IMorpho, IMorpho__factory,
-  AggregatorV3Interface, AggregatorV3Interface__factory,
   OrigamiDexAggregatorSwapper,
   OrigamiDexAggregatorSwapper__factory,
   OrigamiEtherFiEthToEthOracle,
@@ -44,16 +41,27 @@ import {
   OrigamiCowSwapper,
   OrigamiCowSwapper__factory,
   OrigamiSuperSavingsUsdsManager, OrigamiSuperSavingsUsdsManager__factory,
-  OrigamiSuperSavingsUsdsVault, OrigamiSuperSavingsUsdsVault__factory,
+  OrigamiDelegated4626Vault, OrigamiDelegated4626Vault__factory,
   OrigamiScaledOracle,
   OrigamiScaledOracle__factory,
   OrigamiLovTokenMorphoManagerMarketAL,
   OrigamiLovTokenMorphoManagerMarketAL__factory,
+  OrigamiHOhmVault,
+  OrigamiHOhmManager,
+  OrigamiSwapperWithCallback,
+  OrigamiTokenTeleporter,
+  OrigamiHOhmVault__factory,
+  OrigamiHOhmManager__factory,
+  OrigamiSwapperWithCallback__factory,
+  OrigamiTokenTeleporter__factory,
+  IMonoCooler,
+  IMonoCooler__factory,
+  OrigamiCoolerMigrator,
+  OrigamiCoolerMigrator__factory,
 } from "../../../../typechain";
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
 import { CONTRACTS as MAINNET_CONTRACTS } from "./mainnet";
-import { CONTRACTS as LOCALHOST_CONTRACTS } from "./localhost";
 import { IERC4626 } from "../../../../typechain/@openzeppelin/contracts/interfaces";
 import { IERC4626__factory } from "../../../../typechain/factories/@openzeppelin/contracts/interfaces";
 
@@ -78,7 +86,7 @@ export function getDeployedContracts(): ContractAddresses {
   if (network.name === 'mainnet') {
     return MAINNET_CONTRACTS;
   } else if (network.name === 'localhost') {
-    return LOCALHOST_CONTRACTS;
+    return MAINNET_CONTRACTS;
   }
   console.log(`No contracts configured for ${network.name}`);
   throw new Error(`No contracts configured for ${network.name}`);
@@ -126,6 +134,7 @@ export interface ContractInstances {
       V1: TokenPrices;
       V2: TokenPrices;
       V3: TokenPrices;
+      V4: TokenPrices;
     };
   };
   ORACLES: {
@@ -149,16 +158,28 @@ export interface ContractInstances {
     PT_SUSDE_MAR_2025_DAI: OrigamiCrossRateOracle;
     PT_SUSDE_MAR_2025_DISCOUNT_TO_MATURITY: OrigamiVolatileChainlinkOracle;
     PT_SUSDE_MAR_2025_DAI_WITH_DISCOUNT_TO_MATURITY: OrigamiScaledOracle;
+    PT_SUSDE_MAY_2025_USDE: OrigamiPendlePtToAssetOracle;
+    PT_SUSDE_MAY_2025_DAI: OrigamiCrossRateOracle;
+    PT_SUSDE_MAY_2025_DISCOUNT_TO_MATURITY: OrigamiVolatileChainlinkOracle;
+    PT_SUSDE_MAY_2025_DAI_WITH_DISCOUNT_TO_MATURITY: OrigamiScaledOracle;
     MKR_DAI: OrigamiVolatileChainlinkOracle;
     AAVE_USDC: OrigamiVolatileChainlinkOracle;
     SDAI_USDC: OrigamiErc4626Oracle;
     USD0pp_USD0: OrigamiVolatileCurveEmaOracle;
-    USD0pp_USDC: OrigamiFixedPriceOracle;
+    USD0pp_USDC_PEGGED: OrigamiFixedPriceOracle;
+    USD0pp_USDC_FLOOR_PRICE: OrigamiVolatileChainlinkOracle;
+    USD0pp_USDC_MARKET_PRICE: OrigamiVolatileChainlinkOracle;
+    USD0pp_MORPHO_TO_MARKET_CONVERSION: OrigamiCrossRateOracle;
     USD0_USDC: OrigamiVolatileCurveEmaOracle;
     RSWETH_WETH: OrigamiVolatileChainlinkOracle;
     PT_EBTC_DEC24_EBTC: OrigamiPendlePtToAssetOracle;
     PT_CORN_LBTC_DEC24_LBTC: OrigamiPendlePtToAssetOracle;
     WETH_CBBTC: OrigamiVolatileChainlinkOracle;
+    PT_USD0pp_MAR_2025_USD0pp: OrigamiPendlePtToAssetOracle;
+    PT_USD0pp_MAR_2025_USDC_PEGGED: OrigamiCrossRateOracle;
+    SKY_MKR: OrigamiFixedPriceOracle;
+    SKY_USDS: OrigamiCrossRateOracle;
+    PT_LBTC_MAR_2025_LBTC: OrigamiPendlePtToAssetOracle;
   };
   SWAPPERS: {
     DIRECT_SWAPPER: OrigamiDexAggregatorSwapper;
@@ -167,37 +188,50 @@ export interface ContractInstances {
   FLASHLOAN_PROVIDERS: {
     SPARK: OrigamiAaveV3FlashLoanProvider;
   };
-  LOV_SUSDE_A: IMorphoType;
-  LOV_SUSDE_B: IMorphoType;
-  LOV_USDE_A: IMorphoType;
-  LOV_USDE_B: IMorphoType;
-  LOV_WEETH_A: IMorphoType;
-  LOV_EZETH_A: IMorphoType;
+
   LOV_WSTETH_A: ISparkType;
   LOV_WSTETH_B: ISparkType;
-  LOV_WOETH_A: IMorphoType;
-  LOV_WETH_DAI_LONG_A: ISparkType;
-  LOV_WETH_SDAI_SHORT_A: ISparkType;
-  LOV_WBTC_DAI_LONG_A: ISparkType;
-  LOV_WBTC_SDAI_SHORT_A: ISparkType;
-  LOV_WETH_WBTC_LONG_A: ISparkType;
-  LOV_WETH_WBTC_SHORT_A: ISparkType;
-  LOV_PT_SUSDE_OCT24_A: IMorphoMarketALType;
-  LOV_PT_SUSDE_MAR_2025_A: IMorphoMarketALType;
-  LOV_MKR_DAI_LONG_A: ISparkType;
-  LOV_AAVE_USDC_LONG_A: ISparkType;
-  LOV_SDAI_A: IMorphoType;
   LOV_USD0pp_A: IMorphoType;
-  LOV_RSWETH_A: IMorphoType;
-  LOV_PT_EBTC_DEC24_A: IZeroLendType;
-  LOV_PT_CORN_LBTC_DEC24_A: IZeroLendType;
-  LOV_WETH_CBBTC_LONG_A: ISparkType;
+  LOV_PT_SUSDE_MAY_2025_A: IMorphoMarketALType;
+
+  LOV_SUSDE_A: IMorphoType; // DEPRECATED
+  LOV_SUSDE_B: IMorphoType; // DEPRECATED
+  LOV_USDE_A: IMorphoType; // DEPRECATED
+  LOV_USDE_B: IMorphoType; // DEPRECATED
+  LOV_WEETH_A: IMorphoType; // DEPRECATED
+  LOV_EZETH_A: IMorphoType; // DEPRECATED
+  LOV_WOETH_A: IMorphoType; // DEPRECATED
+  LOV_WETH_DAI_LONG_A: ISparkType; // DEPRECATED
+  LOV_WETH_SDAI_SHORT_A: ISparkType; // DEPRECATED
+  LOV_WBTC_DAI_LONG_A: ISparkType; // DEPRECATED
+  LOV_WBTC_SDAI_SHORT_A: ISparkType; // DEPRECATED
+  LOV_WETH_WBTC_LONG_A: ISparkType; // DEPRECATED
+  LOV_WETH_WBTC_SHORT_A: ISparkType; // DEPRECATED
+  LOV_PT_SUSDE_OCT24_A: IMorphoMarketALType; // DEPRECATED
+  LOV_PT_SUSDE_MAR_2025_A: IMorphoMarketALType; // DEPRECATED
+  LOV_MKR_DAI_LONG_A: ISparkType; // DEPRECATED
+  LOV_AAVE_USDC_LONG_A: ISparkType; // DEPRECATED
+  LOV_SDAI_A: IMorphoType; // DEPRECATED
+  LOV_RSWETH_A: IMorphoType; // DEPRECATED
+  LOV_PT_EBTC_DEC24_A: IZeroLendType; // DEPRECATED
+  LOV_PT_CORN_LBTC_DEC24_A: IZeroLendType; // DEPRECATED
+  LOV_WETH_CBBTC_LONG_A: ISparkType; // DEPRECATED
+  LOV_PT_USD0pp_MAR_2025_A: IMorphoType; // DEPRECATED
+  LOV_PT_LBTC_MAR_2025_A: IMorphoType; // DEPRECATED
 
   VAULTS: {
     SUSDSpS: {
-      TOKEN: OrigamiSuperSavingsUsdsVault;
+      TOKEN: OrigamiDelegated4626Vault;
       MANAGER: OrigamiSuperSavingsUsdsManager;
       COW_SWAPPER: OrigamiCowSwapper;
+      COW_SWAPPER_2: OrigamiCowSwapper;
+    };
+    hOHM: {
+      TOKEN: OrigamiHOhmVault;
+      MANAGER: OrigamiHOhmManager;
+      SWEEP_SWAPPER: OrigamiSwapperWithCallback;
+      TELEPORTER: OrigamiTokenTeleporter;
+      MIGRATOR: OrigamiCoolerMigrator;
     };
   };
 
@@ -251,26 +285,8 @@ export interface ContractInstances {
     COINBASE: {
       CBBTC_TOKEN: IERC20Metadata;
     };
-    REDSTONE: {
-      USDE_USD_ORACLE: AggregatorV3Interface;
-      SUSDE_USD_ORACLE: AggregatorV3Interface;
-      WEETH_WETH_ORACLE: AggregatorV3Interface;
-      WEETH_USD_ORACLE: AggregatorV3Interface;
-      EZETH_WETH_ORACLE: AggregatorV3Interface;
-    };
-    CHAINLINK: {
-      ETH_USD_ORACLE: AggregatorV3Interface;
-      STETH_ETH_ORACLE: AggregatorV3Interface;
-    };
     MORPHO: {
       SINGLETON: IMorpho;
-      IRM: AdaptiveCurveIrm;
-      ORACLE: {
-        SUSDE_DAI: MorphoChainlinkOracleV2;
-        USDE_DAI: MorphoChainlinkOracleV2;
-        WEETH_WETH: MorphoChainlinkOracleV2;
-        EZETH_WETH: MorphoChainlinkOracleV2;
-      };
     };
     SPARK: {
       POOL_ADDRESS_PROVIDER: IPoolAddressesProvider;
@@ -290,12 +306,25 @@ export interface ContractInstances {
       SUSDE_MAR_2025: {
         PT_TOKEN: IERC20Metadata;
       };
+      SUSDE_MAY_2025: {
+        PT_TOKEN: IERC20Metadata;
+      };
       EBTC_DEC24: {
         PT_TOKEN: IERC20Metadata;
       };
       CORN_LBTC_DEC24: {
         PT_TOKEN: IERC20Metadata;
       };
+      USD0pp_MAR_2025: {
+        PT_TOKEN: IERC20Metadata;
+      };
+      LBTC_MAR_2025: {
+        PT_TOKEN: IERC20Metadata;
+      };
+    };
+    OLYMPUS: {
+      GOHM_TOKEN: IERC20Metadata;
+      MONO_COOLER: IMonoCooler;
     };
   };
 
@@ -318,6 +347,7 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
           V1: TokenPrices__factory.connect(ADDRS.CORE.TOKEN_PRICES.V1, owner),
           V2: TokenPrices__factory.connect(ADDRS.CORE.TOKEN_PRICES.V2, owner),
           V3: TokenPrices__factory.connect(ADDRS.CORE.TOKEN_PRICES.V3, owner),
+          V4: TokenPrices__factory.connect(ADDRS.CORE.TOKEN_PRICES.V4, owner),
         },
     },
     ORACLES: {
@@ -341,16 +371,28 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       PT_SUSDE_MAR_2025_DAI: OrigamiCrossRateOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAR_2025_DAI, owner),
       PT_SUSDE_MAR_2025_DISCOUNT_TO_MATURITY: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAR_2025_DISCOUNT_TO_MATURITY, owner),
       PT_SUSDE_MAR_2025_DAI_WITH_DISCOUNT_TO_MATURITY: OrigamiScaledOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAR_2025_DAI_WITH_DISCOUNT_TO_MATURITY, owner),
+      PT_SUSDE_MAY_2025_USDE: OrigamiPendlePtToAssetOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAY_2025_USDE, owner),
+      PT_SUSDE_MAY_2025_DAI: OrigamiCrossRateOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAY_2025_DAI, owner),
+      PT_SUSDE_MAY_2025_DISCOUNT_TO_MATURITY: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAY_2025_DISCOUNT_TO_MATURITY, owner),
+      PT_SUSDE_MAY_2025_DAI_WITH_DISCOUNT_TO_MATURITY: OrigamiScaledOracle__factory.connect(ADDRS.ORACLES.PT_SUSDE_MAY_2025_DAI_WITH_DISCOUNT_TO_MATURITY, owner),
       MKR_DAI: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.MKR_DAI, owner),
       AAVE_USDC: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.AAVE_USDC, owner),
       SDAI_USDC: OrigamiErc4626Oracle__factory.connect(ADDRS.ORACLES.SDAI_USDC, owner),
       USD0pp_USD0: OrigamiVolatileCurveEmaOracle__factory.connect(ADDRS.ORACLES.USD0pp_USD0, owner),
-      USD0pp_USDC: OrigamiFixedPriceOracle__factory.connect(ADDRS.ORACLES.USD0pp_USDC, owner),
+      USD0pp_USDC_PEGGED: OrigamiFixedPriceOracle__factory.connect(ADDRS.ORACLES.USD0pp_USDC_PEGGED, owner),
+      USD0pp_USDC_FLOOR_PRICE: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.USD0pp_USDC_FLOOR_PRICE, owner),
+      USD0pp_USDC_MARKET_PRICE: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.USD0pp_USDC_MARKET_PRICE, owner),
+      USD0pp_MORPHO_TO_MARKET_CONVERSION: OrigamiCrossRateOracle__factory.connect(ADDRS.ORACLES.USD0pp_MORPHO_TO_MARKET_CONVERSION, owner),
       USD0_USDC: OrigamiVolatileCurveEmaOracle__factory.connect(ADDRS.ORACLES.USD0_USDC, owner),
       RSWETH_WETH: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.RSWETH_WETH, owner),
       PT_EBTC_DEC24_EBTC: OrigamiPendlePtToAssetOracle__factory.connect(ADDRS.ORACLES.PT_EBTC_DEC24_EBTC, owner),
       PT_CORN_LBTC_DEC24_LBTC: OrigamiPendlePtToAssetOracle__factory.connect(ADDRS.ORACLES.PT_CORN_LBTC_DEC24_LBTC, owner),
       WETH_CBBTC: OrigamiVolatileChainlinkOracle__factory.connect(ADDRS.ORACLES.WETH_CBBTC, owner),
+      PT_USD0pp_MAR_2025_USD0pp: OrigamiPendlePtToAssetOracle__factory.connect(ADDRS.ORACLES.PT_USD0pp_MAR_2025_USD0pp, owner),
+      PT_USD0pp_MAR_2025_USDC_PEGGED: OrigamiCrossRateOracle__factory.connect(ADDRS.ORACLES.PT_USD0pp_MAR_2025_USDC_PEGGED, owner),
+      SKY_MKR: OrigamiFixedPriceOracle__factory.connect(ADDRS.ORACLES.SKY_MKR, owner),
+      SKY_USDS: OrigamiCrossRateOracle__factory.connect(ADDRS.ORACLES.SKY_USDS, owner),
+      PT_LBTC_MAR_2025_LBTC: OrigamiPendlePtToAssetOracle__factory.connect(ADDRS.ORACLES.PT_LBTC_MAR_2025_LBTC, owner),
     },
     SWAPPERS: {
       DIRECT_SWAPPER: OrigamiDexAggregatorSwapper__factory.connect(ADDRS.SWAPPERS.DIRECT_SWAPPER, owner),
@@ -359,36 +401,7 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
     FLASHLOAN_PROVIDERS: {
       SPARK: OrigamiAaveV3FlashLoanProvider__factory.connect(ADDRS.FLASHLOAN_PROVIDERS.SPARK, owner),
     },
-    LOV_SUSDE_A: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_SUSDE_A.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_SUSDE_A.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_SUSDE_A.MANAGER, owner),
-    },
-    LOV_SUSDE_B: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_SUSDE_B.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_SUSDE_B.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_SUSDE_B.MANAGER, owner),
-    },
-    LOV_USDE_A: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_USDE_A.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_USDE_A.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_USDE_A.MANAGER, owner),
-    },
-    LOV_USDE_B: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_USDE_B.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_USDE_B.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_USDE_B.MANAGER, owner),
-    },
-    LOV_WEETH_A: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_WEETH_A.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WEETH_A.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_WEETH_A.MANAGER, owner),
-    },
-    LOV_EZETH_A: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_EZETH_A.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_EZETH_A.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_EZETH_A.MANAGER, owner),
-    },
+
     LOV_WSTETH_A: {
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WSTETH_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WSTETH_A.SPARK_BORROW_LEND, owner),
@@ -399,97 +412,151 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WSTETH_B.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WSTETH_B.MANAGER, owner),
     },
-    LOV_WOETH_A: {
+    LOV_USD0pp_A: {
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_USD0pp_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_USD0pp_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManagerMarketAL__factory.connect(ADDRS.LOV_USD0pp_A.MANAGER, owner),
+    },
+    LOV_PT_SUSDE_MAY_2025_A: {
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_PT_SUSDE_MAY_2025_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_SUSDE_MAY_2025_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManagerMarketAL__factory.connect(ADDRS.LOV_PT_SUSDE_MAY_2025_A.MANAGER, owner),
+    },
+    
+    LOV_SUSDE_A: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_SUSDE_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_SUSDE_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_SUSDE_A.MANAGER, owner),
+    },
+    LOV_SUSDE_B: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_SUSDE_B.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_SUSDE_B.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_SUSDE_B.MANAGER, owner),
+    },
+    LOV_USDE_A: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_USDE_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_USDE_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_USDE_A.MANAGER, owner),
+    },
+    LOV_USDE_B: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_USDE_B.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_USDE_B.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_USDE_B.MANAGER, owner),
+    },
+    LOV_WEETH_A: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_WEETH_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WEETH_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_WEETH_A.MANAGER, owner),
+    },
+    LOV_EZETH_A: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_EZETH_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_EZETH_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_EZETH_A.MANAGER, owner),
+    },
+    LOV_WOETH_A: { // DEPRECATED
       MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_WOETH_A.MORPHO_BORROW_LEND, owner),
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WOETH_A.TOKEN, owner),
       MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_WOETH_A.MANAGER, owner),
     },
-    LOV_WETH_DAI_LONG_A: {
+    LOV_WETH_DAI_LONG_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WETH_DAI_LONG_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WETH_DAI_LONG_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WETH_DAI_LONG_A.MANAGER, owner),
     },
-    LOV_WETH_SDAI_SHORT_A: {
+    LOV_WETH_SDAI_SHORT_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WETH_SDAI_SHORT_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WETH_SDAI_SHORT_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WETH_SDAI_SHORT_A.MANAGER, owner),
     },
-    LOV_WBTC_DAI_LONG_A: {
+    LOV_WBTC_DAI_LONG_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WBTC_DAI_LONG_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WBTC_DAI_LONG_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WBTC_DAI_LONG_A.MANAGER, owner),
     },
-    LOV_WBTC_SDAI_SHORT_A: {
+    LOV_WBTC_SDAI_SHORT_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WBTC_SDAI_SHORT_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WBTC_SDAI_SHORT_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WBTC_SDAI_SHORT_A.MANAGER, owner),
     },
-    LOV_WETH_WBTC_LONG_A: {
+    LOV_WETH_WBTC_LONG_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WETH_WBTC_LONG_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WETH_WBTC_LONG_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WETH_WBTC_LONG_A.MANAGER, owner),
     },
-    LOV_WETH_WBTC_SHORT_A: {
+    LOV_WETH_WBTC_SHORT_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WETH_WBTC_SHORT_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WETH_WBTC_SHORT_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WETH_WBTC_SHORT_A.MANAGER, owner),
     },
-    LOV_PT_SUSDE_OCT24_A: {
+    LOV_PT_SUSDE_OCT24_A: { // DEPRECATED
       MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_PT_SUSDE_OCT24_A.MORPHO_BORROW_LEND, owner),
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_SUSDE_OCT24_A.TOKEN, owner),
       MANAGER: OrigamiLovTokenMorphoManagerMarketAL__factory.connect(ADDRS.LOV_PT_SUSDE_OCT24_A.MANAGER, owner),
     },
-    LOV_PT_SUSDE_MAR_2025_A: {
+    LOV_PT_SUSDE_MAR_2025_A: { // DEPRECATED
       MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_PT_SUSDE_MAR_2025_A.MORPHO_BORROW_LEND, owner),
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_SUSDE_MAR_2025_A.TOKEN, owner),
       MANAGER: OrigamiLovTokenMorphoManagerMarketAL__factory.connect(ADDRS.LOV_PT_SUSDE_MAR_2025_A.MANAGER, owner),
     },
-    LOV_MKR_DAI_LONG_A: {
+    LOV_MKR_DAI_LONG_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_MKR_DAI_LONG_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_MKR_DAI_LONG_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_MKR_DAI_LONG_A.MANAGER, owner),
     },
-    LOV_AAVE_USDC_LONG_A: {
+    LOV_AAVE_USDC_LONG_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_AAVE_USDC_LONG_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_AAVE_USDC_LONG_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_AAVE_USDC_LONG_A.MANAGER, owner),
     },
-    LOV_SDAI_A: {
+    LOV_SDAI_A: { // DEPRECATED
       MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_SDAI_A.MORPHO_BORROW_LEND, owner),
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_SDAI_A.TOKEN, owner),
       MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_SDAI_A.MANAGER, owner),
     },
-    LOV_USD0pp_A: {
-      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_USD0pp_A.MORPHO_BORROW_LEND, owner),
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_USD0pp_A.TOKEN, owner),
-      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_USD0pp_A.MANAGER, owner),
-    },
-    LOV_RSWETH_A: {
+    LOV_RSWETH_A: { // DEPRECATED
       MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_RSWETH_A.MORPHO_BORROW_LEND, owner),
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_RSWETH_A.TOKEN, owner),
       MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_RSWETH_A.MANAGER, owner),
     },
-    LOV_PT_EBTC_DEC24_A: {
+    LOV_PT_EBTC_DEC24_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_EBTC_DEC24_A.TOKEN, owner),
       ZEROLEND_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_PT_EBTC_DEC24_A.ZEROLEND_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_PT_EBTC_DEC24_A.MANAGER, owner),
     },
-    LOV_PT_CORN_LBTC_DEC24_A: {
+    LOV_PT_CORN_LBTC_DEC24_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_CORN_LBTC_DEC24_A.TOKEN, owner),
       ZEROLEND_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_PT_CORN_LBTC_DEC24_A.ZEROLEND_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_PT_CORN_LBTC_DEC24_A.MANAGER, owner),
     },
-    LOV_WETH_CBBTC_LONG_A: {
+    LOV_WETH_CBBTC_LONG_A: { // DEPRECATED
       TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_WETH_CBBTC_LONG_A.TOKEN, owner),
       SPARK_BORROW_LEND: OrigamiAaveV3BorrowAndLend__factory.connect(ADDRS.LOV_WETH_CBBTC_LONG_A.SPARK_BORROW_LEND, owner),
       MANAGER: OrigamiLovTokenFlashAndBorrowManager__factory.connect(ADDRS.LOV_WETH_CBBTC_LONG_A.MANAGER, owner),
     },
+    LOV_PT_USD0pp_MAR_2025_A: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_PT_USD0pp_MAR_2025_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_USD0pp_MAR_2025_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_PT_USD0pp_MAR_2025_A.MANAGER, owner),
+    },
+    LOV_PT_LBTC_MAR_2025_A: { // DEPRECATED
+      MORPHO_BORROW_LEND: OrigamiMorphoBorrowAndLend__factory.connect(ADDRS.LOV_PT_LBTC_MAR_2025_A.MORPHO_BORROW_LEND, owner),
+      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_PT_LBTC_MAR_2025_A.TOKEN, owner),
+      MANAGER: OrigamiLovTokenMorphoManager__factory.connect(ADDRS.LOV_PT_LBTC_MAR_2025_A.MANAGER, owner),
+    },
 
     VAULTS: {
       SUSDSpS: {
-        TOKEN: OrigamiSuperSavingsUsdsVault__factory.connect(ADDRS.VAULTS.SUSDSpS.TOKEN, owner),
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.SUSDSpS.TOKEN, owner),
         MANAGER: OrigamiSuperSavingsUsdsManager__factory.connect(ADDRS.VAULTS.SUSDSpS.MANAGER, owner),
         COW_SWAPPER: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER, owner),
+        COW_SWAPPER_2: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER_2, owner),
+      },
+      hOHM: {
+        TOKEN: OrigamiHOhmVault__factory.connect(ADDRS.VAULTS.hOHM.TOKEN, owner),
+        MANAGER: OrigamiHOhmManager__factory.connect(ADDRS.VAULTS.hOHM.MANAGER, owner),
+        SWEEP_SWAPPER: OrigamiSwapperWithCallback__factory.connect(ADDRS.VAULTS.hOHM.SWEEP_SWAPPER, owner),
+        TELEPORTER: OrigamiTokenTeleporter__factory.connect(ADDRS.VAULTS.hOHM.TELEPORTER, owner),
+        MIGRATOR: OrigamiCoolerMigrator__factory.connect(ADDRS.VAULTS.hOHM.MIGRATOR, owner),
       },
     },
     
@@ -543,26 +610,8 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       COINBASE: {
         CBBTC_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.COINBASE.CBBTC_TOKEN, owner),
       },
-      REDSTONE: {
-        USDE_USD_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.REDSTONE.USDE_USD_ORACLE, owner),
-        SUSDE_USD_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.REDSTONE.SUSDE_USD_ORACLE, owner),
-        WEETH_WETH_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.REDSTONE.WEETH_WETH_ORACLE, owner),
-        WEETH_USD_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.REDSTONE.WEETH_USD_ORACLE, owner),
-        EZETH_WETH_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.REDSTONE.EZETH_WETH_ORACLE, owner),
-      },
-      CHAINLINK: {
-        ETH_USD_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.CHAINLINK.ETH_USD_ORACLE, owner),
-        STETH_ETH_ORACLE: AggregatorV3Interface__factory.connect(ADDRS.EXTERNAL.CHAINLINK.STETH_ETH_ORACLE, owner),
-      },
       MORPHO: {
         SINGLETON: IMorpho__factory.connect(ADDRS.EXTERNAL.MORPHO.SINGLETON, owner),
-        IRM: AdaptiveCurveIrm__factory.connect(ADDRS.EXTERNAL.MORPHO.IRM, owner),
-        ORACLE: {
-          SUSDE_DAI: MorphoChainlinkOracleV2__factory.connect(ADDRS.EXTERNAL.MORPHO.ORACLE.SUSDE_DAI, owner),
-          USDE_DAI: MorphoChainlinkOracleV2__factory.connect(ADDRS.EXTERNAL.MORPHO.ORACLE.USDE_DAI, owner),
-          WEETH_WETH: MorphoChainlinkOracleV2__factory.connect(ADDRS.EXTERNAL.MORPHO.ORACLE.WEETH_WETH, owner),
-          EZETH_WETH: MorphoChainlinkOracleV2__factory.connect(ADDRS.EXTERNAL.MORPHO.ORACLE.EZETH_WETH, owner),
-        },
       },
       SPARK: {
         POOL_ADDRESS_PROVIDER: IPoolAddressesProvider__factory.connect(ADDRS.EXTERNAL.SPARK.POOL_ADDRESS_PROVIDER, owner),
@@ -582,12 +631,25 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
         SUSDE_MAR_2025: {
           PT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.PENDLE.SUSDE_MAR_2025.PT_TOKEN, owner),
         },
+        SUSDE_MAY_2025: {
+          PT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.PENDLE.SUSDE_MAY_2025.PT_TOKEN, owner),
+        },
         EBTC_DEC24: {
           PT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.PENDLE.EBTC_DEC24.PT_TOKEN, owner),
         },
         CORN_LBTC_DEC24: {
           PT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.PENDLE.CORN_LBTC_DEC24.PT_TOKEN, owner),
         },
+        USD0pp_MAR_2025: {
+          PT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.PENDLE.USD0pp_MAR_2025.PT_TOKEN, owner),
+        },
+        LBTC_MAR_2025: {
+          PT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.PENDLE.LBTC_MAR_2025.PT_TOKEN, owner),
+        },
+      },
+      OLYMPUS: {
+        GOHM_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.OLYMPUS.GOHM_TOKEN, owner),
+        MONO_COOLER: IMonoCooler__factory.connect(ADDRS.EXTERNAL.OLYMPUS.MONO_COOLER, owner),
       },
     },
 

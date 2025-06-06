@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -207,7 +207,7 @@ contract OrigamiStableChainlinkOracleTestAdmin is OrigamiStableChainlinkOracleTe
         assertEq(ceiling, 2e18);
     }
 
-    function test_matchAssets() public {
+    function test_matchAssets() public view {
         assertEq(oOracle1.matchAssets(token1, INTERNAL_USD_ADDRESS), true);
         assertEq(oOracle1.matchAssets(INTERNAL_USD_ADDRESS, token1), true);
         assertEq(oOracle1.matchAssets(alice, INTERNAL_USD_ADDRESS), false);
@@ -435,14 +435,14 @@ contract OrigamiStableChainlinkOracle1_LatestPrice is OrigamiStableChainlinkOrac
         assertEq(oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 1.05e18);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             1e18
         );
     }
 
-    function test_latestPrices() public {
+    function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracle1.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE, 
             OrigamiMath.Rounding.ROUND_UP,
@@ -703,7 +703,7 @@ contract OrigamiStableChainlinkOracle2_LatestPrice is OrigamiStableChainlinkOrac
         assertEq(oOracle2.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 1.05e18);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             oOracle2.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             333e18
@@ -946,7 +946,7 @@ contract OrigamiStableChainlinkOracle3_LatestPrice is OrigamiStableChainlinkOrac
         assertEq(oOracle3.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 1.05e18);
     }
 
-    function test_historicPrice() public {
+    function test_historicPrice() public view {
         assertEq(
             oOracle3.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
             0.99e18

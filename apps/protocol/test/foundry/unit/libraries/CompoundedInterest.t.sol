@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
@@ -33,7 +33,7 @@ contract CompoundedInterestTest is OrigamiTest {
     uint256 public zeroPrincipalAmount = 0e18;
 
     // Zero percent interest tests
-    function test_compound_zeroPct_dayOne() public {
+    function test_compound_zeroPct_dayOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             1 days,
             ZERO_PCT_INTEREST
@@ -41,7 +41,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, ZERO_PCT_1DAY);
     }
 
-    function test_compound_zeroPct_dayThirty() public {
+    function test_compound_zeroPct_dayThirty() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             30 days,
             ZERO_PCT_INTEREST
@@ -49,7 +49,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, ZERO_PCT_30DAY);
     }
 
-    function test_compound_zeroPct_yearOne() public {
+    function test_compound_zeroPct_yearOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             365 days,
             ZERO_PCT_INTEREST
@@ -58,7 +58,7 @@ contract CompoundedInterestTest is OrigamiTest {
     }
 
     // One percent interest tests
-    function test_compound_onePct_dayOne() public {
+    function test_compound_onePct_dayOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             1 days,
             ONE_PCT_INTEREST
@@ -66,7 +66,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, ONE_PCT_1DAY);
     }
 
-    function test_compound_onePct_dayThirty() public {
+    function test_compound_onePct_dayThirty() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             30 days,
             ONE_PCT_INTEREST
@@ -74,7 +74,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, ONE_PCT_30DAY);
     }
 
-    function test_compound_onePct_yearOne() public {
+    function test_compound_onePct_yearOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             365 days,
             ONE_PCT_INTEREST
@@ -83,7 +83,7 @@ contract CompoundedInterestTest is OrigamiTest {
     }
 
     // Five percent interest tests
-    function test_compound_fivePct_dayOne() public {
+    function test_compound_fivePct_dayOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             1 days,
             FIVE_PCT_INTEREST
@@ -91,7 +91,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, FIVE_PCT_1DAY);
     }
 
-    function test_compound_fivePct_dayThirty() public {
+    function test_compound_fivePct_dayThirty() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             30 days,
             FIVE_PCT_INTEREST
@@ -99,7 +99,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, FIVE_PCT_30DAY);
     }
 
-    function test_compound_fivePct_yearOne() public {
+    function test_compound_fivePct_yearOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             365 days,
             FIVE_PCT_INTEREST
@@ -108,7 +108,7 @@ contract CompoundedInterestTest is OrigamiTest {
     }
 
     // Ten percent interest tests
-    function test_compound_yenPct_dayOne() public {
+    function test_compound_yenPct_dayOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             1 days,
             TEN_PCT_INTEREST
@@ -116,7 +116,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, TEN_PCT_1DAY);
     }
 
-    function test_compound_yenPct_dayThirty() public {
+    function test_compound_yenPct_dayThirty() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             30 days,
             TEN_PCT_INTEREST
@@ -124,7 +124,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, TEN_PCT_30DAY);
     }
 
-    function test_compound_yenPct_yearOne() public {
+    function test_compound_yenPct_yearOne() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             365 days,
             TEN_PCT_INTEREST
@@ -132,7 +132,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, TEN_PCT_1YEAR);
     }
 
-    function test_compound_zeroPrincipal() public {
+    function test_compound_zeroPrincipal() public view {
         uint256 newInterestRate = zeroPrincipalAmount.continuouslyCompounded(
             1 days,
             FIVE_PCT_INTEREST
@@ -140,7 +140,7 @@ contract CompoundedInterestTest is OrigamiTest {
         assertEq(newInterestRate, 0e18);
     }
 
-    function test_compound_zeroDays() public {
+    function test_compound_zeroDays() public view {
         uint256 newInterestRate = initialPrincipalAmount.continuouslyCompounded(
             0 days,
             FIVE_PCT_INTEREST
@@ -149,6 +149,7 @@ contract CompoundedInterestTest is OrigamiTest {
     }
 
     // Revert tests
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_compute_maxPrincipal_expectOverflow() public {
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -160,6 +161,7 @@ contract CompoundedInterestTest is OrigamiTest {
         type(uint256).max.continuouslyCompounded(1 days, TEN_PCT_INTEREST);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_compute_maxRate_expectInputTooBig() public {
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -171,6 +173,7 @@ contract CompoundedInterestTest is OrigamiTest {
         initialPrincipalAmount.continuouslyCompounded(1 days, type(uint96).max);
     }
 
+    /// forge-config: default.allow_internal_expect_revert = true
     function test_compute_maxDays_expectInputTooBig() public {
         vm.expectRevert(
             abi.encodeWithSelector(
