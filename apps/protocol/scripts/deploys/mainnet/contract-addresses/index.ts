@@ -41,6 +41,7 @@ import {
   OrigamiCowSwapper,
   OrigamiCowSwapper__factory,
   OrigamiSuperSavingsUsdsManager, OrigamiSuperSavingsUsdsManager__factory,
+  OrigamiSuperSkyManager, OrigamiSuperSkyManager__factory,
   OrigamiDelegated4626Vault, OrigamiDelegated4626Vault__factory,
   OrigamiScaledOracle,
   OrigamiScaledOracle__factory,
@@ -58,6 +59,10 @@ import {
   IMonoCooler__factory,
   OrigamiCoolerMigrator,
   OrigamiCoolerMigrator__factory,
+  OrigamiHOhmArbBot,
+  OrigamiHOhmArbBot__factory,
+  OrigamiErc4626WithRewardsManager,
+  OrigamiErc4626WithRewardsManager__factory,
 } from "../../../../typechain";
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
@@ -225,6 +230,15 @@ export interface ContractInstances {
       MANAGER: OrigamiSuperSavingsUsdsManager;
       COW_SWAPPER: OrigamiCowSwapper;
       COW_SWAPPER_2: OrigamiCowSwapper;
+      COW_SWAPPER_3: OrigamiCowSwapper;
+      COW_SWAPPER_4: OrigamiCowSwapper;
+    };
+    SKYp: {
+      TOKEN: OrigamiDelegated4626Vault;
+      MANAGER: OrigamiSuperSkyManager;
+      COW_SWAPPER: OrigamiCowSwapper;
+      COW_SWAPPER_2: OrigamiCowSwapper;
+      COW_SWAPPER_3: OrigamiCowSwapper;
     };
     hOHM: {
       TOKEN: OrigamiHOhmVault;
@@ -232,6 +246,12 @@ export interface ContractInstances {
       SWEEP_SWAPPER: OrigamiSwapperWithCallback;
       TELEPORTER: OrigamiTokenTeleporter;
       MIGRATOR: OrigamiCoolerMigrator;
+      ARB_BOT: OrigamiHOhmArbBot;
+    };
+    OAC_USDS_IMF_MOR: {
+      TOKEN: OrigamiDelegated4626Vault;
+      MANAGER: OrigamiErc4626WithRewardsManager;
+      COW_SWAPPER: OrigamiCowSwapper;
     };
   };
 
@@ -325,6 +345,9 @@ export interface ContractInstances {
     OLYMPUS: {
       GOHM_TOKEN: IERC20Metadata;
       MONO_COOLER: IMonoCooler;
+    };
+    IMF: {
+      IMF_TOKEN: IERC20Metadata;
     };
   };
 
@@ -550,6 +573,15 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
         MANAGER: OrigamiSuperSavingsUsdsManager__factory.connect(ADDRS.VAULTS.SUSDSpS.MANAGER, owner),
         COW_SWAPPER: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER, owner),
         COW_SWAPPER_2: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER_2, owner),
+        COW_SWAPPER_3: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER_3, owner),
+        COW_SWAPPER_4: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SUSDSpS.COW_SWAPPER_4, owner),
+      },
+      SKYp: {
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.SKYp.TOKEN, owner),
+        MANAGER: OrigamiSuperSkyManager__factory.connect(ADDRS.VAULTS.SKYp.MANAGER, owner),
+        COW_SWAPPER: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SKYp.COW_SWAPPER, owner),
+        COW_SWAPPER_2: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SKYp.COW_SWAPPER_2, owner),
+        COW_SWAPPER_3: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.SKYp.COW_SWAPPER_3, owner),
       },
       hOHM: {
         TOKEN: OrigamiHOhmVault__factory.connect(ADDRS.VAULTS.hOHM.TOKEN, owner),
@@ -557,6 +589,12 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
         SWEEP_SWAPPER: OrigamiSwapperWithCallback__factory.connect(ADDRS.VAULTS.hOHM.SWEEP_SWAPPER, owner),
         TELEPORTER: OrigamiTokenTeleporter__factory.connect(ADDRS.VAULTS.hOHM.TELEPORTER, owner),
         MIGRATOR: OrigamiCoolerMigrator__factory.connect(ADDRS.VAULTS.hOHM.MIGRATOR, owner),
+        ARB_BOT: OrigamiHOhmArbBot__factory.connect(ADDRS.VAULTS.hOHM.ARB_BOT, owner),
+      },
+      OAC_USDS_IMF_MOR: {
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN, owner),
+        MANAGER: OrigamiErc4626WithRewardsManager__factory.connect(ADDRS.VAULTS.OAC_USDS_IMF_MOR.MANAGER, owner),
+        COW_SWAPPER: OrigamiCowSwapper__factory.connect(ADDRS.VAULTS.OAC_USDS_IMF_MOR.COW_SWAPPER, owner),
       },
     },
     
@@ -650,6 +688,9 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       OLYMPUS: {
         GOHM_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.OLYMPUS.GOHM_TOKEN, owner),
         MONO_COOLER: IMonoCooler__factory.connect(ADDRS.EXTERNAL.OLYMPUS.MONO_COOLER, owner),
+      },
+      IMF: {
+        IMF_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.IMF.IMF_TOKEN, owner),
       },
     },
 

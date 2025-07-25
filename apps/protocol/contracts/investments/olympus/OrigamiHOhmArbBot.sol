@@ -16,61 +16,86 @@ import { IOrigamiHOhmArbBot } from "contracts/interfaces/external/olympus/IOriga
 
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
 import { SafeCast } from "contracts/libraries/SafeCast.sol";
+import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
+
+import { IMorpho } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
+import { IMorphoFlashLoanCallback } from "@morpho-org/morpho-blue/src/interfaces/IMorphoCallbacks.sol";
 
 /**
  * @title Origami hOHM arbitrage bot
  * @notice Close the arbitrage for known/fixed routes between hOHM and the underlying
  * gOHM collateral and USDS liabilities
  * 
- * sUSDS is held in this contract and a bot will monitor and will execute either
- * route 1 or route 2 when appropriate.
+ * The contract does not need a starting sUSDS balance, unless it expects to operate at a loss.
+ * A bot will monitor and will execute either route 1 or route 2 when appropriate.
  * 
  * ROUTE 1 - when hOHM is trading at a discount:
- *  1. Sell sUSDS (from this contract balance) to buy hOHM via uniswap
- *  2. Redeem sUSDS for USDS (from this contract balance)
- *       Enough to cover hOHM liabilities for exit in step 3
- *  3. Redeem hOHM: pay USDS (from 2), receive gOHM
- *  4. Unstake gOHM (from 4) for OHM
- *  5. Sell OHM (from 4) for sUSDS via uniswap
- *  6. Ensure min profit is met. 
- *      Profit = (5) - (1) - (2)
+ *  1. Flashloan sUSDS via MORPHO
+ *  2. Sell sUSDS (from this contract balance) to buy hOHM via uniswap
+ *  3. Redeem sUSDS for USDS - Enough to cover hOHM liabilities for exit in step 4
+ *  4. Redeem hOHM: pay USDS (from 3), receive gOHM
+ *  5. Unstake gOHM (from 4) for OHM
+ *  6. Sell OHM (from 5) for sUSDS via uniswap
+ *  7. Repay sUSDS flashloan
+ *  8. Ensure min profit is met. 
+ *      Profit = (6) - (2) - (3)
  *
- * ROUTE 2 - when hOHM is trading at a premium
- *  1. Sell sUSDS (from this contract balance) to buy OHM via uniswap
- *  2. Stake OHM (from 1) for gOHM
- *  3. Mint hOHM: pay gOHM (from 2), receive USDS
- *  4. Use USDS (from 3) to mint sUSDS
- *  5. Sell hOHM (from 3) for sUSDS via uniswap
- *  6. Ensure min profit is met. 
- *      Profit = (5) + (6) - (1)
+ * ROUTE 2 - when hOHM is trading at a premium:
+ *  1. Flashloan sUSDS via MORPHO
+ *  2. Sell sUSDS (from this contract balance) to buy OHM via uniswap
+ *  3. Stake OHM (from 2) for gOHM
+ *  4. Mint hOHM: pay gOHM (from 3), receive USDS
+ *  5. Use USDS (from 4) to mint sUSDS
+ *  6. Sell hOHM (from 4) for sUSDS via uniswap
+ *  7. Repay sUSDS flashloan
+ *  8. Ensure min profit is met. 
+ *      Profit = (6) + (7) - (2)
  */
-contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
+contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, IMorphoFlashLoanCallback, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IERC4626;
     using SafeCast for uint256;
 
-    /// @notice Origami hOHM vault
+    /// @inheritdoc IOrigamiHOhmArbBot
     IOrigamiTokenizedBalanceSheetVault public immutable override hOHM;
     
-    /// @notice Governance OHM ERC20 token
+    /// @inheritdoc IOrigamiHOhmArbBot
     IGOHM public immutable override gOHM;
 
-    /// @notice OHM ERC20 token
+    /// @inheritdoc IOrigamiHOhmArbBot
     IERC20 public immutable override OHM;
 
-    /// @notice Stake OHM <=> gOHM
+    /// @inheritdoc IOrigamiHOhmArbBot
     IOlympusStaking public immutable override olympusStaking;
 
-    /// @notice Sky USDS
+    /// @inheritdoc IOrigamiHOhmArbBot
     IERC20 public immutable override USDS;
 
-    /// @notice Sky savings USDS vault
+    /// @inheritdoc IOrigamiHOhmArbBot
     IERC4626 public immutable override sUSDS;
 
-    /// @notice Uniswap V3 swap router
+    /// @inheritdoc IOrigamiHOhmArbBot
     IUniswapV3SwapRouter public immutable override uniV3Router;
 
-    /// @notice Uniswap V3 swap quoter
+    /// @inheritdoc IOrigamiHOhmArbBot
     IUniswapV3QuoterV2 public immutable override uniV3Quoter;
+
+    /// @inheritdoc IOrigamiHOhmArbBot
+    IMorpho public immutable override MORPHO;
+
+    // @dev Internally used for flashloan callbacks
+    struct _FlashloanData {
+        _Route route;
+        uint256 sUsdsSold;
+        uint24 susdsHohmPoolFee;
+        uint24 ohmSusdsPoolFee;
+        uint256 deadline;
+    }
+
+    enum _Route {
+        ONE,
+        TWO
+    }
 
     constructor(
         address initialOwner_,
@@ -78,7 +103,8 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
         address olympusStaking_,
         address sUsds_,
         address uniV3Router_,
-        address uniV3Quoter_
+        address uniV3Quoter_,
+        address morpho_
     ) OrigamiElevatedAccess(initialOwner_) {
         olympusStaking = IOlympusStaking(olympusStaking_);
         gOHM = IGOHM(olympusStaking.gOHM());
@@ -88,6 +114,7 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
         USDS = IERC20(sUSDS.asset());
         uniV3Router = IUniswapV3SwapRouter(uniV3Router_);
         uniV3Quoter = IUniswapV3QuoterV2(uniV3Quoter_);
+        MORPHO = IMorpho(morpho_);
     }
 
     /// @inheritdoc IOrigamiHOhmArbBot
@@ -96,7 +123,6 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
         for (uint256 i = 0; i < data.length; i++) {
             results[i] = Address.functionDelegateCall(address(this), data[i]);
         }
-        return results;
     }
 
     /// @inheritdoc IOrigamiHOhmArbBot
@@ -106,6 +132,13 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
         uint256 amount
     ) external override onlyElevatedAccess {
         token.forceApprove(spender, amount);
+    }
+     
+    /// @inheritdoc IOrigamiHOhmArbBot
+    function recoverToken(IERC20 token, address to, uint256 amount) external override onlyElevatedAccess {
+        // The asset token is sent straight to the manager on deposit/withdraw - so it's acceptable to recover from here.
+        emit CommonEventsAndErrors.TokenRecovered(to, address(token), amount);
+        token.safeTransfer(to, amount);
     }
 
     /// @inheritdoc IOrigamiHOhmArbBot
@@ -144,45 +177,73 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
     /// @inheritdoc IOrigamiHOhmArbBot
     function executeRoute1(
         uint256 sUsdsSold,
+        uint256 sUsdsFlashAmount,
         int256 minProfit,
         uint24 susdsHohmPoolFee,
         uint24 ohmSusdsPoolFee,
         uint256 deadline
     ) external override onlyElevatedAccess returns (int256 profit) {
+        uint256 sUsdsBalanceStart = sUSDS.balanceOf(address(this));
+
+        bytes memory flashloanData = abi.encode(_FlashloanData({
+            route: _Route.ONE,
+            sUsdsSold: sUsdsSold,
+            susdsHohmPoolFee: susdsHohmPoolFee,
+            ohmSusdsPoolFee: ohmSusdsPoolFee,
+            deadline: deadline
+        }));
+
+        MORPHO.flashLoan(address(sUSDS), sUsdsFlashAmount, flashloanData);
+
+        // Calc profit and check vs slippage
+        profit = sUSDS.balanceOf(address(this)).encodeInt256() - sUsdsBalanceStart.encodeInt256();
+        if (profit < minProfit) revert MinProfitNotMet(minProfit, profit);
+    }
+
+    function onMorphoFlashLoan(uint256 /*flashLoanAmount*/, bytes calldata params) external override {
+        // Can only be called by the Morpho pool, and the FL can only ever be initiated by this contract.
+        if (msg.sender != address(MORPHO)) revert CommonEventsAndErrors.InvalidAccess();
+
+        _FlashloanData memory data = abi.decode(params, (_FlashloanData));
+
+        if (data.route == _Route.ONE) {
+            _handleRoute1Flashloan(data);
+        } else {
+            _handleRoute2Flashloan(data);
+        }
+    }
+
+    function _handleRoute1Flashloan(_FlashloanData memory data) private {
         // Sell sUSDS to buy hOHM on uniswap
         uint256 hohmBought = _uniV3Swap(
             sUSDS,
-            sUsdsSold,
+            data.sUsdsSold,
             hOHM,
-            susdsHohmPoolFee,
-            deadline
+            data.susdsHohmPoolFee,
+            data.deadline
         );
 
-        // In order to get the actual USDS required to exit hOHM, 
-        // a preview is required, unfortunately requiring more gas. However it's
-        // still simpler/cheaper than exiting more than enough sUSDS (eg populated via a quote)
-        // then depositing back left overs
-        (, uint256 usdsToExitHohm) = _exitHohmQuote(hohmBought);
-
-        // Withdraw USDS from sUSDS to cover hOHM exit
-        uint256 sUsdsToExitHohm = sUSDS.withdraw(usdsToExitHohm, address(this), address(this));
+        // Withdraw any remaining into USDS in order to exit hOHM
+        sUSDS.redeem(sUSDS.balanceOf(address(this)), address(this), address(this));
 
         // Exit hOHM, receiving gOHM, paying in USDS
         (uint256 gOhmFromHohmExit, ) = _exitHohm(hohmBought);
 
+        // Deposit any remaining USDS back into sUSDS
+        uint256 usdsBalance = USDS.balanceOf(address(this));
+        if (usdsBalance > 0) {
+            sUSDS.deposit(usdsBalance, address(this));
+        }
+
         // Swap unstaked gOHM to buy sUSDS
         uint256 ohmFromHohmExit = olympusStaking.unstake(address(this), gOhmFromHohmExit, false, false);
-        uint256 sUsdsRevenue = _uniV3Swap(
+        _uniV3Swap(
             OHM,
             ohmFromHohmExit,
             sUSDS,
-            ohmSusdsPoolFee, 
-            deadline
+            data.ohmSusdsPoolFee, 
+            data.deadline
         );
-
-        // Calc profit and check vs slippage
-        profit = sUsdsRevenue.encodeInt256() - (sUsdsToExitHohm + sUsdsSold).encodeInt256();
-        if (profit < minProfit) revert MinProfitNotMet(minProfit, profit);
     }
 
     /// @inheritdoc IOrigamiHOhmArbBot
@@ -229,13 +290,31 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
         uint24 ohmSusdsPoolFee,
         uint256 deadline
     ) external override onlyElevatedAccess returns (int256 profit) {
+        uint256 sUsdsBalanceStart = sUSDS.balanceOf(address(this));
+
+        bytes memory flashloanData = abi.encode(_FlashloanData({
+            route: _Route.TWO,
+            sUsdsSold: sUsdsSold,
+            susdsHohmPoolFee: susdsHohmPoolFee,
+            ohmSusdsPoolFee: ohmSusdsPoolFee,
+            deadline: deadline
+        }));
+
+        MORPHO.flashLoan(address(sUSDS), sUsdsSold, flashloanData);
+
+        // Calc profit and check vs slippage
+        profit = sUSDS.balanceOf(address(this)).encodeInt256() - sUsdsBalanceStart.encodeInt256();
+        if (profit < minProfit) revert MinProfitNotMet(minProfit, profit);
+    }
+
+    function _handleRoute2Flashloan(_FlashloanData memory data) private {
         // Sell sUSDS to buy OHM on uniswap
         uint256 ohmBought = _uniV3Swap(
             sUSDS,
-            sUsdsSold,
+            data.sUsdsSold,
             OHM,
-            ohmSusdsPoolFee,
-            deadline
+            data.ohmSusdsPoolFee,
+            data.deadline
         );
 
         // Mint hOHM with the gOHM, also receiving USDS liabilities
@@ -246,20 +325,16 @@ contract OrigamiHOhmArbBot is IOrigamiHOhmArbBot, OrigamiElevatedAccess {
         ) = _mintHohm(gohmBought);
 
         // Mint sUSDS with the USDS
-        uint256 sUsdsMinted = sUSDS.deposit(usdsReceived, address(this));
+        sUSDS.deposit(usdsReceived, address(this));
 
         // Sell hOHM for sUSDS
-        uint256 sUsdsBought = _uniV3Swap(
+        _uniV3Swap(
             hOHM,
             hohmMinted,
             sUSDS,
-            susdsHohmPoolFee,
-            deadline
+            data.susdsHohmPoolFee,
+            data.deadline
         );
-
-        // Calc profit and check vs slippage
-        profit = (sUsdsMinted + sUsdsBought).encodeInt256() - sUsdsSold.encodeInt256();
-        if (profit < minProfit) revert MinProfitNotMet(minProfit, profit);
     }
 
     /// @inheritdoc IOrigamiHOhmArbBot

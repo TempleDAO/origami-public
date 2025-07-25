@@ -3,8 +3,6 @@ import {
   TokenPrices, TokenPrices__factory,
   IERC20Metadata,
   IERC20Metadata__factory,
-  OrigamiBoycoVault,
-  OrigamiBoycoVault__factory,
   OrigamiBoycoUsdcManager,
   OrigamiBoycoUsdcManager__factory,
   OrigamiBalancerComposableStablePoolHelper,
@@ -134,7 +132,7 @@ export interface ContractInstances {
         HONEY_BYUSD: OrigamiInfraredVaultProxy;
       };
       BERA_BGT_PROXY: OrigamiBeraBgtProxy;
-      TOKEN: OrigamiBoycoVault;
+      TOKEN: OrigamiDelegated4626Vault;
       MANAGER: OrigamiBoycoUsdcManager;
     };
     ORIBGT: {
@@ -229,7 +227,7 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
           HONEY_BYUSD: OrigamiInfraredVaultProxy__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.INFRARED_REWARDS_VAULT_PROXIES.HONEY_BYUSD, owner),
         },
         BERA_BGT_PROXY: OrigamiBeraBgtProxy__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.BERA_BGT_PROXY, owner),
-        TOKEN: OrigamiBoycoVault__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN, owner),
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN, owner),
         MANAGER: OrigamiBoycoUsdcManager__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.MANAGER, owner),
       },
       ORIBGT: {

@@ -69,7 +69,7 @@ contract OrigamiInfraredVaultManagerTestBase is OrigamiTest {
         vm.label(address(wBeraToken), "wBERA_TOKEN");
 
         vm.startPrank(origamiMultisig);
-        vault.setManager(address(manager));
+        vault.setManager(address(manager), 0);
         vm.stopPrank();
     }
 
@@ -111,6 +111,7 @@ contract OrigamiInfraredVaultManagerTest_Admin is OrigamiInfraredVaultManagerTes
         assertEq(manager.MAX_WITHDRAWAL_FEE_BPS(), 330);
         assertEq(manager.feeCollector(), feeCollector);
         assertEq(manager.lastVestingCheckpoint(), 0);
+        assertEq(manager.reservesVestingDuration(), 10 minutes);
         assertEq(manager.RESERVES_VESTING_DURATION(), 10 minutes);
         assertEq(manager.swapper(), swapper);
         assertEq(manager.withdrawalFeeBps(), 0);

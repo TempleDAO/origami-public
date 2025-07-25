@@ -149,7 +149,7 @@ contract OrigamiInfraredAutoCompounderFactory is OrigamiElevatedAccess {
         access[1] = IOrigamiElevatedAccess.ExplicitAccess(OrigamiSwapperWithLiquidityManagement.addLiquidity.selector, true);
         swapper.setExplicitAccess(overlord_, access);
 
-        vault.setManager(address(manager));
+        vault.setManager(address(manager), 0);
         for (uint256 i; i < expectedSwapRouters_.length; ++i) {
             swapper.whitelistRouter(expectedSwapRouters_[i], true);
         }

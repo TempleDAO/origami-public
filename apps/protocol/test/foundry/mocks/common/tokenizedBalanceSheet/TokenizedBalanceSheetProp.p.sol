@@ -503,11 +503,15 @@ abstract contract TokenizedBalanceSheetProp is Test {
         }
 
         for (uint256 i; i < assetsExit.length; i++) {
-            assertApproxLeAbs(assetsExit[i], assetsJoin[i], _delta_);
+            // Because the number of shares from the join may be slightly higher than the number of shares from exit, 
+            // the assets on the exit may be slightly more than on join
+            assertApproxLeAbs(assetsExit[i], assetsJoin[i], _delta_ + 1);
         }
 
         for (uint256 i; i < liabilitiesExit.length; i++) {
-            assertApproxLeAbs(liabilitiesJoin[i], liabilitiesExit[i], _delta_);
+            // Because the number of shares from the join may be slightly higher than the number of shares from exit, 
+            // the liabilities on the exit may be slightly less than on join
+            assertApproxLeAbs(liabilitiesJoin[i], liabilitiesExit[i], _delta_ + 1);
         }
     }
 

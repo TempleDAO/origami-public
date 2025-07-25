@@ -8,33 +8,37 @@ import { IUniswapV3QuoterV2 } from "contracts/interfaces/external/uniswap/IUnisw
 import { IOlympusStaking } from "contracts/interfaces/external/olympus/IOlympusStaking.sol";
 import { IGOHM } from "contracts/interfaces/external/olympus/IGOHM.sol";
 import { IOrigamiTokenizedBalanceSheetVault } from "contracts/interfaces/common/IOrigamiTokenizedBalanceSheetVault.sol";
+import { IMorpho } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
 
 /**
  * @title Origami hOHM arbitrage bot
  * @notice Close the arbitrage for known/fixed routes between hOHM and the underlying
  * gOHM collateral and USDS liabilities
  * 
- * sUSDS is held in this contract and a bot will monitor and will execute either
- * route 1 or route 2 when appropriate.
+ * The contract does not need a starting sUSDS balance, unless it expects to operate at a loss.
+ * A bot will monitor and will execute either route 1 or route 2 when appropriate.
  * 
  * ROUTE 1 - when hOHM is trading at a discount:
- *  1. Sell sUSDS (from this contract balance) to buy hOHM via uniswap
- *  2. Redeem sUSDS for USDS (from this contract balance)
- *       Enough to cover hOHM liabilities for exit in step 3
- *  3. Redeem hOHM: pay USDS (from 2), receive gOHM
- *  4. Unstake gOHM (from 3) for OHM
- *  5. Sell OHM (from 4) for sUSDS via uniswap
- *  6. Ensure min profit is met. 
- *      Profit = (5) - (1) - (2)
+ *  1. Flashloan sUSDS via MORPHO
+ *  2. Sell sUSDS (from this contract balance) to buy hOHM via uniswap
+ *  3. Redeem sUSDS for USDS - Enough to cover hOHM liabilities for exit in step 4
+ *  4. Redeem hOHM: pay USDS (from 3), receive gOHM
+ *  5. Unstake gOHM (from 4) for OHM
+ *  6. Sell OHM (from 5) for sUSDS via uniswap
+ *  7. Repay sUSDS flashloan
+ *  8. Ensure min profit is met. 
+ *      Profit = (6) - (2) - (3)
  *
- * ROUTE 2 - when hOHM is trading at a premium
- *  1. Sell sUSDS (from this contract balance) to buy OHM via uniswap
- *  2. Stake OHM (from 1) for gOHM
- *  3. Mint hOHM: pay gOHM (from 2), receive USDS
- *  4. Use USDS (from 3) to mint sUSDS
- *  5. Sell hOHM (from 3) for sUSDS via uniswap
- *  6. Ensure min profit is met. 
- *      Profit = (5) + (6) - (1)
+ * ROUTE 2 - when hOHM is trading at a premium:
+ *  1. Flashloan sUSDS via MORPHO
+ *  2. Sell sUSDS (from this contract balance) to buy OHM via uniswap
+ *  3. Stake OHM (from 2) for gOHM
+ *  4. Mint hOHM: pay gOHM (from 3), receive USDS
+ *  5. Use USDS (from 4) to mint sUSDS
+ *  6. Sell hOHM (from 4) for sUSDS via uniswap
+ *  7. Repay sUSDS flashloan
+ *  8. Ensure min profit is met. 
+ *      Profit = (6) + (7) - (2)
  */
 interface IOrigamiHOhmArbBot {
 
@@ -92,11 +96,17 @@ interface IOrigamiHOhmArbBot {
     /// @notice The Uniswap V3 quoter peripheral contract
     function uniV3Quoter() external view returns (IUniswapV3QuoterV2);
 
+    /// @notice Morpho singleton for flashloans
+    function MORPHO() external view returns (IMorpho);
+
     /// @notice Executes a batch of function calls on this contract.
     function multicall(bytes[] calldata data) external returns (bytes[] memory results);
 
     /// @notice The owner can pre-approve token spend to particular contracts
     function approveToken(IERC20 token, address spender, uint256 amount) external;
+
+    /// @notice The owner can recover tokens
+    function recoverToken(IERC20 token, address to, uint256 amount) external;
 
     /**
      * @notice Get the quote details for Route 1
@@ -115,6 +125,7 @@ interface IOrigamiHOhmArbBot {
      */
     function executeRoute1(
         uint256 sUsdsSold,
+        uint256 sUsdsFlashAmount,
         int256 minProfit,
         uint24 susdsHohmPoolFee,
         uint24 ohmSusdsPoolFee,

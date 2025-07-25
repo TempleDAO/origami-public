@@ -57,6 +57,9 @@ contract OrigamiBoycoUsdcManager is
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     uint16 public override constant withdrawalFeeBps = 0;
 
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint256 public override constant maxDeposit = type(uint256).max;
+
     constructor(
         address initialOwner_,
         address vault_,
@@ -251,6 +254,12 @@ contract OrigamiBoycoUsdcManager is
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     function areWithdrawalsPaused() external virtual override view returns (bool) {
         return _paused.exitsPaused;
+    }
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    function maxWithdraw() external view override returns (uint256) {
+        // Cap the amount of shares available based on the actual assets available in the manager as of now.
+        return unallocatedAssets();
     }
 
     /// @inheritdoc IERC165

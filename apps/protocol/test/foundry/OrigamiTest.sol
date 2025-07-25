@@ -56,7 +56,13 @@ abstract contract OrigamiTest is Test {
     function fork(string memory chainAlias, uint256 _blockNumber) internal {
         blockNumber = _blockNumber;
         chain = getChain(chainAlias);
-        forkId = vm.createSelectFork(chain.rpcUrl, _blockNumber);
+        try vm.createSelectFork(chain.rpcUrl, _blockNumber) returns (uint256 _forkId) {
+            // worked ok
+            forkId = _forkId;
+        } catch {
+            // Try one more time - sometimes there's transient network issues depending on connection
+            forkId = vm.createSelectFork(chain.rpcUrl, _blockNumber);
+        }
     }
 
     /// @dev Deploy a new UUPS Proxy, given an implementation.

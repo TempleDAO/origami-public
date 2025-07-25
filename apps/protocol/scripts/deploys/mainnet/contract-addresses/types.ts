@@ -126,6 +126,16 @@ export interface ContractAddresses {
       MANAGER: Address;
       COW_SWAPPER: Address;
       COW_SWAPPER_2: Address;
+      COW_SWAPPER_3: Address;
+      COW_SWAPPER_4: Address;
+    };
+    SKYp: {
+      OVERLORD_WALLET: Address;
+      TOKEN: Address;
+      MANAGER: Address;
+      COW_SWAPPER: Address;
+      COW_SWAPPER_2: Address;
+      COW_SWAPPER_3: Address;
     };
     hOHM: {
       OVERLORD_WALLET: Address;
@@ -136,7 +146,17 @@ export interface ContractAddresses {
       MIGRATOR: Address;
       ARB_BOT_OVERLORD_WALLET: Address;
       ARB_BOT: Address;
-    }
+    };
+    OAC_USDS_IMF_MOR: {
+      OVERLORD_WALLET: Address;
+      TOKEN: Address;
+      MANAGER: Address;
+      COW_SWAPPER: Address;
+    };
+  };
+
+  PERIPHERY: {
+    TOKEN_RECOVERY: Address;
   };
 
   EXTERNAL: {
@@ -156,8 +176,11 @@ export interface ContractAddresses {
       SKY_TOKEN: Address;
 
       STAKING_FARMS: {
-        USDS_SKY: Address;
+        STAKE_USDS_EARN_SKY: Address;
+        STAKE_SKY_EARN_USDS: Address;
       };
+
+      LOCKSTAKE_ENGINE: Address;
     };
     CIRCLE: {
       USDC_TOKEN: Address;
@@ -206,6 +229,7 @@ export interface ContractAddresses {
       WEETH_WETH_ORACLE: Address;
       WEETH_USD_ORACLE: Address;
       EZETH_WETH_ORACLE: Address;
+      SPK_USD_ORACLE: Address;
     };
     CHAINLINK: {
       DAI_USD_ORACLE: Address;
@@ -244,6 +268,10 @@ export interface ContractAddresses {
       MORPHO_TOKEN: Address;
       MORPHO_LEGACY_TOKEN: Address;
       MORPHO_LEGACY_WRAPPER: Address;
+      EARN_VAULTS: {
+        IMF_USDS: Address;
+      };
+      REWARDS_DISTRIBUTOR: Address;
     };
     PENDLE: {
       ORACLE: Address;
@@ -280,6 +308,7 @@ export interface ContractAddresses {
       };
     };
     SPARK: {
+      SPK_TOKEN: Address;
       POOL_ADDRESS_PROVIDER: Address;
     };
     AAVE: {
@@ -321,9 +350,16 @@ export interface ContractAddresses {
     UNISWAP: {
       POOLS: {
         OHM_WETH_V3: Address;
+        IMF_WETH_V3: Address;
       };
       ROUTER_V3: Address;
       QUOTER_V3: Address;
+    };
+    IMF: {
+      IMF_TOKEN: Address;
+    };
+    MERKL: {
+      REWARDS_DISTRIBUTOR: Address;
     };
   };
 

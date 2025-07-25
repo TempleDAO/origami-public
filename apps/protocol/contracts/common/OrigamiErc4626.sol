@@ -144,30 +144,22 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IERC4626
-    function maxDeposit(address /*receiver*/) public override view returns (uint256 maxAssets) {
+    function maxDeposit(address /*receiver*/) public virtual override view returns (uint256 maxAssets) {
         return _maxDeposit(depositFeeBps());
     }
 
     /// @inheritdoc IERC4626
-    function maxMint(address /*receiver*/) public override view returns (uint256 maxShares) {
-        uint256 maxTotalSupply_ = maxTotalSupply();
-        if (maxTotalSupply_ == type(uint256).max) return type(uint256).max;
-
-        uint256 _totalSupply = totalSupply();
-        if (_totalSupply > maxTotalSupply_) return 0;
-
-        unchecked {
-            maxShares = maxTotalSupply_ - _totalSupply;
-        }
+    function maxMint(address /*receiver*/) public virtual override view returns (uint256 maxShares) {
+        return _maxMint();
     }
 
     /// @inheritdoc IERC4626
-    function maxWithdraw(address sharesOwner) public override view returns (uint256 maxAssets) {
+    function maxWithdraw(address sharesOwner) public virtual override view returns (uint256 maxAssets) {
         return _maxWithdraw(sharesOwner, withdrawalFeeBps());
     }
 
     /// @inheritdoc IERC4626
-    function maxRedeem(address sharesOwner) public override view returns (uint256 maxShares) {
+    function maxRedeem(address sharesOwner) public virtual override view returns (uint256 maxShares) {
         return _maxRedeem(sharesOwner);
     }
 
@@ -217,7 +209,7 @@ contract OrigamiErc4626 is
         uint256 shares, 
         address receiver
     ) public virtual override nonReentrant returns (uint256) {
-        uint256 maxShares = maxMint(receiver);
+        uint256 maxShares = _maxMint();
         if (shares > maxShares) {
             revert ERC4626ExceededMaxMint(receiver, shares, maxShares);
         }
@@ -390,7 +382,7 @@ contract OrigamiErc4626 is
         if (maxTotalSupply_ == type(uint256).max) return type(uint256).max;
 
         uint256 _totalSupply = totalSupply();
-        if (_totalSupply > maxTotalSupply_) return 0;
+        if (_totalSupply >= maxTotalSupply_) return 0;
 
         uint256 availableShares;
         unchecked {
@@ -403,6 +395,18 @@ contract OrigamiErc4626 is
         );
     }
 
+    function _maxMint() internal view returns (uint256 maxShares) {
+        uint256 maxTotalSupply_ = maxTotalSupply();
+        if (maxTotalSupply_ == type(uint256).max) return type(uint256).max;
+
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply > maxTotalSupply_) return 0;
+
+        unchecked {
+            maxShares = maxTotalSupply_ - _totalSupply;
+        }
+    }
+
     /**
      * @dev Calculate the max number of assets which can be withdrawn given the number of shares
      * owned by `sharesOwner`
@@ -412,7 +416,7 @@ contract OrigamiErc4626 is
     function _maxWithdraw(
         address sharesOwner, 
         uint256 feeBps
-    ) internal virtual view returns (uint256 maxAssets) {
+    ) internal view returns (uint256 maxAssets) {
         if (sharesOwner == address(0)) return type(uint256).max;
 
         uint256 shares = balanceOf(sharesOwner);
@@ -429,7 +433,7 @@ contract OrigamiErc4626 is
      */
     function _maxRedeem(
         address sharesOwner
-    ) internal virtual view returns (uint256 maxShares) {
+    ) internal view returns (uint256 maxShares) {
         return sharesOwner == address(0)
             ? type(uint256).max
             : balanceOf(sharesOwner);

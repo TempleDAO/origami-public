@@ -15,7 +15,7 @@ async function main() {
   ) as OrigamiSwapperWithCallback;
 
   await mine(swapper.whitelistRouter(ADDRS.EXTERNAL.OOGABOOGA.ROUTER, true));
-  await mine(swapper.whitelistRouter(ADDRS.EXTERNAL.MAGPIE.ROUTER, true));
+  await mine(swapper.whitelistRouter(ADDRS.EXTERNAL.MAGPIE.ROUTER_V3_1, true));
   await mine(swapper.whitelistRouter(ADDRS.EXTERNAL.KYBERSWAP.ROUTER_V2, true));
   await mine(swapper.proposeNewOwner(ADDRS.CORE.MULTISIG));
 

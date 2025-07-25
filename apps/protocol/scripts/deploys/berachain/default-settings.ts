@@ -68,11 +68,74 @@ export const DEFAULT_SETTINGS = {
         PERFORMANCE_FEE: 100, // 1%
         SEED_DEPOSIT_SIZE: ethers.utils.parseEther("512"),
       },
+      IBERA_IBGT: {
+        TOKEN_SYMBOL: "oAC-iBERA-iBGT-a",
+        TOKEN_NAME: "Origami iBERA-iBGT LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("70"),
+      },
+      HOHM_HONEY: {
+        TOKEN_SYMBOL: "oAC-hOHM-HONEY-a",
+        TOKEN_NAME: "Origami hOHM-HONEY LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1804"),
+      },
+      SOLVBTCBNB_XSOLVBTC: {
+        TOKEN_SYMBOL: "oAC-SolvBTC.BNB-xSolvBTC-a",
+        TOKEN_NAME: "Origami SolvBTC.BNB-xSolvBTC LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1804"),
+      },
+      WBTC_WETH: {
+        TOKEN_SYMBOL: "oAC-WBTC-WETH-a",
+        TOKEN_NAME: "Origami WBTC-WETH LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.000000030000000000"),
+      },
+      WETH_WBERA: {
+        TOKEN_SYMBOL: "oAC-WETH-WBERA-a",
+        TOKEN_NAME: "Origami WETH-WBERA LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1.5"),
+      },
+      WBTC_HONEY: {
+        TOKEN_SYMBOL: "oAC-WBTC-HONEY-a",
+        TOKEN_NAME: "Origami WBTC-HONEY LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.0000034"),
+      },
+      WBTC_WBERA: {
+        TOKEN_SYMBOL: "oAC-WBTC-WBERA-a",
+        TOKEN_NAME: "Origami WBTC-WBERA LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.0000025"),
+      },
     },
     INFRARED_AUTO_STAKING: {
       PERFORMANCE_FEE: 100, // 1%
       EWBERA_4_OSBGT: {
         SEED_DEPOSIT_SIZE: ethers.utils.parseEther("512"),
+      },
+      IBERA_IBGT: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("71.153959063799677352"),
+      },
+      HOHM_HONEY: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1804.962483568396967923"),
+      },
+      SOLVBTCBNB_XSOLVBTC: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1804.962483568396967923"),
+      },
+      WBTC_WETH: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.000000031480752524"),
+      },
+      WETH_WBERA: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1.650460155115071515"),
+      },
+      WBTC_HONEY: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.000003511305911391"),
+      },
+      WBTC_WBERA: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.000002862504909527"),
       },
     },
     hOHM: {
@@ -111,6 +174,9 @@ export const DEFAULT_SETTINGS = {
       WBERA_USD_ORACLE: {
         STALENESS_THRESHOLD: 21600 + 300 // 6 hours + 5 minutes
       },
+      WETH_USD_ORACLE: {
+        STALENESS_THRESHOLD: 86400 + 300 // 24 hours + 5 minutes
+      }
     },
     CHRONICLE: {
       IBGT_WBERA_ORACLE: {
