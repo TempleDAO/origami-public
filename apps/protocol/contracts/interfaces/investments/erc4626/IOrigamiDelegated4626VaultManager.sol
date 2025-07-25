@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
-import { DynamicFees } from "contracts/libraries/DynamicFees.sol";
 
 /** 
  * @title Origami Delegated ERC4626 Vault Manager
@@ -13,7 +12,6 @@ import { DynamicFees } from "contracts/libraries/DynamicFees.sol";
  */
 interface IOrigamiDelegated4626VaultManager is IERC165 {
     event FeeBpsSet(uint16 depositFeeBps, uint16 withdrawalFeeBps);
-    event InKindFees(DynamicFees.FeeType feeType, uint256 feeBps, uint256 feeAmount);
     event FeeCollectorSet(address indexed feeCollector);
 
     /// @notice Deposit tokens into the underlying protocol
@@ -67,4 +65,12 @@ interface IOrigamiDelegated4626VaultManager is IERC165 {
 
     /// @notice The current withdrawal fee in basis points
     function withdrawalFeeBps() external view returns (uint16);
+
+    /// @notice The current max deposit amount of assets.
+    /// type(uint256).max if no limit
+    function maxDeposit() external view returns (uint256);
+
+    /// @notice The current max withdraw amount of assets.
+    /// type(uint256).max if no limit
+    function maxWithdraw() external view returns (uint256);
 }

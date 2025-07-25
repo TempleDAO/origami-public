@@ -5,14 +5,18 @@ pragma solidity ^0.8.4;
 import { IOrigamiCompoundingVaultManager } from "contracts/interfaces/investments/IOrigamiCompoundingVaultManager.sol";
 import { IInfraredVault } from "contracts/interfaces/external/infrared/IInfraredVault.sol";
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
+import { IOrigamiVestingReserves } from "contracts/interfaces/investments/IOrigamiVestingReserves.sol";
 
 /**
  * @title Origami Infrared Vault Manager
  * @notice A manager for auto-compounding strategies on Infrared Vaults that handles staking of user
  * deposits and restaking of claimed rewards.
  */
-interface IOrigamiInfraredVaultManager is IOrigamiCompoundingVaultManager, IOrigamiSwapCallback {
-    event RewardsVestingDurationSet(uint48 durationInSeconds);
+interface IOrigamiInfraredVaultManager is 
+    IOrigamiCompoundingVaultManager,
+    IOrigamiSwapCallback,
+    IOrigamiVestingReserves
+{
     event PerformanceFeesCollected(uint256 amount);
 
     /// @notice Set a withdrawal fee imposed on those leaving the vault
@@ -29,18 +33,6 @@ interface IOrigamiInfraredVaultManager is IOrigamiCompoundingVaultManager, IOrig
     /// @notice The maximum possible value for the Origami performance fee
     function MAX_PERFORMANCE_FEE_BPS() external view returns (uint16);
 
-    /// @notice Duration of each vesting period
-    function RESERVES_VESTING_DURATION() external view returns (uint48);
-
-    /// @notice When the current vesting period started
-    function lastVestingCheckpoint() external view returns (uint48);
-
-    /// @notice Rewards which are vesting in the current period
-    function vestingReserves() external view returns (uint128);
-
-    /// @notice Accrued rewards which will start vesting in the next `reservesVestingDuration` period
-    function futureVestingReserves() external view returns (uint128);
-
     /// @notice The underlying infrared reward vault
     function rewardVault() external view returns (IInfraredVault);
 
@@ -50,10 +42,8 @@ interface IOrigamiInfraredVaultManager is IOrigamiCompoundingVaultManager, IOrig
     /// @notice The amount of assets staked in the infrared vault
     function stakedAssets() external view returns (uint256);
 
-    /// @notice The breakdown of balances for the current period's vesting and any accrued for the next period
-    function vestingStatus() external view returns (
-        uint256 currentPeriodVested,
-        uint256 currentPeriodUnvested,
-        uint256 futurePeriodUnvested
-    );
+    /// @notice Duration of each vesting period
+    /// @dev Same as reservesVestingDuration() in IOrigamiVestingReserves,
+    /// added for interface backwards compatibility
+    function RESERVES_VESTING_DURATION() external view returns (uint48);
 }

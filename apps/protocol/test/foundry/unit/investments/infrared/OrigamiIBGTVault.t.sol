@@ -61,7 +61,7 @@ contract OrigamiIBGTVaultTestBase is OrigamiTest {
         );
 
         vm.startPrank(origamiMultisig);
-        vault.setManager(address(manager));
+        vault.setManager(address(manager), 0);
         vm.stopPrank();
 
         seedDeposit(origamiMultisig, SEED_AMOUNT, type(uint256).max);
@@ -165,18 +165,53 @@ contract OrigamiIBGTVaultTest_Admin is OrigamiIBGTVaultTestBase {
         assertEq(vault.areWithdrawalsPaused(), false);
     }
 
-    function test_setManager_fail() public {
+    function test_setManager_fail_zero() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        vault.setManager(address(0));
+        vault.setManager(address(0), 0);
+    }
+
+    function test_setManager_fail_notWedToVault() public {
+        vm.startPrank(origamiMultisig);
+        OrigamiInfraredVaultManager newManager = new OrigamiInfraredVaultManager(
+            origamiMultisig,
+            alice, // not vault
+            address(asset),
+            address(iBgtVault),
+            feeCollector,
+            swapper,
+            PERF_FEE_FOR_ORIGAMI
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(newManager)));
+        vault.setManager(address(newManager), 0);
     }
 
     function test_setManager_success() public {
+        deposit(alice, 100e18);
+        uint256 totalAssets = vault.totalAssets();
+        assertEq(vault.totalAssets(), 100e18 + 0.1e18);
+        assertEq(vault.convertToAssets(1e18), 1e18);
+        assertEq(manager.unallocatedAssets(), 0);
+
+        OrigamiInfraredVaultManager newManager = new OrigamiInfraredVaultManager(
+            origamiMultisig,
+            address(vault),
+            address(asset),
+            address(iBgtVault),
+            feeCollector,
+            swapper,
+            PERF_FEE_FOR_ORIGAMI
+        );
+       
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vault));
-        emit ManagerSet(alice);
-        vault.setManager(alice);
-        assertEq(address(vault.manager()), alice);
+        emit ManagerSet(address(newManager));
+        vault.setManager(address(newManager), totalAssets);
+        assertEq(address(vault.manager()), address(newManager));
+
+        assertEq(vault.totalAssets(), 100e18 + 0.1e18);
+        assertEq(vault.convertToAssets(1e18), 1e18);
     }
 
     function test_setTokenPrices_fail() public {
@@ -199,7 +234,7 @@ contract OrigamiIBGTVaultTest_Access is OrigamiIBGTVaultTestBase {
 
     function test_setManager_access() public {
         expectElevatedAccess();
-        vault.setManager(alice);
+        vault.setManager(alice, 0);
     }
 
     function test_setTokenPrices_access() public {

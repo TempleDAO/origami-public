@@ -1,0 +1,66 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x05654Ff0Cb3635fA5De00CC11607dBf203435C13",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_swapper",
+            "type": "address"
+          }
+        ],
+        "name": "setSwapper",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_swapper": "0xeb32f71b700b75ad6bf84c9b0374f388740c266f"
+      }
+    },
+    {
+      "to": "0xc522335fBfe21d7A7d1135eb0E016a89DA49dC9e",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_swapper",
+            "type": "address"
+          }
+        ],
+        "name": "setSwapper",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_swapper": "0x25dd72cc1de50e963948e464c09aeba0d9312349"
+      }
+    },
+    {
+      "to": "0xeb32f71b700b75ad6bf84c9b0374f388740c266f",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x25dd72cc1de50e963948e464c09aeba0d9312349",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

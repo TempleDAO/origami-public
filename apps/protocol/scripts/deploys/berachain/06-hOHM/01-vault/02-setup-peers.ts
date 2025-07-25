@@ -19,8 +19,8 @@ async function setPeer(oft: OrigamiOFT) {
   const options: EnforcedOptionParamStruct[] = [{
     eid: MAINNET_DEFAULT_SETTINGS.EXTERNAL.LAYER_ZERO.ENDPOINT_ID,
     msgType: 1, // SEND
-    // minimum 200k gas for transfers
-    options: "0x00030100110100000000000000000000000000030d40",
+    // minimum 500k gas for transfers to handle delegation on the ETH side
+    options: "0x0003010011010000000000000000000000000007A120",
   }];
   await mine(oft.setEnforcedOptions(options));
 }

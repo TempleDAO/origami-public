@@ -1,5 +1,5 @@
 import '@nomiclabs/hardhat-ethers';
-import { OrigamiBoycoVault__factory } from '../../../../../typechain';
+import { OrigamiDelegated4626Vault__factory } from '../../../../../typechain';
 import {
   deployAndMine,
   runAsyncMain,
@@ -10,7 +10,7 @@ import { getDeployContext } from '../../deploy-context';
 async function main() {
   const { owner, ADDRS } = await getDeployContext(__dirname);
 
-  const factory = new OrigamiBoycoVault__factory(owner);
+  const factory = new OrigamiDelegated4626Vault__factory(owner);
   await deployAndMine(
     'VAULTS.BOYCO_USDC_A.TOKEN',
     factory,

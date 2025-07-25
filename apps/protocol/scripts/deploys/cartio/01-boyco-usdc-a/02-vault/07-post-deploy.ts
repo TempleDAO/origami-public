@@ -56,7 +56,8 @@ async function main() {
 
   await mine(
     INSTANCES.VAULTS.BOYCO_USDC_A.TOKEN.setManager(
-      ADDRS.VAULTS.BOYCO_USDC_A.MANAGER
+      ADDRS.VAULTS.BOYCO_USDC_A.MANAGER,
+      0
     )
   );
 

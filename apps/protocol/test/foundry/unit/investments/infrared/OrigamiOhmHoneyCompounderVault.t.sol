@@ -69,7 +69,7 @@ contract OrigamiOhmHoneyVaultTestBase is OrigamiTest {
         );
 
         vm.startPrank(origamiMultisig);
-        vault.setManager(address(manager));
+        vault.setManager(address(manager), 0);
         vm.stopPrank();
 
         seedDeposit(origamiMultisig, SEED_AMOUNT, type(uint256).max);

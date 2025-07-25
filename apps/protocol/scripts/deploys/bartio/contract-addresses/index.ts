@@ -6,10 +6,10 @@ import {
   IERC20Metadata__factory,
   OrigamiTestnetLovTokenManager,
   OrigamiTestnetLovTokenManager__factory,
-  OrigamiBoycoVault,
   OrigamiBoycoUsdcManager,
-  OrigamiBoycoVault__factory,
   OrigamiBoycoUsdcManager__factory,
+  OrigamiDelegated4626Vault,
+  OrigamiDelegated4626Vault__factory,
 } from "../../../../typechain";
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
@@ -75,7 +75,7 @@ export interface ContractInstances {
 
   VAULTS: {
     BOYCO_HONEY_A: {
-      TOKEN: OrigamiBoycoVault;
+      TOKEN: OrigamiDelegated4626Vault;
       MANAGER: OrigamiBoycoUsdcManager;
     };
   };
@@ -137,7 +137,7 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
     },
     VAULTS: {
       BOYCO_HONEY_A: {
-        TOKEN: OrigamiBoycoVault__factory.connect(ADDRS.VAULTS.BOYCO_HONEY_A.TOKEN, owner),
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.BOYCO_HONEY_A.TOKEN, owner),
         MANAGER: OrigamiBoycoUsdcManager__factory.connect(ADDRS.VAULTS.BOYCO_HONEY_A.MANAGER, owner),
       },
     },

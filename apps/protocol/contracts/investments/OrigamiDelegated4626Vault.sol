@@ -42,10 +42,30 @@ contract OrigamiDelegated4626Vault is
     }
 
     /// @inheritdoc IOrigamiDelegated4626Vault
-    function setManager(address newManager) external virtual override onlyElevatedAccess {
-        if (newManager == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
-        emit ManagerSet(newManager);
-        _manager = IOrigamiDelegated4626VaultManager(newManager);
+    function setManager(address newManagerAddress, uint256 minNewAssets) external virtual override onlyElevatedAccess {
+        if (newManagerAddress == address(0)) revert CommonEventsAndErrors.InvalidAddress(newManagerAddress);
+        IOrigamiDelegated4626VaultManager newManager = IOrigamiDelegated4626VaultManager(newManagerAddress);
+        if (address(newManager.vault()) != address(this)) revert CommonEventsAndErrors.InvalidAddress(newManagerAddress);
+
+        IOrigamiDelegated4626VaultManager oldManager = _manager;
+        if (address(oldManager) != address(0)) {
+            // Pull out all `totalAssets()` from old, and deposit into new.
+            // If it's not possible to withdraw `totalAssets()` from the old because they're all allocate and cannot be 
+            // withdrawn just-in-time, this is expected to fail. In that case, the assets must be made available to withdraw
+            // prior to migration.
+            uint256 existingAssets = oldManager.totalAssets();
+            uint256 withdrawnAssets = oldManager.withdraw(existingAssets, newManagerAddress);
+            newManager.deposit(withdrawnAssets);
+
+            // The totalAssets in the new must be >= the min required
+            // It may be slightly less than initially due to underlying rounding. Elevated access will use a reasonable/small
+            // slippage to calculate this offchain first.
+            uint256 newAssets = newManager.totalAssets();
+            if (newAssets < minNewAssets) revert CommonEventsAndErrors.Slippage(minNewAssets, newAssets);
+        }
+
+        emit ManagerSet(newManagerAddress);
+        _manager = newManager;
     }
 
     /// @inheritdoc IOrigamiDelegated4626Vault
@@ -112,5 +132,53 @@ contract OrigamiDelegated4626Vault is
     /// @inheritdoc IOrigamiErc4626
     function withdrawalFeeBps() public view virtual override(IOrigamiErc4626, OrigamiErc4626) returns (uint256) {
         return _manager.withdrawalFeeBps();
+    }
+
+    /// @inheritdoc IERC4626
+    function maxDeposit(address /*receiver*/) public override(IERC4626, OrigamiErc4626) view returns (uint256 maxAssets) {
+        // Minimum of the free capacity given the total supply cap, and from what the 
+        // manager reports as the max available to deposit
+        uint256 fromTotalSupplyCap = _maxDeposit(depositFeeBps());
+        uint256 fromManager = _manager.maxDeposit();
+        return fromTotalSupplyCap < fromManager ? fromTotalSupplyCap : fromManager;
+    }
+
+    /// @inheritdoc IERC4626
+    function maxMint(address /*receiver*/) public virtual override(IERC4626, OrigamiErc4626) view returns (uint256 maxShares) {
+        // Minimum of the free capacity given the total supply cap, and from what the 
+        // manager reports as the max assets available to deposit
+        uint256 fromTotalSupplyCap = _maxMint();
+        uint256 maxAssetsfromManager = _manager.maxDeposit();
+        if (maxAssetsfromManager == type(uint256).max) return fromTotalSupplyCap;
+
+        // Convert the max number of assets the manager can deposit into shares
+        // _previewDeposit() correctly rounds down to the max number of shares
+        (uint256 maxSharesFromManager,) = _previewDeposit(
+            maxAssetsfromManager,
+            depositFeeBps()
+        );
+
+        return fromTotalSupplyCap < maxSharesFromManager ? fromTotalSupplyCap : maxSharesFromManager;
+    }
+
+    /// @inheritdoc IERC4626
+    function maxWithdraw(address sharesOwner) public override(IERC4626, OrigamiErc4626) view returns (uint256 maxAssets) {
+        uint256 fromTotalSupplyCap = _maxWithdraw(sharesOwner, withdrawalFeeBps());
+        uint256 fromManager = _manager.maxWithdraw();
+        return fromTotalSupplyCap < fromManager ? fromTotalSupplyCap : fromManager;
+    }
+
+    /// @inheritdoc IERC4626
+    function maxRedeem(address sharesOwner) public override(IERC4626, OrigamiErc4626) view returns (uint256 maxShares) {
+        uint256 fromTotalSupplyCap = _maxRedeem(sharesOwner);
+        uint256 maxAssetsfromManager = _manager.maxWithdraw();
+        if (maxAssetsfromManager == type(uint256).max) return fromTotalSupplyCap;
+
+        (uint256 maxSharesFromManager,) = _previewWithdraw(
+            maxAssetsfromManager,
+            withdrawalFeeBps()
+        );
+
+        return fromTotalSupplyCap < maxSharesFromManager ? fromTotalSupplyCap : maxSharesFromManager;
     }
 }

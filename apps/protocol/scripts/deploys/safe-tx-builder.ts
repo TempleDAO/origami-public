@@ -318,6 +318,35 @@ export function investWithToken(
   }
 }
 
+export function seedOrigami4626(
+  contract: Contract,
+  assetAmount: BigNumber,
+  receiver: string,
+  newMaxTotalSupply: BigNumber,
+): SafeTransaction {
+  return createSafeTransaction(
+    contract.address,
+    "seedDeposit",
+    [
+      {
+        argType: "uint256",
+        name: "assets",
+        value: assetAmount.toString(),
+      },
+      {
+        argType: "address",
+        name: "receiver",
+        value: receiver,
+      },
+      {
+        argType: "uint256",
+        name: "maxTotalSupply_",
+        value: newMaxTotalSupply.toString(),
+      },
+    ],
+  )
+}
+
 export function seedTokenizedBalanceSheet(
   contract: Contract,
   assetAmounts: BigNumber[],

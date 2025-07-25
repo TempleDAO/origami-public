@@ -19,6 +19,12 @@ export interface InfraredAutoCompounderVault {
 
 export interface InfraredAutoStakerVault {
   VAULT: Address;
+
+  // Auto-stakers only require a swapper (and overlord perms)
+  // if the underlying reward vault has non-oriBGT rewards
+  // and is in 'single reward mode'
+  OVERLORD_WALLET?: Address;
+  SWAPPER?: Address;
 };
 
 export interface ContractAddresses {
@@ -70,6 +76,13 @@ export interface ContractAddresses {
     INFRARED_AUTO_COMPOUNDER_WBERA_IBGT_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_IBERA_OSBGT_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_EWBERA_4_OSBGT_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_IBERA_IBGT_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_HOHM_HONEY_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A: InfraredAutoCompounderVault;
 
     INFRARED_AUTO_STAKING_OHM_HONEY_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_BYUSD_HONEY_A: InfraredAutoStakerVault;
@@ -79,6 +92,13 @@ export interface ContractAddresses {
     INFRARED_AUTO_STAKING_WBERA_IBGT_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_IBERA_OSBGT_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_EWBERA_4_OSBGT_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_IBERA_IBGT_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_HOHM_HONEY_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_SOLVBTCBNB_XSOLVBTC_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_WBTC_WETH_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_WETH_WBERA_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_WBTC_HONEY_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_WBTC_WBERA_A: InfraredAutoStakerVault;
   };
 
   FACTORIES: {
@@ -133,6 +153,13 @@ export interface ContractAddresses {
         WBERA_IBGT: Address;
         IBERA_OSBGT: Address;
         EWBERA_4_OSBGT: Address;
+        IBERA_IBGT: Address;
+        HOHM_HONEY: Address;
+        SOLVBTCBNB_XSOLVBTC: Address;
+        WBTC_WETH: Address;
+        WETH_WBERA: Address;
+        WBTC_HONEY: Address;
+        WBTC_WBERA: Address;
       };
     };
     BEX: {
@@ -150,6 +177,16 @@ export interface ContractAddresses {
         OHM_HONEY_V3: Address;
         RUSD_HONEY_V3: Address;
         IBERA_WBERA_V3: Address;
+        OHM_HOHM_V3: Address;
+        HOHM_HONEY_V3: Address;
+        WBTC_HONEY_V3: Address;
+        SOLVBTCBNB_XSOLVBTC_V3: Address;
+        SOLVBTC_WBTC_V3: Address;
+        SOLVBTCBNB_SOLVBTC_V3: Address;
+        SOLVBTC_XSOLVBTC_V3: Address;
+        WBTC_WETH_V3: Address;
+        WETH_WBERA_V3: Address;
+        WBTC_WBERA_V3: Address;
       };
       ISLANDS: {
         OHM_HONEY_V3: Address;
@@ -159,12 +196,24 @@ export interface ContractAddresses {
         WBERA_IBGT_V3: Address;
         IBERA_OSBGT_V3: Address;
         EWBERA_4_OSBGT_V3: Address;
+        IBERA_IBGT_V3: Address;
+        OHM_HOHM_V3: Address;
+        HOHM_HONEY_V3: Address;
+        WBTC_HONEY_V3: Address;
+        SOLVBTCBNB_XSOLVBTC_V3: Address;
+        SOLVBTC_WBTC_V3: Address;
+        SOLVBTCBNB_SOLVBTC_V3: Address;
+        SOLVBTC_XSOLVBTC_V3: Address;
+        WBTC_WETH_V3: Address;
+        WETH_WBERA_V3: Address;
+        WBTC_WBERA_V3: Address;
       };
     };
     REDSTONE: {
       USDC_USD_ORACLE: Address;
       HONEY_USD_ORACLE: Address;
       BERA_USD_ORACLE: Address;
+      ETH_USD_ORACLE: Address;
     };
     OOGABOOGA: {
       ROUTER: Address;
@@ -197,10 +246,26 @@ export interface ContractAddresses {
             WBERA: Address;
           };
         };
+        MEV_CAPITAL_BERACHAIN_RED_CLUSTER: {
+          VAULTS: {
+            ORIBGT: Address;
+          };
+        };
       };
     };
     LAYER_ZERO: {
       ENDPOINT: Address;
+    };
+    SOLV: {
+      XSOLVBTC_TOKEN: Address;
+      SOLVBTCBNB_TOKEN: Address;
+      SOLVBTC_TOKEN: Address;
+    };
+    BITCOIN: {
+      WBTC_TOKEN: Address;
+    };
+    ETHEREUM: {
+      WETH_TOKEN: Address;
     };
   };
 };

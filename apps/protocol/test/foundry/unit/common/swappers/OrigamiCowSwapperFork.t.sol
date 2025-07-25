@@ -43,6 +43,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
     uint96 public constant ROUND_DOWN_DIVISOR = 10e18; // In buyToken decimals
     uint24 public constant EXPIRY_PERIOD_SECS = 5 minutes;
     bytes32 public constant APP_DATA = bytes32("{}");
+    uint96 public constant MIN_SELL_AMOUNT = 1;
     uint96 public constant SDAI_SELL_AMOUNT = 1_000_000e18;
 
     function setUp() public {
@@ -58,7 +59,8 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
 
         swapper = new OrigamiCowSwapper(
             origamiMultisig, 
-            cowSwapRelayer
+            cowSwapRelayer,
+            address(cowSwapSettlement)
         );
 
         sdaiOracle = new OrigamiErc4626Oracle(
@@ -101,6 +103,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
 
     function defaultOrderConfig() internal view returns (IOrigamiCowSwapper.OrderConfig memory) {
         return IOrigamiCowSwapper.OrderConfig({
+            minSellAmount: MIN_SELL_AMOUNT,
             maxSellAmount: SDAI_SELL_AMOUNT,
             buyToken: IERC20(sUSDe),
             minBuyAmount: 1,

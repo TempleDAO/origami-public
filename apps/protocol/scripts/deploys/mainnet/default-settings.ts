@@ -595,7 +595,7 @@ export const DEFAULT_SETTINGS = {
         PERFORMANCE_FEE_FOR_ORIGAMI_BPS: 400,
         
         STAKING_FARMS: {
-          USDS_SKY: {
+          STAKE_USDS_EARN_SKY: {
             REFERRAL_CODE: 0,
           },
         },
@@ -618,17 +618,80 @@ export const DEFAULT_SETTINGS = {
             APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
           },
           SKY_TO_USDS_LIMIT_SELL: {
+            MIN_SELL_AMOUNT: ethers.utils.parseUnits("2000", 18), // 2k SKY
             MAX_SELL_AMOUNT: ethers.utils.parseUnits("1000000", 18), // 1M SKY
-            MIN_BUY_AMOUNT: ethers.utils.parseUnits("50000", 18), // 50k USDS
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("30000", 18), // 30k USDS
             PARTIALLY_FILLABLE: true,
             USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
-            LIMIT_PRICE_ADJUSTMENT_BPS: -30,
+            LIMIT_PRICE_ADJUSTMENT_BPS: -500,
             VERIFY_SLIPPAGE_BPS: 10,
             ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("10", 18), // 10 USDS (0.02%)
             EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
-            // https://api.cow.fi/mainnet/api/v1/app_data/0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf
-            APP_DATA: "0x0609da86e2234e72a1e230a0591bec8a3c2e99c9f47b60e6bb41df96e9097dbf",
-          }
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x0606586cbaa897d5598f1a5d5cc1b963a6a4c33156ac9fbd6dfbff8bc14fa8f2
+            APP_DATA: "0x0606586cbaa897d5598f1a5d5cc1b963a6a4c33156ac9fbd6dfbff8bc14fa8f2",
+          },
+          SPK_TO_USDS_LIMIT_SELL: {
+            MIN_SELL_AMOUNT: ethers.utils.parseUnits("5000", 18), // 5k SPK
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("1000000", 18), // 1M SPK
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("1000", 18), // 1k USDS
+            PARTIALLY_FILLABLE: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
+            LIMIT_PRICE_ADJUSTMENT_BPS: 0,
+            VERIFY_SLIPPAGE_BPS: 10,
+            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("10", 18), // 10 USDS (0.02%)
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x0606586cbaa897d5598f1a5d5cc1b963a6a4c33156ac9fbd6dfbff8bc14fa8f2
+            APP_DATA: "0x0606586cbaa897d5598f1a5d5cc1b963a6a4c33156ac9fbd6dfbff8bc14fa8f2",
+          },
+        }
+      },
+
+      SKYp: {
+        TOKEN_SYMBOL: "SKY+",
+        TOKEN_NAME: "Origami SKY+ Auto-Compounder",
+        SWITCH_FARM_COOLDOWN_SECS: 86_400,
+        PERFORMANCE_FEE_FOR_CALLER_BPS: 100,
+        PERFORMANCE_FEE_FOR_ORIGAMI_BPS: 100,
+        
+        STAKING_FARMS: {
+          STAKE_SKY_EARN_USDS: {
+            REFERRAL_CODE: 0,
+          },
+        },
+
+        SEED_DEPOSIT_SIZE: ethers.utils.parseUnits("10000", 18), // SKY
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+
+        COW_SWAPPERS: {
+          USDS_TO_SKY_LIMIT_SELL: {
+            MIN_SELL_AMOUNT: ethers.utils.parseUnits("1200", 18), // 1.2k USDS
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("100000", 18), // 100k USDS
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("100000", 18), // 100k SKY
+            PARTIALLY_FILLABLE: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
+            // Willing to accept a price 5% under the oracle (it's market priced anyway)
+            LIMIT_PRICE_ADJUSTMENT_BPS: -500,
+            VERIFY_SLIPPAGE_BPS: 10,
+            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("150", 18), // 150 SKY
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x1bf8a9ad9a2f23fd32baba213a68504c343d31986c07f6d70ca24cccfb19baf5
+            // {"fullAppData":"{\"appCode\":\"https://origami.finance/\",\"environment\":\"production\",\"metadata\":{\"hooks\":{\"post\":[{\"callData\":\"0xfdb5a03e\",\"gasLimit\":\"250000\",\"target\":\"0xc522335fBfe21d7A7d1135eb0E016a89DA49dC9e\"}],\"version\":\"0.1.0\"}},\"version\":\"1.4.0\"}"}
+            APP_DATA: "0x1bf8a9ad9a2f23fd32baba213a68504c343d31986c07f6d70ca24cccfb19baf5",
+          },
+          SPK_TO_SKY_LIMIT_SELL: {
+            MIN_SELL_AMOUNT: ethers.utils.parseUnits("30000", 18), // 30k SPK
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("100000", 18), // 100k SPK
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("1000", 18), // 1k SKY
+            PARTIALLY_FILLABLE: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
+            LIMIT_PRICE_ADJUSTMENT_BPS: 0, // No oracle on this one
+            VERIFY_SLIPPAGE_BPS: 10,
+            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("150", 18), // 150 SKY
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x1bf8a9ad9a2f23fd32baba213a68504c343d31986c07f6d70ca24cccfb19baf5
+            // {"fullAppData":"{\"appCode\":\"https://origami.finance/\",\"environment\":\"production\",\"metadata\":{\"hooks\":{\"post\":[{\"callData\":\"0xfdb5a03e\",\"gasLimit\":\"250000\",\"target\":\"0xc522335fBfe21d7A7d1135eb0E016a89DA49dC9e\"}],\"version\":\"0.1.0\"}},\"version\":\"1.4.0\"}"}
+            APP_DATA: "0x1bf8a9ad9a2f23fd32baba213a68504c343d31986c07f6d70ca24cccfb19baf5",
+          },
         }
       },
 
@@ -655,6 +718,41 @@ export const DEFAULT_SETTINGS = {
 
         SWEEP_COOLDOWN_SECS: 86400, // 1 day
         SWEEP_MAX_SELL_AMOUNT: ethers.utils.parseEther("10000"), // 10k USDS per day
+      },
+
+      OAC_USDS_IMF_MOR: {
+        TOKEN_SYMBOL: "oAC-USDS-IMF-MOR",
+        TOKEN_NAME: "Origami Morpho IMF-USDS Auto-Compounder",
+        PERFORMANCE_FEE_FOR_ORIGAMI_BPS: 200,
+        REWARDS_VESTING_DURATION_SECS: 86_400, // 1 day
+        
+        SEED_DEPOSIT_SIZE: ethers.utils.parseUnits("102.991720386960681773", 18), // USDS
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+
+        COW_SWAPPERS: {
+          IMF_TO_USDS_LIMIT_SELL: {
+            MIN_SELL_AMOUNT: ethers.utils.parseUnits("150", 18), // 150 IMF
+            MAX_SELL_AMOUNT: ethers.utils.parseUnits("100000", 18), // 100k IMF
+            MIN_BUY_AMOUNT: ethers.utils.parseUnits("10000", 18), // 10k USDS (floor of $0.10 per IMF)
+            PARTIALLY_FILLABLE: true,
+            USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
+            LIMIT_PRICE_ADJUSTMENT_BPS: 0, // No oracle on this one
+            VERIFY_SLIPPAGE_BPS: 10,
+            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("10", 18), // 10 USDS
+            EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
+
+            // https://api.cow.fi/mainnet/api/v1/app_data/0xf98c742f0cf46094a431d7004870a61eeb605d31f1fbcc63e9c10f14b1ed0f06
+            /*
+  # To Create:
+  curl -X 'PUT' \
+  'https://api.cow.fi/mainnet/api/v1/app_data' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{"fullAppData":"{\"appCode\":\"https://origami.finance/\",\"environment\":\"production\",\"metadata\":{\"hooks\":{\"post\":[{\"callData\":\"0xfdb5a03e\",\"gasLimit\":\"250000\",\"target\":\"0xe9224F1d852001Ba32BEFdf665543280185EB08C\"}],\"version\":\"0.1.0\"}},\"version\":\"1.4.0\"}"}'
+            */
+            APP_DATA: "0xf98c742f0cf46094a431d7004870a61eeb605d31f1fbcc63e9c10f14b1ed0f06",
+          },
+        },
       },
     },
 
@@ -759,6 +857,9 @@ export const DEFAULT_SETTINGS = {
         },
         EZETH_WETH_ORACLE: {
           STALENESS_THRESHOLD: 43200 + 300 // 12 hrs + 5 minutes
+        },
+        SPK_USD_ORACLE: {
+          STALENESS_THRESHOLD: 86400 + 300 // 1 days + 5 minutes
         },
       },
       CHAINLINK: {

@@ -84,6 +84,12 @@ contract OrigamiSuperSavingsUsdsManager is
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     uint16 public override constant withdrawalFeeBps = 0;
 
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint256 public override constant maxDeposit = type(uint256).max;
+
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint256 public override constant maxWithdraw = type(uint256).max;
+
     constructor(
         address initialOwner_,
         address vault_,

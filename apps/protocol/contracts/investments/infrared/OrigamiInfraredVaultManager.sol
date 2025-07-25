@@ -19,7 +19,7 @@ import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegate
 import { OrigamiManagerPausable } from "contracts/investments/util/OrigamiManagerPausable.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
-import { SafeCast } from "contracts/libraries/SafeCast.sol";
+import { OrigamiVestingReserves } from "contracts/investments/OrigamiVestingReserves.sol";
 
 /**
  * @title Origami Infrared Vault Manager
@@ -28,13 +28,13 @@ import { SafeCast } from "contracts/libraries/SafeCast.sol";
  */
 contract OrigamiInfraredVaultManager is
     IOrigamiInfraredVaultManager,
+    OrigamiVestingReserves,
     OrigamiElevatedAccess,
     OrigamiManagerPausable,
     ReentrancyGuard
 {
     using SafeERC20 for IERC20;
     using OrigamiMath for uint256;
-    using SafeCast for uint256;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     IOrigamiDelegated4626Vault public immutable override vault;
@@ -57,14 +57,8 @@ contract OrigamiInfraredVaultManager is
     /// @dev Used to deposit/withdraw max possible.
     uint256 private constant _MAX_AMOUNT = type(uint256).max;
 
-    /// @inheritdoc IOrigamiInfraredVaultManager
-    uint48 public constant RESERVES_VESTING_DURATION = 10 minutes;
-
     /// @inheritdoc IOrigamiCompoundingVaultManager
     address public override feeCollector;
-
-    /// @inheritdoc IOrigamiInfraredVaultManager
-    uint48 public override lastVestingCheckpoint;
 
     /// @inheritdoc IOrigamiCompoundingVaultManager
     address public override swapper;
@@ -75,11 +69,11 @@ contract OrigamiInfraredVaultManager is
     /// @dev Performance fees (in basis points) as a fraction of the _asset tokens reinvested.
     uint16 private _performanceFeeBps;
 
-    /// @inheritdoc IOrigamiInfraredVaultManager
-    uint128 public override vestingReserves;
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint256 public constant override maxDeposit = type(uint256).max;
 
-    /// @inheritdoc IOrigamiInfraredVaultManager
-    uint128 public override futureVestingReserves;
+    /// @inheritdoc IOrigamiDelegated4626VaultManager
+    uint256 public constant override maxWithdraw = type(uint256).max;
 
     constructor(
         address initialOwner_,
@@ -91,6 +85,7 @@ contract OrigamiInfraredVaultManager is
         uint16 performanceFeeBps_
     )
         OrigamiElevatedAccess(initialOwner_)
+        OrigamiVestingReserves(10 minutes)
     {
         vault = IOrigamiDelegated4626Vault(vault_);
         _asset = IERC20(asset_);
@@ -208,14 +203,7 @@ contract OrigamiInfraredVaultManager is
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
     function totalAssets() external view override returns (uint256 totalManagedAssets) {
-        // Total assets = staked amount - unvested rewards - any future period (yet to start vesting) reserves
-        (, uint256 unvested) = _vestingStatus();
-        uint256 totalUnvested = unvested + futureVestingReserves;
-        uint256 totalStaked = stakedAssets();
-        // Will have more staked than what is unvested, but floor to 0 just in case
-        unchecked {
-            return totalStaked > totalUnvested ? totalStaked - totalUnvested : 0;
-        }
+        return _totalAssets(stakedAssets());
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
@@ -262,22 +250,17 @@ contract OrigamiInfraredVaultManager is
         return rewardVault.getAllRewardsForUser(address(this));
     }
 
-    /// @inheritdoc IOrigamiInfraredVaultManager
-    function vestingStatus() external view override returns (
-        uint256 currentPeriodVested,
-        uint256 currentPeriodUnvested,
-        uint256 futurePeriodUnvested
-    ) {
-        (currentPeriodVested, currentPeriodUnvested) = _vestingStatus();
-        futurePeriodUnvested = futureVestingReserves;
-    }
-
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
         return interfaceId == type(IERC165).interfaceId
             || interfaceId == type(IOrigamiDelegated4626VaultManager).interfaceId
             || interfaceId == type(IOrigamiCompoundingVaultManager).interfaceId
             || interfaceId == type(IOrigamiInfraredVaultManager).interfaceId;
+    }
+
+    /// @inheritdoc IOrigamiInfraredVaultManager
+    function RESERVES_VESTING_DURATION() external view returns (uint48) {
+        return reservesVestingDuration;
     }
 
     /// @dev Collect latest rewards from the vault and then call reinvest
@@ -335,52 +318,6 @@ contract OrigamiInfraredVaultManager is
                 emit AssetStaked(amountForVault);
                 rewardVault.stake(amountForVault);
             }
-        }
-    }
-
-    /// @dev If the elapsed time since `lastVestingCheckpoint` has crossed into a new vesting window
-    /// then start the new vesting period on total 
-    function _checkpointPendingReserves(uint256 amountReinvested) private {
-        // New pending reserves is the prior `futureVestingReserves` plus the new amount reinvested
-        uint128 pendingReserves = (futureVestingReserves + amountReinvested).encodeUInt128();
-
-        // Nothing to checkpoint if no pending reserves
-        if (pendingReserves == 0) return;
-
-        // Check if current vesting period is complete
-        uint48 secsSinceLastCheckpoint;
-        uint48 currentTime = uint48(block.timestamp);
-        unchecked {
-            secsSinceLastCheckpoint = currentTime - lastVestingCheckpoint;
-        }
-
-        if (secsSinceLastCheckpoint < RESERVES_VESTING_DURATION) {
-            // Current vesting period hasn't completed. Carry into the next period.
-            futureVestingReserves = pendingReserves;
-        } else {
-            // Current vesting period is complete, start a new one with all accumulated reserves
-            vestingReserves = pendingReserves;
-            lastVestingCheckpoint = currentTime;
-            futureVestingReserves = 0;
-        }
-    }
-
-    function _vestingStatus() private view returns (uint256 vested, uint256 unvested) {
-        uint48 vestingDuration = RESERVES_VESTING_DURATION;
-        uint48 secsSinceLastCheckpoint;
-        unchecked {
-            secsSinceLastCheckpoint = uint48(block.timestamp) - lastVestingCheckpoint;
-        }
-
-        // The whole amount has been accrued (vested but not yet added to `vestedReserves`) 
-        // if the time since the last checkpoint has passed the vesting duration
-        uint256 totalPending = vestingReserves;
-        vested = (secsSinceLastCheckpoint >= vestingDuration)
-            ? totalPending
-            : totalPending.mulDiv(secsSinceLastCheckpoint, vestingDuration, OrigamiMath.Rounding.ROUND_DOWN);
-
-        unchecked {
-            unvested = totalPending - vested;
         }
     }
 

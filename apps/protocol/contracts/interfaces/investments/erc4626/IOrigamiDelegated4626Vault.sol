@@ -22,8 +22,12 @@ interface IOrigamiDelegated4626Vault is IOrigamiErc4626 {
 
     /**
      * @notice Set the Origami delegated manager 
+     * @dev If there was a prior manager set, then the totalAssets will be withdrawn
+     * from existing manager and deposited into the new manager.
+     * The new manager must have a min number of migrated assets - it may differ slightly
+     * from rounding - eg if the underlying is an ERC4626 vault, or there are fees, etc.
      */
-    function setManager(address manager) external;
+    function setManager(address manager, uint256 minMigratedAssets) external;
 
     /**
      * @notice The performance fee to Origami treasury

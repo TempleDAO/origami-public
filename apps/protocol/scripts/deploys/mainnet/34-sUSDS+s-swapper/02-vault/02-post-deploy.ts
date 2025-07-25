@@ -15,6 +15,7 @@ async function setupCowSwapper() {
         INSTANCES.VAULTS.SUSDSpS.COW_SWAPPER_2.setOrderConfig(
             ADDRS.EXTERNAL.SKY.SKY_TOKEN,
             {
+                minSellAmount: 0,
                 maxSellAmount: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.SKY_TO_USDS_LIMIT_SELL.MAX_SELL_AMOUNT,
                 buyToken: ADDRS.EXTERNAL.SKY.USDS_TOKEN,
                 minBuyAmount: DEFAULT_SETTINGS.VAULTS.SUSDSpS.COW_SWAPPERS.SKY_TO_USDS_LIMIT_SELL.MIN_BUY_AMOUNT, 

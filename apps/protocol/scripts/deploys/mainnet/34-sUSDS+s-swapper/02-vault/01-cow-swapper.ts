@@ -12,7 +12,8 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.EXTERNAL.COW_SWAP.VAULT_RELAYER
+    ADDRS.EXTERNAL.COW_SWAP.VAULT_RELAYER,
+    ADDRS.EXTERNAL.COW_SWAP.SETTLEMENT,
   );
 }
 

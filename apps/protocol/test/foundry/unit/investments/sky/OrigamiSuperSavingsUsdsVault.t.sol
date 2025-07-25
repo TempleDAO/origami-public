@@ -62,7 +62,7 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
         );
 
         vm.startPrank(origamiMultisig);
-        vault.setManager(address(manager));
+        vault.setManager(address(manager), 0);
         vm.stopPrank();
 
         seedDeposit(origamiMultisig, 0.1e18, type(uint256).max);
@@ -163,18 +163,64 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
         assertEq(vault.areWithdrawalsPaused(), false);
     }
 
-    function test_setManager_fail() public {
+    function test_setManager_fail_zero() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        vault.setManager(address(0));
+        vault.setManager(address(0), 0);
+    }
+
+    function test_setManager_fail_notWedToVault() public {
+        vm.startPrank(origamiMultisig);
+        OrigamiDelegated4626Vault newVault = new OrigamiDelegated4626Vault(
+            origamiMultisig, 
+            "Origami sUSDS+s", 
+            "sUSDS+s",
+            asset,
+            address(tokenPrices)
+        );
+
+        OrigamiSuperSavingsUsdsManager newManager = new OrigamiSuperSavingsUsdsManager(
+            origamiMultisig,
+            address(newVault), // not vault
+            address(sUSDS),
+            SWITCH_FARM_COOLDOWN,
+            swapper,
+            feeCollector,
+            PERF_FEE_FOR_CALLER,
+            PERF_FEE_FOR_ORIGAMI
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(newManager)));
+        vault.setManager(address(newManager), 0);
     }
 
     function test_setManager_success() public {
+        deposit(alice, 100e18);
+        uint256 totalAssets = vault.totalAssets();
+        assertEq(totalAssets, 100e18 + 0.1e18);
+        assertEq(vault.convertToAssets(1e18), 1e18);
+        // just deposited into sUSDS counds as unallocated
+        assertEq(manager.unallocatedAssets(), 100e18 + 0.1e18);
+
+        OrigamiSuperSavingsUsdsManager newManager = new OrigamiSuperSavingsUsdsManager(
+            origamiMultisig,
+            address(vault),
+            address(sUSDS),
+            SWITCH_FARM_COOLDOWN,
+            swapper,
+            feeCollector,
+            PERF_FEE_FOR_CALLER,
+            PERF_FEE_FOR_ORIGAMI
+        );
+       
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vault));
-        emit ManagerSet(alice);
-        vault.setManager(alice);
-        assertEq(address(vault.manager()), alice);
+        emit ManagerSet(address(newManager));
+        vault.setManager(address(newManager), totalAssets);
+        assertEq(address(vault.manager()), address(newManager));
+
+        assertEq(vault.totalAssets(), 100e18 + 0.1e18);
+        assertEq(vault.convertToAssets(1e18), 1e18);
     }
 
     function test_setTokenPrices_fail() public {
@@ -197,7 +243,7 @@ contract OrigamiSuperSavingsUsdsVaultTestAccess is OrigamiSuperSavingsUsdsVaultT
     
     function test_setManager_access() public {
         expectElevatedAccess();
-        vault.setManager(alice);
+        vault.setManager(alice, 0);
     }
 
     function test_setTokenPrices_access() public {

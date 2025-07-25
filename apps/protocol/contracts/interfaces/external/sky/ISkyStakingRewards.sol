@@ -14,12 +14,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.4;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // https://docs.synthetix.io/contracts/source/interfaces/istakingrewards
 interface ISkyStakingRewards {
+    event RewardAdded(uint256 reward);
+    event Staked(address indexed user, uint256 amount);
+    event Referral(uint16 indexed referral, address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
+    event RewardPaid(address indexed user, uint256 reward);
+    event RewardsDurationUpdated(uint256 newDuration);
+    event RewardsDistributionUpdated(address newRewardsDistribution);
+    event Recovered(address token, uint256 amount);
+
     // Views
 
     function balanceOf(address account) external view returns (uint256);
@@ -41,6 +50,18 @@ interface ISkyStakingRewards {
     function stakingToken() external view returns (IERC20);
 
     function totalSupply() external view returns (uint256);
+
+    function userRewardPerTokenPaid(address account) external view returns (uint256);
+
+    function rewards(address account) external view returns (uint256);
+
+    function rewardPerTokenStored() external view returns (uint256);
+
+    function lastUpdateTime() external view returns (uint256);
+
+    function periodFinish() external view returns (uint256);
+
+    function rewardsDuration() external view returns (uint256);
 
     // Mutative
 

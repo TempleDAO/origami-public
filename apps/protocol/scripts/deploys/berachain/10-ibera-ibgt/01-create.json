@@ -1,0 +1,98 @@
+{
+  "chainId": "80094",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xaEa4Cc072Bd05eD784E254eB37495da576F37934",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "name_",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol_",
+            "type": "string"
+          },
+          {
+            "internalType": "contract IInfraredVault",
+            "name": "infraredRewardVault_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "performanceFeeBps_",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "overlord_",
+            "type": "address"
+          },
+          {
+            "internalType": "address[]",
+            "name": "expectedSwapRouters_",
+            "type": "address[]"
+          }
+        ],
+        "name": "create",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "name_": "Origami iBERA-iBGT LP Auto-Compounder (Kodiak)",
+        "symbol_": "oAC-iBERA-iBGT-a",
+        "infraredRewardVault_": "0xE5c36544c295e88c37024736Cef3A46E40650542",
+        "performanceFeeBps_": "100",
+        "overlord_": "0x8929144849110a64ee317ddd006d09ae539d0880",
+        "expectedSwapRouters_": "[\"0xFd88aD4849BA0F729D6fF4bC27Ff948Ab1Ac3dE7\",\"0x52bebb970697476313ae2b3383f40d4afd4ad9d3\",\"0x679a7C63FC83b6A4D9C1F931891d705483d4791F\"]"
+      }
+    },
+    {
+      "to": "0xc3d19aC9b79A8D89272a7ef88Ddc1786fE36d747",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "asset_",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardsVault_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "performanceFeeBps_",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "overlord_",
+            "type": "address"
+          },
+          {
+            "internalType": "address[]",
+            "name": "expectedSwapRouters_",
+            "type": "address[]"
+          }
+        ],
+        "name": "registerVault",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "asset_": "0x24afcEB372b755F4953e738d6b38E9e4646D9F57",
+        "rewardsVault_": "0xE5c36544c295e88c37024736Cef3A46E40650542",
+        "performanceFeeBps_": "100",
+        "overlord_": "0x0000000000000000000000000000000000000000",
+        "expectedSwapRouters_": "[]"
+      }
+    }
+  ]
+}

@@ -106,7 +106,7 @@ async function main() {
 
   // link token and manager
   await mine(
-    INSTANCES.VAULTS.ORIBGT.TOKEN.setManager(ADDRS.VAULTS.ORIBGT.MANAGER)
+    INSTANCES.VAULTS.ORIBGT.TOKEN.setManager(ADDRS.VAULTS.ORIBGT.MANAGER, 0)
   );
 
   await mine(INSTANCES.VAULTS.ORIBGT.SWAPPER.whitelistRouter(
