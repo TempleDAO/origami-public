@@ -1,0 +1,5 @@
+// plasma: OPAL.ADAPTER_IMPLEMENTATIONS.SPOT_ASSETS.V1=0x496eACcbceE52519AB14da4a00E38cf95885B536
+// yarn hardhat verify --network plasma 0x496eACcbceE52519AB14da4a00E38cf95885B536 --constructor-args scripts/deploys/plasma/deploymentArgs/0x496eACcbceE52519AB14da4a00E38cf95885B536.js
+module.exports = [
+  "0x53504f542d4153534554532e3100000000000000000000000000000000000000"
+];

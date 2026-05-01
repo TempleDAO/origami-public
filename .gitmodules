@@ -1,15 +1,3 @@
-[submodule "apps/protocol/lib/forge-std"]
-	path = apps/protocol/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "apps/protocol/lib/erc4626-tests"]
-	path = apps/protocol/lib/erc4626-tests
-	url = https://github.com/a16z/erc4626-tests
-[submodule "apps/protocol/lib/origami-layerzero"]
-	path = apps/protocol/lib/origami-layerzero
-	url = https://github.com/TempleDAO/origami-layerzero
-[submodule "apps/protocol/lib/aave-v3-origin"]
-	path = apps/protocol/lib/aave-v3-origin
-	url = https://github.com/aave-dao/aave-v3-origin
 [submodule "apps/protocol-legacy-v1/lib/forge-std"]
 	path = apps/protocol-legacy-v1/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
@@ -24,4 +12,19 @@
 	url = https://github.com/TempleDAO/origami-layerzero
 [submodule "apps/protocol-legacy-v2/lib/aave-v3-origin"]
 	path = apps/protocol-legacy-v2/lib/aave-v3-origin
+	url = https://github.com/aave-dao/aave-v3-origin
+[submodule "apps/protocol/lib/pendle-router-scaling"]
+	path = apps/protocol/lib/pendle-router-scaling
+	url = git@github.com:TempleDAO/pendle-router-scaling.git
+[submodule "apps/protocol/lib/forge-std"]
+	path = apps/protocol/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "apps/protocol/lib/erc4626-tests"]
+	path = apps/protocol/lib/erc4626-tests
+	url = https://github.com/a16z/erc4626-tests
+[submodule "apps/protocol/lib/origami-layerzero"]
+	path = apps/protocol/lib/origami-layerzero
+	url = https://github.com/TempleDAO/origami-layerzero
+[submodule "apps/protocol/lib/aave-v3-origin"]
+	path = apps/protocol/lib/aave-v3-origin
 	url = https://github.com/aave-dao/aave-v3-origin

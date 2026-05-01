@@ -1,0 +1,7 @@
+// mainnet: VAULTS.OPAL_PT_SUSDE_B.MANAGER=0x7DAf45b580C456c5B4d7366EBD6aAb4F0876aa15
+// yarn hardhat verify --network mainnet 0x7DAf45b580C456c5B4d7366EBD6aAb4F0876aa15 --constructor-args scripts/deploys/mainnet/deploymentArgs/0x7DAf45b580C456c5B4d7366EBD6aAb4F0876aa15.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x6477cEF63d7Ccde3f300B2b22D9a4385726BE453",
+  "0x1cECFf54fE6042B05D6959cB20bB7241d802C98D"
+];

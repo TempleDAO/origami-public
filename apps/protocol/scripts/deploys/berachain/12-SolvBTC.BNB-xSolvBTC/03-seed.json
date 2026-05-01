@@ -1,0 +1,106 @@
+{
+  "chainId": "80094",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xe21eFA586CC88271c8c87642440Ed49CCd000Ccc",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0xBA9A044ac6b5AfBF9D9A38AbFFcDc95200d53B71",
+        "amount": "1804000000000000000000"
+      }
+    },
+    {
+      "to": "0xBA9A044ac6b5AfBF9D9A38AbFFcDc95200d53B71",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "assets",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "receiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxTotalSupply_",
+            "type": "uint256"
+          }
+        ],
+        "name": "seedDeposit",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "assets": "1804000000000000000000",
+        "receiver": "0x781B4c57100738095222bd92D37B07ed034AB696",
+        "maxTotalSupply_": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+      }
+    },
+    {
+      "to": "0xe21eFA586CC88271c8c87642440Ed49CCd000Ccc",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0x537486CA867E94AE663a5E2Da22A8b3549ff796f",
+        "amount": "1804962483568396967923"
+      }
+    },
+    {
+      "to": "0x537486CA867E94AE663a5E2Da22A8b3549ff796f",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "stake",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "amount": "1804962483568396967923"
+      }
+    }
+  ]
+}

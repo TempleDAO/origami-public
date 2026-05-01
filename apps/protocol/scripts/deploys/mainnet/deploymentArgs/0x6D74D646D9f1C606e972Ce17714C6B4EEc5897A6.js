@@ -1,0 +1,10 @@
+// mainnet: VAULTS.OPAL_WEETH_A.TOKEN=0x6D74D646D9f1C606e972Ce17714C6B4EEc5897A6
+// yarn hardhat verify --network mainnet 0x6D74D646D9f1C606e972Ce17714C6B4EEc5897A6 --constructor-args scripts/deploys/mainnet/deploymentArgs/0x6D74D646D9f1C606e972Ce17714C6B4EEc5897A6.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "OPAL weETH (a)",
+  "opal-weETH-a",
+  100,
+  "0x781B4c57100738095222bd92D37B07ed034AB696",
+  "0xD6c68aAc3C46E754cA54a551560ce07cB89dc20b"
+];

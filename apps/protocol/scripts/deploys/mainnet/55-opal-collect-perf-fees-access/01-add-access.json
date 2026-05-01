@@ -1,0 +1,118 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x1B3F4ED11cb5f4c3F08c91C5593cbbcD63Fa8b23",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x392b13368E624d25B8CEB16746Caeb4Af2Bab6C0",
+        "_access": "[[\"0x4d8fea1f\",true]]"
+      }
+    },
+    {
+      "to": "0x1B3F4ED11cb5f4c3F08c91C5593cbbcD63Fa8b23",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_feeCollector",
+            "type": "address"
+          }
+        ],
+        "name": "setFeeCollector",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_feeCollector": "0xB77502F4C46E2DfF4704c1f3F78D420C556D4c63"
+      }
+    },
+    {
+      "to": "0x6D74D646D9f1C606e972Ce17714C6B4EEc5897A6",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x1384dAcC8Ea423c3070a898D6dDee5e964362702",
+        "_access": "[[\"0x4d8fea1f\",true]]"
+      }
+    },
+    {
+      "to": "0x6D74D646D9f1C606e972Ce17714C6B4EEc5897A6",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_feeCollector",
+            "type": "address"
+          }
+        ],
+        "name": "setFeeCollector",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_feeCollector": "0xB77502F4C46E2DfF4704c1f3F78D420C556D4c63"
+      }
+    }
+  ]
+}

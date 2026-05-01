@@ -1,0 +1,43 @@
+{
+  "chainId": "9745",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xFE76a8323334288815B40f2424893beC3DAE3504",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "implementation",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "description",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes",
+            "name": "immutableArgsData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "initData",
+            "type": "bytes"
+          }
+        ],
+        "name": "addAdapter",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "implementation": "0x0e372FEB9f5962848dE184616ae7d0EEc25Ea38c",
+        "description": "0x5b50542d73555344452d31384a554e323032365d2f5b55534454305d00000000",
+        "immutableArgsData": "0x061d8e131f26512348ee5fa42e2df1ba9d6505e9b8ce59fc3717ada4c02eadf9682a9e934f625ebbcbbc427b5658672768e11bfda00879839db4785f0130559e3d35e33ab69399a3fe9f383d32bd3c016e68ab954dc705c66506d499963dd1fbb8afa23d7d",
+        "initData": "0x000000000000000000000000781b4c57100738095222bd92d37b07ed034ab69600000000000000000000000000000000000000000000000000000000000000170000000000000000000000000000000000000000000000000cc47f20295c0000"
+      }
+    }
+  ]
+}

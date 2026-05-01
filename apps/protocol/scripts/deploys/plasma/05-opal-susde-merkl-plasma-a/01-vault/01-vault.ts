@@ -1,0 +1,26 @@
+
+
+import "@nomiclabs/hardhat-ethers";
+import { deployAndMine, runAsyncMain } from "../../../helpers";
+import { getDeployContext } from "../../deploy-context";
+import { OpalVault__factory } from "../../../../../typechain";
+import { DEFAULT_SETTINGS } from "../../default-settings";
+
+async function main() {
+  const { owner, ADDRS } = await getDeployContext(__dirname);
+
+  const factory = new OpalVault__factory(owner);
+  await deployAndMine(
+    "VAULTS.OPAL_SUSDE_MERKL_PLASMA_A.TOKEN",
+    factory,
+    factory.deploy,
+    await owner.getAddress(),
+    DEFAULT_SETTINGS.VAULTS.OPAL_SUSDE_MERKL_PLASMA_A.TOKEN_NAME,
+    DEFAULT_SETTINGS.VAULTS.OPAL_SUSDE_MERKL_PLASMA_A.TOKEN_SYMBOL,
+    DEFAULT_SETTINGS.VAULTS.OPAL_SUSDE_MERKL_PLASMA_A.AUM_FEE_BPS,
+    ADDRS.CORE.FEE_COLLECTOR,
+    ADDRS.CORE.TOKEN_PRICES.V1,
+  );
+}
+
+runAsyncMain(main);

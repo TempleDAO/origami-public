@@ -1,0 +1,36 @@
+{
+  "chainId": "80094",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x4326AB297f9EA30486f99ba4E76d04e1139b2E0b",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x252Cb44075a48526A77ccFdABCD1FCCC94486384",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_swapper",
+            "type": "address"
+          }
+        ],
+        "name": "setSwapper",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_swapper": "0x4326AB297f9EA30486f99ba4E76d04e1139b2E0b"
+      }
+    }
+  ]
+}

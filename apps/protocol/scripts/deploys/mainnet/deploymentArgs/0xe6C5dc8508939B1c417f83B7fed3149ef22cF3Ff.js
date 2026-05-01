@@ -1,0 +1,10 @@
+// mainnet: VAULTS.hOHM.MANAGER=0xe6C5dc8508939B1c417f83B7fed3149ef22cF3Ff
+// yarn hardhat verify --network mainnet 0xe6C5dc8508939B1c417f83B7fed3149ef22cF3Ff --constructor-args scripts/deploys/mainnet/deploymentArgs/0xe6C5dc8508939B1c417f83B7fed3149ef22cF3Ff.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x1DB1591540d7A6062Be0837ca3C808aDd28844F6",
+  "0xdb591Ea2e5Db886dA872654D58f6cc584b68e7cC",
+  "0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD",
+  330,
+  "0x781B4c57100738095222bd92D37B07ed034AB696"
+];

@@ -1,0 +1,100 @@
+{
+  "chainId": "9745",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x1D9A220377f76805060386765d3130AbdC4bb376",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "value",
+            "type": "bool"
+          }
+        ],
+        "name": "setBundlerApproved",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0x2502AcD27e1d9B11D344763fDF5aD86C62ce446E",
+        "value": "true"
+      }
+    },
+    {
+      "to": "0xc0F9dd64D247f4Cb50C07632353896918bE79562",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "value",
+            "type": "bool"
+          }
+        ],
+        "name": "setBundlerApproved",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0x2502AcD27e1d9B11D344763fDF5aD86C62ce446E",
+        "value": "true"
+      }
+    },
+    {
+      "to": "0x9B517Eb5806b41af0ab49992985D35816612134e",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "value",
+            "type": "bool"
+          }
+        ],
+        "name": "setBundlerApproved",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0x2502AcD27e1d9B11D344763fDF5aD86C62ce446E",
+        "value": "true"
+      }
+    },
+    {
+      "to": "0xc3431D389999f2412B2570a66DA84CE59E5C2a94",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "vault",
+            "type": "address"
+          }
+        ],
+        "name": "trustVault",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "vault": "0xF7dBFcB98178b310eB481a8628f5F3E0cBE561b9"
+      }
+    }
+  ]
+}
