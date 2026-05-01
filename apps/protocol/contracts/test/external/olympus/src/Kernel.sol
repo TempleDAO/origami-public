@@ -1,14 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-//     ███████    █████       █████ █████ ██████   ██████ ███████████  █████  █████  █████████
-//   ███░░░░░███ ░░███       ░░███ ░░███ ░░██████ ██████ ░░███░░░░░███░░███  ░░███  ███░░░░░███
-//  ███     ░░███ ░███        ░░███ ███   ░███░█████░███  ░███    ░███ ░███   ░███ ░███    ░░░
-// ░███      ░███ ░███         ░░█████    ░███░░███ ░███  ░██████████  ░███   ░███ ░░█████████
-// ░███      ░███ ░███          ░░███     ░███ ░░░  ░███  ░███░░░░░░   ░███   ░███  ░░░░░░░░███
-// ░░███     ███  ░███      █    ░███     ░███      ░███  ░███         ░███   ░███  ███    ░███
-//  ░░░███████░   ███████████    █████    █████     █████ █████        ░░████████  ░░█████████
-//    ░░░░░░░    ░░░░░░░░░░░    ░░░░░    ░░░░░     ░░░░░ ░░░░░          ░░░░░░░░    ░░░░░░░░░
+//     ███████    █████       █████ █████ ██████
+// ██████ ███████████  █████  █████  █████████
+//   ███░░░░░███ ░░███       ░░███ ░░███ ░░██████
+// ██████ ░░███░░░░░███░░███  ░░███
+// ███░░░░░███
+//  ███     ░░███ ░███        ░░███ ███
+// ░███░█████░███  ░███    ░███ ░███   ░███ ░███
+// ░░░
+// ░███      ░███ ░███         ░░█████    ░███░░███ ░███
+// ░██████████  ░███   ░███ ░░█████████
+// ░███      ░███ ░███          ░░███     ░███ ░░░  ░███
+// ░███░░░░░░   ░███   ░███  ░░░░░░░░███
+// ░░███     ███  ░███      █    ░███     ░███      ░███  ░███
+// ░███   ░███  ███    ░███
+//  ░░░███████░   ███████████    █████    █████
+// █████ █████        ░░████████  ░░█████████
+//    ░░░░░░░    ░░░░░░░░░░░    ░░░░░    ░░░░░
+// ░░░░░ ░░░░░          ░░░░░░░░    ░░░░░░░░░
 
 //============================================================================================//
 //                                        GLOBAL TYPES                                        //
@@ -63,7 +73,7 @@ function ensureContract(address target_) view {
 // solhint-disable-next-line func-visibility
 function ensureValidKeycode(Keycode keycode_) pure {
     bytes5 unwrapped = Keycode.unwrap(keycode_);
-    for (uint256 i = 0; i < 5; ) {
+    for (uint256 i = 0; i < 5;) {
         bytes1 char = unwrapped[i];
         if (char < 0x41 || char > 0x5A) revert InvalidKeycode(keycode_); // A-Z only
         unchecked {
@@ -104,29 +114,28 @@ abstract contract KernelAdapter {
 abstract contract Module is KernelAdapter {
     error Module_PolicyNotPermitted(address policy_);
 
-    constructor(Kernel kernel_) KernelAdapter(kernel_) {}
+    constructor(Kernel kernel_) KernelAdapter(kernel_) { }
 
     /// @notice Modifier to restrict which policies have access to module functions.
     modifier permissioned() {
-        if (
-            msg.sender == address(kernel) ||
-            !kernel.modulePermissions(KEYCODE(), Policy(msg.sender), msg.sig)
-        ) revert Module_PolicyNotPermitted(msg.sender);
+        if (msg.sender == address(kernel) || !kernel.modulePermissions(KEYCODE(), Policy(msg.sender), msg.sig)) {
+            revert Module_PolicyNotPermitted(msg.sender);
+        }
         _;
     }
 
     /// @notice 5 byte identifier for a module.
-    function KEYCODE() public pure virtual returns (Keycode) {}
+    function KEYCODE() public pure virtual returns (Keycode) { }
 
     /// @notice Returns which semantic version of a module is being implemented.
     /// @return major - Major version upgrade indicates breaking change to the interface.
     /// @return minor - Minor version change retains backward-compatible interface.
-    function VERSION() external pure virtual returns (uint8 major, uint8 minor) {}
+    function VERSION() external pure virtual returns (uint8 major, uint8 minor) { }
 
     /// @notice Initialization function for the module
     /// @dev    This function is called when the module is installed or upgraded by the kernel.
     /// @dev    MUST BE GATED BY onlyKernel. Used to encompass any initialization or upgrade logic.
-    function INIT() external virtual onlyKernel {}
+    function INIT() external virtual onlyKernel { }
 }
 
 /// @notice Policies are application logic and external interface for the kernel and installed modules.
@@ -136,7 +145,7 @@ abstract contract Policy is KernelAdapter {
     error Policy_ModuleDoesNotExist(Keycode keycode_);
     error Policy_WrongModuleVersion(bytes expected_);
 
-    constructor(Kernel kernel_) KernelAdapter(kernel_) {}
+    constructor(Kernel kernel_) KernelAdapter(kernel_) { }
 
     /// @notice Easily accessible indicator for if a policy is activated or not.
     function isActive() external view returns (bool) {
@@ -152,11 +161,11 @@ abstract contract Policy is KernelAdapter {
 
     /// @notice Define module dependencies for this policy.
     /// @return dependencies - Keycode array of module dependencies.
-    function configureDependencies() external virtual returns (Keycode[] memory dependencies) {}
+    function configureDependencies() external virtual returns (Keycode[] memory dependencies) { }
 
     /// @notice Function called by kernel to set module function permissions.
     /// @return requests - Array of keycodes and function selectors for requested permissions.
-    function requestPermissions() external view virtual returns (Permissions[] memory requests) {}
+    function requestPermissions() external view virtual returns (Permissions[] memory requests) { }
 }
 
 /// @notice Main contract that acts as a central component registry for the protocol.
@@ -165,12 +174,7 @@ abstract contract Policy is KernelAdapter {
 contract Kernel {
     // =========  EVENTS ========= //
 
-    event PermissionsUpdated(
-        Keycode indexed keycode_,
-        Policy indexed policy_,
-        bytes4 funcSelector_,
-        bool granted_
-    );
+    event PermissionsUpdated(Keycode indexed keycode_, Policy indexed policy_, bytes4 funcSelector_, bool granted_);
     event ActionExecuted(Actions indexed action_, address indexed target_);
 
     // =========  ERRORS ========= //
@@ -183,7 +187,8 @@ contract Kernel {
 
     // =========  PRIVILEGED ADDRESSES ========= //
 
-    /// @notice Address that is able to initiate Actions in the kernel. Can be assigned to a multisig or governance contract.
+    /// @notice Address that is able to initiate Actions in the kernel. Can be assigned to a multisig or governance
+    /// contract.
     address public executor;
 
     // =========  MODULE MANAGEMENT ========= //
@@ -197,7 +202,8 @@ contract Kernel {
     /// @notice Mapping of keycode to module address.
     mapping(Module => Keycode) public getKeycodeForModule;
 
-    /// @notice Mapping of a keycode to all of its policy dependents. Used to efficiently reconfigure policy dependencies.
+    /// @notice Mapping of a keycode to all of its policy dependents. Used to efficiently reconfigure policy
+    /// dependencies.
     mapping(Keycode => Policy[]) public moduleDependents;
 
     /// @notice Helper for module dependent arrays. Prevents the need to loop through array.
@@ -262,8 +268,9 @@ contract Kernel {
     function _installModule(Module newModule_) internal {
         Keycode keycode = newModule_.KEYCODE();
 
-        if (address(getModuleForKeycode[keycode]) != address(0))
+        if (address(getModuleForKeycode[keycode]) != address(0)) {
             revert Kernel_ModuleAlreadyInstalled(keycode);
+        }
 
         getModuleForKeycode[keycode] = newModule_;
         getKeycodeForModule[newModule_] = keycode;
@@ -276,8 +283,9 @@ contract Kernel {
         Keycode keycode = newModule_.KEYCODE();
         Module oldModule = getModuleForKeycode[keycode];
 
-        if (address(oldModule) == address(0) || oldModule == newModule_)
+        if (address(oldModule) == address(0) || oldModule == newModule_) {
             revert Kernel_InvalidModuleUpgrade(keycode);
+        }
 
         getKeycodeForModule[oldModule] = Keycode.wrap(bytes5(0));
         getKeycodeForModule[newModule_] = keycode;
@@ -299,7 +307,7 @@ contract Kernel {
         Keycode[] memory dependencies = policy_.configureDependencies();
         uint256 depLength = dependencies.length;
 
-        for (uint256 i; i < depLength; ) {
+        for (uint256 i; i < depLength;) {
             Keycode keycode = dependencies[i];
 
             moduleDependents[keycode].push(policy_);
@@ -340,7 +348,7 @@ contract Kernel {
     /// @dev    NOTE: Data does not get cleared from this kernel.
     function _migrateKernel(Kernel newKernel_) internal {
         uint256 keycodeLen = allKeycodes.length;
-        for (uint256 i; i < keycodeLen; ) {
+        for (uint256 i; i < keycodeLen;) {
             Module module = Module(getModuleForKeycode[allKeycodes[i]]);
             module.changeKernel(newKernel_);
             unchecked {
@@ -349,7 +357,7 @@ contract Kernel {
         }
 
         uint256 policiesLen = activePolicies.length;
-        for (uint256 j; j < policiesLen; ) {
+        for (uint256 j; j < policiesLen;) {
             Policy policy = activePolicies[j];
 
             // Deactivate before changing kernel
@@ -364,7 +372,7 @@ contract Kernel {
         Policy[] memory dependents = moduleDependents[keycode_];
         uint256 depLength = dependents.length;
 
-        for (uint256 i; i < depLength; ) {
+        for (uint256 i; i < depLength;) {
             dependents[i].configureDependencies();
 
             unchecked {
@@ -373,13 +381,9 @@ contract Kernel {
         }
     }
 
-    function _setPolicyPermissions(
-        Policy policy_,
-        Permissions[] memory requests_,
-        bool grant_
-    ) internal {
+    function _setPolicyPermissions(Policy policy_, Permissions[] memory requests_, bool grant_) internal {
         uint256 reqLength = requests_.length;
-        for (uint256 i = 0; i < reqLength; ) {
+        for (uint256 i = 0; i < reqLength;) {
             Permissions memory request = requests_[i];
             modulePermissions[request.keycode][policy_][request.funcSelector] = grant_;
 
@@ -395,7 +399,7 @@ contract Kernel {
         Keycode[] memory dependencies = policy_.configureDependencies();
         uint256 depcLength = dependencies.length;
 
-        for (uint256 i; i < depcLength; ) {
+        for (uint256 i; i < depcLength;) {
             Keycode keycode = dependencies[i];
             Policy[] storage dependents = moduleDependents[keycode];
 

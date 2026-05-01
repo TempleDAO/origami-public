@@ -16,7 +16,7 @@ import { IOrigamiTokenizedBalanceSheetVault } from "contracts/interfaces/common/
  * @dev Only handles migrating coolers with gOHM collateral, and DAI and USDS debt (so 18 decimals only)
  */
 interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
-    /// @notice The known OlympusDAO clearinghouses. 
+    /// @notice The known OlympusDAO clearinghouses.
     /// @dev Only migrations for cooler's where this is the lender are allowed
     struct AllClearinghouses {
         address v1_1;
@@ -39,10 +39,10 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
     /// @notice Loans information for a given account's Cooler or MonoCooler
     struct CoolerPreviewInfo {
         /// @notice The address of an account's cooler
-        /// @dev If the account doesn't have a cooler for this clearing house version, then 
+        /// @dev If the account doesn't have a cooler for this clearing house version, then
         // cooler=address(0) and the loans would be empty.
         address cooler;
-        
+
         /// @notice The individual loans within a cooler
         /// @dev May be empty, meaning the account does not have any loans for this cooler version.
         CoolerLoanPreviewInfo[] loans;
@@ -85,7 +85,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
 
         /// @notice Total liability received from joining hOHM. This amount should be at least equal
         /// to flashloan amount/total debt
-        /// @dev If liability received is less than total debt, sender must give allowance of remainder to this 
+        /// @dev If liability received is less than total debt, sender must give allowance of remainder to this
         /// contract to pull tokens to 'fill the gap'
         uint256 hOhmLiabilities;
     }
@@ -93,7 +93,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
     //============================================================================================//
     //                                    MIGRATION STRUCTS                                       //
     //============================================================================================//
-    
+
     struct AllCoolerLoansMigration {
         CoolerLoanMigrationInfo v1_1;
         CoolerLoanMigrationInfo v1_2;
@@ -106,7 +106,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
         /// @notice The address of an account's cooler
         /// @dev If address(0) then this cooler version won't be migrated
         address cooler;
-        
+
         /// @notice The cooler loan id's to migrate
         /// @dev If empty, then this cooler version won't be migrated
         uint256[] loanIds;
@@ -114,7 +114,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
 
     struct MonoCoolerMigration {
         /// @notice Mono cooler account authorization
-        /// @dev If `authorization.account` is empty, then the owner needs to have called 
+        /// @dev If `authorization.account` is empty, then the owner needs to have called
         /// monoCooler.setAuthorization() prior to migration
         IMonoCooler.Authorization authorization;
 
@@ -142,7 +142,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
     //============================================================================================//
     //                                      EVENTS & ERRORS                                       //
     //============================================================================================//
-    
+
     event CoolerLoansMigrated(
         address indexed account,
         uint256 totalDebtRepaid,
@@ -162,7 +162,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
     //============================================================================================//
     //                                         MUTATATIVE                                         //
     //============================================================================================//
-    
+
     /**
      * @notice Set maximum loans used when iterating through cooler loans
      * @param maxLoans Maximum loans used when iterating through cooler loans
@@ -185,7 +185,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
     //============================================================================================//
     //                                            VIEWS                                           //
     //============================================================================================//
-    
+
     /// @notice hOHM vault
     function hOHM() external view returns (IOrigamiTokenizedBalanceSheetVault);
 
@@ -195,7 +195,7 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
     /// @notice DaiUsds conversion contract
     function daiUsds() external view returns (IDaiUsds);
 
-    /// @notice Mono Cooler 
+    /// @notice Mono Cooler
     function monoCooler() external view returns (IMonoCooler);
 
     /// @notice Dai ERC20 token
@@ -219,19 +219,15 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
      * be passed in. Set to address(0) if no v1.1 cooler
      * @return allLoans All cooler loans for this account across all versions
      */
-    function getCoolerLoansFor(
-        address account,
-        address cooler_v1_1
-    ) external view returns (AllCoolerLoansPreview memory allLoans);
+    function getCoolerLoansFor(address account, address cooler_v1_1)
+        external
+        view
+        returns (AllCoolerLoansPreview memory allLoans);
 
     /**
      * @notice Get whitelisted clearing houses
      */
-    function getClearinghouses() external view returns (
-        address v1_1,
-        address v1_2,
-        address v1_3
-    );
+    function getClearinghouses() external view returns (address v1_1, address v1_2, address v1_3);
 
     /**
      * @notice A helper to return the cooler v1.1 factory address, and the params
@@ -240,19 +236,15 @@ interface IOrigamiCoolerMigrator is IERC3156FlashBorrower {
      * @dev Needs to be called via a connected wallet such that the msg.sender is the user
      * requesting to get their cooler v1.1 address.
      */
-    function getCoolerV1_1Params() external view returns (
-        address factory,
-        address collateralToken,
-        address debtToken
-    );
+    function getCoolerV1_1Params() external view returns (address factory, address collateralToken, address debtToken);
 
     /**
      * @notice Get a preview of the cooler migrations
      * @param allLoans All cooler loans to migrate
      * @return preview Migration preview
      */
-    function previewMigration(
-        AllCoolerLoansPreview calldata allLoans
-    ) external view returns (MigrationPreview memory preview);
-    
+    function previewMigration(AllCoolerLoansPreview calldata allLoans)
+        external
+        view
+        returns (MigrationPreview memory preview);
 }

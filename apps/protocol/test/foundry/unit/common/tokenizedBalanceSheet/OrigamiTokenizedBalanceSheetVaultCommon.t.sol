@@ -1,15 +1,14 @@
 pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-
 import { IOrigamiTokenizedBalanceSheetVault } from "contracts/interfaces/common/IOrigamiTokenizedBalanceSheetVault.sol";
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { DummyMintableTokenPermissionless } from "contracts/test/common/DummyMintableTokenPermissionless.sol";
-import { MockTokenizedBalanceSheetVaultWithFees } from "test/foundry/mocks/common/tokenizedBalanceSheet/MockTokenizedBalanceSheetVaultWithFees.m.sol";
+import {
+    MockTokenizedBalanceSheetVaultWithFees
+} from "test/foundry/mocks/common/tokenizedBalanceSheet/MockTokenizedBalanceSheetVaultWithFees.m.sol";
 import { MockBorrowLend } from "test/foundry/mocks/common/tokenizedBalanceSheet/MockBorrowLend.m.sol";
 
 contract OrigamiTokenizedBalanceSheetVaultCommon is OrigamiTest {
@@ -22,6 +21,8 @@ contract OrigamiTokenizedBalanceSheetVaultCommon is OrigamiTest {
     MockTokenizedBalanceSheetVaultWithFees internal vault;
     MockBorrowLend internal borrowLend;
 
+    bytes32 internal tokenHash;
+
     uint256 internal constant MAX_TOTAL_SUPPLY = 100_000_000e18;
     uint16 internal immutable JOIN_FEE = 50;
     uint16 internal immutable EXIT_FEE = 200;
@@ -32,13 +33,7 @@ contract OrigamiTokenizedBalanceSheetVaultCommon is OrigamiTest {
     uint256 internal constant SEED_LIABILITY1 = 2e18;
     uint256 internal constant SEED_LIABILITY2 = 25e6;
 
-    event Join(
-        address indexed sender,
-        address indexed owner,
-        uint256[] assets,
-        uint256[] liabilities,
-        uint256 shares
-    );
+    event Join(address indexed sender, address indexed owner, uint256[] assets, uint256[] liabilities, uint256 shares);
 
     event Exit(
         address indexed sender,
@@ -69,18 +64,13 @@ contract OrigamiTokenizedBalanceSheetVaultCommon is OrigamiTest {
         borrowLend = new MockBorrowLend(_assets, _liabilities);
 
         vault = new MockTokenizedBalanceSheetVaultWithFees(
-            origamiMultisig, 
-            "TokenizedBalanceSheet",
-            "TBSV",
-            _assets,
-            _liabilities,
-            joinFeeBps,
-            exitFeeBps,
-            borrowLend
+            origamiMultisig, "TokenizedBalanceSheet", "TBSV", _assets, _liabilities, joinFeeBps, exitFeeBps, borrowLend
         );
         vm.label(address(vault), vault.symbol());
-        
-        vm.warp(100000000);
+
+        tokenHash = vault.currentTokensHash();
+
+        vm.warp(100_000_000);
     }
 
     function seedDeposit(address account, uint256 maxSupply) internal {
@@ -95,7 +85,7 @@ contract OrigamiTokenizedBalanceSheetVaultCommon is OrigamiTest {
         asset1.approve(address(vault), assetAmounts[0]);
         asset2.deal(account, assetAmounts[1]);
         asset2.approve(address(vault), assetAmounts[1]);
-        vault.seed(assetAmounts, liabilityAmounts, SEED_SHARES, account, maxSupply);
+        vault.seed(assetAmounts, liabilityAmounts, SEED_SHARES, account, maxSupply, "");
 
         vm.stopPrank();
     }

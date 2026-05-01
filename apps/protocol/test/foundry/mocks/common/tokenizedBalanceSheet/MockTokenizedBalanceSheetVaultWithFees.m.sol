@@ -5,6 +5,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { OrigamiTokenizedBalanceSheetVault } from "contracts/common/OrigamiTokenizedBalanceSheetVault.sol";
 import { MockBorrowLend } from "test/foundry/mocks/common/tokenizedBalanceSheet/MockBorrowLend.m.sol";
+import { TBSState } from "contracts/libraries/OrigamiTBSLib.sol";
 
 contract MockTokenizedBalanceSheetVaultWithFees is OrigamiTokenizedBalanceSheetVault {
     using SafeERC20 for IERC20;
@@ -20,6 +21,9 @@ contract MockTokenizedBalanceSheetVaultWithFees is OrigamiTokenizedBalanceSheetV
 
     MockBorrowLend public immutable borrowLend;
 
+    // Not used, but required in interface
+    address public override manager;
+
     constructor(
         address initialOwner_,
         string memory name_,
@@ -29,8 +33,7 @@ contract MockTokenizedBalanceSheetVaultWithFees is OrigamiTokenizedBalanceSheetV
         uint256 joinFeeBps_,
         uint256 exitFeeBps_,
         MockBorrowLend borrowLend_
-    ) OrigamiTokenizedBalanceSheetVault(initialOwner_, name_, symbol_)
-    {
+    ) OrigamiTokenizedBalanceSheetVault(initialOwner_, name_, symbol_, address(0)) {
         _assetTokens = assetTokens_;
         _liabilityTokens = liabilityTokens_;
         _joinFeeBps = joinFeeBps_;
@@ -44,6 +47,8 @@ contract MockTokenizedBalanceSheetVaultWithFees is OrigamiTokenizedBalanceSheetV
         for (uint256 i; i < liabilityTokens_.length; ++i) {
             IERC20(liabilityTokens_[i]).forceApprove(address(borrowLend), type(uint256).max);
         }
+
+        updateCurrentTokensHash();
     }
 
     function setPaused(bool joins, bool exits) external {
@@ -51,40 +56,53 @@ contract MockTokenizedBalanceSheetVaultWithFees is OrigamiTokenizedBalanceSheetV
         exitsPaused = exits;
     }
 
-    function assetTokens() public override view returns (address[] memory) {
+    function assetTokens() public view override returns (address[] memory) {
         return _assetTokens;
     }
 
-    function liabilityTokens() public override view returns (address[] memory tokens) {
+    function liabilityTokens() public view override returns (address[] memory tokens) {
         return _liabilityTokens;
     }
 
-    function joinFeeBps() public override view returns (uint256) {
+    function setTokens(address[] calldata assets, address[] calldata liabilities) external {
+        _assetTokens = assets;
+        _liabilityTokens = liabilities;
+        updateCurrentTokensHash();
+    }
+
+    function setManager(address _manager) external override {
+        manager = _manager;
+        emit ManagerSet(_manager);
+    }
+
+    function joinFeeBps() public view override returns (uint256) {
         return _joinFeeBps;
     }
 
-    function exitFeeBps() public override view returns (uint256) {
+    function exitFeeBps() public view override returns (uint256) {
         return _exitFeeBps;
     }
 
-    function areJoinsPaused() public override view returns (bool) {
+    function areJoinsPaused() public view override returns (bool) {
         return joinsPaused;
     }
 
-    function areExitsPaused() public override view returns (bool) {
+    function areExitsPaused() public view override returns (bool) {
         return exitsPaused;
     }
 
     function _joinPreMintHook(
+        TBSState memory $,
         address caller,
         address receiver,
-        uint256 /*shares*/,
+        uint256,
+        /*shares*/
         uint256[] memory assets,
         uint256[] memory liabilities
     ) internal override {
         // Pull the assets from caller
         for (uint256 i; i < assets.length; ++i) {
-            IERC20(_assetTokens[i]).safeTransferFrom(caller, address(this), assets[i]);
+            IERC20($.assetAddresses[i]).safeTransferFrom(caller, address(this), assets[i]);
         }
 
         // Add as collateral and borrow the debt (which goes to the receiver)
@@ -92,23 +110,59 @@ contract MockTokenizedBalanceSheetVaultWithFees is OrigamiTokenizedBalanceSheetV
     }
 
     function _exitPreBurnHook(
+        TBSState memory $,
         address caller,
-        address /*sharesOwner*/,
+        address,
+        /*sharesOwner*/
         address receiver,
-        uint256 /*shares*/,
+        uint256,
+        /*shares*/
         uint256[] memory assets,
         uint256[] memory liabilities
     ) internal override {
         // Pull the liabilities from the caller
         for (uint256 i; i < liabilities.length; ++i) {
-            IERC20(_liabilityTokens[i]).safeTransferFrom(caller, address(this), liabilities[i]);
+            IERC20($.liabilityAddresses[i]).safeTransferFrom(caller, address(this), liabilities[i]);
         }
 
         // Repay debt and withdraw collateral (which goes to the receiver)
         borrowLend.repayAndWithdrawCollateral(assets, liabilities, receiver);
     }
 
-    function _tokenBalance(address tokenAddress) internal override view returns (uint256) {
-        return borrowLend.balanceOfToken(tokenAddress);
+    function _balanceSheet()
+        internal
+        view
+        override
+        returns (uint256[] memory totalAssets, uint256[] memory totalLiabilities, bytes memory balanceSheetData)
+    {
+        balanceSheetData = ""; // silence compiler warning -- unused
+
+        uint256 length = _assetTokens.length;
+        totalAssets = new uint256[](length);
+        uint256 i;
+        for (; i < length; ++i) {
+            totalAssets[i] = borrowLend.balanceOfToken(_assetTokens[i]);
+        }
+
+        length = _liabilityTokens.length;
+        totalLiabilities = new uint256[](length);
+        for (i = 0; i < length; ++i) {
+            totalLiabilities[i] = borrowLend.balanceOfToken(_liabilityTokens[i]);
+        }
+    }
+
+    function matchToken(address tokenAddress) public view override returns (AssetOrLiability kind, uint256 index) {
+        uint256 length = _assetTokens.length;
+        uint256 i;
+        for (; i < length; ++i) {
+            if (tokenAddress == _assetTokens[i]) return (AssetOrLiability.ASSET, i);
+        }
+
+        length = _liabilityTokens.length;
+        for (i = 0; i < length; ++i) {
+            if (tokenAddress == _liabilityTokens[i]) return (AssetOrLiability.LIABILITY, i);
+        }
+
+        // Leave uninitialized as AssetOrLiability.NEITHER
     }
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 
 import {
     ICooler,
@@ -44,7 +43,7 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
     /// @notice DaiUsds conversion contract
     IDaiUsds public immutable override daiUsds;
 
-    /// @notice Mono Cooler 
+    /// @notice Mono Cooler
     IMonoCooler public immutable override monoCooler;
 
     /// @notice Dai ERC20 token
@@ -67,6 +66,10 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
 
     /// @notice Olympus Clearinghouse v1.3
     address private immutable _clearinghouse_v1_3;
+
+    /// @notice The tokens hash of hOHM at construction
+    /// If hOHM changes it's debt token then the contract needs to be redeployed
+    bytes32 private immutable hohmTokensHash;
 
     struct _FlashloanData {
         /// @notice All the cooler loans to migrate
@@ -96,6 +99,7 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         address[3] memory clearinghouses_ // v1.1, v1.2, v1.3 in order
     ) OrigamiElevatedAccess(initialOwner_) {
         hOHM = IOrigamiTokenizedBalanceSheetVault(hOHM_);
+        hohmTokensHash = hOHM.currentTokensHash();
         gOHM = IERC20(gOHM_);
         dai = IERC20(dai_);
         usds = IERC20(usds_);
@@ -132,30 +136,33 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
             _setMonoCoolerAuthorization(monoCoolerParams, msg.sender);
         }
 
-        bytes memory flashloanData = abi.encode(_FlashloanData({
-            allLoans: allLoansPreview,
-            delegationRequests: monoCoolerParams.delegationRequests,
-            totalUsdsDebt: mPreview.totalUsdsDebt,
-            account: msg.sender
-        }));
+        bytes memory flashloanData = abi.encode(
+            _FlashloanData({
+                allLoans: allLoansPreview,
+                delegationRequests: monoCoolerParams.delegationRequests,
+                totalUsdsDebt: mPreview.totalUsdsDebt,
+                account: msg.sender
+            })
+        );
 
         // flash loan is in dai only
-        flashloanLender.flashLoan(
-            this,
-            address(dai),
-            totalDebt,
-            flashloanData
-        );
+        flashloanLender.flashLoan(this, address(dai), totalDebt, flashloanData);
     }
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(
         address initiator,
-        address /*token*/,
+        address,
+        /*token*/
         uint256 flashLoanAmount,
-        uint256 /*lenderFee*/,
+        uint256,
+        /*lenderFee*/
         bytes calldata params
-    ) external override returns (bytes32) {
+    )
+        external
+        override
+        returns (bytes32)
+    {
         // Lender fee in DssFlash is set to 0. Therefore we don't use the `lenderFee` param in function
         if (msg.sender != address(flashloanLender)) revert CommonEventsAndErrors.InvalidAccess();
         if (initiator != address(this)) revert CommonEventsAndErrors.InvalidAccess();
@@ -170,17 +177,13 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         }
 
         // Repay cooler v1/v2/v3 and then pull that amount of gOHM collateral from user
-        (
-            uint256 totalCoolerCollateral,
-            uint256 totalMonoCoolerCollateral
-        ) = _repayCoolers(data.account, data.allLoans, data.allLoans.monoCooler, data.delegationRequests);
+        (uint256 totalCoolerCollateral, uint256 totalMonoCoolerCollateral) =
+            _repayCoolers(data.account, data.allLoans, data.allLoans.monoCooler, data.delegationRequests);
         gOHM.safeTransferFrom(data.account, address(this), totalCoolerCollateral);
 
         // Join into hOHM
-        (uint256 hohmSharesReceived, uint256 usdsReceived) = _bringItHohm(
-            totalCoolerCollateral + totalMonoCoolerCollateral,
-            data.account
-        );
+        (uint256 hohmSharesReceived, uint256 usdsReceived) =
+            _bringItHohm(totalCoolerCollateral + totalMonoCoolerCollateral, data.account);
 
         emit CoolerLoansMigrated(
             data.account,
@@ -191,7 +194,7 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         );
 
         // Either send the user surplus or pull extra required funds from the user
-        // The gap to pull may be required if the USDS per hOHM share price is less 
+        // The gap to pull may be required if the USDS per hOHM share price is less
         // than the user's current aggregate cooler LTV
         int256 usdsDelta = usdsReceived.encodeInt256() - flashLoanAmount.encodeInt256();
         if (usdsDelta > 0) {
@@ -209,10 +212,12 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
     }
 
     /// @inheritdoc IOrigamiCoolerMigrator
-    function getCoolerLoansFor(
-        address account,
-        address cooler_v1_1
-    ) external override view returns (AllCoolerLoansPreview memory allLoans) {
+    function getCoolerLoansFor(address account, address cooler_v1_1)
+        external
+        view
+        override
+        returns (AllCoolerLoansPreview memory allLoans)
+    {
         address clearinghouse;
 
         // cooler v.1.1 -- the factory doesn't have a `getCoolerFor()` method so it's
@@ -246,37 +251,31 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
 
         // MonoCooler
         allLoans.monoCooler = MonoCoolerLoanPreviewInfo({
-            debt: monoCooler.accountDebt(account),
-            collateral: monoCooler.accountCollateral(account)
+            debt: monoCooler.accountDebt(account), collateral: monoCooler.accountCollateral(account)
         });
     }
 
     /// @inheritdoc IOrigamiCoolerMigrator
-    function getClearinghouses() external override view returns (
-        address v1_1,
-        address v1_2,
-        address v1_3
-    ) {
+    function getClearinghouses() external view override returns (address v1_1, address v1_2, address v1_3) {
         v1_1 = _clearinghouse_v1_1;
         v1_2 = _clearinghouse_v1_2;
         v1_3 = _clearinghouse_v1_3;
     }
 
     /// @inheritdoc IOrigamiCoolerMigrator
-    function getCoolerV1_1Params() external override view returns (address, address, address) {
-        return (
-            address(IOlympusClearinghouseV1_1(_clearinghouse_v1_1).factory()),
-            address(gOHM),
-            address(dai)
-        );
+    function getCoolerV1_1Params() external view override returns (address, address, address) {
+        return (address(IOlympusClearinghouseV1_1(_clearinghouse_v1_1).factory()), address(gOHM), address(dai));
     }
 
     /// @inheritdoc IOrigamiCoolerMigrator
-    function previewMigration(
-        AllCoolerLoansPreview memory allLoans
-    ) public override view returns (MigrationPreview memory preview) {
-        _aggreateLoans(allLoans.v1_1.loans, preview, true);  // DAI
-        _aggreateLoans(allLoans.v1_2.loans, preview, true);  // DAI
+    function previewMigration(AllCoolerLoansPreview memory allLoans)
+        public
+        view
+        override
+        returns (MigrationPreview memory preview)
+    {
+        _aggreateLoans(allLoans.v1_1.loans, preview, true); // DAI
+        _aggreateLoans(allLoans.v1_2.loans, preview, true); // DAI
         _aggreateLoans(allLoans.v1_3.loans, preview, false); // USDS
 
         // MonoCooler - USDS
@@ -285,11 +284,8 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
             preview.totalUsdsDebt += allLoans.monoCooler.debt;
         }
 
-        (
-            uint256 shares, 
-            /*uint256[] memory assets*/,
-            uint256[] memory liabilities
-        ) = hOHM.previewJoinWithToken(address(gOHM), preview.totalCollateral);
+        (uint256 shares,/*uint256[] memory assets*/, uint256[] memory liabilities) =
+            hOHM.previewJoinWithToken(address(gOHM), preview.totalCollateral);
         preview.hOhmShares = shares;
         preview.hOhmLiabilities = liabilities[0];
     }
@@ -309,7 +305,7 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         // Must have been created via the expected factory, and the caller must be the owner
         IOlympusCoolerFactoryV1_1 factory = IOlympusClearinghouseV1_1(expectedClearinghouse).factory();
         if (!factory.created(cooler)) revert InvalidCooler(cooler);
-        if (ICooler(cooler).owner() != account) { revert InvalidOwner(); }
+        if (ICooler(cooler).owner() != account) revert InvalidOwner();
 
         uint256 loanId;
         uint256 length = coolerMigrateInfo.loanIds.length;
@@ -321,15 +317,13 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
             try ICooler(cooler).getLoan(loanId) returns (ICooler.Loan memory loan) {
                 // Check if this loan is valid
                 if (
-                    loan.lender != expectedClearinghouse ||   // Not the expected Olympus clearinghouse
-                    loan.principal == 0 ||                      // Already fully repaid
-                    block.timestamp > loan.expiry               // Expired
+                    loan.lender != expectedClearinghouse // Not the expected Olympus clearinghouse
+                        || loan.principal == 0 // Already fully repaid
+                        || block.timestamp > loan.expiry // Expired
                 ) revert InvalidLoanId(cooler, loanId);
 
                 coolerPreviewInfo.loans[i] = CoolerLoanPreviewInfo({
-                    loanId: loanId,
-                    collateral: loan.collateral,
-                    debt: loan.principal + loan.interestDue
+                    loanId: loanId, collateral: loan.collateral, debt: loan.principal + loan.interestDue
                 });
             } catch Panic(uint256 errorCode) {
                 // Expect an out-of-bounds error only
@@ -339,12 +333,13 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         }
     }
 
-    /// @dev Populate the preview information (the current debt & collateral) for a given set of loans per cooler version
-    /// Each cooler and loan will be verified to ensure it's valid for migration
-    function _fillCoolerLoansPreviewForMigration(
-        address account,
-        AllCoolerLoansMigration calldata allLoansMigrate
-    ) private view returns (AllCoolerLoansPreview memory allLoansPreview) {
+    /// @dev Populate the preview information (the current debt & collateral) for a given set of loans per cooler
+    /// version Each cooler and loan will be verified to ensure it's valid for migration
+    function _fillCoolerLoansPreviewForMigration(address account, AllCoolerLoansMigration calldata allLoansMigrate)
+        private
+        view
+        returns (AllCoolerLoansPreview memory allLoansPreview)
+    {
         if (maxLoans == 0) revert CommonEventsAndErrors.IsPaused();
 
         _verifyAndFillCoolerPreview(account, allLoansMigrate.v1_1, allLoansPreview.v1_1, _clearinghouse_v1_1);
@@ -353,8 +348,7 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
 
         if (allLoansMigrate.migrateMonoCooler) {
             allLoansPreview.monoCooler = MonoCoolerLoanPreviewInfo({
-                collateral: monoCooler.accountCollateral(account),
-                debt: monoCooler.accountDebt(account)
+                collateral: monoCooler.accountCollateral(account), debt: monoCooler.accountDebt(account)
             });
         }
     }
@@ -375,10 +369,11 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
     }
 
     /// @dev Populate all loans for a given cooler, up to a (mutable) maximum size
-    function _getAllLoansForCooler(
-        address cooler,
-        address expectedClearinghouse
-    ) private view returns (CoolerLoanPreviewInfo[] memory loanInfo) {
+    function _getAllLoansForCooler(address cooler, address expectedClearinghouse)
+        private
+        view
+        returns (CoolerLoanPreviewInfo[] memory loanInfo)
+    {
         uint256 maxLoansCache = maxLoans;
         CoolerLoanPreviewInfo[] memory info = new CoolerLoanPreviewInfo[](maxLoansCache);
         uint256 loanIndex;
@@ -389,15 +384,13 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
             try ICooler(cooler).getLoan(i) returns (ICooler.Loan memory loan) {
                 // Skip if this loan isn't valid
                 if (
-                    loan.lender != expectedClearinghouse || // Not the expected Olympus clearinghouse
-                    loan.principal == 0 ||                    // Already fully repaid
-                    block.timestamp > loan.expiry             // Expired
+                    loan.lender != expectedClearinghouse // Not the expected Olympus clearinghouse
+                        || loan.principal == 0 // Already fully repaid
+                        || block.timestamp > loan.expiry // Expired
                 ) continue;
 
                 info[loanIndex++] = CoolerLoanPreviewInfo({
-                    loanId: i,
-                    debt: (loan.principal + loan.interestDue),
-                    collateral: loan.collateral
+                    loanId: i, debt: (loan.principal + loan.interestDue), collateral: loan.collateral
                 });
             } catch Panic(uint256 errorCode) {
                 // Expect an out-of-bounds error only
@@ -413,11 +406,10 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         }
     }
 
-    function _aggreateLoans(
-        CoolerLoanPreviewInfo[] memory loans,
-        MigrationPreview memory preview,
-        bool isDaiDebt
-    ) private pure {
+    function _aggreateLoans(CoolerLoanPreviewInfo[] memory loans, MigrationPreview memory preview, bool isDaiDebt)
+        private
+        pure
+    {
         for (uint256 i; i < loans.length; ++i) {
             if (isDaiDebt) {
                 preview.totalDaiDebt += loans[i].debt;
@@ -433,10 +425,7 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         AllCoolerLoansPreview memory allLoans,
         MonoCoolerLoanPreviewInfo memory monoCoolerLoanInfo,
         IDLGTEv1.DelegationRequest[] memory delegationRequests
-    ) private returns (
-        uint256 totalCoolerCollateral,
-        uint256 totalMonoCoolerCollateral
-    ) {
+    ) private returns (uint256 totalCoolerCollateral, uint256 totalMonoCoolerCollateral) {
         // Repay cooler v1/v2/v3 and then pull that amount of gOHM collateral from user
         totalCoolerCollateral = _repayCooler(allLoans.v1_1, dai);
         totalCoolerCollateral += _repayCooler(allLoans.v1_2, dai);
@@ -446,12 +435,15 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         totalMonoCoolerCollateral = _repayMonoCooler(account, monoCoolerLoanInfo, delegationRequests);
     }
 
-    function _repayCooler(CoolerPreviewInfo memory coolerInfo, IERC20 debtToken) private returns (uint256 totalCollateral) {
+    function _repayCooler(CoolerPreviewInfo memory coolerInfo, IERC20 debtToken)
+        private
+        returns (uint256 totalCollateral)
+    {
         address cooler = coolerInfo.cooler;
         if (cooler == address(0) || coolerInfo.loans.length == 0) return 0;
 
         // Max approve to save iterating twice, then rug approval at the end.
-        debtToken.approve(cooler, type(uint).max);
+        debtToken.approve(cooler, type(uint256).max);
 
         CoolerLoanPreviewInfo memory loanInfo;
         for (uint256 i; i < coolerInfo.loans.length; ++i) {
@@ -480,38 +472,38 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         }
 
         // Withdraw and check the output matches
-        if (loanInfo.collateral != monoCooler.withdrawCollateral(
-            loanInfo.collateral.encodeUInt128(), 
-            account, 
-            address(this), 
-            delegationRequests
-        )) {
+        if (
+            loanInfo.collateral
+                != monoCooler.withdrawCollateral(
+                    loanInfo.collateral.encodeUInt128(), account, address(this), delegationRequests
+                )
+        ) {
             revert MismatchingCollateral();
         }
 
         totalCollateral = loanInfo.collateral;
     }
 
-    function _bringItHohm(
-        uint256 totalCollateral,
-        address account
-    ) private returns (uint256 hohmShares, uint256 usdsReceived) {
+    function _bringItHohm(uint256 totalCollateral, address account)
+        private
+        returns (uint256 hohmShares, uint256 usdsReceived)
+    {
         IERC20(gOHM).safeIncreaseAllowance(address(hOHM), totalCollateral);
 
         // join hOHM vault with token. send shares and liabilities to this contract first
         uint256[] memory liabilities;
-        (hohmShares, /*assets*/, liabilities) = hOHM.joinWithToken(address(gOHM), totalCollateral, address(this));
-        
+        (hohmShares,/*assets*/, liabilities) =
+            hOHM.joinWithToken(address(gOHM), totalCollateral, address(this), hohmTokensHash);
+
         usdsReceived = liabilities[0];
         IERC20(hOHM).safeTransfer(account, hohmShares);
     }
 
     /// @dev Check slippage vs the latest preview
-    function _checkSlippage(
-        MigrationPreview memory mPreview,
-        SlippageParams calldata slippageParams,
-        uint256 totalDebt
-    ) private pure {
+    function _checkSlippage(MigrationPreview memory mPreview, SlippageParams calldata slippageParams, uint256 totalDebt)
+        private
+        pure
+    {
         if (mPreview.hOhmShares < slippageParams.minHohmShares) {
             revert CommonEventsAndErrors.Slippage(slippageParams.minHohmShares, mPreview.hOhmShares);
         }
@@ -519,12 +511,15 @@ contract OrigamiCoolerMigrator is IOrigamiCoolerMigrator, OrigamiElevatedAccess 
         if (mPreview.hOhmLiabilities > totalDebt) {
             // Expect at least `minUsdsReceived`
             uint256 delta = mPreview.hOhmLiabilities - totalDebt;
-            if (delta < slippageParams.minUsdsSurplus) revert CommonEventsAndErrors.Slippage(slippageParams.minUsdsSurplus, delta);
+            if (delta < slippageParams.minUsdsSurplus) {
+                revert CommonEventsAndErrors.Slippage(slippageParams.minUsdsSurplus, delta);
+            }
         } else {
             // Expect at most `maxUsdsPulled`
             uint256 delta = totalDebt - mPreview.hOhmLiabilities;
-            if (delta > slippageParams.maxUsdsShortfall) revert CommonEventsAndErrors.Slippage(slippageParams.maxUsdsShortfall, delta);
+            if (delta > slippageParams.maxUsdsShortfall) {
+                revert CommonEventsAndErrors.Slippage(slippageParams.maxUsdsShortfall, delta);
+            }
         }
     }
-
 }

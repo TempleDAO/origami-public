@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {Kernel, Policy, Keycode, Permissions, toKeycode} from "contracts/test/external/olympus/src/Kernel.sol";
-import {ROLESv1, RolesConsumer} from "contracts/test/external/olympus/src/modules/ROLES/OlympusRoles.sol";
-import {ICoolerTreasuryBorrower} from "contracts/test/external/olympus/src/policies/interfaces/cooler/ICoolerTreasuryBorrower.sol";
-import {SafeERC20 as SafeTransferLib} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {FixedPointMathLib} from "contracts/test/external/olympus/src/policies/cooler/MonoCooler.sol";
-import {TRSRYv1} from "contracts/test/external/olympus/src/modules/TRSRY/TRSRY.v1.sol";
+import { Kernel, Policy, Keycode, Permissions, toKeycode } from "contracts/test/external/olympus/src/Kernel.sol";
+import { ROLESv1, RolesConsumer } from "contracts/test/external/olympus/src/modules/ROLES/OlympusRoles.sol";
+import {
+    ICoolerTreasuryBorrower
+} from "contracts/test/external/olympus/src/policies/interfaces/cooler/ICoolerTreasuryBorrower.sol";
+import { SafeERC20 as SafeTransferLib } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { FixedPointMathLib } from "contracts/test/external/olympus/src/policies/cooler/MonoCooler.sol";
+import { TRSRYv1 } from "contracts/test/external/olympus/src/modules/TRSRY/TRSRY.v1.sol";
 
 // Handles unit conversion - eg if the debt token is 6dp (USDC)
 // No staking token (eg sUSDS) at rest.
@@ -28,10 +30,7 @@ contract MockCoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, RolesCon
     bytes32 public constant COOLER_ROLE = bytes32("treasuryborrower_cooler");
     bytes32 public constant ADMIN_ROLE = bytes32("treasuryborrower_admin");
 
-    constructor(
-        address kernel_,
-        address debtToken_
-    ) Policy(Kernel(kernel_)) {
+    constructor(address kernel_, address debtToken_) Policy(Kernel(kernel_)) {
         _debtToken = IERC20Metadata(debtToken_);
 
         uint8 tokenDecimals = _debtToken.decimals();
@@ -48,16 +47,13 @@ contract MockCoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, RolesCon
         ROLES = ROLESv1(getModuleAddress(dependencies[0]));
         TRSRY = TRSRYv1(getModuleAddress(dependencies[1]));
 
-        (uint8 ROLES_MAJOR, ) = ROLES.VERSION();
-        (uint8 TRSRY_MAJOR, ) = TRSRY.VERSION();
+        (uint8 ROLES_MAJOR,) = ROLES.VERSION();
+        (uint8 TRSRY_MAJOR,) = TRSRY.VERSION();
 
         // Ensure Modules are using the expected major version.
         // Modules should be sorted in alphabetical order.
         bytes memory expected = abi.encode([1, 1]);
-        if (
-            ROLES_MAJOR != 1 ||
-            TRSRY_MAJOR != 1
-        ) revert Policy_WrongModuleVersion(expected);
+        if (ROLES_MAJOR != 1 || TRSRY_MAJOR != 1) revert Policy_WrongModuleVersion(expected);
     }
 
     /// @inheritdoc Policy
@@ -78,11 +74,7 @@ contract MockCoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, RolesCon
         uint256 debtTokenAmount = _convertToDebtTokenAmount(amountInWad);
 
         uint256 outstandingDebt = TRSRY.reserveDebt(_debtToken, address(this));
-        TRSRY.setDebt({
-            debtor_: address(this),
-            token_: _debtToken,
-            amount_: outstandingDebt + debtTokenAmount
-        });
+        TRSRY.setDebt({ debtor_: address(this), token_: _debtToken, amount_: outstandingDebt + debtTokenAmount });
 
         TRSRY.increaseWithdrawApproval(address(this), _debtToken, debtTokenAmount);
         TRSRY.withdrawReserves(recipient, _debtToken, debtTokenAmount);
@@ -103,22 +95,21 @@ contract MockCoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, RolesCon
 
     /// @inheritdoc ICoolerTreasuryBorrower
     function setDebt(uint256 debtTokenAmount) external override onlyRole(ADMIN_ROLE) {
-        TRSRY.setDebt({
-            debtor_: address(this),
-            token_: _debtToken,
-            amount_: debtTokenAmount
-        });
+        TRSRY.setDebt({ debtor_: address(this), token_: _debtToken, amount_: debtTokenAmount });
     }
 
     /// @inheritdoc ICoolerTreasuryBorrower
-    function convertToDebtTokenAmount(
-        uint256 amountInWad
-    ) external override view returns (IERC20 dToken, uint256 dTokenAmount) {
+    function convertToDebtTokenAmount(uint256 amountInWad)
+        external
+        view
+        override
+        returns (IERC20 dToken, uint256 dTokenAmount)
+    {
         dToken = _debtToken;
         dTokenAmount = _convertToDebtTokenAmount(amountInWad);
     }
 
-    function debtToken() external override view returns (IERC20) {
+    function debtToken() external view override returns (IERC20) {
         return _debtToken;
     }
 
@@ -139,6 +130,6 @@ contract MockCoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, RolesCon
                 delta = outstandingDebt - debtTokenAmount;
             }
         }
-        TRSRY.setDebt({debtor_: address(this), token_: _debtToken, amount_: delta});
+        TRSRY.setDebt({ debtor_: address(this), token_: _debtToken, amount_: delta });
     }
 }

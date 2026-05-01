@@ -27,10 +27,9 @@ contract MockStEthToken is IStETH, MintableToken {
 
     AccumulatorData public accumulatorData;
 
-    constructor(
-        address _initialOwner,
-        uint96 _interestRate
-    ) MintableToken("Liquid staked Ether 2.0", "stETH", _initialOwner) {
+    constructor(address _initialOwner, uint96 _interestRate)
+        MintableToken("Liquid staked Ether 2.0", "stETH", _initialOwner)
+    {
         accumulatorData = AccumulatorData(block.timestamp, 1e27, 0, _interestRate, 0);
     }
 
@@ -39,7 +38,13 @@ contract MockStEthToken is IStETH, MintableToken {
      * @dev This function is alternative way to submit funds. Supports optional referral address.
      * @return sharesAmount Amount of StETH shares generated
      */
-    function submit(address /*_referral*/) external payable returns (uint256 sharesAmount) {
+    function submit(
+        address /*_referral*/
+    )
+        external
+        payable
+        returns (uint256 sharesAmount)
+    {
         require(msg.value != 0, "ZERO_DEPOSIT");
 
         AccumulatorData memory cache = _checkpoint(accumulatorData);
@@ -55,7 +60,7 @@ contract MockStEthToken is IStETH, MintableToken {
         recipient.sendValue(amount);
     }
 
-    function balanceOf(address user) public override(ERC20,IERC20)  view returns (uint256) {
+    function balanceOf(address user) public view override(ERC20, IERC20) returns (uint256) {
         (AccumulatorData memory cache,) = _getCache(accumulatorData);
         return _getPooledEthByShares(super.balanceOf(user), cache);
     }
@@ -63,7 +68,7 @@ contract MockStEthToken is IStETH, MintableToken {
     /**
      * @return the amount of shares that corresponds to `_ethAmount` protocol-controlled Ether.
      */
-    function getSharesByPooledEth(uint256 _ethAmount) public override view returns (uint256) {
+    function getSharesByPooledEth(uint256 _ethAmount) public view override returns (uint256) {
         (AccumulatorData memory cache,) = _getCache(accumulatorData);
         return _getSharesByPooledEth(_ethAmount, cache);
     }
@@ -71,27 +76,25 @@ contract MockStEthToken is IStETH, MintableToken {
     /**
      * @return the amount of Ether that corresponds to `_sharesAmount` token shares.
      */
-    function getPooledEthByShares(uint256 _sharesAmount) external override view returns (uint256) {
+    function getPooledEthByShares(uint256 _sharesAmount) external view override returns (uint256) {
         (AccumulatorData memory cache,) = _getCache(accumulatorData);
         return _getPooledEthByShares(_sharesAmount, cache);
     }
 
-    function _getSharesByPooledEth(
-        uint256 _ethAmount,
-        AccumulatorData memory cache
-    ) internal pure returns (uint256) {
+    function _getSharesByPooledEth(uint256 _ethAmount, AccumulatorData memory cache) internal pure returns (uint256) {
         return cache.checkpoint == 0
             ? _ethAmount
             : _ethAmount.mulDiv(cache.totalSubmitted, cache.checkpoint, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
-    function _getPooledEthByShares(
-        uint256 _sharesAmount,
-        AccumulatorData memory cache
-    ) internal pure returns (uint256) {
-    return cache.totalSubmitted == 0
-        ? _sharesAmount
-        : _sharesAmount.mulDiv(cache.checkpoint, cache.totalSubmitted, OrigamiMath.Rounding.ROUND_DOWN);
+    function _getPooledEthByShares(uint256 _sharesAmount, AccumulatorData memory cache)
+        internal
+        pure
+        returns (uint256)
+    {
+        return cache.totalSubmitted == 0
+            ? _sharesAmount
+            : _sharesAmount.mulDiv(cache.checkpoint, cache.totalSubmitted, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     function _getCache(AccumulatorData storage data) internal view returns (AccumulatorData memory cache, bool dirty) {
@@ -111,17 +114,10 @@ contract MockStEthToken is IStETH, MintableToken {
             dirty = true;
 
             // Compound the accumulator
-            uint256 newAccumulator = CompoundedInterest.continuouslyCompounded(
-                cache.accumulator,
-                _timeElapsed,
-                cache.interestRate
-            );
+            uint256 newAccumulator =
+                CompoundedInterest.continuouslyCompounded(cache.accumulator, _timeElapsed, cache.interestRate);
 
-            cache.checkpoint = newAccumulator.mulDiv(
-                cache.checkpoint,
-                cache.accumulator,
-                OrigamiMath.Rounding.ROUND_UP
-            );
+            cache.checkpoint = newAccumulator.mulDiv(cache.checkpoint, cache.accumulator, OrigamiMath.Rounding.ROUND_UP);
 
             cache.accumulator = newAccumulator;
         }

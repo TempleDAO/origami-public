@@ -11,11 +11,11 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
 import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
 
 /**
- * @notice An on chain swapper contract to integrate with the 1Inch router | 0x proxy, 
+ * @notice An on chain swapper contract to integrate with the 1Inch router | 0x proxy,
  * possibly others which obtain quote calldata offchain and then execute via a low level call
  * to perform the swap onchain.
  * @dev The amount of tokens bought is expected to be checked for slippage in the calling contract
- * 
+ *
  * Intended to be used synchronously from another contract:
  *  - Each deployed instance can be used by multiple client contracts.
  *  - Permisionless to call execute()
@@ -35,10 +35,7 @@ contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     /// @notice Approved router contracts for swaps
     mapping(address router => bool allowed) public whitelistedRouters;
 
-    constructor(
-        address _initialOwner
-    ) OrigamiElevatedAccess(_initialOwner) {
-    }
+    constructor(address _initialOwner) OrigamiElevatedAccess(_initialOwner) { }
 
     function whitelistRouter(address router, bool allowed) external onlyElevatedAccess {
         whitelistedRouters[router] = allowed;
@@ -59,17 +56,14 @@ contract OrigamiDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevatedAccess {
     /**
      * @notice Execute a DEX aggregator swap
      */
-    function execute(
-        IERC20 sellToken, 
-        uint256 sellTokenAmount, 
-        IERC20 buyToken, 
-        bytes calldata swapData
-    ) external override returns (uint256 buyTokenAmount) {
+    function execute(IERC20 sellToken, uint256 sellTokenAmount, IERC20 buyToken, bytes calldata swapData)
+        external
+        override
+        returns (uint256 buyTokenAmount)
+    {
         sellToken.safeTransferFrom(msg.sender, address(this), sellTokenAmount);
 
-        RouteData memory routeData = abi.decode(
-            swapData, (RouteData)
-        );
+        RouteData memory routeData = abi.decode(swapData, (RouteData));
 
         if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
 

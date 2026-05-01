@@ -18,7 +18,8 @@ contract OrigamiSuperSkyVaultTestBase is OrigamiTest {
 
     IERC20 internal constant SKY = IERC20(0x56072C95FAA701256059aa122697B133aDEd9279);
     IERC20 internal constant LSSKY = IERC20(0xf9A9cfD3229E985B91F99Bc866d42938044FFa1C);
-    ISkyLockstakeEngine internal constant LOCKSTAKE_ENGINE = ISkyLockstakeEngine(0xCe01C90dE7FD1bcFa39e237FE6D8D9F569e8A6a3);
+    ISkyLockstakeEngine internal constant LOCKSTAKE_ENGINE =
+        ISkyLockstakeEngine(0xCe01C90dE7FD1bcFa39e237FE6D8D9F569e8A6a3);
     address internal URN_ADDRESS;
 
     OrigamiDelegated4626Vault public vault;
@@ -40,15 +41,11 @@ contract OrigamiSuperSkyVaultTestBase is OrigamiTest {
     );
 
     function setUp() public virtual {
-        fork("mainnet", 22694300);
+        fork("mainnet", 22_694_300);
 
         tokenPrices = new TokenPrices(30);
         vault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami SKY Auto-Compounder", 
-            "SKY+",
-            SKY,
-            address(tokenPrices)
+            origamiMultisig, "Origami SKY Auto-Compounder", "SKY+", SKY, address(tokenPrices)
         );
 
         manager = new OrigamiSuperSkyManager(
@@ -205,7 +202,7 @@ contract OrigamiSuperSkyVaultTestAdmin is OrigamiSuperSkyVaultTestBase {
             PERF_FEE_FOR_CALLER,
             PERF_FEE_FOR_ORIGAMI
         );
-       
+
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vault));
         emit ManagerSet(address(newManager));
@@ -233,7 +230,7 @@ contract OrigamiSuperSkyVaultTestAdmin is OrigamiSuperSkyVaultTestBase {
 
 contract OrigamiSuperSkyVaultTestAccess is OrigamiSuperSkyVaultTestBase {
     event PerformanceFeeSet(uint256 fee);
-    
+
     function test_setManager_access() public {
         expectElevatedAccess();
         vault.setManager(alice, 0);
@@ -298,7 +295,7 @@ contract OrigamiSuperSkyVaultTestDeposit is OrigamiSuperSkyVaultTestBase {
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxDeposit(alice), type(uint256).max);
         assertEq(vault.maxMint(alice), type(uint256).max);
@@ -314,7 +311,7 @@ contract OrigamiSuperSkyVaultTestDeposit is OrigamiSuperSkyVaultTestBase {
 
         // Deposit fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -338,7 +335,8 @@ contract OrigamiSuperSkyVaultTestMint is OrigamiSuperSkyVaultTestBase {
 
         addToSharePrice(100e18);
 
-        uint256 expectedAssets = 100e18 + OrigamiMath.inverseSubtractBps(123e18, DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP);
+        uint256 expectedAssets =
+            100e18 + OrigamiMath.inverseSubtractBps(123e18, DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP);
 
         assertEq(SKY.balanceOf(alice), 0);
         assertEq(SKY.balanceOf(address(vault)), 0);
@@ -356,7 +354,7 @@ contract OrigamiSuperSkyVaultTestMint is OrigamiSuperSkyVaultTestBase {
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxDeposit(alice), type(uint256).max);
         assertEq(vault.maxMint(alice), type(uint256).max);
@@ -371,7 +369,7 @@ contract OrigamiSuperSkyVaultTestMint is OrigamiSuperSkyVaultTestBase {
 
         // Deposit fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -416,7 +414,7 @@ contract OrigamiSuperSkyVaultTestWithdraw is OrigamiSuperSkyVaultTestBase {
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxWithdraw(alice), 109.990009990009990009e18);
         assertEq(vault.maxRedeem(alice), 100e18);
@@ -432,7 +430,7 @@ contract OrigamiSuperSkyVaultTestWithdraw is OrigamiSuperSkyVaultTestBase {
 
         // Withdrawal fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -479,7 +477,7 @@ contract OrigamiSuperSkyVaultTestRedeem is OrigamiSuperSkyVaultTestBase {
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxWithdraw(alice), 109.990009990009990009e18);
         assertEq(vault.maxRedeem(alice), 100e18);
@@ -497,7 +495,7 @@ contract OrigamiSuperSkyVaultTestRedeem is OrigamiSuperSkyVaultTestBase {
 
         // Withdrawal fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -547,10 +545,10 @@ contract OrigamiSuperSkyVaultTestWithFee is OrigamiSuperSkyVaultTestBase {
         assertEq(vault.convertToAssets(1e18), 1.000006266963630245e18);
         assertEq(vault.totalAssets(), 100e18 + 0.1e18 - 10e18 - expectedSkyFee);
         assertEq(vault.totalSupply(), 100e18 + 0.1e18 - 10e18 - expectedOrigamiFee);
-        assertEq(vault.previewRedeem(1e18), 0.987606189253281230e18);
+        assertEq(vault.previewRedeem(1e18), 0.98760618925328123e18);
         assertEq(vault.previewWithdraw(1e18), 1.012549344953062315e18);
 
-        uint256 expectedShares = 89.874443094370190360e18;
+        uint256 expectedShares = 89.87444309437019036e18;
         assertEq(SKY.balanceOf(alice), 10e18);
         assertEq(SKY.balanceOf(address(vault)), 0);
         assertEq(SKY.balanceOf(address(manager)), 0);
@@ -583,7 +581,7 @@ contract OrigamiSuperSkyVaultTestWithFee is OrigamiSuperSkyVaultTestBase {
         //  2/ The origami fee on shares rounds slightly higher than the SKY fee on assets
         assertEq(vault.totalAssets(), 0.005568746481596347e18);
         assertEq(vault.totalSupply(), 0);
-        // It leads to a very skewed share price, basically writing off the usefulness of the 
+        // It leads to a very skewed share price, basically writing off the usefulness of the
         // vault now. But that's accepted -- if the vault becomes empty then it wont be used again
         assertEq(vault.convertToAssets(1e18), 5_568_746_481_596_348e18);
 
@@ -606,7 +604,7 @@ contract OrigamiSuperSkyVaultTestWithFee is OrigamiSuperSkyVaultTestBase {
         withdraw(alice, vault.maxWithdraw(alice));
 
         // Far less dust left now, but still a very skewed share price
-        assertEq(vault.totalAssets(), 0.000000310419450490e18);
+        assertEq(vault.totalAssets(), 0.00000031041945049e18);
         assertEq(vault.totalSupply(), 0);
         assertEq(vault.convertToAssets(1e18), 310_419_450_491e18);
 
@@ -678,7 +676,7 @@ contract OrigamiSuperSkyVaultTestWithFee is OrigamiSuperSkyVaultTestBase {
         // since the max Withdraw calc rounds in favour of vault
         assertEq(vault.totalAssets(), 0.005568746481596347e18);
         assertEq(vault.totalSupply(), 0);
-        // It leads to a very skewed share price, basically writing off the usefulness of the 
+        // It leads to a very skewed share price, basically writing off the usefulness of the
         // vault now. But that's accepted -- if the vault becomes empty then it wont be used again
         assertEq(vault.convertToAssets(1e18), 5_568_746_481_596_348e18);
 

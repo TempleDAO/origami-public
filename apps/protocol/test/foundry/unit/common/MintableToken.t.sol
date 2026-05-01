@@ -11,7 +11,7 @@ contract MintableTokenTestBase is OrigamiTest {
 
     function setUp() public {
         token = new DummyMintableToken(origamiMultisig, "TOKEN", "TKN", 18);
-        vm.warp(100000000);
+        vm.warp(100_000_000);
     }
 }
 
@@ -109,7 +109,6 @@ contract MintableTokenTestMintAndBurn is MintableTokenTestBase {
 }
 
 contract MintableTokenTestPermit is MintableTokenTestBase {
-
     bytes32 private constant _TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant _PERMIT_TYPEHASH =
@@ -121,15 +120,14 @@ contract MintableTokenTestPermit is MintableTokenTestBase {
         return keccak256(abi.encode(_TYPE_HASH, _hashedName, _hashedVersion, block.chainid, address(token)));
     }
 
-    function signedPermit(
-        address signer, 
-        uint256 signerPk, 
-        address spender, 
-        uint256 amount, 
-        uint256 deadline
-    ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+    function signedPermit(address signer, uint256 signerPk, address spender, uint256 amount, uint256 deadline)
+        internal
+        view
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
         bytes32 domainSeparator = buildDomainSeparator();
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, signer, spender, amount, token.nonces(signer), deadline));
+        bytes32 structHash =
+            keccak256(abi.encode(_PERMIT_TYPEHASH, signer, spender, amount, token.nonces(signer), deadline));
         bytes32 typedDataHash = ECDSA.toTypedDataHash(domainSeparator, structHash);
         return vm.sign(signerPk, typedDataHash);
     }
@@ -142,7 +140,7 @@ contract MintableTokenTestPermit is MintableTokenTestBase {
         uint256 allowanceBefore = token.allowance(signer, spender);
 
         // Check for expired deadlines
-        uint256 deadline = block.timestamp-1;
+        uint256 deadline = block.timestamp - 1;
         (uint8 v, bytes32 r, bytes32 s) = signedPermit(signer, signerPk, spender, amount, deadline);
         vm.expectRevert("ERC20Permit: expired deadline");
         token.permit(signer, spender, amount, deadline, v, r, s);
@@ -151,7 +149,7 @@ contract MintableTokenTestPermit is MintableTokenTestBase {
         deadline = block.timestamp + 3600;
         (v, r, s) = signedPermit(signer, signerPk, spender, amount, deadline);
         token.permit(signer, spender, amount, deadline, v, r, s);
-        assertEq(token.allowance(signer, spender), allowanceBefore+amount);
+        assertEq(token.allowance(signer, spender), allowanceBefore + amount);
 
         // Can't re-use the same signature for another permit (the nonce was incremented)
         vm.expectRevert("ERC20Permit: invalid signature");

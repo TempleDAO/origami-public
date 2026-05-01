@@ -9,31 +9,31 @@ async function main() {
   const { owner: OWNER, ADDRS, INSTANCES } = await getDeployContext(__dirname);
 
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_OHM_HONEY_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_OHM_HONEY_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_BYUSD_HONEY_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_BYUSD_HONEY_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_RUSD_HONEY_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_RUSD_HONEY_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBERA_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBERA_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_HONEY_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_HONEY_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBGT_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBGT_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   await mine(OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, OWNER)['proposeNewOwner(address,address)'](
-    ADDRS.VAULTS.INFRARED_AUTO_STAKING_IBERA_OSBGT_A.VAULT,
+    ADDRS.VAULTS.INFRARED_AUTO_STAKING_IBERA_OSBGT_A.VAULT.address,
     ADDRS.CORE.MULTISIG
   ));
   
@@ -41,13 +41,13 @@ async function main() {
     [
       acceptOwner(INSTANCES.FACTORIES.INFRARED_AUTO_STAKING.FACTORY),
 
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_OHM_HONEY_A.VAULT, OWNER)),
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_BYUSD_HONEY_A.VAULT, OWNER)),
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_RUSD_HONEY_A.VAULT, OWNER)),
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBERA_A.VAULT, OWNER)),
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_HONEY_A.VAULT, OWNER)),
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBGT_A.VAULT, OWNER)),
-      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_IBERA_OSBGT_A.VAULT, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_OHM_HONEY_A.VAULT.address, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_BYUSD_HONEY_A.VAULT.address, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_RUSD_HONEY_A.VAULT.address, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBERA_A.VAULT.address, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_HONEY_A.VAULT.address, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBERA_IBGT_A.VAULT.address, OWNER)),
+      acceptOwner(OrigamiAutoStaking__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_IBERA_OSBGT_A.VAULT.address, OWNER)),
     ],
   );
   

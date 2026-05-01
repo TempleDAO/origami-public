@@ -31,6 +31,7 @@ artifacts-foundry
 cache-foundry
 out
 artifacts
+fuzz-corpus
 
 # Slither cache
 cache

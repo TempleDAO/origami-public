@@ -1,0 +1,6 @@
+// mainnet: BUNDLER.PLUGINS.OHM_STAKING=0x264C2A6F0D64eB62D1435e8f915700eE87d9a6A6
+// yarn hardhat verify --network mainnet 0x264C2A6F0D64eB62D1435e8f915700eE87d9a6A6 --constructor-args scripts/deploys/mainnet/deploymentArgs/0x264C2A6F0D64eB62D1435e8f915700eE87d9a6A6.js
+module.exports = [
+  "0xFB0C51cD7725C3b5D6a57ce17c9591d9cD1B9452",
+  "0xB63cac384247597756545b500253ff8E607a8020"
+];

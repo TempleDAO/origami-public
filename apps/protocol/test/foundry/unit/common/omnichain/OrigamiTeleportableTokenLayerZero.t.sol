@@ -1,7 +1,6 @@
 pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-
 import { OrigamiTokenTeleporter } from "contracts/common/omnichain/OrigamiTokenTeleporter.sol";
 import { OrigamiOFT } from "contracts/common/omnichain/OrigamiOFT.sol";
 import { IOFT, OFT } from "@layerzerolabs/lz-evm-oapp-v2/contracts/standards/oft-evm/OFT.sol";
@@ -11,14 +10,12 @@ import { MessagingFee } from "@layerzerolabs/oft-evm/contracts/OFTCore.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 
 import { OrigamiTeleportableToken } from "contracts/common/omnichain/OrigamiTeleportableToken.sol";
-import { TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
+import { TestHelperOz5 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 contract MintableTeleportableToken is OrigamiTeleportableToken {
-    constructor(
-        address initialOwner_,
-        string memory name_,
-        string memory symbol_
-    ) OrigamiTeleportableToken(name_, symbol_, initialOwner_) {}
+    constructor(address initialOwner_, string memory name_, string memory symbol_)
+        OrigamiTeleportableToken(name_, symbol_, initialOwner_)
+    { }
 
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
@@ -58,18 +55,11 @@ contract OrigamiTeleportableTokenLayerZeroTestBase is TestHelperOz5, OrigamiTest
         origamiOft = OrigamiOFT(
             _deployOApp(
                 type(OrigamiOFT).creationCode,
-                abi.encode(
-                    OFT.ConstructorArgs(
-                        "ORIGAMI TOKEN B",
-                        "ORGMB",
-                        address(endpoints[bEid]),
-                        origamiMultisig
-                    )
-                )
+                abi.encode(OFT.ConstructorArgs("ORIGAMI TOKEN B", "ORGMB", address(endpoints[bEid]), origamiMultisig))
             )
         );
-        
-        vm.warp(100000000);
+
+        vm.warp(100_000_000);
     }
 
     function wireOapps() internal {
@@ -92,7 +82,7 @@ contract OrigamiTeleportableTokenLayerZeroTestBase is TestHelperOz5, OrigamiTest
             assertEq(origamiOft.owner(), origamiMultisig);
             assertEq(origamiOft.sharedDecimals(), 6);
         }
-       
+
         {
             assertEq(teleporter.approvalRequired(), true);
             assertEq(teleporter.token(), address(vault));
@@ -114,30 +104,14 @@ contract OrigamiTeleportableTokenLayerZeroTest is OrigamiTeleportableTokenLayerZ
 
     function test_quoteSend_teleportable_token() public view {
         uint256 sendAmount = 1 ether;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            sendAmount,
-            sendAmount,
-            options,
-            "",
-            ""
-        );
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+        SendParam memory sendParam = SendParam(bEid, addressToBytes32(bob), sendAmount, sendAmount, options, "", "");
         MessagingFee memory directFee = teleporter.quoteSend(sendParam, false);
         MessagingFee memory feeUsingVaultToken = vault.quoteSend(sendParam, false);
         assertEq(directFee.nativeFee, feeUsingVaultToken.nativeFee);
 
         sendAmount = 123 ether;
-        sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            sendAmount,
-            sendAmount,
-            options,
-            "",
-            ""
-        );
+        sendParam = SendParam(bEid, addressToBytes32(bob), sendAmount, sendAmount, options, "", "");
         directFee = teleporter.quoteSend(sendParam, false);
         feeUsingVaultToken = vault.quoteSend(sendParam, false);
         assertEq(directFee.nativeFee, feeUsingVaultToken.nativeFee);
@@ -145,27 +119,19 @@ contract OrigamiTeleportableTokenLayerZeroTest is OrigamiTeleportableTokenLayerZ
 
     function test_send_on_behalf_of() public {
         uint256 bobBalanceBefore = origamiOft.balanceOf(bob);
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
         // vault token sending on behalf of alice
         uint256 joinAmount = 1 ether;
         mintShares(alice, joinAmount);
         uint256 shares = vault.balanceOf(alice);
 
-        SendParam memory sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            shares,
-            shares,
-            options,
-            "",
-            ""
-        );
+        SendParam memory sendParam = SendParam(bEid, addressToBytes32(bob), shares, shares, options, "", "");
         MessagingFee memory fee = vault.quoteSend(sendParam, false);
         vm.deal(alice, fee.nativeFee);
         vm.startPrank(alice);
         vault.approve(address(vault), shares);
-        vault.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        vault.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(bEid, addressToBytes32(address(origamiOft)));
         assertEq(origamiOft.balanceOf(bob), bobBalanceBefore + shares);
         assertEq(vault.balanceOf(alice), 0);

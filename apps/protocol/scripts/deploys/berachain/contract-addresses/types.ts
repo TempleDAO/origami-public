@@ -1,8 +1,13 @@
 export type Address = `0x${string}`;
 
+export interface DeployedContract {
+  address: Address;
+  creationBlock: number;
+}
+
 export interface IType {
   OVERLORD_WALLET: Address;
-  TOKEN: Address;
+  TOKEN: DeployedContract;
   MANAGER: Address;
 }
 
@@ -12,13 +17,13 @@ export interface IEulerV2Type extends IType {
 
 export interface InfraredAutoCompounderVault {
   OVERLORD_WALLET: Address;
-  TOKEN: Address;
+  TOKEN: DeployedContract;
   MANAGER: Address;
   SWAPPER: Address;
 };
 
 export interface InfraredAutoStakerVault {
-  VAULT: Address;
+  VAULT: DeployedContract;
 
   // Auto-stakers only require a swapper (and overlord perms)
   // if the underlying reward vault has non-oriBGT rewards
@@ -36,22 +41,26 @@ export interface ContractAddresses {
       V4: Address;
       V5: Address;
     },
+    HYPERNATIVE: {
+      SYSTEM_WALLET: Address;
+    },
   },
   SWAPPERS: {
-    DIRECT_SWAPPER: Address,
-  },
+    DIRECT_SWAPPER: Address;
+  };
   ORACLES: {
-    ORIBGT_IBGT: Address,
-    ORIBGT_WBERA: Address,
-    IBGT_WBERA: Address,
-    IBGT_WBERA_WITH_PRICE_CHECK: Address,
-  },
+    ORIBGT_IBGT: Address;
+    ORIBGT_WBERA: Address;
+    IBGT_WBERA: Address;
+    ORIBGT_WBERA_PEGGED: Address;
+    IBGT_WBERA_WITH_PRICE_CHECK: Address;
+  };
 
   LOV_ORIBGT_A: IEulerV2Type;
 
   VAULTS: {
     hOHM: {
-      TOKEN: Address;
+      TOKEN: DeployedContract;
     };
     BOYCO_USDC_A: {
       OVERLORD_WALLET: Address;
@@ -64,12 +73,13 @@ export interface ContractAddresses {
         HONEY_BYUSD: Address;
       };
       BERA_BGT_PROXY: Address;
-      TOKEN: Address;
+      TOKEN: DeployedContract;
       MANAGER: Address;
     };
     ORIBGT: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_OHM_HONEY_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_B: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_RUSD_HONEY_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_WBERA_IBERA_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_WBERA_HONEY_A: InfraredAutoCompounderVault;
@@ -83,9 +93,12 @@ export interface ContractAddresses {
     INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A: InfraredAutoCompounderVault;
     INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_SWBERA_OSBGT_A: InfraredAutoCompounderVault;
+    INFRARED_AUTO_COMPOUNDER_WETH_HONEY_A: InfraredAutoCompounderVault;
 
     INFRARED_AUTO_STAKING_OHM_HONEY_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_BYUSD_HONEY_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_BYUSD_HONEY_B: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_RUSD_HONEY_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_WBERA_IBERA_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_WBERA_HONEY_A: InfraredAutoStakerVault;
@@ -99,6 +112,8 @@ export interface ContractAddresses {
     INFRARED_AUTO_STAKING_WETH_WBERA_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_WBTC_HONEY_A: InfraredAutoStakerVault;
     INFRARED_AUTO_STAKING_WBTC_WBERA_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_SWBERA_OSBGT_A: InfraredAutoStakerVault;
+    INFRARED_AUTO_STAKING_WETH_HONEY_A: InfraredAutoStakerVault;
   };
 
   FACTORIES: {
@@ -117,6 +132,7 @@ export interface ContractAddresses {
 
   PERIPHERY: {
     LANTERN_OFFERING: Address;
+    LANTERN_OFFERING_V2: Address;
   };
 
   EXTERNAL: {
@@ -128,6 +144,7 @@ export interface ContractAddresses {
     };
     BERACHAIN: {
       WBERA_TOKEN: Address;
+      SWBERA_TOKEN: Address;
       HONEY_TOKEN: Address;
       HONEY_FACTORY: Address;
       HONEY_FACTORY_READER: Address;
@@ -144,9 +161,9 @@ export interface ContractAddresses {
       IBERA_TOKEN: Address;
       REWARD_VAULTS: {
         HONEY_USDC: Address;
-        HONEY_BYUSD: Address;
+        BYUSD_HONEY_BEX: Address;
+        BYUSD_HONEY_KDK: Address;
         OHM_HONEY: Address;
-        BYUSD_HONEY: Address;
         RUSD_HONEY: Address;
         WBERA_IBERA: Address;
         WBERA_HONEY: Address;
@@ -160,6 +177,8 @@ export interface ContractAddresses {
         WETH_WBERA: Address;
         WBTC_HONEY: Address;
         WBTC_WBERA: Address;
+        SWBERA_OSBGT: Address;
+        WETH_HONEY: Address;
       };
     };
     BEX: {
@@ -187,6 +206,9 @@ export interface ContractAddresses {
         WBTC_WETH_V3: Address;
         WETH_WBERA_V3: Address;
         WBTC_WBERA_V3: Address;
+        SWBERA_OSBGT_V3: Address;
+        BYUSD_HONEY_V3: Address;
+        WETH_HONEY_V3: Address;
       };
       ISLANDS: {
         OHM_HONEY_V3: Address;
@@ -207,6 +229,13 @@ export interface ContractAddresses {
         WBTC_WETH_V3: Address;
         WETH_WBERA_V3: Address;
         WBTC_WBERA_V3: Address;
+        SWBERA_OSBGT_V3: Address;
+        BYUSD_HONEY_V3: Address;
+        WETH_HONEY_V3: Address;
+      };
+      KX_SWAP_ROUTERS: {
+        KX_ROUTER: Address;
+        LEGACY_ROUTER_02: Address;
       };
     };
     REDSTONE: {
@@ -242,16 +271,19 @@ export interface ContractAddresses {
       MARKETS: {
         TULIPA_FOLDING_HIVE: {
           VAULTS: {
-            ORIBGT: Address;
+            ORIBGT: DeployedContract;
             WBERA: Address;
           };
         };
         MEV_CAPITAL_BERACHAIN_RED_CLUSTER: {
           VAULTS: {
-            ORIBGT: Address;
+            ORIBGT: DeployedContract;
           };
         };
       };
+    };
+    DOLOMITE: {
+      DOLOMITE_MARGIN_1: Address;
     };
     LAYER_ZERO: {
       ENDPOINT: Address;

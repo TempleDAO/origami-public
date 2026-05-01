@@ -46,8 +46,8 @@ const getEncodedPrices = () => ({
     encodedKodiakV3Price(ADDRS.EXTERNAL.KODIAK.POOLS.WBERA_IBGT_V3, false)
   ),
 
-  oriBgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.ORIBGT.TOKEN),
-  boycoUsdcAToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN),
+  oriBgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.ORIBGT.TOKEN.address),
+  boycoUsdcAToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN.address),
 });
 
 async function updatePrices(contract: TokenPrices) {
@@ -84,13 +84,13 @@ async function updatePrices(contract: TokenPrices) {
   );
   await mine(
     contract.setTokenPriceFunction(
-      ADDRS.VAULTS.ORIBGT.TOKEN,
+      ADDRS.VAULTS.ORIBGT.TOKEN.address,
       encodedPrices.oriBgtToUsd
     )
   );
   await mine(
     contract.setTokenPriceFunction(
-      ADDRS.VAULTS.BOYCO_USDC_A.TOKEN,
+      ADDRS.VAULTS.BOYCO_USDC_A.TOKEN.address,
       encodedPrices.boycoUsdcAToUsd
     )
   );

@@ -1,0 +1,6 @@
+// berachain: VAULTS.INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_A.SWAPPER=0xe7c153b0F3F1F77d155a9DF9a0C3043464243A53
+// yarn hardhat verify --network berachain 0xe7c153b0F3F1F77d155a9DF9a0C3043464243A53 --constructor-args scripts/deploys/berachain/deploymentArgs/0xe7c153b0F3F1F77d155a9DF9a0C3043464243A53.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0xdE04c469Ad658163e2a5E860a03A86B52f6FA8C8"
+];

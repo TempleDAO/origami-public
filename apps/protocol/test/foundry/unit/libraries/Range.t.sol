@@ -10,10 +10,7 @@ contract RangeTest is OrigamiTest {
     Range.Data public range;
 
     function setUp() public {
-        range = Range.Data({
-            floor: 1e18,
-            ceiling: 100e18
-        });
+        range = Range.Data({ floor: 1e18, ceiling: 100e18 });
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -22,7 +19,7 @@ contract RangeTest is OrigamiTest {
         assertEq(range.ceiling, 100e18);
 
         vm.expectRevert(abi.encodeWithSelector(Range.InvalidRange.selector, 60e18, 50e18));
-        range.set(60e18, 50e18);       
+        range.set(60e18, 50e18);
     }
 
     function test_set_success() public {

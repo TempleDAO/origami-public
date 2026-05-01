@@ -13,7 +13,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN,
+    ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN.address,
     ADDRS.EXTERNAL.MORPHO.EARN_VAULTS.IMF_USDS,
     ADDRS.CORE.FEE_COLLECTOR,
     ADDRS.VAULTS.OAC_USDS_IMF_MOR.COW_SWAPPER,

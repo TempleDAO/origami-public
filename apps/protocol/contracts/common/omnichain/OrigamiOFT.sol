@@ -17,28 +17,17 @@ import { OrigamiOftElevatedAccess } from "contracts/common/access/OrigamiOftElev
  * @title Origami OFT
  * @dev A vanilla LayerZero OFT, but with OrigamiElevatedAccess access controls and Permit capability
  */
-contract OrigamiOFT is 
-    IERC165,
-    OFT,
-    ERC20Permit,
-    OrigamiOftElevatedAccess
-{    
-    constructor(
-        OFT.ConstructorArgs memory args_
-    ) 
+contract OrigamiOFT is IERC165, OFT, ERC20Permit, OrigamiOftElevatedAccess {
+    constructor(OFT.ConstructorArgs memory args_)
         OFT(args_)
         ERC20Permit(args_.name)
         OrigamiOftElevatedAccess(args_.delegate)
-    {
-    }
-    
+    { }
+
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public virtual override pure returns (bool) {
-        return interfaceId == type(IOFT).interfaceId
-            || interfaceId == type(IERC20Metadata).interfaceId
-            || interfaceId == type(IERC20).interfaceId
-            || interfaceId == type(IERC20Permit).interfaceId
-            || interfaceId == type(EIP712).interfaceId
-            || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
+        return interfaceId == type(IOFT).interfaceId || interfaceId == type(IERC20Metadata).interfaceId
+            || interfaceId == type(IERC20).interfaceId || interfaceId == type(IERC20Permit).interfaceId
+            || interfaceId == type(EIP712).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 }

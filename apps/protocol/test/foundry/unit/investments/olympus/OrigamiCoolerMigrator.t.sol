@@ -25,7 +25,9 @@ import { Kernel } from "contracts/test/external/olympus/src/policies/RolesAdmin.
 import { IOrigamiCoolerMigrator } from "contracts/interfaces/investments/olympus/IOrigamiCoolerMigrator.sol";
 import { OrigamiCoolerMigrator } from "contracts/investments/olympus/OrigamiCoolerMigrator.sol";
 
-import { OrigamiCoolerMigratorHelperLib } from "test/foundry/unit/investments/olympus/OrigamiCoolerMigratorHelperLib.m.sol";
+import {
+    OrigamiCoolerMigratorHelperLib
+} from "test/foundry/unit/investments/olympus/OrigamiCoolerMigratorHelperLib.m.sol";
 import { MockGohm } from "contracts/test/external/olympus/test/mocks/MockGohm.sol";
 import { MockERC20 } from "contracts/test/external/olympus/test/mocks/MockERC20.sol";
 import { MonoCooler } from "contracts/test/external/olympus/src/policies/cooler/MonoCooler.sol";
@@ -65,15 +67,13 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
     OlympusMonoCoolerDeployerLib.Contracts _olympusMonoCoolerContracts;
     OrigamiCoolerMigratorHelperLib.MigratorTestContracts _mtContracts;
 
-    uint256 internal constant MAINNET_FORK_BLOCK_NUMBER = 21873957;
+    uint256 internal constant MAINNET_FORK_BLOCK_NUMBER = 21_873_957;
     uint256 internal constant MAX_LOANS = 50;
 
-    bytes32 internal constant DOMAIN_TYPEHASH =
-        keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
-    bytes32 internal constant AUTHORIZATION_TYPEHASH =
-        keccak256(
-            "Authorization(address account,address authorized,uint96 authorizationDeadline,uint256 nonce,uint256 signatureDeadline)"
-        );
+    bytes32 internal constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
+    bytes32 internal constant AUTHORIZATION_TYPEHASH = keccak256(
+        "Authorization(address account,address authorized,uint96 authorizationDeadline,uint256 nonce,uint256 signatureDeadline)"
+    );
 
     function setUp() public {
         setUpMainnetFork();
@@ -94,7 +94,9 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         monoCooler = contracts.monoCooler;
         flashloanLender = _mtContracts.flashloanLender;
 
-        ltvOracle.setOriginationLtvAt(uint96(uint256(11.5e18) * OHM_PER_GOHM / 1e18), uint32(vm.getBlockTimestamp()) + 182.5 days);
+        ltvOracle.setOriginationLtvAt(
+            uint96(uint256(11.5e18) * OHM_PER_GOHM / 1e18), uint32(vm.getBlockTimestamp()) + 182.5 days
+        );
         mintGOhm(origamiMultisig, 100e18);
 
         deployVault();
@@ -119,9 +121,10 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         vm.stopPrank();
     }
 
-    function fillMainnetContracts(
-        OrigamiCoolerMigratorHelperLib.ContractAddresses memory addresses
-    ) internal returns (OlympusMonoCoolerDeployerLib.Contracts memory contracts) {
+    function fillMainnetContracts(OrigamiCoolerMigratorHelperLib.ContractAddresses memory addresses)
+        internal
+        returns (OlympusMonoCoolerDeployerLib.Contracts memory contracts)
+    {
         OrigamiCoolerMigratorHelperLib.MigratorTestContracts memory mtContracts;
         addresses = OrigamiCoolerMigratorHelperLib.getMainnetAddresses();
         OrigamiCoolerMigratorHelperLib.fillContractsFromMainnet(contracts, mtContracts);
@@ -131,7 +134,7 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         gOHM = MockGohm(addresses.gOHM);
 
         kernel = contracts.kernel;
-        
+
         DAI = mtContracts.DAI;
         sDai = mtContracts.sDai;
         daiUsds = mtContracts.daiUsds;
@@ -171,21 +174,10 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
     }
 
     function deployVault() internal {
-        vault = new OrigamiHOhmVault(
-             origamiMultisig, 
-            "Origami hOHM", 
-            "hOHM",
-            address(gOHM),
-            address(0)
-        );
+        vault = new OrigamiHOhmVault(origamiMultisig, "Origami hOHM", "hOHM", address(gOHM), address(0));
 
         manager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(monoCooler),
-            address(sUSDS),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(monoCooler), address(sUSDS), PERFORMANCE_FEE, feeCollector
         );
 
         vm.startPrank(origamiMultisig);
@@ -206,15 +198,11 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
 
         vm.startPrank(account);
         gOHM.approve(address(vault), assetAmounts[0]);
-        vault.seed(assetAmounts, liabilityAmounts, SEED_HOHM_SHARES, account, maxSupply);
+        vault.seed(assetAmounts, liabilityAmounts, SEED_HOHM_SHARES, account, maxSupply, "");
         vm.stopPrank();
     }
 
-    function depositErc4626(
-        IERC4626 sVault,
-        address account,
-        uint256 amount
-    ) internal {
+    function depositErc4626(IERC4626 sVault, address account, uint256 amount) internal {
         address asset = sVault.asset();
         deal(asset, account, amount);
         vm.startPrank(account);
@@ -223,12 +211,10 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         vm.stopPrank();
     }
 
-    function _getCoolerDebtAndCollateral(
-        address cooler
-    ) internal view returns (uint256 debt, uint256 collateral) {
-        for (uint i; i < MAX_LOANS; ++i) {
+    function _getCoolerDebtAndCollateral(address cooler) internal view returns (uint256 debt, uint256 collateral) {
+        for (uint256 i; i < MAX_LOANS; ++i) {
             try ICooler(cooler).getLoan(i) returns (ICooler.Loan memory loan) {
-                if (loan.principal == 0 || vm.getBlockTimestamp() > loan.expiry) { continue; }
+                if (loan.principal == 0 || vm.getBlockTimestamp() > loan.expiry) continue;
                 debt += loan.principal + loan.interestDue;
                 collateral += loan.collateral;
             } catch Panic(uint256) {
@@ -237,10 +223,10 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         }
     }
 
-     function _createCoolerV3AndBorrow(
-        address signer_,
-        uint256 collateral_
-    ) internal returns (address cooler, uint256 principal, uint256 interest) {
+    function _createCoolerV3AndBorrow(address signer_, uint256 collateral_)
+        internal
+        returns (address cooler, uint256 principal, uint256 interest)
+    {
         mintGOhm(signer, collateral_);
         vm.startPrank(signer_);
         address ch3 = address(_mtContracts.clearinghousev3);
@@ -254,19 +240,16 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         vm.stopPrank();
     }
 
-    function _addToMonoCooler(
-        address account,
-        uint128 collateral,
-        uint128 borrowAmount
-    ) internal {
+    function _addToMonoCooler(address account, uint128 collateral, uint128 borrowAmount) internal {
         mintGOhm(account, collateral);
         vm.startPrank(account);
         IERC20(gOHM).approve(address(monoCooler), collateral);
         monoCooler.addCollateral(collateral, account, noDelegations());
 
-        if (borrowAmount > 0)
+        if (borrowAmount > 0) {
             monoCooler.borrow(borrowAmount, account, account);
-        
+        }
+
         // skip to increase debt
         skip(3600 seconds);
 
@@ -335,22 +318,24 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         assertEq(mPreview.hOhmLiabilities, hOhmLiabilities, "previewMigration::hOhmLiabilities");
     }
 
-    function noDelegations() internal view returns (IDLGTEv1.DelegationRequest[] memory delegationRequests) {
-    }
+    function noDelegations() internal view returns (IDLGTEv1.DelegationRequest[] memory delegationRequests) { }
 
     function uncheckedSlippageParams() internal pure returns (IOrigamiCoolerMigrator.SlippageParams memory) {
         return IOrigamiCoolerMigrator.SlippageParams(0, 0, type(uint256).max);
     }
 
-    function setupAllCoolers(bool withMonoCooler) internal returns (
-        address owner,
-        address v1_1Cooler,
-        uint256 expectedShares,
-        uint256 expectedUsds,
-        uint256 totalDaiDebt,
-        uint256 totalUsdsDebt,
-        uint256 totalCollateral
-    ) {
+    function setupAllCoolers(bool withMonoCooler)
+        internal
+        returns (
+            address owner,
+            address v1_1Cooler,
+            uint256 expectedShares,
+            uint256 expectedUsds,
+            uint256 totalDaiDebt,
+            uint256 totalUsdsDebt,
+            uint256 totalCollateral
+        )
+    {
         v1_1Cooler = OrigamiCoolerMigratorHelperLib.exampleCoolers()[0];
         owner = ICooler(v1_1Cooler).owner();
         vm.label(owner, "COOLER_OWNER");
@@ -363,7 +348,7 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
             totalUsdsDebt += monoCooler.accountDebt(owner);
             totalCollateral += monoCoolerCollateral;
         }
-        
+
         // The other version
         {
             address v1_2Cooler = _mtContracts.factoryv2.getCoolerFor(owner, address(gOHM), address(DAI));
@@ -396,9 +381,8 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         IDLGTEv1.DelegationRequest[] memory delegationRequests
     ) internal view returns (IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams) {
         uint96 deadline = uint96(vm.getBlockTimestamp() + 1 hours);
-        IMonoCooler.Authorization memory authorization = IMonoCooler.Authorization(
-            signer, giveAuthTo, deadline, monoCooler.authorizationNonces(signer), deadline
-        );
+        IMonoCooler.Authorization memory authorization =
+            IMonoCooler.Authorization(signer, giveAuthTo, deadline, monoCooler.authorizationNonces(signer), deadline);
 
         IMonoCooler.Signature memory signature;
         {
@@ -411,9 +395,11 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         mcParams = IOrigamiCoolerMigrator.MonoCoolerMigration(authorization, signature, delegationRequests);
     }
 
-    function _convertLoansForMigration(
-        IOrigamiCoolerMigrator.AllCoolerLoansPreview memory previewLoans
-    ) internal pure returns (IOrigamiCoolerMigrator.AllCoolerLoansMigration memory migrateLoans) {
+    function _convertLoansForMigration(IOrigamiCoolerMigrator.AllCoolerLoansPreview memory previewLoans)
+        internal
+        pure
+        returns (IOrigamiCoolerMigrator.AllCoolerLoansMigration memory migrateLoans)
+    {
         migrateLoans.v1_1.cooler = previewLoans.v1_1.cooler;
         migrateLoans.v1_1.loanIds = new uint256[](previewLoans.v1_1.loans.length);
         for (uint256 i; i < previewLoans.v1_1.loans.length; ++i) {
@@ -435,10 +421,10 @@ contract OrigamiCoolerMigratorTestBase is OrigamiHOhmCommon {
         migrateLoans.migrateMonoCooler = previewLoans.monoCooler.collateral != 0;
     }
 
-    function _checkAllMigrated(
-        address account,
-        IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans
-    ) public view {
+    function _checkAllMigrated(address account, IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans)
+        public
+        view
+    {
         IOrigamiCoolerMigrator.CoolerPreviewInfo memory info = allLoans.v1_1;
         for (uint256 i; i < info.loans.length; ++i) {
             ICooler.Loan memory loan = ICooler(info.cooler).getLoan(info.loans[i].loanId);
@@ -519,11 +505,7 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
     using SafeCast for uint256;
 
     function test_getCoolerV1_1Params() public view {
-        (
-            address factory,
-            address collateralToken,
-            address debtToken
-        ) = migrator.getCoolerV1_1Params();
+        (address factory, address collateralToken, address debtToken) = migrator.getCoolerV1_1Params();
         assertEq(factory, 0xDE3e735d37A8498AD2F141F603A6d0F976A6F772);
         assertEq(collateralToken, address(gOHM));
         assertEq(debtToken, address(DAI));
@@ -532,17 +514,13 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
     function test_getCoolerLoansFor_v1_coolers_failInvalidCooler() public {
         address v1_1Cooler = OrigamiCoolerMigratorHelperLib.exampleCoolers()[0];
         address owner = ICooler(v1_1Cooler).owner();
-        
+
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCoolerMigrator.InvalidCooler.selector, alice));
         migrator.getCoolerLoansFor(owner, alice);
     }
 
     function test_getCoolerLoansFor_invalidLoanLender() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         assertEq(allLoans.v1_1.cooler, v1_1Cooler);
@@ -550,23 +528,15 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
 
         ICooler.Loan memory mockLoan = ICooler(allLoans.v1_1.cooler).getLoan(0);
         mockLoan.lender = alice;
-        vm.mockCall(
-            allLoans.v1_1.cooler,
-            abi.encodeWithSelector(ICooler.getLoan.selector, 0),
-            abi.encode(mockLoan)
-        );
+        vm.mockCall(allLoans.v1_1.cooler, abi.encodeWithSelector(ICooler.getLoan.selector, 0), abi.encode(mockLoan));
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory badLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         assertEq(badLoans.v1_1.cooler, v1_1Cooler);
         assertEq(badLoans.v1_1.loans.length, 0);
     }
-    
+
     function test_getCoolerLoansFor_alreadyPaidDown() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         assertEq(allLoans.v1_1.cooler, v1_1Cooler);
@@ -574,23 +544,15 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
 
         ICooler.Loan memory mockLoan = ICooler(allLoans.v1_1.cooler).getLoan(0);
         mockLoan.principal = 0;
-        vm.mockCall(
-            allLoans.v1_1.cooler,
-            abi.encodeWithSelector(ICooler.getLoan.selector, 0),
-            abi.encode(mockLoan)
-        );
+        vm.mockCall(allLoans.v1_1.cooler, abi.encodeWithSelector(ICooler.getLoan.selector, 0), abi.encode(mockLoan));
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory badLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         assertEq(badLoans.v1_1.cooler, v1_1Cooler);
         assertEq(badLoans.v1_1.loans.length, 0);
     }
-    
+
     function test_getCoolerLoansFor_expired() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         assertEq(allLoans.v1_1.cooler, v1_1Cooler);
@@ -598,11 +560,7 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
 
         ICooler.Loan memory mockLoan = ICooler(allLoans.v1_1.cooler).getLoan(0);
         mockLoan.expiry = vm.getBlockTimestamp() - 1;
-        vm.mockCall(
-            allLoans.v1_1.cooler,
-            abi.encodeWithSelector(ICooler.getLoan.selector, 0),
-            abi.encode(mockLoan)
-        );
+        vm.mockCall(allLoans.v1_1.cooler, abi.encodeWithSelector(ICooler.getLoan.selector, 0), abi.encode(mockLoan));
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory badLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         assertEq(badLoans.v1_1.cooler, v1_1Cooler);
@@ -610,11 +568,7 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
     }
 
     function test_getCoolerLoansFor_unhandledPanic() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         vm.mockCallRevert(
             v1_1Cooler,
@@ -627,28 +581,30 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
     }
 
     function test_getCoolerLoansFor_v1_coolers() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
 
         {
             assertEq(allLoans.v1_1.cooler, OrigamiCoolerMigratorHelperLib.exampleCoolers()[0]);
-            checkLoans(allLoans.v1_1.loans, 0, 4_005_926.849041095888123900e18, 1_384.734748641889816562e18);
+            checkLoans(allLoans.v1_1.loans, 0, 4_005_926.8490410958881239e18, 1384.734748641889816562e18);
             assertEq(allLoans.v1_2.cooler, 0x803D2A6a07b2C21Be139cade478B391360180a40);
             checkLoans(
-                allLoans.v1_2.loans, 
-                3, 310_718.465899892561847471e18, 107.228783258101312741e18,
-                6, 207_846.451890498375927077e18, 71.727703972097071581e18,
-                8, 220_560.995409629063567992e18, 76.115486421041740634e18
+                allLoans.v1_2.loans,
+                3,
+                310_718.465899892561847471e18,
+                107.228783258101312741e18,
+                6,
+                207_846.451890498375927077e18,
+                71.727703972097071581e18,
+                8,
+                220_560.995409629063567992e18,
+                76.115486421041740634e18
             );
             assertEq(allLoans.v1_3.cooler, 0x566bf17ED32f523da1E5a9fdbb2f1758cc07e807);
             checkLoans(allLoans.v1_3.loans, 1, 208_211.721491567057993364e18, 71.853758324130290679e18);
             checkMonoCoolerLoan(allLoans.monoCooler, 0, 0);
-        }       
+        }
     }
 
     function test_getCoolerLoansFor_only_monocooler() public {
@@ -727,13 +683,19 @@ contract OrigamiCoolerMigratorTestView is OrigamiCoolerMigratorTestBase {
 
         {
             assertEq(allLoans.v1_1.cooler, OrigamiCoolerMigratorHelperLib.exampleCoolers()[0]);
-            checkLoans(allLoans.v1_1.loans, 0, 4_005_926.849041095888123900e18, 1_384.734748641889816562e18);
+            checkLoans(allLoans.v1_1.loans, 0, 4_005_926.8490410958881239e18, 1384.734748641889816562e18);
             assertEq(allLoans.v1_2.cooler, 0x803D2A6a07b2C21Be139cade478B391360180a40);
             checkLoans(
-                allLoans.v1_2.loans, 
-                3, 310_718.465899892561847471e18, 107.228783258101312741e18,
-                6, 207_846.451890498375927077e18, 71.727703972097071581e18,
-                8, 220_560.995409629063567992e18, 76.115486421041740634e18
+                allLoans.v1_2.loans,
+                3,
+                310_718.465899892561847471e18,
+                107.228783258101312741e18,
+                6,
+                207_846.451890498375927077e18,
+                71.727703972097071581e18,
+                8,
+                220_560.995409629063567992e18,
+                76.115486421041740634e18
             );
             assertEq(allLoans.v1_3.cooler, 0x566bf17ED32f523da1E5a9fdbb2f1758cc07e807);
             checkLoans(allLoans.v1_3.loans, 1, 208_211.721491567057993364e18, 71.853758324130290679e18);
@@ -777,7 +739,8 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         IOrigamiCoolerMigrator.AllCoolerLoansMigration memory allLoans;
         allLoans.migrateMonoCooler = true;
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(signer), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(signer), noDelegations());
 
         vm.startPrank(unauthorizedUser);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCoolerMigrator.InvalidOwner.selector));
@@ -792,7 +755,8 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         IOrigamiCoolerMigrator.AllCoolerLoansMigration memory allLoans;
         allLoans.migrateMonoCooler = true;
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(unauthorizedUser), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(unauthorizedUser), noDelegations());
 
         vm.startPrank(signer);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCoolerMigrator.InvalidAuth.selector));
@@ -801,7 +765,8 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
     function test_migrate_fail_nothingToMigrate() public {
         IOrigamiCoolerMigrator.AllCoolerLoansMigration memory allLoans;
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         mcParams.authorization.account = signer;
 
         vm.startPrank(signer);
@@ -817,18 +782,21 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         uint256 startingUsdsBalance = USDS.balanceOf(signer);
         assertEq(startingUsdsBalance, borrow);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = migrator.previewMigration(allLoans);
 
         uint256 expectedSurplus = mPreview.hOhmLiabilities - mPreview.totalUsdsDebt;
-        assertEq(expectedSurplus, 4_616.402628366802059173e18);
+        assertEq(expectedSurplus, 4616.402628366802059173e18);
 
         vm.startPrank(signer);
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
-        
+
         assertEq(monoCooler.accountDebt(signer), 0);
         assertEq(monoCooler.accountCollateral(signer), 0);
         assertEq(vault.balanceOf(signer), mPreview.hOhmShares);
@@ -845,7 +813,8 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         skip(365 days);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = migrator.previewMigration(allLoans);
 
@@ -854,9 +823,11 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         vm.startPrank(signer);
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
-        
+
         assertEq(monoCooler.accountDebt(signer), 0);
         assertEq(monoCooler.accountCollateral(signer), 0);
         assertEq(vault.balanceOf(signer), mPreview.hOhmShares);
@@ -873,21 +844,22 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         skip(365 days);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
-        
+
         // Need to DECREASE the USDS/hOHM in order to reduce the amount of liabilities received in join
         // To do that - a large donation can be made.
-        uint128 repaymentDonation = 1_000e18;
+        uint128 repaymentDonation = 1000e18;
         {
-            (, uint256[] memory liabilities) = vault.convertFromShares(1_000e18);
+            (, uint256[] memory liabilities) = vault.convertFromShares(1000e18);
             assertEq(liabilities[0], 11.055006294210855097e18);
             deal(address(USDS), alice, repaymentDonation);
             vm.startPrank(alice);
             USDS.approve(address(monoCooler), repaymentDonation);
             monoCooler.repay(repaymentDonation, address(manager));
 
-            (, liabilities) = vault.convertFromShares(1_000e18);
+            (, liabilities) = vault.convertFromShares(1000e18);
             assertEq(liabilities[0], 10.683590457039558112e18);
         }
 
@@ -900,13 +872,16 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         USDS.approve(address(migrator), expectedShortfall);
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
-        
+
         assertEq(monoCooler.accountDebt(signer), 0);
         assertEq(monoCooler.accountCollateral(signer), 0);
         assertEq(vault.balanceOf(signer), mPreview.hOhmShares); // Signer receives the shares
-        assertEq(USDS.balanceOf(signer), startingUsdsBalance - expectedShortfall); // Caller has to pay for the shortfall
+        assertEq(USDS.balanceOf(signer), startingUsdsBalance - expectedShortfall); // Caller has to pay for the
+        // shortfall
     }
 
     function test_migrate_v1_coolers_noPositions() public {
@@ -926,22 +901,14 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_fail_coolerv1_notExpectedLender() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
 
         ICooler.Loan memory mockLoan = ICooler(allLoans.v1_2.cooler).getLoan(6);
         mockLoan.lender = alice;
-        vm.mockCall(
-            allLoans.v1_2.cooler,
-            abi.encodeWithSelector(ICooler.getLoan.selector, 6),
-            abi.encode(mockLoan)
-        );
+        vm.mockCall(allLoans.v1_2.cooler, abi.encodeWithSelector(ICooler.getLoan.selector, 6), abi.encode(mockLoan));
 
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCoolerMigrator.InvalidLoanId.selector, allLoans.v1_2.cooler, 6));
@@ -949,22 +916,14 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_fail_coolerv1_fullyRepaid() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
 
         ICooler.Loan memory mockLoan = ICooler(allLoans.v1_2.cooler).getLoan(6);
         mockLoan.principal = 0;
-        vm.mockCall(
-            allLoans.v1_2.cooler,
-            abi.encodeWithSelector(ICooler.getLoan.selector, 6),
-            abi.encode(mockLoan)
-        );
+        vm.mockCall(allLoans.v1_2.cooler, abi.encodeWithSelector(ICooler.getLoan.selector, 6), abi.encode(mockLoan));
 
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCoolerMigrator.InvalidLoanId.selector, allLoans.v1_2.cooler, 6));
@@ -972,22 +931,14 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_fail_coolerv1_expired() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
 
         ICooler.Loan memory mockLoan = ICooler(allLoans.v1_2.cooler).getLoan(6);
         mockLoan.expiry = vm.getBlockTimestamp() - 1;
-        vm.mockCall(
-            allLoans.v1_2.cooler,
-            abi.encodeWithSelector(ICooler.getLoan.selector, 6),
-            abi.encode(mockLoan)
-        );
+        vm.mockCall(allLoans.v1_2.cooler, abi.encodeWithSelector(ICooler.getLoan.selector, 6), abi.encode(mockLoan));
 
         vm.startPrank(owner);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCoolerMigrator.InvalidLoanId.selector, allLoans.v1_2.cooler, 6));
@@ -995,11 +946,7 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_fail_coolerv1_outOfBounds() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1016,11 +963,7 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_fail_coolerv1_unhandledPanic() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1037,11 +980,7 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_fail_coolerv1_otherRevert() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1071,19 +1010,15 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_coolers_all() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = checkPreview({
-            allLoans: allLoans, 
-            totalDaiDebt: 4_745_052.762241115889466440e18, 
-            totalUsdsDebt: 233_211.735725422454293364e18, 
-            totalCollateral: 1_721.660480617260232197e18, 
-            hOhmShares: 463_539_867.801391144916720280e18, 
+            allLoans: allLoans,
+            totalDaiDebt: 4_745_052.76224111588946644e18,
+            totalUsdsDebt: 233_211.735725422454293364e18,
+            totalCollateral: 1721.660480617260232197e18,
+            hOhmShares: 463_539_867.80139114491672028e18,
             hOhmLiabilities: 5_098_941.448917460024292741e18
         });
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1093,24 +1028,29 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         vm.startPrank(owner);
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_711.660480617260232197e18 + 10e18);
+        assertEq(mPreview.totalCollateral, 1711.660480617260232197e18 + 10e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(owner, mPreview.totalDaiDebt + mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            owner,
+            mPreview.totalDaiDebt + mPreview.totalUsdsDebt,
+            mPreview.totalCollateral,
+            mPreview.hOhmShares,
+            mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
 
         _checkAllMigrated(owner, allLoans);
         assertEq(vault.balanceOf(owner), mPreview.hOhmShares);
-        assertEq(USDS.balanceOf(owner), startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt));
+        assertEq(
+            USDS.balanceOf(owner),
+            startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt)
+        );
     }
 
     function test_migrate_coolers_filtered() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
 
@@ -1132,11 +1072,11 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         }
 
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = checkPreview({
-            allLoans: filteredLoans, 
-            totalDaiDebt: 310_718.465899892561847471e18, 
-            totalUsdsDebt: 0, 
-            totalCollateral: 107.228783258101312741e18, 
-            hOhmShares: 28_870_277.604411197442386840e18, 
+            allLoans: filteredLoans,
+            totalDaiDebt: 310_718.465899892561847471e18,
+            totalUsdsDebt: 0,
+            totalCollateral: 107.228783258101312741e18,
+            hOhmShares: 28_870_277.60441119744238684e18,
             hOhmLiabilities: 317_573.234460080107646295e18
         });
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1150,20 +1090,25 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(owner, mPreview.totalDaiDebt + mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            owner,
+            mPreview.totalDaiDebt + mPreview.totalUsdsDebt,
+            mPreview.totalCollateral,
+            mPreview.hOhmShares,
+            mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(filteredLoans), mcParams, uncheckedSlippageParams());
 
         _checkAllMigrated(owner, filteredLoans);
         assertEq(vault.balanceOf(owner), mPreview.hOhmShares);
-        assertEq(USDS.balanceOf(owner), startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt));
+        assertEq(
+            USDS.balanceOf(owner),
+            startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt)
+        );
     }
 
     function test_migrate_coolers_monocooler_fail_delegations() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = migrator.previewMigration(allLoans);
@@ -1179,20 +1124,18 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         }
 
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_711.660480617260232197e18 + 10e18);
+        assertEq(mPreview.totalCollateral, 1711.660480617260232197e18 + 10e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         // Fails since no undelegations are added to the mcParams
-        vm.expectRevert(abi.encodeWithSelector(IDLGTEv1.DLGTE_ExceededUndelegatedBalance.selector, 10e18-3.3e18-5e18, 10e18));
+        vm.expectRevert(
+            abi.encodeWithSelector(IDLGTEv1.DLGTE_ExceededUndelegatedBalance.selector, 10e18 - 3.3e18 - 5e18, 10e18)
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
     }
 
     function test_migrate_coolers_monocooler_success_delegations_and_removed() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = migrator.previewMigration(allLoans);
@@ -1211,7 +1154,7 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         assertEq(startingBalance, 42_550.200548249380111327e18);
 
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_711.660480617260232197e18 + 10e18);
+        assertEq(mPreview.totalCollateral, 1711.660480617260232197e18 + 10e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         // Create the undelegation requests
@@ -1222,20 +1165,25 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         }
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(owner, mPreview.totalDaiDebt + mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            owner,
+            mPreview.totalDaiDebt + mPreview.totalUsdsDebt,
+            mPreview.totalCollateral,
+            mPreview.hOhmShares,
+            mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
 
         _checkAllMigrated(owner, allLoans);
         assertEq(vault.balanceOf(owner), mPreview.hOhmShares);
-        assertEq(USDS.balanceOf(owner), startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt));
+        assertEq(
+            USDS.balanceOf(owner),
+            startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt)
+        );
     }
 
     function test_migrate_fail_monocooler_zeroDebt() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(false);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(false);
 
         uint128 collateral = 10e18;
         uint128 borrow = 0;
@@ -1244,7 +1192,8 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         uint256 startingUsdsBalance = USDS.balanceOf(signer);
         assertEq(startingUsdsBalance, 0);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, v1_1Cooler);
         allLoans.v1_2.cooler = address(0);
         allLoans.v1_3.cooler = address(0);
@@ -1255,16 +1204,25 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         vm.startPrank(owner);
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_384.734748641889816562e18);
+        assertEq(mPreview.totalCollateral, 1384.734748641889816562e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(owner, mPreview.totalDaiDebt + mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            owner,
+            mPreview.totalDaiDebt + mPreview.totalUsdsDebt,
+            mPreview.totalCollateral,
+            mPreview.hOhmShares,
+            mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, uncheckedSlippageParams());
 
         _checkAllMigrated(owner, allLoans);
         assertEq(vault.balanceOf(owner), mPreview.hOhmShares);
-        assertEq(USDS.balanceOf(owner), startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt));
+        assertEq(
+            USDS.balanceOf(owner),
+            startingBalance + mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt)
+        );
     }
 
     function test_migrate_fail_monocooler_misMatchedDebtRepayment() public {
@@ -1272,14 +1230,11 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         uint128 borrow = 25_000e18;
         _addToMonoCooler(signer, collateral, borrow);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
 
-        vm.mockCall(
-            address(monoCooler),
-            abi.encodeWithSelector(IMonoCooler.repay.selector),
-            abi.encode(123)
-        );
+        vm.mockCall(address(monoCooler), abi.encodeWithSelector(IMonoCooler.repay.selector), abi.encode(123));
 
         vm.startPrank(signer);
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
@@ -1293,13 +1248,12 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         uint128 borrow = 25_000e18;
         _addToMonoCooler(signer, collateral, borrow);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
 
         vm.mockCall(
-            address(monoCooler),
-            abi.encodeWithSelector(IMonoCooler.withdrawCollateral.selector),
-            abi.encode(123)
+            address(monoCooler), abi.encodeWithSelector(IMonoCooler.withdrawCollateral.selector), abi.encode(123)
         );
 
         vm.startPrank(signer);
@@ -1310,19 +1264,15 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
     }
 
     function test_migrate_coolers_success_slippage_surplus() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = checkPreview({
-            allLoans: allLoans, 
-            totalDaiDebt: 4_745_052.762241115889466440e18, 
-            totalUsdsDebt: 233_211.735725422454293364e18, 
-            totalCollateral: 1_721.660480617260232197e18, 
-            hOhmShares: 463_539_867.801391144916720280e18, 
+            allLoans: allLoans,
+            totalDaiDebt: 4_745_052.76224111588946644e18,
+            totalUsdsDebt: 233_211.735725422454293364e18,
+            totalCollateral: 1721.660480617260232197e18,
+            hOhmShares: 463_539_867.80139114491672028e18,
             hOhmLiabilities: 5_098_941.448917460024292741e18
         });
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1332,35 +1282,35 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         vm.startPrank(owner);
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_711.660480617260232197e18 + 10e18);
+        assertEq(mPreview.totalCollateral, 1711.660480617260232197e18 + 10e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         uint256 expectedSurplus = mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt);
         IOrigamiCoolerMigrator.SlippageParams memory slippageParams = IOrigamiCoolerMigrator.SlippageParams({
-            minHohmShares: mPreview.hOhmShares,
-            minUsdsSurplus: expectedSurplus,
-            maxUsdsShortfall: 0
+            minHohmShares: mPreview.hOhmShares, minUsdsSurplus: expectedSurplus, maxUsdsShortfall: 0
         });
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(owner, mPreview.totalDaiDebt + mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            owner,
+            mPreview.totalDaiDebt + mPreview.totalUsdsDebt,
+            mPreview.totalCollateral,
+            mPreview.hOhmShares,
+            mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, slippageParams);
     }
 
     function test_migrate_coolers_fail_slippage_shares_surplus() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = checkPreview({
-            allLoans: allLoans, 
-            totalDaiDebt: 4_745_052.762241115889466440e18, 
-            totalUsdsDebt: 233_211.735725422454293364e18, 
-            totalCollateral: 1_721.660480617260232197e18, 
-            hOhmShares: 463_539_867.801391144916720280e18, 
+            allLoans: allLoans,
+            totalDaiDebt: 4_745_052.76224111588946644e18,
+            totalUsdsDebt: 233_211.735725422454293364e18,
+            totalCollateral: 1721.660480617260232197e18,
+            hOhmShares: 463_539_867.80139114491672028e18,
             hOhmLiabilities: 5_098_941.448917460024292741e18
         });
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1370,34 +1320,32 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         vm.startPrank(owner);
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_711.660480617260232197e18 + 10e18);
+        assertEq(mPreview.totalCollateral, 1711.660480617260232197e18 + 10e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         uint256 expectedSurplus = mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt);
         IOrigamiCoolerMigrator.SlippageParams memory slippageParams = IOrigamiCoolerMigrator.SlippageParams({
-            minHohmShares: mPreview.hOhmShares+1,
-            minUsdsSurplus: expectedSurplus,
-            maxUsdsShortfall: 0
+            minHohmShares: mPreview.hOhmShares + 1, minUsdsSurplus: expectedSurplus, maxUsdsShortfall: 0
         });
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, mPreview.hOhmShares+1, mPreview.hOhmShares));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommonEventsAndErrors.Slippage.selector, mPreview.hOhmShares + 1, mPreview.hOhmShares
+            )
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, slippageParams);
     }
 
     function test_migrate_coolers_fail_slippage_usds_surplus() public {
-        (
-            address owner,
-            address v1_1Cooler,
-            ,,,,
-        ) = setupAllCoolers(true);
+        (address owner, address v1_1Cooler,,,,,) = setupAllCoolers(true);
 
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(owner, v1_1Cooler);
         IOrigamiCoolerMigrator.MigrationPreview memory mPreview = checkPreview({
-            allLoans: allLoans, 
-            totalDaiDebt: 4_745_052.762241115889466440e18, 
-            totalUsdsDebt: 233_211.735725422454293364e18, 
-            totalCollateral: 1_721.660480617260232197e18, 
-            hOhmShares: 463_539_867.801391144916720280e18, 
+            allLoans: allLoans,
+            totalDaiDebt: 4_745_052.76224111588946644e18,
+            totalUsdsDebt: 233_211.735725422454293364e18,
+            totalCollateral: 1721.660480617260232197e18,
+            hOhmShares: 463_539_867.80139114491672028e18,
             hOhmLiabilities: 5_098_941.448917460024292741e18
         });
         IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams;
@@ -1407,17 +1355,17 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         vm.startPrank(owner);
         monoCooler.setAuthorization(address(migrator), uint96(vm.getBlockTimestamp() + 1 days));
-        assertEq(mPreview.totalCollateral, 1_711.660480617260232197e18 + 10e18);
+        assertEq(mPreview.totalCollateral, 1711.660480617260232197e18 + 10e18);
         gOHM.approve(address(migrator), mPreview.totalCollateral);
 
         uint256 expectedSurplus = mPreview.hOhmLiabilities - (mPreview.totalDaiDebt + mPreview.totalUsdsDebt);
         IOrigamiCoolerMigrator.SlippageParams memory slippageParams = IOrigamiCoolerMigrator.SlippageParams({
-            minHohmShares: mPreview.hOhmShares,
-            minUsdsSurplus: expectedSurplus + 1,
-            maxUsdsShortfall: 0
+            minHohmShares: mPreview.hOhmShares, minUsdsSurplus: expectedSurplus + 1, maxUsdsShortfall: 0
         });
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, expectedSurplus+1, expectedSurplus));
+        vm.expectRevert(
+            abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, expectedSurplus + 1, expectedSurplus)
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, slippageParams);
     }
 
@@ -1431,21 +1379,22 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         skip(365 days);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
-        
+
         // Need to DECREASE the USDS/hOHM in order to reduce the amount of liabilities received in join
         // To do that - a large donation can be made.
-        uint128 repaymentDonation = 1_000e18;
+        uint128 repaymentDonation = 1000e18;
         {
-            (, uint256[] memory liabilities) = vault.convertFromShares(1_000e18);
+            (, uint256[] memory liabilities) = vault.convertFromShares(1000e18);
             assertEq(liabilities[0], 11.055006294210855097e18);
             deal(address(USDS), alice, repaymentDonation);
             vm.startPrank(alice);
             USDS.approve(address(monoCooler), repaymentDonation);
             monoCooler.repay(repaymentDonation, address(manager));
 
-            (, liabilities) = vault.convertFromShares(1_000e18);
+            (, liabilities) = vault.convertFromShares(1000e18);
             assertEq(liabilities[0], 10.683590457039558112e18);
         }
 
@@ -1454,9 +1403,7 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         assertEq(expectedShortfall, repaymentDonation);
 
         IOrigamiCoolerMigrator.SlippageParams memory slippageParams = IOrigamiCoolerMigrator.SlippageParams({
-            minHohmShares: mPreview.hOhmShares,
-            minUsdsSurplus: 0,
-            maxUsdsShortfall: expectedShortfall
+            minHohmShares: mPreview.hOhmShares, minUsdsSurplus: 0, maxUsdsShortfall: expectedShortfall
         });
 
         // Signer needs to give approval for the shortfall
@@ -1464,13 +1411,16 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         USDS.approve(address(migrator), expectedShortfall);
 
         vm.expectEmit(address(migrator));
-        emit CoolerLoansMigrated(signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities);
+        emit CoolerLoansMigrated(
+            signer, mPreview.totalUsdsDebt, mPreview.totalCollateral, mPreview.hOhmShares, mPreview.hOhmLiabilities
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, slippageParams);
-        
+
         assertEq(monoCooler.accountDebt(signer), 0);
         assertEq(monoCooler.accountCollateral(signer), 0);
         assertEq(vault.balanceOf(signer), mPreview.hOhmShares); // Signer receives the shares
-        assertEq(USDS.balanceOf(signer), startingUsdsBalance - expectedShortfall); // Caller has to pay for the shortfall
+        assertEq(USDS.balanceOf(signer), startingUsdsBalance - expectedShortfall); // Caller has to pay for the
+        // shortfall
     }
 
     function test_migrate_coolers_fail_slippage_usds_shortfall() public {
@@ -1483,21 +1433,22 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
 
         skip(365 days);
 
-        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams = _createMonoCoolerMigrationParams(address(migrator), noDelegations());
+        IOrigamiCoolerMigrator.MonoCoolerMigration memory mcParams =
+            _createMonoCoolerMigrationParams(address(migrator), noDelegations());
         IOrigamiCoolerMigrator.AllCoolerLoansPreview memory allLoans = migrator.getCoolerLoansFor(signer, address(0));
-        
+
         // Need to DECREASE the USDS/hOHM in order to reduce the amount of liabilities received in join
         // To do that - a large donation can be made.
-        uint128 repaymentDonation = 1_000e18;
+        uint128 repaymentDonation = 1000e18;
         {
-            (, uint256[] memory liabilities) = vault.convertFromShares(1_000e18);
+            (, uint256[] memory liabilities) = vault.convertFromShares(1000e18);
             assertEq(liabilities[0], 11.055006294210855097e18);
             deal(address(USDS), alice, repaymentDonation);
             vm.startPrank(alice);
             USDS.approve(address(monoCooler), repaymentDonation);
             monoCooler.repay(repaymentDonation, address(manager));
 
-            (, liabilities) = vault.convertFromShares(1_000e18);
+            (, liabilities) = vault.convertFromShares(1000e18);
             assertEq(liabilities[0], 10.683590457039558112e18);
         }
 
@@ -1506,16 +1457,16 @@ contract OrigamiCoolerMigratorTest is OrigamiCoolerMigratorTestBase {
         assertEq(expectedShortfall, repaymentDonation);
 
         IOrigamiCoolerMigrator.SlippageParams memory slippageParams = IOrigamiCoolerMigrator.SlippageParams({
-            minHohmShares: mPreview.hOhmShares,
-            minUsdsSurplus: 0,
-            maxUsdsShortfall: expectedShortfall-1
+            minHohmShares: mPreview.hOhmShares, minUsdsSurplus: 0, maxUsdsShortfall: expectedShortfall - 1
         });
 
         // Signer needs to give approval for the shortfall
         vm.startPrank(signer);
         USDS.approve(address(migrator), expectedShortfall);
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, expectedShortfall-1, expectedShortfall));
+        vm.expectRevert(
+            abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, expectedShortfall - 1, expectedShortfall)
+        );
         migrator.migrate(_convertLoansForMigration(allLoans), mcParams, slippageParams);
     }
 }

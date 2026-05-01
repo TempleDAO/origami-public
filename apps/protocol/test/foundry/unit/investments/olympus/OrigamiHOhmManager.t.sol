@@ -55,7 +55,7 @@ contract OrigamiHOhmManagerTestBase is OrigamiTest {
     uint16 internal constant PERFORMANCE_FEE = 330; // 3.3%
     uint256 internal constant OHM_PER_GOHM = 269.24e18;
     uint40 internal constant DEFAULT_SWEEP_COOLDOWN = 1 days;
-    uint96 internal constant DEFAULT_SWEEP_MAX_SELL = 1_000e18;
+    uint96 internal constant DEFAULT_SWEEP_MAX_SELL = 1000e18;
 
     address internal immutable OTHERS = makeAddr("OTHERS");
 
@@ -78,7 +78,9 @@ contract OrigamiHOhmManagerTestBase is OrigamiTest {
         DLGTE = coolerContracts.DLGTE;
 
         vm.prank(origamiMultisig);
-        ltvOracle.setOriginationLtvAt(uint96(uint256(11.5e18) * OHM_PER_GOHM / 1e18), uint32(vm.getBlockTimestamp()) + 182.5 days);
+        ltvOracle.setOriginationLtvAt(
+            uint96(uint256(11.5e18) * OHM_PER_GOHM / 1e18), uint32(vm.getBlockTimestamp()) + 182.5 days
+        );
 
         deployVault();
 
@@ -86,21 +88,10 @@ contract OrigamiHOhmManagerTestBase is OrigamiTest {
     }
 
     function deployVault() internal {
-        vault = new OrigamiHOhmVault(
-            origamiMultisig, 
-            "Origami hOHM", 
-            "hOHM",
-            address(gOHM),
-            address(0)
-        );
+        vault = new OrigamiHOhmVault(origamiMultisig, "Origami hOHM", "hOHM", address(gOHM), address(0));
 
         manager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(sUSDS),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(sUSDS), PERFORMANCE_FEE, feeCollector
         );
 
         sweepSwapper = new OrigamiSwapperWithCallback(origamiMultisig);
@@ -126,11 +117,8 @@ contract OrigamiHOhmManagerTestBase is OrigamiTest {
         address expectedDelegate,
         uint256 expectedDelegatedCollateral
     ) internal view {
-        (
-            uint256 totalCollateral,
-            address delegateAddress,
-            uint256 delegatedCollateral
-        ) = manager.accountDelegationBalances(account, shares, totalSupply);
+        (uint256 totalCollateral, address delegateAddress, uint256 delegatedCollateral) =
+            manager.accountDelegationBalances(account, shares, totalSupply);
         assertEq(totalCollateral, expectedTotalCollateral, "accountDelegationBalances::totalCollateral");
         assertEq(delegateAddress, expectedDelegate, "accountDelegationBalances::delegateAddress");
         assertEq(delegatedCollateral, expectedDelegatedCollateral, "accountDelegationBalances::delegatedCollateral");
@@ -142,16 +130,16 @@ contract OrigamiHOhmManagerTestBase is OrigamiTest {
         uint256 expectedNumAddresses,
         uint256 epectedMaxAddresses
     ) internal view {
-        (
-            uint256 totalGOhm,
-            uint256 delegatedGOhm,
-            uint256 numDelegateAddresses,
-            uint256 maxAllowedDelegateAddresses
-        ) = DLGTE.accountDelegationSummary(address(manager));
+        (uint256 totalGOhm, uint256 delegatedGOhm, uint256 numDelegateAddresses, uint256 maxAllowedDelegateAddresses) =
+            DLGTE.accountDelegationSummary(address(manager));
         assertEq(totalGOhm, expectedTotalGohm, "DLGTE.accountDelegationSummary::totalGOhm");
         assertEq(delegatedGOhm, expectedDelegatedGohm, "DLGTE.accountDelegationSummary::delegatedGOhm");
         assertEq(numDelegateAddresses, expectedNumAddresses, "DLGTE.accountDelegationSummary::numDelegateAddresses");
-        assertEq(maxAllowedDelegateAddresses, epectedMaxAddresses, "DLGTE.accountDelegationSummary::maxAllowedDelegateAddresses");
+        assertEq(
+            maxAllowedDelegateAddresses,
+            epectedMaxAddresses,
+            "DLGTE.accountDelegationSummary::maxAllowedDelegateAddresses"
+        );
     }
 }
 
@@ -168,12 +156,7 @@ contract OrigamiHOhmManagerTestAdmin is OrigamiHOhmManagerTestBase {
 
     function test_initialization() public {
         manager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(sUSDS),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(sUSDS), PERFORMANCE_FEE, feeCollector
         );
 
         assertEq(manager.owner(), origamiMultisig);
@@ -194,7 +177,7 @@ contract OrigamiHOhmManagerTestAdmin is OrigamiHOhmManagerTestBase {
         assertEq(gOHM.allowance(address(manager), address(cooler)), type(uint256).max);
         assertEq(USDS.allowance(address(manager), address(cooler)), type(uint256).max);
         assertEq(USDS.allowance(address(manager), address(sUSDS)), type(uint256).max);
-        
+
         assertEq(manager.areJoinsPaused(), false);
         assertEq(manager.areExitsPaused(), false);
         assertEq(manager.debtTokenBalance(), 0);
@@ -208,33 +191,17 @@ contract OrigamiHOhmManagerTestAdmin is OrigamiHOhmManagerTestBase {
     }
 
     function test_constructor_fail_decimals() public {
-        vm.mockCall(
-            address(USDS),
-            abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-            abi.encode(19)
-        );
+        vm.mockCall(address(USDS), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(19));
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, address(USDS)));
         new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(sUSDS),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(sUSDS), PERFORMANCE_FEE, feeCollector
         );
     }
 
     function test_constructor_fail_feeBps() public {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
-        new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(sUSDS),
-            331,
-            feeCollector
-        );
+        new OrigamiHOhmManager(origamiMultisig, address(vault), address(cooler), address(sUSDS), 331, feeCollector);
     }
 
     function test_constructor_fail_badSavings() public {
@@ -242,28 +209,14 @@ contract OrigamiHOhmManagerTestAdmin is OrigamiHOhmManagerTestBase {
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, address(badSavings)));
         new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(badSavings),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(badSavings), PERFORMANCE_FEE, feeCollector
         );
     }
 
     function test_constructor_noSavings() public {
-        vm.mockCall(
-            address(cooler),
-            abi.encodeWithSelector(IMonoCooler.debtToken.selector),
-            abi.encode(address(USDC))
-        );
+        vm.mockCall(address(cooler), abi.encodeWithSelector(IMonoCooler.debtToken.selector), abi.encode(address(USDC)));
         manager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(0),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(0), PERFORMANCE_FEE, feeCollector
         );
 
         assertEq(address(manager.debtToken()), address(USDC));
@@ -397,7 +350,7 @@ contract OrigamiHOhmManagerTestAdmin is OrigamiHOhmManagerTestBase {
         manager.setPaused(IOrigamiManagerPausable.Paused(true, true));
 
         manager.setDebtTokenFromCooler(address(0));
-        
+
         MockSUsdsToken newSavings = new MockSUsdsToken(USDS);
 
         vm.expectEmit(address(manager));
@@ -419,7 +372,7 @@ contract OrigamiHOhmManagerTestAdmin is OrigamiHOhmManagerTestBase {
         vm.expectEmit(address(manager));
         emit DebtTokenSet(address(USDS), address(0));
         manager.setDebtTokenFromCooler(address(0));
-        
+
         assertEq(address(manager.debtToken()), address(USDS));
         assertEq(address(manager.debtTokenSavingsVault()), address(0));
         assertEq(USDS.allowance(address(manager), address(cooler)), type(uint256).max);
@@ -500,12 +453,12 @@ contract OrigamiHOhmManagerTestAccess is OrigamiHOhmManagerTestBase {
         expectElevatedAccess();
         manager.setSweepParams(123, 123);
     }
-    
+
     function test_setSweepSwapper_access() public {
         expectElevatedAccess();
         manager.setSweepSwapper(alice);
     }
-    
+
     function test_setPerformanceFeesBps_access() public {
         expectElevatedAccess();
         manager.setPerformanceFeesBps(123);
@@ -520,22 +473,22 @@ contract OrigamiHOhmManagerTestAccess is OrigamiHOhmManagerTestBase {
         expectElevatedAccess();
         manager.setDebtTokenFromCooler(alice);
     }
-    
+
     function test_recoverToken_access() public {
         expectElevatedAccess();
         manager.recoverToken(alice, alice, 123);
     }
-    
+
     function test_syncDebtTokenSavings_access() public {
         expectElevatedAccess();
         manager.syncDebtTokenSavings(123);
     }
-    
+
     function test_sweep_access() public {
         expectElevatedAccess();
         manager.sweep(123, bytes(""));
     }
-    
+
     function test_join_access() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
@@ -545,7 +498,7 @@ contract OrigamiHOhmManagerTestAccess is OrigamiHOhmManagerTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         manager.join(123, 123, alice, 1, 0);
     }
-    
+
     function test_exit_access() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
@@ -555,17 +508,17 @@ contract OrigamiHOhmManagerTestAccess is OrigamiHOhmManagerTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         manager.exit(123, 123, alice, alice, 1, 0);
     }
-    
+
     function test_updateDelegateAndAmount_access() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         manager.updateDelegateAndAmount(alice, 123, 123, alice);
-        
+
         vm.prank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         manager.updateDelegateAndAmount(alice, 123, 123, alice);
     }
-    
+
     function test_setDelegationAmount1_access() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
@@ -575,7 +528,7 @@ contract OrigamiHOhmManagerTestAccess is OrigamiHOhmManagerTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         manager.setDelegationAmount1(alice, 123, 123);
     }
-    
+
     function test_setDelegationAmount2_access() public {
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
@@ -590,12 +543,7 @@ contract OrigamiHOhmManagerTestAccess is OrigamiHOhmManagerTestBase {
 contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
     function test_syncDebtTokenSavings_savingsNotSet() public {
         manager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(0),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(0), PERFORMANCE_FEE, feeCollector
         );
 
         vm.startPrank(origamiMultisig);
@@ -612,16 +560,14 @@ contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
         skip(365 days);
         manager.syncDebtTokenSavings(33e18);
         assertEq(USDS.balanceOf(address(manager)), 33e18);
-        assertEq(sUSDS.balanceOf(address(manager)), 60.909090909090909090e18);
+        assertEq(sUSDS.balanceOf(address(manager)), 60.90909090909090909e18);
 
         assertEq(manager.surplusDebtTokenAmount(), 100e18 - 1);
     }
 
     function test_syncDebtTokenSavings_deposit_zeroMaxDeposit() public {
         vm.mockCall(
-            address(sUSDS),
-            abi.encodeWithSelector(IERC4626.maxDeposit.selector, address(manager)),
-            abi.encode(0)
+            address(sUSDS), abi.encodeWithSelector(IERC4626.maxDeposit.selector, address(manager)), abi.encode(0)
         );
 
         vm.startPrank(origamiMultisig);
@@ -638,9 +584,7 @@ contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
 
     function test_syncDebtTokenSavings_deposit_smallMaxDeposit() public {
         vm.mockCall(
-            address(sUSDS),
-            abi.encodeWithSelector(IERC4626.maxDeposit.selector, address(manager)),
-            abi.encode(1e18)
+            address(sUSDS), abi.encodeWithSelector(IERC4626.maxDeposit.selector, address(manager)), abi.encode(1e18)
         );
 
         vm.startPrank(origamiMultisig);
@@ -650,7 +594,7 @@ contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
         skip(365 days);
         manager.syncDebtTokenSavings(33e18);
         assertEq(USDS.balanceOf(address(manager)), 100e18 - 1e18);
-        assertEq(sUSDS.balanceOf(address(manager)), 0.909090909090909090e18);
+        assertEq(sUSDS.balanceOf(address(manager)), 0.90909090909090909e18);
 
         assertEq(manager.surplusDebtTokenAmount(), 100e18 - 1);
     }
@@ -672,9 +616,7 @@ contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
 
     function test_syncDebtTokenSavings_withdraw_zeroMaxWithdraw() public {
         vm.mockCall(
-            address(sUSDS),
-            abi.encodeWithSelector(IERC4626.maxWithdraw.selector, address(manager)),
-            abi.encode(0)
+            address(sUSDS), abi.encodeWithSelector(IERC4626.maxWithdraw.selector, address(manager)), abi.encode(0)
         );
 
         vm.startPrank(origamiMultisig);
@@ -693,9 +635,7 @@ contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
 
     function test_syncDebtTokenSavings_withdraw_smallMaxWithdraw() public {
         vm.mockCall(
-            address(sUSDS),
-            abi.encodeWithSelector(IERC4626.maxWithdraw.selector, address(manager)),
-            abi.encode(1e18)
+            address(sUSDS), abi.encodeWithSelector(IERC4626.maxWithdraw.selector, address(manager)), abi.encode(1e18)
         );
 
         vm.startPrank(origamiMultisig);
@@ -721,7 +661,7 @@ contract OrigamiHOhmManagerTestSavings is OrigamiHOhmManagerTestBase {
         skip(365 days);
         assertEq(manager.surplusDebtTokenAmount(), 143e18);
         manager.syncDebtTokenSavings(33e18);
-        
+
         assertEq(USDS.balanceOf(address(manager)), 33e18);
         assertEq(sUSDS.balanceOf(address(manager)), 100e18);
         assertEq(manager.surplusDebtTokenAmount(), 143e18);
@@ -759,7 +699,7 @@ contract OrigamiHOhmManagerTestSweep is OrigamiHOhmManagerTestBase {
         vm.expectRevert(abi.encodeWithSelector(IOrigamiHOhmManager.BeforeCooldownEnd.selector));
         manager.sweep(33e18, encodedRouteData);
 
-        skip(DEFAULT_SWEEP_COOLDOWN-1);
+        skip(DEFAULT_SWEEP_COOLDOWN - 1);
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiHOhmManager.BeforeCooldownEnd.selector));
         manager.sweep(33e18, encodedRouteData);
@@ -859,8 +799,8 @@ contract OrigamiHOhmManagerTestSweep is OrigamiHOhmManagerTestBase {
         vm.expectEmit(address(manager));
         emit SweepFinished(1, 1);
         manager.swapCallback();
-        assertEq(vault.balanceOf(feeCollector), 1+1);
-        assertEq(vault.totalSupply(), supplyBefore-1);
+        assertEq(vault.balanceOf(feeCollector), 1 + 1);
+        assertEq(vault.totalSupply(), supplyBefore - 1);
     }
 }
 
@@ -921,7 +861,7 @@ contract OrigamiHOhmManagerMaxBorrow is OrigamiHOhmManagerTestBase {
         assertEq(manager.collateralTokenBalance(), 10e18);
         assertEq(manager.coolerDebtInWad(), 0);
 
-        USDS.mint(address(manager), 3_300e18);
+        USDS.mint(address(manager), 3300e18);
 
         assertEq(manager.maxBorrowFromCooler(), 29_616.4e18);
         assertEq(manager.coolerDebtInWad(), 29_616.4e18);
@@ -967,10 +907,10 @@ contract OrigamiHOhmManagerMaxBorrow is OrigamiHOhmManagerTestBase {
         assertEq(manager.maxBorrowFromCooler(), 29_616.4e18);
 
         skip(90 days);
-        
+
         // Call again - since the LTV has increased (drip) we can borrow more
-        assertEq(manager.maxBorrowFromCooler(), 627.434657077012722000e18);
-        assertEq(manager.coolerDebtInWad(), 30_280.279452054734080000e18); // USDS
+        assertEq(manager.maxBorrowFromCooler(), 627.434657077012722e18);
+        assertEq(manager.coolerDebtInWad(), 30_280.27945205473408e18); // USDS
         // USDS - we've got some extra surplus from interest
         assertEq(manager.surplusDebtTokenAmount(), 30_974.102054337286694602e18);
         assertEq(sUSDS.balanceOf(address(manager)), 30_228.735962120614020133e18); // sUSDS
@@ -1005,7 +945,7 @@ contract OrigamiHOhmManagerMaxBorrow is OrigamiHOhmManagerTestBase {
         vm.startPrank(origamiMultisig);
         sUSDS.setInterestRate(0.01e18); // 1% yield
         cooler.setInterestRateWad(0.1e18); // 10% instead of only 0.5%
-        
+
         gOHM.mint(origamiMultisig, 10e18);
         gOHM.approve(address(cooler), 10e18);
         cooler.addCollateral(10e18, address(manager), new IDLGTEv1.DelegationRequest[](0));
@@ -1016,11 +956,11 @@ contract OrigamiHOhmManagerMaxBorrow is OrigamiHOhmManagerTestBase {
 
         {
             assertEq(manager.coolerDebtInWad(), 30_355.745152058925578989e18);
-            assertEq(manager.surplusDebtTokenAmount(), 29_689.426739726027397260e18);
+            assertEq(manager.surplusDebtTokenAmount(), 29_689.42673972602739726e18);
 
             assertEq(sUSDS.balanceOf(address(manager)), 29_616.4e18);
             assertEq(manager.debtTokenBalance(), 666.318412332898181729e18);
-            assertEq(manager.debtTokenBalance(), manager.coolerDebtInWad()-manager.surplusDebtTokenAmount());
+            assertEq(manager.debtTokenBalance(), manager.coolerDebtInWad() - manager.surplusDebtTokenAmount());
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1032,12 +972,12 @@ contract OrigamiHOhmManagerMaxBorrow is OrigamiHOhmManagerTestBase {
         assertEq(manager.maxBorrowFromCooler(), -int256(expectedRepayAmount));
 
         {
-            assertEq(manager.coolerDebtInWad(), 30_355.745152058925578989e18-expectedRepayAmount);
-            assertEq(manager.surplusDebtTokenAmount(), 29_689.426739726027397260e18-expectedRepayAmount);
+            assertEq(manager.coolerDebtInWad(), 30_355.745152058925578989e18 - expectedRepayAmount);
+            assertEq(manager.surplusDebtTokenAmount(), 29_689.42673972602739726e18 - expectedRepayAmount);
 
             assertEq(sUSDS.balanceOf(address(manager)), 29_541.119922105684894422e18);
             assertEq(manager.debtTokenBalance(), 666.318412332898181729e18);
-            assertEq(manager.debtTokenBalance(), manager.coolerDebtInWad()-manager.surplusDebtTokenAmount());
+            assertEq(manager.debtTokenBalance(), manager.coolerDebtInWad() - manager.surplusDebtTokenAmount());
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1053,28 +993,28 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(true, false));
-        
+
         // Checking if paused is handled in the vault itself
         gOHM.mint(address(manager), 10e18);
         vm.startPrank(address(vault));
-        manager.join(10e18, 3_300e18, alice, 1, 1);
+        manager.join(10e18, 3300e18, alice, 1, 1);
     }
 
     function test_join_fail_notEnough() public {
         vm.startPrank(address(vault));
-        
+
         uint256 collateralAmount = 10e18;
-        uint256 debtAmount = 3_300e18;
-        gOHM.mint(address(manager), collateralAmount-1);
+        uint256 debtAmount = 3300e18;
+        gOHM.mint(address(manager), collateralAmount - 1);
         vm.expectRevert("ERC20: transfer amount exceeds balance");
         manager.join(collateralAmount, debtAmount, alice, 1, 0);
     }
 
     function test_join_withBorrow_fresh() public {
         vm.startPrank(address(vault));
-        
+
         uint256 collateralAmount = 10e18;
-        uint256 debtAmount = 3_300e18;
+        uint256 debtAmount = 3300e18;
         int256 expectedCoolerDebtDelta = 29_616.4e18;
         gOHM.mint(address(manager), collateralAmount);
         vm.expectEmit(address(manager));
@@ -1099,24 +1039,24 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
         vm.startPrank(address(vault));
 
         uint256 collateralAmount = 10e18;
-        uint256 debtAmount = 3_300e18;
+        uint256 debtAmount = 3300e18;
         gOHM.mint(address(manager), collateralAmount);
         manager.join(collateralAmount, debtAmount, alice, 1, 0);
 
-        // And again        
+        // And again
         int256 expectedCoolerDebtDelta = 29_616.4e18;
         gOHM.mint(address(manager), collateralAmount);
         vm.expectEmit(address(manager));
         emit Join(collateralAmount, debtAmount, alice, expectedCoolerDebtDelta);
         manager.join(collateralAmount, debtAmount, alice, 1, 0);
-        assertEq(USDS.balanceOf(alice), 2*debtAmount);
+        assertEq(USDS.balanceOf(alice), 2 * debtAmount);
 
         {
-            assertEq(manager.coolerDebtInWad(), 2*uint256(expectedCoolerDebtDelta));
-            assertEq(manager.surplusDebtTokenAmount(), 2*(uint256(expectedCoolerDebtDelta) - debtAmount));
+            assertEq(manager.coolerDebtInWad(), 2 * uint256(expectedCoolerDebtDelta));
+            assertEq(manager.surplusDebtTokenAmount(), 2 * (uint256(expectedCoolerDebtDelta) - debtAmount));
 
-            assertEq(sUSDS.balanceOf(address(manager)), 2*(uint256(expectedCoolerDebtDelta) - debtAmount));
-            assertEq(manager.debtTokenBalance(), 2*debtAmount);
+            assertEq(sUSDS.balanceOf(address(manager)), 2 * (uint256(expectedCoolerDebtDelta) - debtAmount));
+            assertEq(manager.debtTokenBalance(), 2 * debtAmount);
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1131,7 +1071,7 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
 
         vm.startPrank(address(vault));
         uint256 collateralAmount = 10e18;
-        uint256 debtAmount = 3_300e18;
+        uint256 debtAmount = 3300e18;
         int256 expectedCoolerDebtDelta = 29_616.4e18;
         gOHM.mint(address(manager), collateralAmount);
         manager.join(collateralAmount, debtAmount, alice, 1, 0);
@@ -1147,7 +1087,7 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
         uint256 surplusAfterSkip = manager.surplusDebtTokenAmount();
         uint256 accruedSavingsInterest = surplusAfterSkip - (uint256(expectedCoolerDebtDelta) - debtAmount);
         assertEq(accruedSavingsInterest, 64.889753424657534246e18);
-      
+
         // Now add a little collateral and it should have to repay
         uint256 collateralAmount2 = 0.01e18;
         uint256 debtAmount2 = 300e18;
@@ -1157,14 +1097,16 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
         vm.expectEmit(address(manager));
         emit Join(collateralAmount2, debtAmount2, alice, expectedCoolerDebtDelta2);
         manager.join(collateralAmount2, debtAmount2, alice, 1, 0);
-        assertEq(USDS.balanceOf(alice), debtAmount+debtAmount2);
+        assertEq(USDS.balanceOf(alice), debtAmount + debtAmount2);
 
         {
             uint256 expectedDebt = uint256(expectedCoolerDebtDelta + expectedCoolerDebtDelta2) + accruedDebtInterest;
             assertEq(manager.coolerDebtInWad(), expectedDebt);
             uint256 newSurplus = manager.surplusDebtTokenAmount();
             assertEq(newSurplus, surplusAfterSkip - uint256(-expectedCoolerDebtDelta2) - debtAmount2);
-            assertEq(manager.debtTokenBalance(), debtAmount + debtAmount2 + (accruedDebtInterest - accruedSavingsInterest));
+            assertEq(
+                manager.debtTokenBalance(), debtAmount + debtAmount2 + (accruedDebtInterest - accruedSavingsInterest)
+            );
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1180,17 +1122,17 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
         check_dlgteSummary(0, 0, 0, 10);
 
         uint256 collateralAmount = 10e18;
-        uint256 debtAmount = 3_300e18;
+        uint256 debtAmount = 3300e18;
         int256 expectedCoolerDebtDelta = 29_616.4e18;
         gOHM.mint(address(manager), collateralAmount);
         vm.expectEmit(address(manager));
-        emit DelegationApplied(alice, bob, int256(collateralAmount/4));
+        emit DelegationApplied(alice, bob, int256(collateralAmount / 4));
         vm.expectEmit(address(manager));
         emit Join(collateralAmount, debtAmount, alice, expectedCoolerDebtDelta);
         manager.join(collateralAmount, debtAmount, alice, 25e18, 100e18);
 
-        check_accountDelegationBalances(alice, 250, 1000, collateralAmount/4, bob, collateralAmount/4);
-        check_dlgteSummary(collateralAmount, collateralAmount/4, 1, 10);
+        check_accountDelegationBalances(alice, 250, 1000, collateralAmount / 4, bob, collateralAmount / 4);
+        check_dlgteSummary(collateralAmount, collateralAmount / 4, 1, 10);
     }
 
     function test_join_withDelegate_underThreshold() public {
@@ -1198,7 +1140,7 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
 
         // Join on behalf of origamiMultisig first
         gOHM.mint(address(manager), 10e18);
-        manager.join(10e18, 3_300e18, origamiMultisig, 100e18, 100e18);
+        manager.join(10e18, 3300e18, origamiMultisig, 100e18, 100e18);
 
         manager.updateDelegateAndAmount(alice, 0, 1, bob);
         check_accountDelegationBalances(alice, 0, 1, 0, bob, 0);
@@ -1210,9 +1152,9 @@ contract OrigamiHOhmManagerJoin is OrigamiHOhmManagerTestBase {
         gOHM.mint(address(manager), collateralAmount);
         vm.expectEmit(address(manager));
         emit Join(collateralAmount, debtAmount, alice, expectedCoolerDebtDelta);
-        manager.join(collateralAmount, debtAmount, alice, 0.01e18, 10e18+0.01e18);
+        manager.join(collateralAmount, debtAmount, alice, 0.01e18, 10e18 + 0.01e18);
 
-        check_accountDelegationBalances(alice, 0.01e18, 10e18+0.01e18, 0.01e18, bob, 0);
+        check_accountDelegationBalances(alice, 0.01e18, 10e18 + 0.01e18, 0.01e18, bob, 0);
         check_dlgteSummary(10e18 + collateralAmount, 0, 0, 10);
     }
 }
@@ -1229,25 +1171,25 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(false, true));
-        
+
         vm.startPrank(address(vault));
-        _join(10e18, 3_300e18);
+        _join(10e18, 3300e18);
 
         // Checking if paused is handled in the vault itself
-        manager.exit(1e18, 1_000e18, alice, alice, 1, 1);
+        manager.exit(1e18, 1000e18, alice, alice, 1, 1);
     }
 
     function test_exit_withRepay_fresh() public {
         vm.startPrank(address(vault));
-        
+
         uint256 joinCollateralAmount = 10e18;
-        uint256 joinDebtAmount = 3_300e18;
+        uint256 joinDebtAmount = 3300e18;
         int256 expectedJoinCoolerDebtDelta = 29_616.4e18;
         _join(joinCollateralAmount, joinDebtAmount);
 
         uint256 exitCollateralAmount = 2e18;
-        uint256 exitDebtAmount = 1_000e18;
-        int256 expectedExitCoolerDebtDelta = -5_923.28e18;
+        uint256 exitDebtAmount = 1000e18;
+        int256 expectedExitCoolerDebtDelta = -5923.28e18;
         USDS.mint(address(manager), exitDebtAmount);
         vm.expectEmit(address(manager));
         emit Exit(exitCollateralAmount, exitDebtAmount, alice, expectedExitCoolerDebtDelta);
@@ -1256,10 +1198,16 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
 
         {
             assertEq(manager.coolerDebtInWad(), uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta));
-            assertEq(manager.surplusDebtTokenAmount(), uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta) - (joinDebtAmount-exitDebtAmount));
+            assertEq(
+                manager.surplusDebtTokenAmount(),
+                uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta) - (joinDebtAmount - exitDebtAmount)
+            );
 
-            assertEq(sUSDS.balanceOf(address(manager)), uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta) - (joinDebtAmount-exitDebtAmount));
-            assertEq(manager.debtTokenBalance(), joinDebtAmount-exitDebtAmount);
+            assertEq(
+                sUSDS.balanceOf(address(manager)),
+                uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta) - (joinDebtAmount - exitDebtAmount)
+            );
+            assertEq(manager.debtTokenBalance(), joinDebtAmount - exitDebtAmount);
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1269,15 +1217,15 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
 
     function test_exit_withRepay_existing() public {
         vm.startPrank(address(vault));
-        
+
         uint256 joinCollateralAmount = 10e18;
-        uint256 joinDebtAmount = 3_300e18;
+        uint256 joinDebtAmount = 3300e18;
         int256 expectedJoinCoolerDebtDelta = 29_616.4e18;
         _join(joinCollateralAmount, joinDebtAmount);
 
         uint256 exitCollateralAmount = 2e18;
-        uint256 exitDebtAmount = 1_000e18;
-        int256 expectedExitCoolerDebtDelta = -5_923.28e18;
+        uint256 exitDebtAmount = 1000e18;
+        int256 expectedExitCoolerDebtDelta = -5923.28e18;
         USDS.mint(address(manager), exitDebtAmount);
         manager.exit(exitCollateralAmount, exitDebtAmount, alice, alice, 1, 0);
 
@@ -1286,11 +1234,19 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
         manager.exit(exitCollateralAmount, exitDebtAmount, alice, alice, 1, 0);
 
         {
-            assertEq(manager.coolerDebtInWad(), uint256(expectedJoinCoolerDebtDelta + 2*expectedExitCoolerDebtDelta));
-            assertEq(manager.surplusDebtTokenAmount(), uint256(expectedJoinCoolerDebtDelta + 2*expectedExitCoolerDebtDelta) - (joinDebtAmount-2*exitDebtAmount));
+            assertEq(manager.coolerDebtInWad(), uint256(expectedJoinCoolerDebtDelta + 2 * expectedExitCoolerDebtDelta));
+            assertEq(
+                manager.surplusDebtTokenAmount(),
+                uint256(expectedJoinCoolerDebtDelta + 2 * expectedExitCoolerDebtDelta)
+                    - (joinDebtAmount - 2 * exitDebtAmount)
+            );
 
-            assertEq(sUSDS.balanceOf(address(manager)), uint256(expectedJoinCoolerDebtDelta + 2*expectedExitCoolerDebtDelta) - (joinDebtAmount-2*exitDebtAmount));
-            assertEq(manager.debtTokenBalance(), joinDebtAmount-2*exitDebtAmount);
+            assertEq(
+                sUSDS.balanceOf(address(manager)),
+                uint256(expectedJoinCoolerDebtDelta + 2 * expectedExitCoolerDebtDelta)
+                    - (joinDebtAmount - 2 * exitDebtAmount)
+            );
+            assertEq(manager.debtTokenBalance(), joinDebtAmount - 2 * exitDebtAmount);
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1300,9 +1256,9 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
 
     function test_exit_withBorrow() public {
         vm.startPrank(address(vault));
-        
+
         uint256 joinCollateralAmount = 10e18;
-        uint256 joinDebtAmount = 3_300e18;
+        uint256 joinDebtAmount = 3300e18;
         int256 expectedJoinCoolerDebtDelta = 29_616.4e18;
         _join(joinCollateralAmount, joinDebtAmount);
 
@@ -1311,25 +1267,29 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
         // Now accrued more debt than savings
         // and also more than the LTV oracle increase would allow.
         uint256 accruedDebtInterest = manager.coolerDebtInWad() - uint256(expectedJoinCoolerDebtDelta);
-        assertEq(accruedDebtInterest, 36.444794977721358000e18);
+        assertEq(accruedDebtInterest, 36.444794977721358e18);
         uint256 surplusAfterSkip = manager.surplusDebtTokenAmount();
         uint256 accruedSavingsInterest = surplusAfterSkip - (uint256(expectedJoinCoolerDebtDelta) - joinDebtAmount);
         assertEq(accruedSavingsInterest, 648.897534246575342465e18);
-      
+
         uint256 exitCollateralAmount = 0.01e18;
-        uint256 exitDebtAmount = 1_000e18;
-        int256 expectedExitCoolerDebtDelta = 597.154377624957987920e18;
+        uint256 exitDebtAmount = 1000e18;
+        int256 expectedExitCoolerDebtDelta = 597.15437762495798792e18;
         USDS.mint(address(manager), exitDebtAmount);
         vm.expectEmit(address(manager));
         emit Exit(exitCollateralAmount, exitDebtAmount, alice, expectedExitCoolerDebtDelta);
         manager.exit(exitCollateralAmount, exitDebtAmount, alice, alice, 1, 0);
 
         {
-            uint256 expectedDebt = uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta) + accruedDebtInterest;
+            uint256 expectedDebt =
+                uint256(expectedJoinCoolerDebtDelta + expectedExitCoolerDebtDelta) + accruedDebtInterest;
             assertEq(manager.coolerDebtInWad(), expectedDebt);
             uint256 newSurplus = manager.surplusDebtTokenAmount();
             assertEq(newSurplus, surplusAfterSkip + uint256(expectedExitCoolerDebtDelta) + exitDebtAmount);
-            assertEq(manager.debtTokenBalance(), joinDebtAmount + accruedDebtInterest - accruedSavingsInterest - exitDebtAmount);
+            assertEq(
+                manager.debtTokenBalance(),
+                joinDebtAmount + accruedDebtInterest - accruedSavingsInterest - exitDebtAmount
+            );
 
             IMonoCooler.AccountPosition memory position = cooler.accountPosition(address(manager));
             (uint96 oltv,) = cooler.loanToValues();
@@ -1341,29 +1301,29 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
         vm.startPrank(address(vault));
 
         uint256 joinCollateralAmount = 10e18;
-        uint256 joinDebtAmount = 3_300e18;
+        uint256 joinDebtAmount = 3300e18;
         _join(joinCollateralAmount, joinDebtAmount);
         assertEq(manager.collateralTokenBalance(), 10e18);
-        
+
         vm.expectEmit(address(manager));
-        emit DelegationApplied(alice, bob, int256(joinCollateralAmount*75/100)); // delegated 7.5e18
+        emit DelegationApplied(alice, bob, int256(joinCollateralAmount * 75 / 100)); // delegated 7.5e18
         manager.updateDelegateAndAmount(alice, 75, 100, bob);
-        check_accountDelegationBalances(alice, 3, 4, joinCollateralAmount*3/4, bob, joinCollateralAmount*3/4);
-        check_dlgteSummary(joinCollateralAmount, joinCollateralAmount*3/4, 1, 10);
+        check_accountDelegationBalances(alice, 3, 4, joinCollateralAmount * 3 / 4, bob, joinCollateralAmount * 3 / 4);
+        check_dlgteSummary(joinCollateralAmount, joinCollateralAmount * 3 / 4, 1, 10);
 
         uint256 exitCollateralAmount = 2.5e18;
-        uint256 exitDebtAmount = 1_000e18;
-        int256 expectedExitCoolerDebtDelta = -7_404.1e18;
+        uint256 exitDebtAmount = 1000e18;
+        int256 expectedExitCoolerDebtDelta = -7404.1e18;
         USDS.mint(address(manager), exitDebtAmount);
         vm.expectEmit(address(manager));
         emit DelegationApplied(alice, bob, -int256(exitCollateralAmount));
         vm.expectEmit(address(manager));
         emit Exit(exitCollateralAmount, exitDebtAmount, alice, expectedExitCoolerDebtDelta);
         manager.exit(exitCollateralAmount, exitDebtAmount, alice, alice, 5e18, 7.5e18);
-        assertEq(manager.collateralTokenBalance(), 10e18-2.5e18);
+        assertEq(manager.collateralTokenBalance(), 10e18 - 2.5e18);
 
-        check_accountDelegationBalances(alice, 70, 100, 7.5e18*7/10, bob, 5e18);
-        check_dlgteSummary(7.5e18, 7.5e18-2.5e18, 1, 10);
+        check_accountDelegationBalances(alice, 70, 100, 7.5e18 * 7 / 10, bob, 5e18);
+        check_dlgteSummary(7.5e18, 7.5e18 - 2.5e18, 1, 10);
     }
 
     function test_exit_withDelegate_underThreshold() public {
@@ -1371,45 +1331,45 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
 
         // Join on behalf of origamiMultisig first
         gOHM.mint(address(manager), 10e18);
-        manager.join(10e18, 3_300e18, origamiMultisig, 100e18, 100e18);
+        manager.join(10e18, 3300e18, origamiMultisig, 100e18, 100e18);
 
         uint256 joinCollateralAmount = 1e18;
         uint256 joinDebtAmount = 600e18;
         _join(joinCollateralAmount, joinDebtAmount);
         assertEq(manager.collateralTokenBalance(), 10e18 + 1e18);
-        
+
         vm.expectEmit(address(manager));
         emit DelegationApplied(alice, bob, 1e18);
         manager.updateDelegateAndAmount(alice, 1e18, 11e18, bob);
         check_accountDelegationBalances(alice, 1e18, 11e18, 1e18, bob, 1e18);
         check_dlgteSummary(10e18 + joinCollateralAmount, 1e18, 1, 10);
 
-        assertEq(manager.collateralTokenBalance(), 10e18+joinCollateralAmount);
+        assertEq(manager.collateralTokenBalance(), 10e18 + joinCollateralAmount);
 
         uint256 exitCollateralAmount = 0.95e18;
         uint256 exitDebtAmount = 500e18;
-        int256 expectedExitCoolerDebtDelta = -2_813.558e18;
+        int256 expectedExitCoolerDebtDelta = -2813.558e18;
         USDS.mint(address(manager), exitDebtAmount);
         vm.expectEmit(address(manager));
         emit DelegationApplied(alice, bob, -1e18); // The whole amount was undelegated
         vm.expectEmit(address(manager));
         emit Exit(exitCollateralAmount, exitDebtAmount, alice, expectedExitCoolerDebtDelta);
         manager.exit(
-            exitCollateralAmount, 
-            exitDebtAmount, 
-            alice, 
-            alice, 
-            joinCollateralAmount-exitCollateralAmount, 
-            10e18+joinCollateralAmount-exitCollateralAmount
+            exitCollateralAmount,
+            exitDebtAmount,
+            alice,
+            alice,
+            joinCollateralAmount - exitCollateralAmount,
+            10e18 + joinCollateralAmount - exitCollateralAmount
         );
-        assertEq(manager.collateralTokenBalance(), 10e18+joinCollateralAmount-exitCollateralAmount);
+        assertEq(manager.collateralTokenBalance(), 10e18 + joinCollateralAmount - exitCollateralAmount);
 
         // Delegation was stripped
         check_accountDelegationBalances(
-            alice, 
-            joinCollateralAmount-exitCollateralAmount, 
-            10e18+joinCollateralAmount-exitCollateralAmount, 
-            0.05e18, 
+            alice,
+            joinCollateralAmount - exitCollateralAmount,
+            10e18 + joinCollateralAmount - exitCollateralAmount,
+            0.05e18,
             bob, // still remains
             0
         );
@@ -1420,10 +1380,10 @@ contract OrigamiHOhmManagerExit is OrigamiHOhmManagerTestBase {
         vm.startPrank(address(vault));
 
         uint256 joinCollateralAmount = 10e18;
-        uint256 joinDebtAmount = 3_300e18;
+        uint256 joinDebtAmount = 3300e18;
         _join(joinCollateralAmount, joinDebtAmount);
         assertEq(manager.collateralTokenBalance(), 10e18);
-        
+
         manager.updateDelegateAndAmount(alice, 100, 100, bob);
 
         USDS.mint(address(manager), joinDebtAmount);
@@ -1549,7 +1509,7 @@ contract OrigamiHOhmManagerTestDelegations is OrigamiHOhmManagerTestBase {
         vm.startPrank(address(vault));
 
         address user;
-        uint256 numAddresses = 1_000;
+        uint256 numAddresses = 1000;
         for (uint256 i; i < numAddresses; ++i) {
             user = makeAddr(vm.toString(i));
             manager.updateDelegateAndAmount(user, 1e18, 1e18 * numAddresses, user);

@@ -38,8 +38,8 @@ async function dumpPrices() {
     ZERO_ADDRESS,
     ADDRS.EXTERNAL.BERACHAIN.WBERA_TOKEN,
     ADDRS.EXTERNAL.INFRARED.IBGT_TOKEN,
-    ADDRS.VAULTS.ORIBGT.TOKEN,
-    ADDRS.VAULTS.BOYCO_USDC_A.TOKEN,
+    ADDRS.VAULTS.ORIBGT.TOKEN.address,
+    ADDRS.VAULTS.BOYCO_USDC_A.TOKEN.address,
   ]);
   console.log("Token Prices:");
   console.log("\tUSDC:", ethers.utils.formatUnits(prices[0], 30));

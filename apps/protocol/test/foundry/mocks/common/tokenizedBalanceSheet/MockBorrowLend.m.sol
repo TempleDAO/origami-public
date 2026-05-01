@@ -26,7 +26,7 @@ contract MockBorrowLend {
         }
 
         _length = debtTokens_.length;
-        for (i=0; i < _length; ++i) {
+        for (i = 0; i < _length; ++i) {
             _debtTokens.add(debtTokens_[i]);
         }
     }
@@ -41,7 +41,9 @@ contract MockBorrowLend {
         return 0;
     }
 
-    function addCollateralAndBorrow(uint256[] memory collaterals, uint256[] memory debts, address debtReceiver) external {
+    function addCollateralAndBorrow(uint256[] memory collaterals, uint256[] memory debts, address debtReceiver)
+        external
+    {
         address tokenAddr;
         uint256 amount;
 
@@ -63,7 +65,11 @@ contract MockBorrowLend {
         }
     }
 
-    function repayAndWithdrawCollateral(uint256[] memory collaterals, uint256[] memory debts, address collateralReceiver) external {
+    function repayAndWithdrawCollateral(
+        uint256[] memory collaterals,
+        uint256[] memory debts,
+        address collateralReceiver
+    ) external {
         address tokenAddr;
         uint256 amount;
 
@@ -90,11 +96,11 @@ contract MockBorrowLend {
         address tokenAddr;
         uint256 amount;
 
-        for(uint256 i; i < collateralTokens.length; i++) {
+        for (uint256 i; i < collateralTokens.length; i++) {
             tokenAddr = collateralTokens[i];
             amount = collateralsAmounts[i];
 
-            require(_collateralTokens.contains(tokenAddr), "non-existing collateral");//note: or remove?
+            require(_collateralTokens.contains(tokenAddr), "non-existing collateral"); //note: or remove?
 
             collateralBalances[tokenAddr] -= amount;
             IERC20(tokenAddr).safeTransfer(msg.sender, amount);
@@ -107,7 +113,7 @@ contract MockBorrowLend {
         address tokenAddr;
         uint256 amount;
 
-        for(uint256 i; i < collateralTokens.length; i++) {
+        for (uint256 i; i < collateralTokens.length; i++) {
             require(_collateralTokens.add(collateralTokens[i]), "Duplicated asset");
             tokenAddr = collateralTokens[i];
             amount = collateralsAmounts[i];

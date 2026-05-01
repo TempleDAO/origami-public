@@ -6,7 +6,6 @@ interface IMultiRewards {
     error RewardDoesntExist();
     error PeriodNotFinished();
     error CannotRecoverRewardToken();
-    
 
     /**
      * @notice Emitted when tokens are staked
@@ -28,9 +27,7 @@ interface IMultiRewards {
      * @param rewardsToken The address of the reward token
      * @param reward The amount of rewards claimed
      */
-    event RewardPaid(
-        address indexed user, address indexed rewardsToken, uint256 reward
-    );
+    event RewardPaid(address indexed user, address indexed rewardsToken, uint256 reward);
 
     /**
      * @notice Emitted when rewards are added to the contract
@@ -49,9 +46,7 @@ interface IMultiRewards {
      * @param rewardsToken The address of the reward token
      * @param newDistributor The address of the new distributor
      */
-    event RewardsDistributorUpdated(
-        address indexed rewardsToken, address indexed newDistributor
-    );
+    event RewardsDistributorUpdated(address indexed rewardsToken, address indexed newDistributor);
 
     /**
      * @notice Emitted when the rewards duration for a token is updated
@@ -132,20 +127,14 @@ interface IMultiRewards {
      * @param _rewardsToken The address of the rewards token
      * @return The timestamp when the reward was last applicable
      */
-    function lastTimeRewardApplicable(address _rewardsToken)
-        external
-        view
-        returns (uint256);
+    function lastTimeRewardApplicable(address _rewardsToken) external view returns (uint256);
 
     /**
      * @notice Calculates the reward per token for a given rewards token
      * @param _rewardsToken The address of the rewards token
      * @return The reward amount per token
      */
-    function rewardPerToken(address _rewardsToken)
-        external
-        view
-        returns (uint256);
+    function rewardPerToken(address _rewardsToken) external view returns (uint256);
 
     /**
      * @notice Calculates the earned rewards for a given account and rewards token
@@ -153,20 +142,14 @@ interface IMultiRewards {
      * @param _rewardsToken The address of the rewards token
      * @return The amount of rewards earned
      */
-    function earned(address account, address _rewardsToken)
-        external
-        view
-        returns (uint256);
+    function earned(address account, address _rewardsToken) external view returns (uint256);
 
     /**
      * @notice Calculates the total reward for the duration of a given rewards token
      * @param _rewardsToken The address of the rewards token
      * @return The total reward amount for the duration of a given rewards token
      */
-    function getRewardForDuration(address _rewardsToken)
-        external
-        view
-        returns (uint256);
+    function getRewardForDuration(address _rewardsToken) external view returns (uint256);
 
     /**
      * @notice Gets the reward data for a given rewards token

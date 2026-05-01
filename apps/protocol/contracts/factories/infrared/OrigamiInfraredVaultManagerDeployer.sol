@@ -18,13 +18,7 @@ contract OrigamiInfraredVaultManagerDeployer {
         uint16 performanceFeeBps
     ) external returns (OrigamiInfraredVaultManager deployedAddress) {
         return new OrigamiInfraredVaultManager(
-            owner,
-            vault,
-            asset,
-            infraredRewardVault,
-            feeCollector, 
-            swapper,
-            performanceFeeBps
+            owner, vault, asset, infraredRewardVault, feeCollector, swapper, performanceFeeBps
         );
     }
 }

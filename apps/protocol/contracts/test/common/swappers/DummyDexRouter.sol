@@ -15,7 +15,9 @@ contract DummyDexRouter {
     /**
      * @notice A swap that gives the exact requested amount of the buyToken
      */
-    function doExactSwap(address sellToken, uint256 sellTokenAmount, address buyToken, uint256 buyTokenAmount) external {
+    function doExactSwap(address sellToken, uint256 sellTokenAmount, address buyToken, uint256 buyTokenAmount)
+        external
+    {
         IERC20(sellToken).safeTransferFrom(msg.sender, address(this), sellTokenAmount);
         IERC20(buyToken).safeTransfer(msg.sender, buyTokenAmount);
     }

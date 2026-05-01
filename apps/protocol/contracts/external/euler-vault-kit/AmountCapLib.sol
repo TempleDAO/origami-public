@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 // AmountCapLib.sol taken from the following commit:
 //  https://github.com/euler-xyz/euler-vault-kit/commit/3d9120ecd8f8725f370c8a13598e0e09a454d5f7
 
-// The following declaration was not part of this original file, 
+// The following declaration was not part of this original file,
 // instead it was imported from another file with `import {AmountCap} from "./Types.sol";`
 // For simplicity, it was included in this snippet.
 type AmountCap is uint16;

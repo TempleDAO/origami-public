@@ -13,20 +13,12 @@ interface IOrigamiAutoStakingFactory {
     /**
      * @notice Emitted when a new vault is registered
      */
-    event VaultCreated(
-        address indexed vault,
-        address indexed asset,
-        address swapper
-    );
+    event VaultCreated(address indexed vault, address indexed asset, address swapper);
 
     /**
      * @notice Emiited when a new vault is registered, replacing an oldVault for the same asset
      */
-    event VaultMigrated(
-        address indexed oldVault,
-        address indexed newVault,
-        address indexed asset
-    );
+    event VaultMigrated(address indexed oldVault, address indexed newVault, address indexed asset);
 
     /**
      * @notice Emitted when the rewards duration is updated
@@ -107,25 +99,20 @@ interface IOrigamiAutoStakingFactory {
     function proposeNewOwner(address _contract, address _account) external;
 
     /**
-     * @notice Returns the latest active version of the Origami rewards vault address for a 
+     * @notice Returns the latest active version of the Origami rewards vault address for a
      * given staking token.
      * @dev If a vault has not been registered for this asset, then vault will be address(0)
      * and version will be 0
      * The first valid version = 1
      * @param asset The address of the staking asset
      */
-    function currentVaultForAsset(address asset) external view returns (
-        address vault,
-        uint256 version
-    );
+    function currentVaultForAsset(address asset) external view returns (address vault, uint256 version);
 
     /**
      * @notice Returns all versions of vaults for a given staking token.
      * @param asset The address of the staking asset
      */
-    function allVaultsForAsset(address asset) external view returns (
-        address[] memory vaultVersions
-    );
+    function allVaultsForAsset(address asset) external view returns (address[] memory vaultVersions);
 
     /**
      * @notice Vault fees collector

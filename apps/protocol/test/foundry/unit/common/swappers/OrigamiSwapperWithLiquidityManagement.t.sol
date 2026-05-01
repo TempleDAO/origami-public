@@ -8,10 +8,12 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
-import { IOrigamiSwapperWithLiquidityManagement } from
-    "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
-import { OrigamiSwapperWithLiquidityManagement } from
-    "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
+import {
+    IOrigamiSwapperWithLiquidityManagement
+} from "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
+import {
+    OrigamiSwapperWithLiquidityManagement
+} from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { IBalancerVault } from "contracts/interfaces/external/balancer/IBalancerVault.sol";
@@ -54,12 +56,7 @@ contract MockBalancerVault {
         tokenB = _tokenB;
     }
 
-    function joinPool(
-        bytes32 _poolId,
-        address sender,
-        address recipient,
-        IBalancerVault.JoinPoolRequest memory request
-    )
+    function joinPool(bytes32 _poolId, address sender, address recipient, IBalancerVault.JoinPoolRequest memory request)
         external
     {
         require(_poolId == poolId, "Invalid pool ID");
@@ -107,11 +104,7 @@ contract OrigamiSwapperWithLiquidityManagementTest is OrigamiTest {
         address buyToken,
         uint256 minBuyAmount,
         uint256 buyTokenToReceiveAmount
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
+    ) internal pure returns (bytes memory) {
         return abi.encode(
             IOrigamiSwapperWithLiquidityManagement.SwapParams({
                 router: router,
@@ -123,11 +116,7 @@ contract OrigamiSwapperWithLiquidityManagementTest is OrigamiTest {
         );
     }
 
-    function mockJoinPoolRequest(
-        uint256 tokenAIn,
-        uint256 tokenBIn,
-        uint256 lpTokenOut
-    )
+    function mockJoinPoolRequest(uint256 tokenAIn, uint256 tokenBIn, uint256 lpTokenOut)
         internal
         pure
         returns (IBalancerVault.JoinPoolRequest memory request)
@@ -143,10 +132,7 @@ contract OrigamiSwapperWithLiquidityManagementTest is OrigamiTest {
     }
 
     /// @dev helpful function to create a TokenAmount[] for the mock tokens
-    function createTokenAmounts(
-        uint256 amountA,
-        uint256 amountB
-    )
+    function createTokenAmounts(uint256 amountA, uint256 amountB)
         internal
         view
         returns (IOrigamiSwapperWithLiquidityManagement.TokenAmount[] memory)
@@ -256,10 +242,7 @@ contract OrigamiSwapperWithLiquidityManagementTest_Basic is OrigamiSwapperWithLi
     function test_addLiquidity_fail_invalidRouter() public {
         bytes memory addLiquidityParams = abi.encode(
             IOrigamiSwapperWithLiquidityManagement.AddLiquidityParams({
-                liquidityRouter: alice,
-                receiver: alice,
-                minLpOutputAmount: 0,
-                callData: bytes("")
+                liquidityRouter: alice, receiver: alice, minLpOutputAmount: 0, callData: bytes("")
             })
         );
 
@@ -333,14 +316,14 @@ contract OrigamiSwapperWithLiquidityManagementTest_Swap is OrigamiSwapperWithLiq
     }
 
     function test_execute_fail_sellTokenSurplus() public {
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         uint256 expectedBuyTokenAmount = 1000e6;
         bytes memory data = abi.encodeCall(
-            DummyDexRouter.doExactSwap, 
-            (address(rewardToken), sellTokenAmount-1, address(tokenA), expectedBuyTokenAmount)
+            DummyDexRouter.doExactSwap,
+            (address(rewardToken), sellTokenAmount - 1, address(tokenA), expectedBuyTokenAmount)
         );
 
-        deal(address(rewardToken), address(swapper), sellTokenAmount*2, true);
+        deal(address(rewardToken), address(swapper), sellTokenAmount * 2, true);
         vm.startPrank(origamiMultisig);
 
         // vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
@@ -350,26 +333,23 @@ contract OrigamiSwapperWithLiquidityManagementTest_Swap is OrigamiSwapperWithLiq
             tokenA,
             abi.encode(
                 IOrigamiSwapperWithLiquidityManagement.SwapParams({
-                    router: address(swapRouter),
-                    minBuyAmount: 0,
-                    swapData: data
+                    router: address(swapRouter), minBuyAmount: 0, swapData: data
                 })
             )
         );
 
         assertEq(buyTokenAmount, expectedBuyTokenAmount);
-        assertEq(rewardToken.balanceOf(address(swapper)), sellTokenAmount+1);
+        assertEq(rewardToken.balanceOf(address(swapper)), sellTokenAmount + 1);
         assertEq(tokenA.balanceOf(address(swapper)), expectedBuyTokenAmount);
     }
 
     function test_execute_fail_sellTokenDefecit() public {
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         bytes memory data = abi.encodeCall(
-            DummyDexRouter.doExactSwap, 
-            (address(rewardToken), sellTokenAmount+1, address(tokenA), 1000e6)
+            DummyDexRouter.doExactSwap, (address(rewardToken), sellTokenAmount + 1, address(tokenA), 1000e6)
         );
 
-        deal(address(rewardToken), address(swapper), sellTokenAmount*2, true);
+        deal(address(rewardToken), address(swapper), sellTokenAmount * 2, true);
         vm.startPrank(origamiMultisig);
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
@@ -379,9 +359,7 @@ contract OrigamiSwapperWithLiquidityManagementTest_Swap is OrigamiSwapperWithLiq
             tokenA,
             abi.encode(
                 IOrigamiSwapperWithLiquidityManagement.SwapParams({
-                    router: address(swapRouter),
-                    minBuyAmount: 0,
-                    swapData: data
+                    router: address(swapRouter), minBuyAmount: 0, swapData: data
                 })
             )
         );
@@ -714,7 +692,7 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Balancer i
 {
     IBalancerVault public bexVault = IBalancerVault(0x708cA656b68A6b7384a488A36aD33505a77241FE);
     bytes32 public constant poolId = 0xe48463c7c26287133d86485985f71f8f52d5dd9c000200000000000000000003; // WBERA |
-        // HONEY
+    // HONEY
     uint8 public constant EXACT_TOKENS_IN_FOR_BPT_OUT = 1;
 
     function setUp() public {
@@ -732,10 +710,7 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Balancer i
         swapper.whitelistRouter(address(bexVault), true);
     }
 
-    function joinPoolRequest(
-        uint256 tokenAAmount,
-        uint256 tokenBAmount
-    )
+    function joinPoolRequest(uint256 tokenAAmount, uint256 tokenBAmount)
         internal
         view
         returns (IBalancerVault.JoinPoolRequest memory request)
@@ -756,10 +731,7 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Balancer i
         bytes memory userData = abi.encode(EXACT_TOKENS_IN_FOR_BPT_OUT, amountsIn, minimumBptOut);
 
         return IBalancerVault.JoinPoolRequest({
-            assets: assets,
-            maxAmountsIn: maxAmountsIn,
-            userData: userData,
-            fromInternalBalance: false
+            assets: assets, maxAmountsIn: maxAmountsIn, userData: userData, fromInternalBalance: false
         });
     }
 
@@ -809,7 +781,8 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Balancer i
 contract MockKodiakRouter {
     using SafeERC20 for IERC20;
 
-    IKodiakIslandRouter internal constant KODIAK_ROUTER = IKodiakIslandRouter(0x679a7C63FC83b6A4D9C1F931891d705483d4791F);
+    IKodiakIslandRouter internal constant KODIAK_ROUTER =
+        IKodiakIslandRouter(0x679a7C63FC83b6A4D9C1F931891d705483d4791F);
 
     uint128 internal amount0Pct = 100;
     uint128 internal amount1Pct = 100;
@@ -829,8 +802,8 @@ contract MockKodiakRouter {
         address receiver
     ) external returns (uint256 amount0, uint256 amount1, uint256 mintAmount) {
         // Do slightly less so there's left over allowance
-        amount0 = amount0Max*amount0Pct/100;
-        amount1 = amount1Max*amount1Pct/100;
+        amount0 = amount0Max * amount0Pct / 100;
+        amount1 = amount1Max * amount1Pct / 100;
 
         IERC20 t0 = island.token0();
         IERC20 t1 = island.token1();
@@ -838,14 +811,18 @@ contract MockKodiakRouter {
         t0.forceApprove(address(KODIAK_ROUTER), amount0);
         t1.safeTransferFrom(msg.sender, address(this), amount1);
         t1.forceApprove(address(KODIAK_ROUTER), amount1);
-        return KODIAK_ROUTER.addLiquidity(address(island), amount0, amount1, amount0Min, amount1Min, amountSharesMin, receiver);
+        return KODIAK_ROUTER.addLiquidity(
+            address(island), amount0, amount1, amount0Min, amount1Min, amountSharesMin, receiver
+        );
     }
 }
 
 /**
  * Bera mainnet forked tests for Kodiak Vaults
  */
-contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Kodiak is OrigamiSwapperWithLiquidityManagementTest {
+contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Kodiak is
+    OrigamiSwapperWithLiquidityManagementTest
+{
     using OrigamiMath for uint256;
 
     IKodiakIslandRouter internal kodiakRouter = IKodiakIslandRouter(0x679a7C63FC83b6A4D9C1F931891d705483d4791F);
@@ -1051,7 +1028,7 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Kodiak is 
         );
 
         uint256 lpAmount = swapper.addLiquidity(createTokenAmounts(amount0, amount1), addLiquidityParams);
-        
+
         // Check that tokens were transferred and LP tokens were received, dust amounts of the LP tokens are expected
         assertEq(tokenA.balanceOf(address(swapper)), 0.999999997473124807e18);
         assertEq(tokenB.balanceOf(address(swapper)), 0.250000000000019373e18);
@@ -1063,8 +1040,7 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Kodiak is 
             mockRouter.setPcts(100, 100);
             doMint(tokenA, address(swapper), tokenAAmount);
             doMint(tokenB, address(swapper), tokenBAmount);
-            (amount0, amount1, expectedMintAmount) =
-                kodiakIsland.getMintAmounts(tokenAAmount, tokenBAmount);
+            (amount0, amount1, expectedMintAmount) = kodiakIsland.getMintAmounts(tokenAAmount, tokenBAmount);
 
             addLiquidityParams = abi.encode(
                 IOrigamiSwapperWithLiquidityManagement.AddLiquidityParams({
@@ -1085,12 +1061,13 @@ contract OrigamiSwapperWithLiquidityManagementForkedTest_AddLiquidity_Kodiak is 
             );
             lpAmount = swapper.addLiquidity(createTokenAmounts(amount0, amount1), addLiquidityParams);
 
-            // Check that tokens were transferred and LP tokens were received, dust amounts of the LP tokens are expected
+            // Check that tokens were transferred and LP tokens were received, dust amounts of the LP tokens are
+            // expected
             assertEq(tokenA.balanceOf(address(swapper)), 1.999999994920725622e18);
             assertEq(tokenB.balanceOf(address(swapper)), 0.250000000000038941e18);
             assertEq(kodiakIsland.balanceOf(address(receiver)), 0.000850422904957818e18);
             assertEq(lpAmount, expectedMintAmount); // on a snapshot there should be no slippage
-            assertEq(lpAmount, 0.000427348193446140e18); // on a snapshot there should be no slippage
+            assertEq(lpAmount, 0.00042734819344614e18); // on a snapshot there should be no slippage
         }
     }
 }

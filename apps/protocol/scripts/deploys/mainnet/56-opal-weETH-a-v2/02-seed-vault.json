@@ -1,0 +1,80 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "spender": "0x489Dd7f6f57df08871d195e78A0F0e295Cf97Ea1",
+        "amount": "123246590905724469"
+      }
+    },
+    {
+      "to": "0x489Dd7f6f57df08871d195e78A0F0e295Cf97Ea1",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256[]",
+            "name": "assetAmounts",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "liabilityAmounts",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "sharesToMint",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "receiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "newMaxTotalSupply",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "balanceSheetData",
+            "type": "bytes"
+          }
+        ],
+        "name": "seed",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "assetAmounts": "[\"123246590905724469\"]",
+        "liabilityAmounts": "[\"123859639477183116\"]",
+        "sharesToMint": "10770403432798532",
+        "receiver": "0x781B4c57100738095222bd92D37B07ed034AB696",
+        "newMaxTotalSupply": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        "balanceSheetData": "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000001b5dc1f16b6ae35000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000001b809af950ba28c"
+      }
+    }
+  ]
+}

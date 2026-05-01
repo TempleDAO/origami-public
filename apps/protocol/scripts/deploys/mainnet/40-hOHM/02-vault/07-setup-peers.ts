@@ -13,7 +13,7 @@ import { DEFAULT_SETTINGS as BERACHAIN_DEFAULT_SETTINGS } from '../../../beracha
 async function setPeer(teleporter: OrigamiTokenTeleporter) {
   await mine(teleporter.setPeer(
     BERACHAIN_DEFAULT_SETTINGS.EXTERNAL.LAYER_ZERO.ENDPOINT_ID,
-    ethers.utils.zeroPad(BERACHAIN_ADDRS.VAULTS.hOHM.TOKEN, 32)
+    ethers.utils.zeroPad(BERACHAIN_ADDRS.VAULTS.hOHM.TOKEN.address, 32)
   ));
 
   const options: EnforcedOptionParamStruct[] = [{

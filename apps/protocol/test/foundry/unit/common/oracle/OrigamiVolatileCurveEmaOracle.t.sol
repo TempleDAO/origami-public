@@ -21,8 +21,8 @@ contract OrigamiVolatileCurveEmaOracleTestBase is OrigamiTest {
     ICurveStableSwapNG public constant STABLE_SWAP_NG = ICurveStableSwapNG(0x1d08E7adC263CfC70b1BaBe6dC5Bb339c16Eec52);
 
     function setUp() public {
-        fork("mainnet", 20308622);
-        vm.warp(1721006984);
+        fork("mainnet", 20_308_622);
+        vm.warp(1_721_006_984);
 
         oOracleReciprocal = new OrigamiVolatileCurveEmaOracle(
             origamiMultisig,
@@ -86,22 +86,12 @@ contract OrigamiVolatileCurveEmaOracleTestInit is OrigamiVolatileCurveEmaOracleT
     }
 
     function test_constructor_fail_ncoins() public {
-        vm.mockCall(
-            address(STABLE_SWAP_NG),
-            abi.encodeWithSelector(ICurveStableSwapNG.N_COINS.selector),
-            abi.encode(3)
-        );
+        vm.mockCall(address(STABLE_SWAP_NG), abi.encodeWithSelector(ICurveStableSwapNG.N_COINS.selector), abi.encode(3));
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         oOracleReciprocal = new OrigamiVolatileCurveEmaOracle(
             origamiMultisig,
-            IOrigamiOracle.BaseOracleParams(
-                "USD0/USD0++",
-                address(USD0_TOKEN),
-                18,
-                address(USD0PP_TOKEN),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("USD0/USD0++", address(USD0_TOKEN), 18, address(USD0PP_TOKEN), 18),
             address(STABLE_SWAP_NG),
             Range.Data(0.99e18, 1.01e18)
         );
@@ -111,13 +101,7 @@ contract OrigamiVolatileCurveEmaOracleTestInit is OrigamiVolatileCurveEmaOracleT
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         oOracleReciprocal = new OrigamiVolatileCurveEmaOracle(
             origamiMultisig,
-            IOrigamiOracle.BaseOracleParams(
-                "USD0/USD0++",
-                alice,
-                18,
-                address(USD0PP_TOKEN),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("USD0/USD0++", alice, 18, address(USD0PP_TOKEN), 18),
             address(STABLE_SWAP_NG),
             Range.Data(0.99e18, 1.01e18)
         );
@@ -138,7 +122,7 @@ contract OrigamiVolatileCurveEmaOracleTestAdmin is OrigamiVolatileCurveEmaOracle
         vm.expectEmit(address(oOracleReciprocal));
         emit ValidPriceRangeSet(1e18, 2e18);
         oOracleReciprocal.setValidSpotPriceRange(1e18, 2e18);
-        
+
         (uint128 floor, uint128 ceiling) = oOracleReciprocal.validSpotPriceRange();
         assertEq(floor, 1e18);
         assertEq(ceiling, 2e18);
@@ -148,20 +132,20 @@ contract OrigamiVolatileCurveEmaOracleTestAdmin is OrigamiVolatileCurveEmaOracle
 contract OrigamiVolatileCurveEmaOracleReciprocal_LatestPrice is OrigamiVolatileCurveEmaOracleTestBase {
     function test_latestPrice_success() public view {
         assertEq(
-            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             1.000162227457871444e18
         );
         assertEq(
-            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             1.000162227457871444e18
         );
 
         assertEq(
-            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             1.000162227457871444e18
         );
         assertEq(
-            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             1.000162227457871444e18
         );
     }
@@ -173,15 +157,19 @@ contract OrigamiVolatileCurveEmaOracleReciprocal_LatestPrice is OrigamiVolatileC
             abi.encode(0.989e18)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.AboveMaxValidRange.selector, address(STABLE_SWAP_NG), uint256(1e36)/0.989e18, 1.01e18));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector, address(STABLE_SWAP_NG), uint256(1e36) / 0.989e18, 1.01e18
+            )
+        );
         oOracleReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP);
     }
 
     function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracleReciprocal.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN
         );
         assertEq(spot, 1.000162227457871444e18);
@@ -194,20 +182,20 @@ contract OrigamiVolatileCurveEmaOracleReciprocal_LatestPrice is OrigamiVolatileC
 contract OrigamiVolatileCurveEmaOracleNotReciprocal_LatestPrice is OrigamiVolatileCurveEmaOracleTestBase {
     function test_latestPrice_success() public view {
         assertEq(
-            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             0.999837798855607874e18
         );
         assertEq(
-            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             0.999837798855607874e18
         );
-        
+
         assertEq(
-            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             0.999837798855607874e18
         );
         assertEq(
-            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             0.999837798855607874e18
         );
     }
@@ -219,15 +207,19 @@ contract OrigamiVolatileCurveEmaOracleNotReciprocal_LatestPrice is OrigamiVolati
             abi.encode(0.989e18)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.BelowMinValidRange.selector, address(STABLE_SWAP_NG), 0.989e18, 0.99e18));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.BelowMinValidRange.selector, address(STABLE_SWAP_NG), 0.989e18, 0.99e18
+            )
+        );
         oOracleNotReciprocal.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP);
     }
 
     function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracleNotReciprocal.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_UP,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_UP
         );
         assertEq(spot, 0.999837798855607874e18);

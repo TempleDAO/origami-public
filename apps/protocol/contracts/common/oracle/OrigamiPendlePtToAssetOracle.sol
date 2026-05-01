@@ -30,12 +30,7 @@ contract OrigamiPendlePtToAssetOracle is OrigamiOracleBase {
      */
     uint32 public immutable twapDuration;
 
-    constructor (
-        BaseOracleParams memory baseParams,
-        address _pendleOracle,
-        address _pendleMarket,
-        uint32 _twapDuration
-    ) 
+    constructor(BaseOracleParams memory baseParams, address _pendleOracle, address _pendleMarket, uint32 _twapDuration)
         OrigamiOracleBase(baseParams)
     {
         pendleMarket = IPMarket(_pendleMarket);
@@ -43,14 +38,8 @@ contract OrigamiPendlePtToAssetOracle is OrigamiOracleBase {
 
         // Check that the pendle oracle is initialized properly.
         // It's the deployer's responsibility to do so prior.
-        (
-            bool increaseCardinalityRequired, 
-            , 
-            bool oldestObservationSatisfied
-        ) = PendlePYLpOracle(_pendleOracle).getOracleState(
-            _pendleMarket, 
-            _twapDuration
-        );
+        (bool increaseCardinalityRequired,, bool oldestObservationSatisfied) =
+            PendlePYLpOracle(_pendleOracle).getOracleState(_pendleMarket, _twapDuration);
         if (increaseCardinalityRequired || !oldestObservationSatisfied) revert UninitializedPendleOracle();
     }
 
@@ -58,9 +47,15 @@ contract OrigamiPendlePtToAssetOracle is OrigamiOracleBase {
      * @notice Return the latest oracle price, to `decimals` precision
      */
     function latestPrice(
-        PriceType /*priceType*/, 
+        PriceType,
+        /*priceType*/
         OrigamiMath.Rounding /*roundingMode*/
-    ) public override view returns (uint256 price) {
+    )
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // There isn't a separate historic reference price, so return the same price for both SPOT and HISTORIC
         // There isn't any extra rounding required here either.
 

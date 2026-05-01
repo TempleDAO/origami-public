@@ -7,17 +7,26 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 /// @notice A re-pricing token which implements the ERC20 interface.
 /// Each minted RepricingToken represents 1 share.
-/// 
+///
 ///  pricePerShare = numShares * totalReserves / totalSupply
 /// Elevated access can increase the totalReserves in order to increase the pricePerShare
 interface IRepricingToken is IERC20, IERC20Permit {
-    event IssueSharesFromReserves(address indexed user, address indexed recipient, uint256 reserveTokenAmount, uint256 sharesAmount);
-    event RedeemReservesFromShares(address indexed user, address indexed recipient, uint256 sharesAmount, uint256 reserveTokenAmount);
+    event IssueSharesFromReserves(
+        address indexed user, address indexed recipient, uint256 reserveTokenAmount, uint256 sharesAmount
+    );
+    event RedeemReservesFromShares(
+        address indexed user, address indexed recipient, uint256 sharesAmount, uint256 reserveTokenAmount
+    );
     event ReservesVestingDurationSet(uint48 duration);
     event PendingReservesAdded(uint256 amount);
     event VestedReservesAdded(uint256 amount);
     event VestedReservesRemoved(uint256 amount);
-    event ReservesCheckpoint(uint256 fullyVestedReserves, uint256 newVestedReserves, uint256 carriedOverPendingReserves, uint256 newPendingReserves);
+    event ReservesCheckpoint(
+        uint256 fullyVestedReserves,
+        uint256 newVestedReserves,
+        uint256 carriedOverPendingReserves,
+        uint256 newPendingReserves
+    );
 
     error CannotCheckpointReserves(uint256 secsSinceLastCheckpoint, uint256 vestingDuration);
 
@@ -34,7 +43,7 @@ interface IRepricingToken is IERC20, IERC20Permit {
     /// @dev These vest in per second over `vestingDuration`
     function pendingReserves() external returns (uint128);
 
-    /// @notice When new reserves are added to increase the reservesPerShare, 
+    /// @notice When new reserves are added to increase the reservesPerShare,
     /// they will vest over this duration (in seconds)
     function reservesVestingDuration() external returns (uint48);
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {ClonesWithImmutableArgs} from "./clones/ClonesWithImmutableArgs.sol";
-import {DelegateEscrow} from "./DelegateEscrow.sol";
+import { ClonesWithImmutableArgs } from "./clones/ClonesWithImmutableArgs.sol";
+import { DelegateEscrow } from "./DelegateEscrow.sol";
 
 /// @title  Delegate Escrow Factory.
 /// @notice The Delegate Escrow Factory creates new escrow contracts, each holding the delegated
@@ -15,21 +15,14 @@ contract DelegateEscrowFactory {
     error NotFromFactory();
 
     /// @notice A caller has created a new escrow for a delegate
-    event DelegateEscrowCreated(
-        address indexed caller,
-        address indexed delegate,
-        address indexed escrow
-    );
+    event DelegateEscrowCreated(address indexed caller, address indexed delegate, address indexed escrow);
 
     /// @notice A `caller` has (un)delegated their gOHM amount from `escrow` on behalf of a user
     /// @dev
     ///      delegationAmountDelta > 0: It has been delegated to this escrow
     ///      delegationAmountDelta < 0: It has been undelegated from this escrow
     event Delegate(
-        address indexed escrow,
-        address indexed caller,
-        address indexed onBehalfOf,
-        int256 delegationAmountDelta
+        address indexed escrow, address indexed caller, address indexed onBehalfOf, int256 delegationAmountDelta
     );
 
     /// @notice Reference implementation (deployed on creation to clone from).
@@ -67,11 +60,7 @@ contract DelegateEscrowFactory {
     }
 
     /// @notice Emit a global event when a new loan request is created.
-    function logDelegate(
-        address caller,
-        address onBehalfOf,
-        int256 delegationAmountDelta
-    ) external onlyFromFactory {
+    function logDelegate(address caller, address onBehalfOf, int256 delegationAmountDelta) external onlyFromFactory {
         emit Delegate(msg.sender, caller, onBehalfOf, delegationAmountDelta);
     }
 

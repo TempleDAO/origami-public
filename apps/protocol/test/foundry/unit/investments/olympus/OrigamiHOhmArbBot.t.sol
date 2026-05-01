@@ -9,7 +9,9 @@ import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { IUniswapV3QuoterV2 } from "contracts/interfaces/external/uniswap/IUniswapV3QuoterV2.sol";
 import { IUniswapV3SwapRouter } from "contracts/interfaces/external/uniswap/IUniswapV3SwapRouter.sol";
 import { IUniswapV3Factory } from "contracts/interfaces/external/uniswap/IUniswapV3Factory.sol";
-import { IUniswapV3NonfungiblePositionManager } from "contracts/interfaces/external/uniswap/IUniswapV3NonfungiblePositionManager.sol";
+import {
+    IUniswapV3NonfungiblePositionManager
+} from "contracts/interfaces/external/uniswap/IUniswapV3NonfungiblePositionManager.sol";
 import { OrigamiHOhmArbBot } from "contracts/investments/olympus/OrigamiHOhmArbBot.sol";
 import { IOlympusStaking } from "contracts/interfaces/external/olympus/IOlympusStaking.sol";
 
@@ -37,16 +39,34 @@ contract OrigamiHOhmArbBotTestBase is OrigamiTest {
     ICoolerLtvOracle internal constant COOLER_LTV_ORACLE = ICoolerLtvOracle(0x9ee9f0c2e91E4f6B195B988a9e6e19efcf91e8dc);
     address internal constant MORPHO = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
 
-    IUniswapV3SwapRouter internal constant uniV3Router = IUniswapV3SwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    bytes32 internal tokenHash;
+
+    IUniswapV3SwapRouter internal constant uniV3Router =
+        IUniswapV3SwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     IUniswapV3QuoterV2 internal constant uniV3Quoter = IUniswapV3QuoterV2(0x61fFE014bA17989E743c5F6cB21bF9697530B21e);
     IUniswapV3Factory internal constant uniV3Factory = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
-    IUniswapV3NonfungiblePositionManager internal constant uniV3PositionManager = IUniswapV3NonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+    IUniswapV3NonfungiblePositionManager internal constant uniV3PositionManager =
+        IUniswapV3NonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
 
     uint24 internal constant SUSDS_HOHM_FEE = 10_000; // 1%
-    uint24 internal constant SUSDS_OHM_FEE = 3_000; // 0.3%
+    uint24 internal constant SUSDS_OHM_FEE = 3000; // 0.3%
 
     function setUp() public {
-        fork("mainnet", 22670625);
+        fork("mainnet", 22_670_625);
+
+        // Etch a new version of the hOHM vault which supports
+        // the tokenHash, so we can work on an already deployed version.
+        {
+            OrigamiHOhmVault latestHohmVersion =
+                new OrigamiHOhmVault(origamiMultisig, "hOHM", "hOHM", address(gOHM), address(0));
+            address owner = vault.owner();
+            address manager = vault.manager();
+            vm.etch(address(vault), address(latestHohmVersion).code);
+            vm.prank(owner);
+            vault.setManager(manager);
+        }
+
+        tokenHash = vault.currentTokensHash();
 
         arbBot = new OrigamiHOhmArbBot(
             origamiMultisig,
@@ -59,36 +79,23 @@ contract OrigamiHOhmArbBotTestBase is OrigamiTest {
         );
     }
 
-    function joinWithShares(address account, uint256 shares) internal {
-        (
-            uint256[] memory previewAssets,
-            // uint256[] memory previewLiabilities
-        ) = vault.previewJoinWithShares(shares);
-
-        deal(address(gOHM), account, previewAssets[0]);
-        gOHM.approve(address(vault), previewAssets[0]);
-        
-        vault.joinWithShares(shares, account);
-    }
-
-    function swap(
-        IERC20 tokenIn,
-        uint256 amountIn,
-        IERC20 tokenOut,
-        uint24 fee,
-        address account
-    ) internal returns (uint256 amountOut) {
+    function swap(IERC20 tokenIn, uint256 amountIn, IERC20 tokenOut, uint24 fee, address account)
+        internal
+        returns (uint256 amountOut)
+    {
         tokenIn.approve(address(uniV3Router), amountIn);
-        return uniV3Router.exactInputSingle(IUniswapV3SwapRouter.ExactInputSingleParams({
-            tokenIn: address(tokenIn),
-            tokenOut: address(tokenOut),
-            fee: fee,
-            recipient: account,
-            deadline: vm.getBlockTimestamp() + 1 days,
-            amountIn: amountIn,
-            amountOutMinimum: 0,
-            sqrtPriceLimitX96: 0
-        }));
+        return uniV3Router.exactInputSingle(
+            IUniswapV3SwapRouter.ExactInputSingleParams({
+                tokenIn: address(tokenIn),
+                tokenOut: address(tokenOut),
+                fee: fee,
+                recipient: account,
+                deadline: vm.getBlockTimestamp() + 1 days,
+                amountIn: amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
     }
 
     function mintErc4626(IERC4626 svault, uint256 sharesAmount, address to) internal {
@@ -115,8 +122,9 @@ contract OrigamiHOhmArbBotTestUniV3Quote is OrigamiHOhmArbBotTestBase {
     function test_ohmToSusdsQuote() public {
         uint256 ohmAmountIn = 460.533751861e9;
         uint256 sUsdsAmountOut = arbBot.uniV3Quote(OHM, ohmAmountIn, sUSDS, SUSDS_OHM_FEE);
-        assertApproxEqAbs(sUsdsAmountOut, 8_684.029789423941717575e18, 1e6);
+        assertApproxEqAbs(sUsdsAmountOut, 8684.029789423941717575e18, 1e6);
     }
+
     function test_sUsdsToHohmQuote() public {
         uint256 sUsdsAmountIn = 10_364.966608991626893752e18;
         uint256 hohmAmountOut = arbBot.uniV3Quote(sUSDS, sUsdsAmountIn, vault, SUSDS_HOHM_FEE);
@@ -129,7 +137,7 @@ contract OrigamiHOhmArbBotTestUniV3Quote is OrigamiHOhmArbBotTestBase {
     function test_hohmToSusdsQuote() public {
         uint256 hohmAmountIn = 1_000_000e18;
         uint256 sUsdsAmountOut = arbBot.uniV3Quote(vault, hohmAmountIn, sUSDS, SUSDS_HOHM_FEE);
-        assertEq(sUsdsAmountOut, 7_794.325576848117635061e18);
+        assertEq(sUsdsAmountOut, 7794.325576848117635061e18);
     }
 }
 
@@ -139,22 +147,22 @@ contract OrigamiHOhmArbBotTestAdmin is OrigamiHOhmArbBotTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         arbBot.onMorphoFlashLoan(123, bytes(""));
     }
-    
+
     function test_approveToken_access() public {
         expectElevatedAccess();
         arbBot.approveToken(sUSDS, alice, 123);
     }
-    
+
     function test_recoverToken_access() public {
         expectElevatedAccess();
         arbBot.recoverToken(sUSDS, alice, 123);
     }
-    
+
     function test_executeRoute1_access() public {
         expectElevatedAccess();
         arbBot.executeRoute1(0, 0, 0, 0, 0, 0);
     }
-    
+
     function test_executeRoute2_access() public {
         expectElevatedAccess();
         arbBot.executeRoute2(0, 0, 0, 0, 0);
@@ -174,20 +182,14 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
 
             // Sell sUSDS to receive hOHM, in order to skew the pool such that
             // it's trading at a premium
-            uint256 received = swap(
-                sUSDS,
-                susdsSellAmount,
-                vault,
-                SUSDS_HOHM_FEE,
-                origamiMultisig
-            );
+            uint256 received = swap(sUSDS, susdsSellAmount, vault, SUSDS_HOHM_FEE, origamiMultisig);
             assertEq(received, 6_065_469.668157697804999336e18);
         }
 
         IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(10_000e18, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertApproxEqAbs(quoteData.profit, -278.808576317535428679e18, 1e6);
         assertEq(quoteData.usdsToExitHohm, 12_733.896265085495858745e18);
-        assertEq(quoteData.ohmSold, 1_157.385183094e9);
+        assertEq(quoteData.ohmSold, 1157.385183094e9);
     }
 
     function test_quoteRoute1_inProfit() public {
@@ -195,10 +197,11 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
 
         uint256 arbInputAmount = 10_000e18;
         uint256 expectedProfit = 336.691175154239640585e18;
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertApproxEqAbs(uint256(quoteData.profit), expectedProfit, 1e6);
         assertEq(quoteData.usdsToExitHohm, 13_544.509057575927118474e18);
-        assertEq(quoteData.ohmSold, 1_231.061865841e9);
+        assertEq(quoteData.ohmSold, 1231.061865841e9);
     }
 
     function test_executeRoute1_success_noStartingBalance() public {
@@ -208,10 +211,11 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
 
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 336.691175154239640585e18);
         assertEq(quoteData.usdsToExitHohm, 13_544.509057575927118474e18);
-        assertEq(quoteData.ohmSold, 1_231.061865841e9);
+        assertEq(quoteData.ohmSold, 1231.061865841e9);
 
         uint256 endGas;
         uint256 startGas = gasleft();
@@ -247,15 +251,16 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
     function test_executeRoute1_success_withStartingBalance() public {
         vm.startPrank(origamiMultisig);
 
-        mintErc4626(sUSDS, 5_000e18, address(arbBot));
+        mintErc4626(sUSDS, 5000e18, address(arbBot));
         uint256 startingSUsdsBalance = sUSDS.balanceOf(address(arbBot));
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
 
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 336.691175154239640585e18);
         assertEq(quoteData.usdsToExitHohm, 13_544.509057575927118474e18);
-        assertEq(quoteData.ohmSold, 1_231.061865841e9);
+        assertEq(quoteData.ohmSold, 1231.061865841e9);
 
         uint256 endGas;
         uint256 startGas = gasleft();
@@ -294,7 +299,8 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
 
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 336.691175154239640585e18);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
@@ -303,7 +309,9 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
         arbBot.approveToken(USDS, address(sUSDS), quoteData.usdsToExitHohm);
         arbBot.approveToken(sUSDS, MORPHO, sUsdsFlashAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit+1, quoteData.profit));
+        vm.expectRevert(
+            abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit + 1, quoteData.profit)
+        );
         arbBot.executeRoute1({
             sUsdsSold: arbInputAmount,
             sUsdsFlashAmount: sUsdsFlashAmount,
@@ -323,13 +331,7 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
 
             // Sell sUSDS to receive hOHM, in order to skew the pool such that
             // it's trading at a premium
-            uint256 received = swap(
-                sUSDS,
-                susdsSellAmount,
-                vault,
-                SUSDS_HOHM_FEE,
-                origamiMultisig
-            );
+            uint256 received = swap(sUSDS, susdsSellAmount, vault, SUSDS_HOHM_FEE, origamiMultisig);
             assertEq(received, 6_065_469.668157697804999336e18);
         }
 
@@ -338,10 +340,11 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
 
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, -278.808576317535428679e18);
         assertEq(quoteData.usdsToExitHohm, 12_733.896265085495858745e18);
-        assertEq(quoteData.ohmSold, 1_157.385183094e9);
+        assertEq(quoteData.ohmSold, 1157.385183094e9);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
         arbBot.approveToken(OHM, address(uniV3Router), quoteData.ohmSold);
@@ -370,31 +373,27 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
 
             // Sell sUSDS to receive hOHM, in order to skew the pool such that
             // it's trading at a premium
-            uint256 received = swap(
-                sUSDS,
-                susdsSellAmount,
-                vault,
-                SUSDS_HOHM_FEE,
-                origamiMultisig
-            );
+            uint256 received = swap(sUSDS, susdsSellAmount, vault, SUSDS_HOHM_FEE, origamiMultisig);
             assertEq(received, 6_065_469.668157697804999336e18);
         }
 
-        mintErc4626(sUSDS, 5_000e18, address(arbBot));
+        mintErc4626(sUSDS, 5000e18, address(arbBot));
         uint256 startingSUsdsBalance = sUSDS.balanceOf(address(arbBot));
-        assertEq(startingSUsdsBalance, 5_000e18);
+        assertEq(startingSUsdsBalance, 5000e18);
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
 
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, -278.808576317535428679e18);
         assertEq(quoteData.usdsToExitHohm, 12_733.896265085495858745e18);
-        assertEq(quoteData.ohmSold, 1_157.385183094e9);
+        assertEq(quoteData.ohmSold, 1157.385183094e9);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
         arbBot.approveToken(OHM, address(uniV3Router), quoteData.ohmSold);
         arbBot.approveToken(USDS, address(vault), quoteData.usdsToExitHohm);
-        arbBot.approveToken(USDS, address(sUSDS), sUsdsFlashAmount * 2); // Covers any remaining flash balance back to sUSDS
+        arbBot.approveToken(USDS, address(sUSDS), sUsdsFlashAmount * 2); // Covers any remaining flash balance back to
+        // sUSDS
         arbBot.approveToken(sUSDS, MORPHO, sUsdsFlashAmount);
 
         int256 profit = arbBot.executeRoute1({
@@ -408,7 +407,9 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
 
         assertEq(profit, quoteData.profit);
 
-        assertApproxEqAbs(sUSDS.balanceOf(address(arbBot)), uint256(int256(startingSUsdsBalance) + quoteData.profit), 1e6);
+        assertApproxEqAbs(
+            sUSDS.balanceOf(address(arbBot)), uint256(int256(startingSUsdsBalance) + quoteData.profit), 1e6
+        );
         assertEq(USDS.balanceOf(address(arbBot)), 0);
         assertEq(OHM.balanceOf(address(arbBot)), 0);
         assertEq(gOHM.balanceOf(address(arbBot)), 0);
@@ -418,17 +419,18 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
     function test_executeRoute1_loss_fail_slippage() public {
         vm.startPrank(origamiMultisig);
 
-        mintErc4626(sUSDS, 5_000e18, address(arbBot));
+        mintErc4626(sUSDS, 5000e18, address(arbBot));
         uint256 startingSUsdsBalance = sUSDS.balanceOf(address(arbBot));
-        assertEq(startingSUsdsBalance, 5_000e18);
+        assertEq(startingSUsdsBalance, 5000e18);
 
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
 
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 336.691175154239640585e18);
         assertEq(quoteData.usdsToExitHohm, 13_544.509057575927118474e18);
-        assertEq(quoteData.ohmSold, 1_231.061865841e9);
+        assertEq(quoteData.ohmSold, 1231.061865841e9);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
         arbBot.approveToken(OHM, address(uniV3Router), quoteData.ohmSold);
@@ -436,41 +438,48 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
         arbBot.approveToken(USDS, address(sUSDS), quoteData.usdsToExitHohm);
         arbBot.approveToken(sUSDS, MORPHO, sUsdsFlashAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit+1, quoteData.profit));
+        vm.expectRevert(
+            abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit + 1, quoteData.profit)
+        );
         arbBot.executeRoute1({
             sUsdsSold: arbInputAmount,
             sUsdsFlashAmount: sUsdsFlashAmount,
-            minProfit: quoteData.profit+1,
+            minProfit: quoteData.profit + 1,
             susdsHohmPoolFee: SUSDS_HOHM_FEE,
             ohmSusdsPoolFee: SUSDS_OHM_FEE,
             deadline: vm.getBlockTimestamp() + 1 days
         });
     }
-        
+
     function test_multicall() public {
         vm.startPrank(origamiMultisig);
 
         uint256 startingSUsdsBalance = sUSDS.balanceOf(address(arbBot));
         uint256 arbInputAmount = 10_000e18;
         uint256 sUsdsFlashAmount = 30_000e18;
-        IOrigamiHOhmArbBot.Route1Quote memory quoteData = arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route1Quote memory quoteData =
+            arbBot.quoteRoute1(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 336.691175154239640585e18);
 
         bytes[] memory operations = new bytes[](6);
-        (operations[0], operations[1], operations[2], operations[3], operations[4], operations[5]) = (
+        (operations[0], operations[1], operations[2], operations[3], operations[4], operations[5]) =
+        (
             abi.encodeCall(IOrigamiHOhmArbBot.approveToken, (sUSDS, address(uniV3Router), arbInputAmount)),
             abi.encodeCall(IOrigamiHOhmArbBot.approveToken, (OHM, address(uniV3Router), quoteData.ohmSold)),
             abi.encodeCall(IOrigamiHOhmArbBot.approveToken, (USDS, address(vault), quoteData.usdsToExitHohm)),
             abi.encodeCall(IOrigamiHOhmArbBot.approveToken, (USDS, address(sUSDS), quoteData.usdsToExitHohm * 2)),
             abi.encodeCall(IOrigamiHOhmArbBot.approveToken, (sUSDS, MORPHO, sUsdsFlashAmount)),
-            abi.encodeCall(IOrigamiHOhmArbBot.executeRoute1, (
-                arbInputAmount,
-                sUsdsFlashAmount,
-                quoteData.profit,
-                SUSDS_HOHM_FEE,
-                SUSDS_OHM_FEE,
-                vm.getBlockTimestamp() + 1 days
-            ))
+            abi.encodeCall(
+                IOrigamiHOhmArbBot.executeRoute1,
+                (
+                    arbInputAmount,
+                    sUsdsFlashAmount,
+                    quoteData.profit,
+                    SUSDS_HOHM_FEE,
+                    SUSDS_OHM_FEE,
+                    vm.getBlockTimestamp() + 1 days
+                )
+            )
         );
 
         uint256 endGas;
@@ -494,12 +503,13 @@ contract OrigamiHOhmArbBotTestRoute1 is OrigamiHOhmArbBotTestBase {
 contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
     function test_quoteRoute2_noProfit() public {
         uint256 arbInputAmount = 10_000e18;
-        IOrigamiHOhmArbBot.Route2Quote memory quoteData = arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route2Quote memory quoteData =
+            arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertApproxEqAbs(quoteData.profit, -401.497276128400361474e18, 1e6);
         assertEq(quoteData.ohmBought, 526.128052922e9);
         assertEq(quoteData.gOhmReceived, 1.954133741203852849e18);
         assertEq(quoteData.hOhmMinted, 526_091.859308886723559698e18);
-        assertEq(quoteData.usdsReceived, 5_788.617433432809679706e18);
+        assertEq(quoteData.usdsReceived, 5788.617433432809679706e18);
     }
 
     function test_quoteRoute2_inProfit() public {
@@ -510,23 +520,18 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
 
             // Sell sUSDS to receive hOHM, in order to skew the pool such that
             // it's trading at a premium
-            uint256 received = swap(
-                sUSDS,
-                susdsSellAmount,
-                vault,
-                SUSDS_HOHM_FEE,
-                origamiMultisig
-            );
+            uint256 received = swap(sUSDS, susdsSellAmount, vault, SUSDS_HOHM_FEE, origamiMultisig);
             assertEq(received, 11_784_741.503357165003792619e18);
         }
 
         uint256 arbInputAmount = 10_000e18;
-        IOrigamiHOhmArbBot.Route2Quote memory quoteData = arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route2Quote memory quoteData =
+            arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertApproxEqAbs(quoteData.profit, 82.629655977628177928e18, 1e6);
         assertEq(quoteData.ohmBought, 526.128052922e9);
         assertEq(quoteData.gOhmReceived, 1.954133741203852849e18);
         assertEq(quoteData.hOhmMinted, 526_091.859308886723559698e18);
-        assertEq(quoteData.usdsReceived, 5_788.617433432809679706e18);
+        assertEq(quoteData.usdsReceived, 5788.617433432809679706e18);
     }
 
     function test_executeRoute2_success() public {
@@ -537,20 +542,15 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
 
             // Sell sUSDS to receive hOHM, in order to skew the pool such that
             // it's trading at a premium
-            uint256 received = swap(
-                sUSDS,
-                susdsSellAmount,
-                vault,
-                SUSDS_HOHM_FEE,
-                origamiMultisig
-            );
+            uint256 received = swap(sUSDS, susdsSellAmount, vault, SUSDS_HOHM_FEE, origamiMultisig);
             assertEq(received, 11_784_741.503357165003792619e18);
         }
 
         uint256 startingSUsdsBalance = 30_000e18;
         uint256 arbInputAmount = 10_000e18;
 
-        IOrigamiHOhmArbBot.Route2Quote memory quoteData = arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route2Quote memory quoteData =
+            arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 82.629655977628177928e18);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
@@ -593,20 +593,15 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
 
             // Sell sUSDS to receive hOHM, in order to skew the pool such that
             // it's trading at a premium
-            uint256 received = swap(
-                sUSDS,
-                susdsSellAmount,
-                vault,
-                SUSDS_HOHM_FEE,
-                origamiMultisig
-            );
+            uint256 received = swap(sUSDS, susdsSellAmount, vault, SUSDS_HOHM_FEE, origamiMultisig);
             assertEq(received, 11_784_741.503357165003792619e18);
         }
 
         uint256 startingSUsdsBalance = 10_000e18;
         uint256 arbInputAmount = 10_000e18;
 
-        IOrigamiHOhmArbBot.Route2Quote memory quoteData = arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route2Quote memory quoteData =
+            arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, 82.629655977628177928e18);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
@@ -618,7 +613,9 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
 
         mintErc4626(sUSDS, startingSUsdsBalance, address(arbBot));
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit+1, quoteData.profit));
+        vm.expectRevert(
+            abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit + 1, quoteData.profit)
+        );
         arbBot.executeRoute2({
             sUsdsSold: arbInputAmount,
             minProfit: quoteData.profit + 1,
@@ -634,7 +631,8 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
         uint256 startingSUsdsBalance = 10_000e18;
         uint256 arbInputAmount = 10_000e18;
 
-        IOrigamiHOhmArbBot.Route2Quote memory quoteData = arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route2Quote memory quoteData =
+            arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, -401.497276128400361474e18);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
@@ -656,7 +654,9 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
 
         assertEq(profit, quoteData.profit);
 
-        assertApproxEqAbs(sUSDS.balanceOf(address(arbBot)), uint256(int256(startingSUsdsBalance) + quoteData.profit), 1e6);
+        assertApproxEqAbs(
+            sUSDS.balanceOf(address(arbBot)), uint256(int256(startingSUsdsBalance) + quoteData.profit), 1e6
+        );
         assertEq(USDS.balanceOf(address(arbBot)), 0);
         assertEq(OHM.balanceOf(address(arbBot)), 0);
         assertEq(gOHM.balanceOf(address(arbBot)), 0);
@@ -669,7 +669,8 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
         uint256 startingSUsdsBalance = 10_000e18;
         uint256 arbInputAmount = 10_000e18;
 
-        IOrigamiHOhmArbBot.Route2Quote memory quoteData = arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
+        IOrigamiHOhmArbBot.Route2Quote memory quoteData =
+            arbBot.quoteRoute2(arbInputAmount, SUSDS_HOHM_FEE, SUSDS_OHM_FEE);
         assertEq(quoteData.profit, -401.497276128400361474e18);
 
         arbBot.approveToken(sUSDS, address(uniV3Router), arbInputAmount);
@@ -681,7 +682,9 @@ contract OrigamiHOhmArbBotTestRoute2 is OrigamiHOhmArbBotTestBase {
 
         mintErc4626(sUSDS, startingSUsdsBalance, address(arbBot));
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit+1, quoteData.profit));
+        vm.expectRevert(
+            abi.encodeWithSelector(IOrigamiHOhmArbBot.MinProfitNotMet.selector, quoteData.profit + 1, quoteData.profit)
+        );
         arbBot.executeRoute2({
             sUsdsSold: arbInputAmount,
             minProfit: quoteData.profit + 1,

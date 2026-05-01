@@ -16,7 +16,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     ADDRS.EXTERNAL.OLYMPUS.MONO_COOLER,
     ADDRS.EXTERNAL.SKY.SUSDS_TOKEN,
     DEFAULT_SETTINGS.VAULTS.hOHM.PERFORMANCE_FEE_BPS,

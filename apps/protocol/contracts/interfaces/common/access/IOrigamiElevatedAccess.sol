@@ -1,14 +1,17 @@
 pragma solidity ^0.8.4;
+
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/common/access/IOrigamiElevatedAccess.sol)
 
 /**
  * @notice Inherit to add Owner roles for DAO elevated access.
- */ 
+ */
 interface IOrigamiElevatedAccess {
     event ExplicitAccessSet(address indexed account, bytes4 indexed fnSelector, bool indexed value);
 
-    event NewOwnerProposed(address indexed oldOwner, address indexed oldProposedOwner, address indexed newProposedOwner);
+    event NewOwnerProposed(
+        address indexed oldOwner, address indexed oldProposedOwner, address indexed newProposedOwner
+    );
     event NewOwnerAccepted(address indexed oldOwner, address indexed newOwner);
 
     struct ExplicitAccess {
@@ -18,7 +21,7 @@ interface IOrigamiElevatedAccess {
 
     /**
      * @notice The address of the current owner.
-     */ 
+     */
     function owner() external view returns (address);
 
     /**

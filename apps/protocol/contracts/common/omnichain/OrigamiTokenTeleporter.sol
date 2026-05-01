@@ -10,17 +10,9 @@ import { OrigamiOftElevatedAccess } from "contracts/common/access/OrigamiOftElev
  * @dev A vanilla LayerZero OFTAdapter, but with OrigamiElevatedAccess for admin permissions
  * The inner token will be locked/escrowed -- not minted/burned on demand.
  */
-contract OrigamiTokenTeleporter is
-    OFTAdapter,
-    OrigamiOftElevatedAccess
-{
-    constructor(
-        address initialOwner_, 
-        address innerToken_, 
-        address lzEndpoint_, 
-        address delegate_
-    ) 
+contract OrigamiTokenTeleporter is OFTAdapter, OrigamiOftElevatedAccess {
+    constructor(address initialOwner_, address innerToken_, address lzEndpoint_, address delegate_)
         OFTAdapter(innerToken_, lzEndpoint_, delegate_)
         OrigamiOftElevatedAccess(initialOwner_)
-    {}
+    { }
 }

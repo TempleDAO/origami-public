@@ -25,16 +25,12 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
     address public wEthToken = address(0);
 
     function setUp() public {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
 
         // 18 decimals
         clStEthToEthOracle = new DummyOracle(
             DummyOracle.Answer({
-                roundId: 1,
-                answer: int256(STETH_ETH_ORACLE_RATE),
-                startedAt: 0,
-                updatedAtLag: 0,
-                answeredInRound: 1
+                roundId: 1, answer: int256(STETH_ETH_ORACLE_RATE), startedAt: 0, updatedAtLag: 0, answeredInRound: 1
             }),
             18
         );
@@ -43,13 +39,7 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
 
         oStEthToEthOracle = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            IOrigamiOracle.BaseOracleParams(
-                "stETH/ETH",
-                address(stEthToken),
-                18,
-                address(wEthToken),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("stETH/ETH", address(stEthToken), 18, address(wEthToken), 18),
             STETH_ETH_HISTORIC_RATE,
             address(clStEthToEthOracle),
             100 days,
@@ -59,13 +49,7 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         );
 
         oWstEthToEthOracle = new OrigamiWstEthToEthOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "wstETH/ETH",
-                address(wstEthToken),
-                18, 
-                address(wEthToken),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("wstETH/ETH", address(wstEthToken), 18, address(wEthToken), 18),
             address(stEthToken),
             address(oStEthToEthOracle)
         );
@@ -74,7 +58,7 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         {
             vm.startPrank(overlord);
             deal(overlord, 10_000e18);
-            stEthToken.submit{value: 10_000e18}(address(0));
+            stEthToken.submit{ value: 10_000e18 }(address(0));
 
             // Skip forward in time so wstETH:stETH increases
             skip(365 days);
@@ -87,11 +71,11 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * STETH_ETH_ORACLE_RATE / 1e18);
 
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate + 1
         );
 
@@ -101,11 +85,11 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * STETH_ETH_ORACLE_RATE / 1e18);
 
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate + 1
         );
     }
@@ -116,11 +100,11 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * STETH_ETH_HISTORIC_RATE / 1e18);
 
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
 
@@ -130,20 +114,20 @@ contract OrigamiWstEthToEthOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * STETH_ETH_HISTORIC_RATE / 1e18);
 
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oWstEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
     }
 
     function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oWstEthToEthOracle.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_UP,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN
         );
         // Based off the wstETH/ETH price, so includes the wstETH/stETH ratio

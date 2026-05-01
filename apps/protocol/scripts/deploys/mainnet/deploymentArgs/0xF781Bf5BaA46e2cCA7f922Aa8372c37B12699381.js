@@ -1,0 +1,7 @@
+// mainnet: VAULTS.OPAL_WEETH_A.MANAGER=0xF781Bf5BaA46e2cCA7f922Aa8372c37B12699381
+// yarn hardhat verify --network mainnet 0xF781Bf5BaA46e2cCA7f922Aa8372c37B12699381 --constructor-args scripts/deploys/mainnet/deploymentArgs/0xF781Bf5BaA46e2cCA7f922Aa8372c37B12699381.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x489Dd7f6f57df08871d195e78A0F0e295Cf97Ea1",
+  "0x1cECFf54fE6042B05D6959cB20bB7241d802C98D"
+];

@@ -41,6 +41,7 @@ async function seedDepositTestnet(
         sharesToMintBN,
         accountAddress,
         maxSupply,
+        "",
     )
   );
 
@@ -80,7 +81,15 @@ async function seedDepositMainnet(
   const batch = createSafeBatch(
     [
       approve(assetToken, vault.address, assetAmountBN),
-      seedTokenizedBalanceSheet(vault, [assetAmountBN], [liabilityAmountBN], sharesToMintBN, receiverAddress, maxSupply),
+      seedTokenizedBalanceSheet(
+        vault,
+        [assetAmountBN],
+        [liabilityAmountBN],
+        sharesToMintBN,
+        receiverAddress,
+        maxSupply,
+        "",
+      ),
     ]
   );
 

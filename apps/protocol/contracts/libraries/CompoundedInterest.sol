@@ -14,17 +14,15 @@ library CompoundedInterest {
     /// @param principal Initial principal amount, 1e18 precision
     /// @param elapsed Number of seconds elapsed
     /// @param interestRate The interest rate per annum, 1e18 precision. eg 5% = 0.05e18
-    function continuouslyCompounded(
-        uint256 principal, 
-        uint256 elapsed, 
-        uint96 interestRate
-    ) internal pure returns (uint256) {
+    function continuouslyCompounded(uint256 principal, uint256 elapsed, uint96 interestRate)
+        internal
+        pure
+        returns (uint256)
+    {
         uint256 exponent = elapsed * interestRate;
         unchecked {
             exponent = exponent / ONE_YEAR;
         }
-        return ud(principal).mul(
-            ud(exponent).exp()
-        ).unwrap();
+        return ud(principal).mul(ud(exponent).exp()).unwrap();
     }
 }

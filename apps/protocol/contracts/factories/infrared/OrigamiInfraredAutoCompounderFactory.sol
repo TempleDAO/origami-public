@@ -10,10 +10,16 @@ import { IOrigamiElevatedAccess } from "contracts/interfaces/common/access/IOrig
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiInfraredVaultManager } from "contracts/investments/infrared/OrigamiInfraredVaultManager.sol";
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
-import { OrigamiSwapperWithLiquidityManagement } from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
+import {
+    OrigamiSwapperWithLiquidityManagement
+} from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
 import { OrigamiDelegated4626VaultDeployer } from "contracts/factories/infrared/OrigamiDelegated4626VaultDeployer.sol";
-import { OrigamiInfraredVaultManagerDeployer } from "contracts/factories/infrared/OrigamiInfraredVaultManagerDeployer.sol";
-import { OrigamiSwapperWithLiquidityManagementDeployer } from "contracts/factories/swappers/OrigamiSwapperWithLiquidityManagementDeployer.sol";
+import {
+    OrigamiInfraredVaultManagerDeployer
+} from "contracts/factories/infrared/OrigamiInfraredVaultManagerDeployer.sol";
+import {
+    OrigamiSwapperWithLiquidityManagementDeployer
+} from "contracts/factories/swappers/OrigamiSwapperWithLiquidityManagementDeployer.sol";
 
 /**
  * @title Origami Infrared Auto-Compounder Factory
@@ -46,12 +52,7 @@ contract OrigamiInfraredAutoCompounderFactory is OrigamiElevatedAccess {
     event VaultDeployerSet(address indexed deployer);
     event SwapperDeployerSet(address indexed deployer);
 
-    event VaultCreated(
-        address vault,
-        address asset,
-        address manager,
-        address swapper
-    );
+    event VaultCreated(address vault, address asset, address manager, address swapper);
 
     error AssetNotRegistered(address asset);
 
@@ -98,7 +99,7 @@ contract OrigamiInfraredAutoCompounderFactory is OrigamiElevatedAccess {
     function setSwapperDeployer(address deployer) external onlyElevatedAccess {
         emit SwapperDeployerSet(deployer);
         swapperDeployer = OrigamiSwapperWithLiquidityManagementDeployer(deployer);
-    }  
+    }
 
     /// @notice Deploy a new vault
     /// @dev A vault for an Infrared reward vault asset can only be created once,
@@ -121,18 +122,11 @@ contract OrigamiInfraredAutoCompounderFactory is OrigamiElevatedAccess {
 
         // A new vault
         vault = vaultDeployer.deploy({
-            owner: address(this),
-            name: name_,
-            symbol: symbol_,
-            asset: asset,
-            tokenPrices: tokenPrices
+            owner: address(this), name: name_, symbol: symbol_, asset: asset, tokenPrices: tokenPrices
         });
         registeredVaults[asset] = vault;
 
-        OrigamiSwapperWithLiquidityManagement swapper = swapperDeployer.deploy({
-            owner: address(this),
-            asset: asset
-        });
+        OrigamiSwapperWithLiquidityManagement swapper = swapperDeployer.deploy({ owner: address(this), asset: asset });
 
         OrigamiInfraredVaultManager manager = managerDeployer.deploy({
             owner: address(this),
@@ -146,7 +140,8 @@ contract OrigamiInfraredAutoCompounderFactory is OrigamiElevatedAccess {
 
         IOrigamiElevatedAccess.ExplicitAccess[] memory access = new IOrigamiElevatedAccess.ExplicitAccess[](2);
         access[0] = IOrigamiElevatedAccess.ExplicitAccess(OrigamiSwapperWithLiquidityManagement.execute.selector, true);
-        access[1] = IOrigamiElevatedAccess.ExplicitAccess(OrigamiSwapperWithLiquidityManagement.addLiquidity.selector, true);
+        access[1] =
+            IOrigamiElevatedAccess.ExplicitAccess(OrigamiSwapperWithLiquidityManagement.addLiquidity.selector, true);
         swapper.setExplicitAccess(overlord_, access);
 
         vault.setManager(address(manager), 0);
@@ -158,23 +153,17 @@ contract OrigamiInfraredAutoCompounderFactory is OrigamiElevatedAccess {
         manager.proposeNewOwner(owner);
         swapper.proposeNewOwner(owner);
 
-        emit VaultCreated(
-            address(vault),
-            address(asset),
-            address(manager),
-            address(swapper)
-        );
+        emit VaultCreated(address(vault), address(asset), address(manager), address(swapper));
     }
 
     /// @notice Seed the vault for a registered asset while this factory is still the owner
     /// @dev Useful for deployments - it will fail as soon as the vault ownership is claimed
     /// by the intended long term owner.
-    function seedVault(
-        IERC20 vaultAsset,
-        uint256 numAssets,
-        address receiver,
-        uint256 maxTotalSupply
-    ) external onlyElevatedAccess returns (uint256 shares) {
+    function seedVault(IERC20 vaultAsset, uint256 numAssets, address receiver, uint256 maxTotalSupply)
+        external
+        onlyElevatedAccess
+        returns (uint256 shares)
+    {
         OrigamiDelegated4626Vault vault = registeredVaults[address(vaultAsset)];
         if (address(vault) == address(0)) revert AssetNotRegistered(address(vaultAsset));
 

@@ -11,8 +11,12 @@ import { IOrigamiAutoStaking } from "contracts/interfaces/investments/staking/IO
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiAutoStakingToErc4626 } from "contracts/investments/staking/OrigamiAutoStakingToErc4626.sol";
 import { OrigamiAutoStakingFactory } from "contracts/factories/staking/OrigamiAutoStakingFactory.sol";
-import { OrigamiAutoStakingToErc4626Deployer } from "contracts/factories/staking/OrigamiAutoStakingToErc4626Deployer.sol";
-import { OrigamiSwapperWithCallbackDeployer } from "contracts/factories/swappers/OrigamiSwapperWithCallbackDeployer.sol";
+import {
+    OrigamiAutoStakingToErc4626Deployer
+} from "contracts/factories/staking/OrigamiAutoStakingToErc4626Deployer.sol";
+import {
+    OrigamiSwapperWithCallbackDeployer
+} from "contracts/factories/swappers/OrigamiSwapperWithCallbackDeployer.sol";
 import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
 import { OrigamiSwapperWithCallback } from "contracts/common/swappers/OrigamiSwapperWithCallback.sol";
 import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.sol";
@@ -44,7 +48,7 @@ contract OrigamiAutoStakingToErc4626Common is OrigamiTest {
 
     uint96 internal constant REWARDS_DURATION = 10 minutes;
 
-    uint256 internal constant BERACHAIN_FORK_BLOCK_NUMBER = 3088840;
+    uint256 internal constant BERACHAIN_FORK_BLOCK_NUMBER = 3_088_840;
 
     uint16 internal constant DEFAULT_FEE_BPS = 100; // 1%
 
@@ -65,30 +69,18 @@ contract OrigamiAutoStakingToErc4626Common is OrigamiTest {
         // deploy auto staker contracts
         vaultDeployer = new OrigamiAutoStakingToErc4626Deployer(address(IBGT), address(ORI_BGT));
         vaultFactory = new OrigamiAutoStakingFactory(
-            origamiMultisig,
-            address(vaultDeployer),
-            feeCollector,
-            REWARDS_DURATION,
-            address(swapperDeployer)
+            origamiMultisig, address(vaultDeployer), feeCollector, REWARDS_DURATION, address(swapperDeployer)
         );
 
         vm.startPrank(origamiMultisig);
         IOrigamiAutoStaking vault = vaultFactory.registerVault(
-            address(WBERA_HONEY),
-            address(IR_WBERA_HONEY),
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
+            address(WBERA_HONEY), address(IR_WBERA_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0)
         );
         OrigamiAutoStakingToErc4626(address(vault)).acceptOwner();
 
         wberaHoneyAutoStaking = OrigamiAutoStakingToErc4626(address(vault));
         vault = vaultFactory.registerVault(
-            address(OHM_HONEY),
-            address(IR_OHM_HONEY),
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
+            address(OHM_HONEY), address(IR_OHM_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0)
         );
         OrigamiAutoStakingToErc4626(address(vault)).acceptOwner();
         ohmHoneyAutoStaking = OrigamiAutoStakingToErc4626(address(vault));
@@ -102,22 +94,14 @@ contract OrigamiAutoStakingToErc4626Common is OrigamiTest {
         vm.stopPrank();
     }
 
-    function addReward(
-        address stakingToken,
-        address rewardToken,
-        uint256 rewardsDuration,
-        uint256 feeBps
-    ) internal {
+    function addReward(address stakingToken, address rewardToken, uint256 rewardsDuration, uint256 feeBps) internal {
         (address vault,) = vaultFactory.currentVaultForAsset(stakingToken);
         vm.expectEmit(vault);
         emit IMultiRewards.RewardStored(rewardToken, rewardsDuration);
         IOrigamiAutoStaking(vault).addReward(rewardToken, rewardsDuration, feeBps);
     }
 
-    function removeReward(
-        address stakingToken,
-        address rewardToken
-    ) internal {
+    function removeReward(address stakingToken, address rewardToken) internal {
         (address vault,) = vaultFactory.currentVaultForAsset(stakingToken);
         vm.expectEmit(vault);
         emit IMultiRewards.RewardRemoved(rewardToken);

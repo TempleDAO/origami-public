@@ -8,7 +8,7 @@ import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracl
 
 /**
  * @title OrigamiFixedPriceOracle
- * @notice A fixed price oracle only for both SPOT_PRICE and HISTORIC_PRICE, 
+ * @notice A fixed price oracle only for both SPOT_PRICE and HISTORIC_PRICE,
  * but with an optional 'price check' which may
  * revert depending on it's implementation.
  */
@@ -23,12 +23,8 @@ contract OrigamiFixedPriceOracle is OrigamiOracleBase {
      * @dev Can be set to address(0) to disable the check
      */
     IOrigamiOracle public immutable priceCheckOracle;
-    
-    constructor (
-        BaseOracleParams memory baseParams,
-        uint256 _fixedPrice,
-        address _priceCheckOracle
-    )
+
+    constructor(BaseOracleParams memory baseParams, uint256 _fixedPrice, address _priceCheckOracle)
         OrigamiOracleBase(baseParams)
     {
         FIXED_PRICE = _fixedPrice;
@@ -39,13 +35,16 @@ contract OrigamiFixedPriceOracle is OrigamiOracleBase {
      * @notice Return the fixed oracle price, to `decimals` precision
      * @dev The `priceCheckOracle` lookup may revert.
      */
-    function latestPrice(
-        PriceType priceType,
-        OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256 price) {
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode)
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // check reference price is valid and does not revert
-        if (address(priceCheckOracle) != address(0))
+        if (address(priceCheckOracle) != address(0)) {
             priceCheckOracle.latestPrice(priceType, roundingMode);
+        }
 
         return FIXED_PRICE;
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Cooler LTV Oracle
@@ -13,22 +13,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *  - Liquidation LTV is a policy set percentage above the Origination LTV
  */
 interface ICoolerLtvOracle {
-    event OriginationLtvSetAt(
-        uint96 oldOriginationLtv,
-        uint96 newOriginationLtvTarget,
-        uint256 targetTime
-    );
+    event OriginationLtvSetAt(uint96 oldOriginationLtv, uint96 newOriginationLtvTarget, uint256 targetTime);
     event MaxOriginationLtvDeltaSet(uint256 maxDelta);
     event MinOriginationLtvTargetTimeDeltaSet(uint32 maxTargetTimeDelta);
     event MaxOriginationLtvRateOfChangeSet(uint96 maxRateOfChange);
     event MaxLiquidationLtvPremiumBpsSet(uint96 maxPremiumBps);
     event LiquidationLtvPremiumBpsSet(uint96 premiumBps);
 
-    error BreachedMaxOriginationLtvDelta(
-        uint96 oldOriginationLtv,
-        uint96 newOriginationLtv,
-        uint256 maxDelta
-    );
+    error BreachedMaxOriginationLtvDelta(uint96 oldOriginationLtv, uint96 newOriginationLtv, uint256 maxDelta);
     error BreachedMinDateDelta(uint40 targetTime, uint40 currentDate, uint32 maxTargetTimeDelta);
     error BreachedMaxOriginationLtvRateOfChange(uint96 targetRateOfChange, uint96 maxRateOfChange);
     error CannotDecreaseLtv();
@@ -70,13 +62,7 @@ interface ICoolerLtvOracle {
     function originationLtvData()
         external
         view
-        returns (
-            uint96 startingValue,
-            uint40 startTime,
-            uint96 targetValue,
-            uint40 targetTime,
-            uint96 slope
-        );
+        returns (uint96 startingValue, uint40 startTime, uint96 targetValue, uint40 targetTime, uint96 slope);
 
     /// @notice The maximum Liquidation LTV premium (in basis points) which is allowed to be set when calling
     /// `setLiquidationLtvPremiumBps()`
@@ -105,13 +91,10 @@ interface ICoolerLtvOracle {
     /// @notice Set the maximum (positive) rate of change of Origination LTV allowed, when
     /// `setOriginationLtvAt()` is called.
     /// @dev Units: [Origination LTV / second]
-    function setMaxOriginationLtvRateOfChange(
-        uint96 originationLtvDelta,
-        uint32 timeDelta
-    ) external;
+    function setMaxOriginationLtvRateOfChange(uint96 originationLtvDelta, uint32 timeDelta) external;
 
-    /// @notice Set the target Origination LTV which will incrementally increase from it's current value to `targetOriginationLtv`
-    /// between now and `targetTime`.
+    /// @notice Set the target Origination LTV which will incrementally increase from it's current value to
+    /// `targetOriginationLtv` between now and `targetTime`.
     /// @dev targetTime is unixtime, targetOriginationLtv is 18 decimal places, 1.05e18 == $1.05
     function setOriginationLtvAt(uint96 targetOriginationLtv, uint40 targetTime) external;
 

@@ -16,20 +16,20 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
  *
  * @dev
  *   - There will be a surplus `debtToken` amount held by this contract which can expand and contract
- *     on each join and exit. 
- *   - This surplus is excluded from the balance sheet totals used to calculate the `debtToken per hOHM` 
+ *     on each join and exit.
+ *   - This surplus is excluded from the balance sheet totals used to calculate the `debtToken per hOHM`
  *     share price.
  *   - Under normal circumstances it will grow on aggregate:
- *     a/ The origination LTV within cooler increases every second to some set gradient. 
+ *     a/ The origination LTV within cooler increases every second to some set gradient.
  *        This increases the capacity to borrow
- *     b/ The cooler interest rate is flat (0.5% APY as of writing). 
+ *     b/ The cooler interest rate is flat (0.5% APY as of writing).
  *        This decreases the capacity to borrow
- *     c/ Any surplus is added into a savings vault (eg sUSDS) which has a higher interest rate than (b). 
+ *     c/ Any surplus is added into a savings vault (eg sUSDS) which has a higher interest rate than (b).
  *        The surplus in debtToken terms (eg USDS) increases faster than the cooler debt.
  *     It is expected that (a)+(c) will outpace (b)
  *   - sweep() can be called in order to use the surplus `debtToken` to buy hOHM from the open market
- *     and then burn the hOHM. 
- *     When this happens the totalSupply decreases, which increases the share price of both the collateral and 
+ *     and then burn the hOHM.
+ *     When this happens the totalSupply decreases, which increases the share price of both the collateral and
  *     debt tokens per hOHM
  */
 interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
@@ -49,7 +49,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
     event SweepFinished(uint256 hohmBurned, uint256 feeAmount);
 
     /// @notice A join has been performed by adding the `collateralAmount` as collateral into cooler
-    /// and paying `receiver` the `debtAmount` of debtToken's. 
+    /// and paying `receiver` the `debtAmount` of debtToken's.
     /// `collateralAmount` and `debtAmount` are always in the tokens native decimals.
     /// `coolerDebtDeltaInWad` is how much debt was borrowed (positive value) or repaid (negative value) in
     ///  cooler in order to get to the max origination LTV (always to 18 decimals regardless of the debt token)
@@ -85,13 +85,10 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      * @notice Set the sweep cooldown seconds and max debt token sell amount
      * for each call
      */
-    function setSweepParams(
-        uint40 newSweepCooldownSecs,
-        uint96 newMaxSweepSellAmount
-    ) external;
+    function setSweepParams(uint40 newSweepCooldownSecs, uint96 newMaxSweepSellAmount) external;
 
     /**
-     * @notice Set the swapper contract responsible for swapping 
+     * @notice Set the swapper contract responsible for swapping
      * `debtToken` to lovOHM
      */
     function setSweepSwapper(address newSwapper) external;
@@ -109,13 +106,13 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
 
     /**
      * @notice If the Olympus Cooler debtToken has changed (eg USDS => USDC), then this will
-     * need to be called. 
+     * need to be called.
      * @dev Full fork testing is expected to be done first given it is a somewhat manual process.
      *  - The vault is required to be paused first
      *  - Any surplus 'old' debt token will need to be sold into the 'new' debt token
-     *    The old debt token & savings vault token can be recovered in order to do this, 
+     *    The old debt token & savings vault token can be recovered in order to do this,
      *    once this function has been called.
-     *  - `setSweepParams()` will need to be called especially if the new debt token has 
+     *  - `setSweepParams()` will need to be called especially if the new debt token has
      *    different decimal places
      *  - Once set, the hOHM vault will need to have `setManager()` called to refresh it's
      *    cached debtToken value
@@ -124,7 +121,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      *                     in order to have passive yield. If not required, can be set to address(0)
      */
     function setDebtTokenFromCooler(address savingsVault) external;
-    
+
     /**
      * @notice Deposit/Withdraw from the savings vault such that the debt token amount in this contract
      * is a certain balance.
@@ -136,7 +133,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
     /**
      * @notice Sweeping will sell a number of surplus debtToken's for the hOHM vault token
      *   and then burns the resulting hOHM vault token.
-     * @dev 
+     * @dev
      *   - When the hOHM tokens are burned, the share price of both the collateral and debt tokens
      *     will increase.
      *   - sweep's are limited in the amount per call and also how frequently it can be called
@@ -144,10 +141,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      *     up to the swapper to perform slippage checks and also to burn the purchased hOHM
      * `amount` is expected to be in the decimal places of `debtToken`
      */
-    function sweep(
-        uint256 amount,
-        bytes memory swapData
-    ) external;
+    function sweep(uint256 amount, bytes memory swapData) external;
 
     /**
      * @notice Add equity by depositing `collateralAmount` collateral and borrowing `debtAmount` from Cooler.
@@ -156,10 +150,10 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      * @param debtAmount the amount of debt to send to the receiver, in its native decimals places
      * @param receiver The address to receive the `debtAmount` of `debtToken`
      * @param receiverSharesPostMint The number of shares `receiver` will have including after the effect of
-              this vault join
+     *           this vault join
      * @param totalSupplyPostMint The vault total supply including after this vault join
      */
-    function join(   
+    function join(
         uint256 collateralAmount,
         uint256 debtAmount,
         address receiver,
@@ -175,7 +169,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      * @param sharesOwner the owner of the shares who is exiting
      * @param receiver The address to receive the `collateralAmount` of `collateralToken`
      * @param ownerSharesPostBurn The number of shares `sharesOwner` will have including after the effect of
-              this vault exit
+     *           this vault exit
      * @param totalSupplyPostBurn The vault total supply including after this vault exit
      */
     function exit(
@@ -189,9 +183,9 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
 
     /**
      * @notice Update the gOHM delegate address and amount for a particular account.
-     * The new gOHM amount is based on the latest gOHM collateral this contract has in cooler 
+     * The new gOHM amount is based on the latest gOHM collateral this contract has in cooler
      * and the accounts share proportion of the totalSupply.
-     * @dev 
+     * @dev
      *  - `account` cannot be address(0) - this will revert
      *  - `newDelegateAddress` may be address(0), meaning that gOHM collateral will become
      *    undelegated.
@@ -201,43 +195,39 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      *    Future calls to `updateAmounts()` for this account will still delegate to `newDelegateAddress`
      */
     function updateDelegateAndAmount(
-        address account, 
-        uint256 accountShares, 
-        uint256 totalSupply, 
+        address account,
+        uint256 accountShares,
+        uint256 totalSupply,
         address newDelegateAddress
     ) external;
 
     /**
-     * @notice Update the gOHM delegation amount for one account, using the 
+     * @notice Update the gOHM delegation amount for one account, using the
      * existing delegate address (if set).
-     * The new gOHM amount is based on the latest gOHM collateral this contract has in cooler 
+     * The new gOHM amount is based on the latest gOHM collateral this contract has in cooler
      * and the accounts share proportion of the totalSupply.
-     * @dev 
+     * @dev
      *  - `account` cannot be address(0) - this will revert
      *  - The existing delegate address for the account may be address(0) in which case
      *    no change is made - the gOHM remains undelegated
      *  - `accountShares` may be zero, meaning that any existing gOHM collateral is undelegated.
-     *    Future calls to `setDelegationAmount1()` or `setDelegationAmount2()` for this account 
+     *    Future calls to `setDelegationAmount1()` or `setDelegationAmount2()` for this account
      *    will still delegate to their existing delegate
      */
-    function setDelegationAmount1(
-        address account,
-        uint256 accountShares,
-        uint256 totalSupply
-    ) external;
+    function setDelegationAmount1(address account, uint256 accountShares, uint256 totalSupply) external;
 
     /**
-     * @notice Update the gOHM delegation amounts for two accounts, using the 
+     * @notice Update the gOHM delegation amounts for two accounts, using the
      * existing delegate address for that account (if set).
-     * The new gOHM amount for that account is based on the latest gOHM collateral this contract has in cooler 
+     * The new gOHM amount for that account is based on the latest gOHM collateral this contract has in cooler
      * and the accounts share proportion of the totalSupply.
-     * @dev 
+     * @dev
      *  - `account1` cannot be the same as `account2` - this will revert.
      *  - `account1` or `account2` cannot be address(0) - this will revert.
      *  - The existing delegate address for the account may be address(0) in which case
      *    no change is made - the gOHM remains undelegated
      *  - `accountShares1` or `accountShares2` may be zero, meaning that any existing gOHM collateral is undelegated.
-     *    Future calls to `setDelegationAmount1()` or `setDelegationAmount2()` for that account 
+     *    Future calls to `setDelegationAmount1()` or `setDelegationAmount2()` for that account
      *    will still delegate to their existing delegate
      */
     function setDelegationAmount2(
@@ -315,7 +305,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
     function coolerBorrowsDisabled() external view returns (bool);
 
     /**
-     * @notice Set the swapper contract responsible for swapping 
+     * @notice Set the swapper contract responsible for swapping
      * `debtToken` to lovOHM
      */
     function sweepSwapper() external view returns (IOrigamiSwapper);
@@ -359,8 +349,8 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
 
     /**
      * @notice The minimum amount of gOHM collateral required in order to delegate
-     * @dev 
-     *    - If the account's proportional gOHM falls below this on a transfer/exit then 
+     * @dev
+     *    - If the account's proportional gOHM falls below this on a transfer/exit then
      *      the delegation will be rescinded in Cooler
      *    - If the account sets a delegation and the gOHM collateral is less than this threshold
      *      the delegation won't apply
@@ -370,7 +360,7 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
     function MIN_DELEGATION_AMOUNT() external view returns (uint256);
 
     /**
-     * @notice The current delegate address and gOHM collateral 
+     * @notice The current delegate address and gOHM collateral
      * amount delegated for an account
      */
     function delegations(address account) external view returns (address delegateAddress, uint256 amount);
@@ -399,15 +389,10 @@ interface IOrigamiHOhmManager is IOrigamiSwapCallback, IERC165 {
      * @notice Given an account and their shares, calculate the proportional amount of gOHM collateral
      * that account is eligable to delegate, and their current delegate and delegated amount
      */
-    function accountDelegationBalances(
-        address account,
-        uint256 shares,
-        uint256 totalSupply
-    ) external view returns (
-        uint256 totalCollateral,
-        address delegateAddress,
-        uint256 delegatedCollateral
-    );
+    function accountDelegationBalances(address account, uint256 shares, uint256 totalSupply)
+        external
+        view
+        returns (uint256 totalCollateral, address delegateAddress, uint256 delegatedCollateral);
 
     /**
      * @notice The surplus amount of surplusDebtTokenAmount (in `debtToken` liability terms)

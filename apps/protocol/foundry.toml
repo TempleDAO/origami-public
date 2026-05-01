@@ -13,6 +13,11 @@
   legacy_assertions = true
   assertions_revert = false
   dynamic_test_linking = true # Required foundry >= 1.1.0
+  extra_output = ["storageLayout"]
+
+  fs_permissions = [
+    { access = "read", path = "lib/pendle-router-scaling/test/calldata.json" }
+  ]
 
 [profile.default.fuzz]
   max_test_rejects = 2000
@@ -28,6 +33,7 @@
   # Number of calls executed in one run. Be mindful that all Handler fns are (unevenly) split over this total depth
   depth = 80
   runs = 128
+  corpus_dir = "fuzz-corpus"
 
 [profile.ci.fuzz]
   max_test_rejects = 3000
@@ -36,6 +42,7 @@
   # Number of calls executed in one run. Be mindful that all Handler fns are (unevenly) split over this total depth
   depth = 60
   runs = 128
+  # timeout = 600 # seconds. This ignores the runs and keeps going until the timeout.
 
 [profile.lite]
   # Speed up compilation and tests during development.
@@ -56,8 +63,19 @@
   bracket_spacing = true
   int_types = "long"
   line_length = 120
-  multiline_func_header = "all"
+  multiline_func_header = "attributes_first"
   number_underscore = "thousands"
   quote_style = "double"
   tab_width = 4
   wrap_comments = true
+
+[lint]
+  exclude_lints = [
+    "asm-keccak256",
+    "mixed-case-variable",
+    "mixed-case-function",
+    "screaming-snake-case-immutable",
+    "screaming-snake-case-const",
+    "pascal-case-struct"
+  ]
+  ignore = ["test/**/*", "contracts/test/**/*", "**/node_modules/**/*", "lib/**/*"]

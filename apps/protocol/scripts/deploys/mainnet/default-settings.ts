@@ -720,6 +720,80 @@ export const DEFAULT_SETTINGS = {
         SWEEP_MAX_SELL_AMOUNT: ethers.utils.parseEther("10000"), // 10k USDS per day
       },
 
+      // Fully deprecated - to be removed in follow up PR
+      OPAL_WEETH_A_DEPRECATED: {
+        TOKEN_SYMBOL: "opal-weETH-a",
+        TOKEN_NAME: "OPAL weETH (a)",
+        AUM_FEE_BPS: 100, // 1%
+        JOIN_FEE_BPS: 0,
+        EXIT_FEE_BPS: 0,
+
+        MAX_UR_ON_JOIN: {
+          "AAVE_V3.1: [weETH]/[WETH]": ethers.utils.parseEther("0.92"), // 92%
+        },
+
+        // ~approx 80% LTV.
+        // Aave's liquidation LTV for ETH mode is 95%, max LTV = 93%.
+        SEED_COLLATERAL_AMOUNT: ethers.utils.parseEther("0.092162899800052798"), // [weETH]
+        TARGET_LEVERAGE: ethers.utils.parseEther("0.8"),
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+      },
+
+      OPAL_WEETH_A: {
+        TOKEN_SYMBOL: "opal-weETH-a",
+        TOKEN_NAME: "OPAL weETH (a)",
+        AUM_FEE_BPS: 50, // 0.5%
+        JOIN_FEE_BPS: 0,
+        EXIT_FEE_BPS: 0,
+
+        MAX_UR_ON_JOIN: {
+          "AAVE_V3.1: [weETH]/[WETH]": ethers.utils.parseEther("0.92"), // 92%
+        },
+
+        // Aave's liquidation LTV with e-mode is 95%, max borrow LTV = 93%.
+        SEED_COLLATERAL_AMOUNT: ethers.utils.parseEther("0.123246590905724469"), // [weETH]
+        TARGET_LEVERAGE: ethers.utils.parseEther("0.92"),
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+      },
+
+      // Fully deprecated - to be removed in follow up PR
+      OPAL_PT_SUSDE_A_DEPRECATED: {
+        TOKEN_SYMBOL: "opal-PT-sUSDe-a",
+        TOKEN_NAME: "OPAL PT-sUSDe (a)",
+        AUM_FEE_BPS: 100, // 1%
+        JOIN_FEE_BPS: 0,
+        EXIT_FEE_BPS: 0,
+
+        MAX_UR_ON_JOIN: {
+          "AAVE: sUSDe / USDC": ethers.utils.parseEther("0.92"), // 92%
+          "AAVE: PT-sUSDe-Feb-2026 / USDC": ethers.utils.parseEther("0.92"), // 92%
+          "AAVE: PT-sUSDe-7MAY2026 / USDC": ethers.utils.parseEther("0.92"), // 92%
+        },
+
+        // ~approx 85% LTV.
+        SEED_COLLATERAL_AMOUNT: ethers.utils.parseEther("212.299147227920667833"), // [sUSDe]
+        TARGET_LEVERAGE: ethers.utils.parseEther("0.85"),
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+      },
+
+      OPAL_PT_SUSDE_B: {
+        TOKEN_SYMBOL: "opal-PT-sUSDe-b",
+        TOKEN_NAME: "OPAL PT-sUSDe (b)",
+        AUM_FEE_BPS: 50, // 0.5%
+        JOIN_FEE_BPS: 0,
+        EXIT_FEE_BPS: 0,
+
+        MAX_UR_ON_JOIN: {
+          "AAVE: sUSDe / USDT": ethers.utils.parseEther("0.92"), // 92%
+          "AAVE: PT-sUSDe-7MAY2026 / USDT": ethers.utils.parseEther("0.92"), // 92%
+        },
+
+        // Aave's liquidation LTV with e-mode is 92%, max borrow LTV = 90%.
+        SEED_COLLATERAL_AMOUNT: ethers.utils.parseEther("469.620527149839913001"), // [sUSDe]
+        TARGET_LEVERAGE: ethers.utils.parseEther("0.89"),
+        MAX_TOTAL_SUPPLY: ethers.constants.MaxUint256,
+      },
+
       OAC_USDS_IMF_MOR: {
         TOKEN_SYMBOL: "oAC-USDS-IMF-MOR",
         TOKEN_NAME: "Origami Morpho IMF-USDS Auto-Compounder",
@@ -731,26 +805,26 @@ export const DEFAULT_SETTINGS = {
 
         COW_SWAPPERS: {
           IMF_TO_USDS_LIMIT_SELL: {
-            MIN_SELL_AMOUNT: ethers.utils.parseUnits("150", 18), // 150 IMF
+            MIN_SELL_AMOUNT: ethers.utils.parseUnits("5", 18), // 150 IMF
             MAX_SELL_AMOUNT: ethers.utils.parseUnits("100000", 18), // 100k IMF
             MIN_BUY_AMOUNT: ethers.utils.parseUnits("10000", 18), // 10k USDS (floor of $0.10 per IMF)
             PARTIALLY_FILLABLE: true,
             USE_CURRENT_BALANCE_FOR_SELL_AMOUNT: false,
             LIMIT_PRICE_ADJUSTMENT_BPS: 0, // No oracle on this one
             VERIFY_SLIPPAGE_BPS: 10,
-            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("10", 18), // 10 USDS
+            ROUND_DOWN_DIVISOR: ethers.utils.parseUnits("2", 18), // 2 USDS
             EXPIRY_PERIOD_SECS: 60*5, // 5 minutes
 
-            // https://api.cow.fi/mainnet/api/v1/app_data/0xf98c742f0cf46094a431d7004870a61eeb605d31f1fbcc63e9c10f14b1ed0f06
+            // https://api.cow.fi/mainnet/api/v1/app_data/0x64a8d5df9620fd03d44c33938302dc897d1338db1931b42cfb269a47c5873131
             /*
   # To Create:
   curl -X 'PUT' \
   'https://api.cow.fi/mainnet/api/v1/app_data' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
-  -d '{"fullAppData":"{\"appCode\":\"https://origami.finance/\",\"environment\":\"production\",\"metadata\":{\"hooks\":{\"post\":[{\"callData\":\"0xfdb5a03e\",\"gasLimit\":\"250000\",\"target\":\"0xe9224F1d852001Ba32BEFdf665543280185EB08C\"}],\"version\":\"0.1.0\"}},\"version\":\"1.4.0\"}"}'
+  -d '{"fullAppData":"{\"appCode\":\"https://origami.finance/\",\"environment\":\"production\",\"metadata\":{\"hooks\":{\"post\":[{\"callData\":\"0xfdb5a03e\",\"gasLimit\":\"500000\",\"target\":\"0xe9224F1d852001Ba32BEFdf665543280185EB08C\"}],\"version\":\"0.1.0\"}},\"version\":\"1.4.0\"}"}'
             */
-            APP_DATA: "0xf98c742f0cf46094a431d7004870a61eeb605d31f1fbcc63e9c10f14b1ed0f06",
+            APP_DATA: "0x64a8d5df9620fd03d44c33938302dc897d1338db1931b42cfb269a47c5873131",
           },
         },
       },
@@ -806,6 +880,15 @@ export const DEFAULT_SETTINGS = {
       },
       PT_SUSDE_MAY_2025_SUSDE: {
         TWAP_DURATION_SECS: 3600,
+      },
+      PT_SUSDE_NOV_2025_SUSDE: {
+        TWAP_DURATION_SECS: 900,
+      },
+      PT_SUSDE_FEB_2026_SUSDE: {
+        TWAP_DURATION_SECS: 900,
+      },
+      PT_SUSDE_7MAY2026_SUSDE: {
+        TWAP_DURATION_SECS: 900,
       },
       USD0pp_USD0: {
         MIN_THRESHOLD: ethers.utils.parseEther("0.99"), 
@@ -894,6 +977,22 @@ export const DEFAULT_SETTINGS = {
           // https://docs.chain.link/data-feeds/price-feeds/addresses?network=ethereum&page=1&search=USD0%2B%2B
           STALENESS_THRESHOLD: 86400 + 300 // 1 day + 5 minutes
         },
+        WEETH_ETH_ORACLE: {
+          // https://data.chain.link/feeds/ethereum/mainnet/weeth-eth
+          STALENESS_THRESHOLD: 86400 + 300 // 1 day + 5 minutes
+        },
+        USDE_USD_ORACLE: {
+          // https://data.chain.link/feeds/ethereum/mainnet/usde-usd
+          STALENESS_THRESHOLD: 82800 + 300 // 23 hrs + 5 minutes
+        },
+        SUSDE_USD_ORACLE: {
+          // https://data.chain.link/feeds/ethereum/mainnet/susde-usd
+          STALENESS_THRESHOLD: 86400 + 300 // 24 hrs + 5 minutes
+        },
+        USDT_USD_ORACLE: {
+          // https://data.chain.link/feeds/ethereum/mainnet/usdt-usd
+          STALENESS_THRESHOLD: 86400 + 300 // 24 hrs + 5 minutes
+        },
       },
       CHRONICLE: {
         USDS_USD_ORACLE: {
@@ -915,6 +1014,18 @@ export const DEFAULT_SETTINGS = {
         EMODES: {
           DEFAULT: 0,
           ETH: 1,
+        },
+        CORE: {
+          // https://etherscan.io/address/0x56b7A1012765C285afAC8b8F25C69Bf10ccfE978#readContract
+          // getEModes(0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e)
+          EMODES: {
+            DEFAULT: 0,
+            "ETH correlated": 1,
+            "PT-sUSDe Stablecoins Jul 2025": 8,
+            "PT-sUSDe Stablecoins Nov 2025": 24,
+            "PTsUSDe5FEB/Stablecoins": 31,
+            "PT_sUSDe_7MAY2026__Stablecoins": 36,
+          },
         }
       },
       ZEROLEND: {

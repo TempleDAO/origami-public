@@ -19,10 +19,10 @@ const getEncodedPrices = (ADDRS: ContractAddresses) => (
     wbtc_honey_toUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.WBTC_HONEY_V3),
     wbtc_wbera_toUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.WBTC_WBERA_V3),
 
-    oac_wbtc_weth_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.TOKEN),
-    oac_weth_wbera_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.TOKEN),
-    oac_wbtc_honey_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.TOKEN),
-    oac_wbtc_wbera_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.TOKEN),
+    oac_wbtc_weth_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.TOKEN.address),
+    oac_weth_wbera_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.TOKEN.address),
+    oac_wbtc_honey_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.TOKEN.address),
+    oac_wbtc_wbera_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.TOKEN.address),
   }
 );
 
@@ -47,16 +47,16 @@ function updatePricesSafeBatch(contract: TokenPrices, ADDRS: ContractAddresses):
       encodedPrices.wbtc_wbera_toUsd
     ),
 
-    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.TOKEN,
+    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.TOKEN.address,
       encodedPrices.oac_wbtc_weth_toUsd
     ),
-    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.TOKEN,
+    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.TOKEN.address,
       encodedPrices.oac_weth_wbera_toUsd
     ),
-    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.TOKEN,
+    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.TOKEN.address,
       encodedPrices.oac_wbtc_honey_toUsd
     ),
-    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.TOKEN,
+    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.TOKEN.address,
       encodedPrices.oac_wbtc_wbera_toUsd
     ),
   ];
@@ -68,25 +68,25 @@ async function main() {
   const filename = path.join(__dirname, "./02-access-and-rates.json");
   writeSafeTransactionsBatch(
     createSafeBatch([
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.TOKEN),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.TOKEN.address),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.MANAGER),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WETH_A.SWAPPER),
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBTC_WETH_A.VAULT),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBTC_WETH_A.VAULT.address),
 
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.TOKEN),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.TOKEN.address),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.MANAGER),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WETH_WBERA_A.SWAPPER),
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WETH_WBERA_A.VAULT),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WETH_WBERA_A.VAULT.address),
 
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.TOKEN),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.TOKEN.address),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.MANAGER),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_HONEY_A.SWAPPER),
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBTC_HONEY_A.VAULT),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBTC_HONEY_A.VAULT.address),
 
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.TOKEN),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.TOKEN.address),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.MANAGER),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBTC_WBERA_A.SWAPPER),
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBTC_WBERA_A.VAULT),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_WBTC_WBERA_A.VAULT.address),
 
       ...updatePricesSafeBatch(INSTANCES.CORE.TOKEN_PRICES.V5, ADDRS),
     ]),

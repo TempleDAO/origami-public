@@ -23,17 +23,11 @@ contract OrigamiPendlePtToAssetOracleTest is OrigamiTest {
     address internal constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 
     function setUp() public {
-        fork("mainnet", 20308622);
-        vm.warp(1721006984);
+        fork("mainnet", 20_308_622);
+        vm.warp(1_721_006_984);
 
         oOracle = new OrigamiPendlePtToAssetOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "PT-sUSDe-26Sep24/DAI",
-                pt_sUSDe,
-                18,
-                DAI,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("PT-sUSDe-26Sep24/DAI", pt_sUSDe, 18, DAI, 18),
             pendleOracle,
             pt_sUSDE_market,
             twapDuration
@@ -50,22 +44,22 @@ contract OrigamiPendlePtToAssetOracleTest is OrigamiTest {
 
     function test_latestPrice_spot() public view {
         assertEq(
-            oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             0.969695790921845659e18
         );
         assertEq(
-            oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             0.969695790921845659e18
         );
     }
 
     function test_latestPrice_historic() public view {
         assertEq(
-            oOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             0.969695790921845659e18
         );
         assertEq(
-            oOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             0.969695790921845659e18
         );
     }
@@ -73,14 +67,7 @@ contract OrigamiPendlePtToAssetOracleTest is OrigamiTest {
     function test_latestPrice_afterMaturity() public {
         skip(365 days);
 
-        assertEq(
-            oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            1e18
-        );
-        assertEq(
-            oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
-            1e18
-        );
+        assertEq(oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 1e18);
+        assertEq(oOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 1e18);
     }
-
 }

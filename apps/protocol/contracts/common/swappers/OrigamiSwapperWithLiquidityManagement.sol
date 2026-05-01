@@ -7,8 +7,9 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
-import { IOrigamiSwapperWithLiquidityManagement } from
-    "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
+import {
+    IOrigamiSwapperWithLiquidityManagement
+} from "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
@@ -19,7 +20,7 @@ import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
  * @dev Tokens are transferred to this contract in advance of swaps being executed. Swap outputs are
  * retained in this contract until they are deposited into an LP, at which point the output tokens are
  * transferred to the designated receiver.
- * 
+ *
  * Intended to be used asynchronously:
  *  - Each deployed instance should be used by only one client contract.
  *  - onlyElevatedAccess to call execute()
@@ -59,12 +60,7 @@ contract OrigamiSwapperWithLiquidityManagement is IOrigamiSwapperWithLiquidityMa
     }
 
     /// @inheritdoc IOrigamiSwapper
-    function execute(
-        IERC20 sellToken,
-        uint256 sellTokenAmount,
-        IERC20 buyToken,
-        bytes calldata swapData
-    )
+    function execute(IERC20 sellToken, uint256 sellTokenAmount, IERC20 buyToken, bytes calldata swapData)
         external
         override
         onlyElevatedAccess
@@ -73,7 +69,7 @@ contract OrigamiSwapperWithLiquidityManagement is IOrigamiSwapperWithLiquidityMa
         SwapParams memory params = abi.decode(swapData, (SwapParams));
 
         if (!whitelistedRouters[params.router]) revert InvalidRouter(params.router);
-        
+
         // revertOnSurplusSellToken=false, since this function is elevated access only.
         // The internal swap route may add more sellTokens to the swapper within the swap route
         // (eg compounding rewards on mint/redeem)
@@ -86,10 +82,7 @@ contract OrigamiSwapperWithLiquidityManagement is IOrigamiSwapperWithLiquidityMa
     }
 
     /// @inheritdoc IOrigamiSwapperWithLiquidityManagement
-    function addLiquidity(
-        TokenAmount[] calldata tokenAmounts,
-        bytes calldata addLiquidityParams
-    )
+    function addLiquidity(TokenAmount[] calldata tokenAmounts, bytes calldata addLiquidityParams)
         external
         override
         onlyElevatedAccess

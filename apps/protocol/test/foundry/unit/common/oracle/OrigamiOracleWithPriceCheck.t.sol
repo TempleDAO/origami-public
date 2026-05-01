@@ -12,7 +12,6 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
 
 /* solhint-disable func-name-mixedcase, contract-name-camelcase, not-rely-on-time */
 contract OrigamiOracleWithPriceCheckTestBase is OrigamiTest {
-
     OrigamiFixedPriceOracle internal oUnderlyingOracle1;
     OrigamiOracleWithPriceCheck internal oOracle1;
 
@@ -20,27 +19,17 @@ contract OrigamiOracleWithPriceCheckTestBase is OrigamiTest {
     address internal token2 = makeAddr("token2");
 
     function setUp() public {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
         vm.startPrank(origamiMultisig);
 
         // 18 decimals for baseAsset and quoteAsset
         oUnderlyingOracle1 = new OrigamiFixedPriceOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN1/TOKEN2",
-                token1,
-                18,
-                token2,
-                6
-            ),
-            0.99e18,
-            address(0)
+            IOrigamiOracle.BaseOracleParams("TOKEN1/TOKEN2", token1, 18, token2, 6), 0.99e18, address(0)
         );
 
         // 18 decimals for baseAsset and quoteAsset
         oOracle1 = new OrigamiOracleWithPriceCheck(
-            origamiMultisig,
-            address(oUnderlyingOracle1),
-            Range.Data(0.95e18, 1.05e18)
+            origamiMultisig, address(oUnderlyingOracle1), Range.Data(0.95e18, 1.05e18)
         );
 
         vm.stopPrank();
@@ -83,7 +72,7 @@ contract OrigamiOracleWithPriceCheckTestAdmin is OrigamiOracleWithPriceCheckTest
         vm.expectEmit(address(oOracle1));
         emit ValidPriceRangeSet(1e18, 2e18);
         oOracle1.setValidPriceRange(1e18, 2e18);
-        
+
         (uint128 floor, uint128 ceiling) = oOracle1.validPriceRange();
         assertEq(floor, 1e18);
         assertEq(ceiling, 2e18);
@@ -92,21 +81,12 @@ contract OrigamiOracleWithPriceCheckTestAdmin is OrigamiOracleWithPriceCheckTest
 
 contract OrigamiOracleWithPriceCheckTestLatestPrice is OrigamiOracleWithPriceCheckTestBase {
     function test_latestPrice_inRange() public view {
+        assertEq(oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0.99e18);
         assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
-            0.99e18
-        );
-        assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
-            0.99e18
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0.99e18
         );
 
-        (
-            uint256 price1, 
-            uint256 price2, 
-            address oracleBaseAsset,
-            address oracleQuoteAsset
-        ) = oOracle1.latestPrices(
+        (uint256 price1, uint256 price2, address oracleBaseAsset, address oracleQuoteAsset) = oOracle1.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN,
             IOrigamiOracle.PriceType.HISTORIC_PRICE,
@@ -120,33 +100,28 @@ contract OrigamiOracleWithPriceCheckTestLatestPrice is OrigamiOracleWithPriceChe
 
     function test_latestPrice_belowRange() public {
         vm.mockCall(
-            address(oUnderlyingOracle1),
-            abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector),
-            abi.encode(0.8e18)
+            address(oUnderlyingOracle1), abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector), abi.encode(0.8e18)
         );
-        
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.BelowMinValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            0.8e18,
-            0.95e18
-        ));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.BelowMinValidRange.selector, address(oUnderlyingOracle1), 0.8e18, 0.95e18
+            )
+        );
         oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
-        
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.BelowMinValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            0.8e18,
-            0.95e18
-        ));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.BelowMinValidRange.selector, address(oUnderlyingOracle1), 0.8e18, 0.95e18
+            )
+        );
         oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.BelowMinValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            0.8e18,
-            0.95e18
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.BelowMinValidRange.selector, address(oUnderlyingOracle1), 0.8e18, 0.95e18
+            )
+        );
         oOracle1.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN,
@@ -157,33 +132,28 @@ contract OrigamiOracleWithPriceCheckTestLatestPrice is OrigamiOracleWithPriceChe
 
     function test_latestPrice_aboveRange() public {
         vm.mockCall(
-            address(oUnderlyingOracle1),
-            abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector),
-            abi.encode(1.8e18)
+            address(oUnderlyingOracle1), abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector), abi.encode(1.8e18)
         );
-        
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.AboveMaxValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            1.8e18,
-            1.05e18
-        ));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector, address(oUnderlyingOracle1), 1.8e18, 1.05e18
+            )
+        );
         oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
-        
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.AboveMaxValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            1.8e18,
-            1.05e18
-        ));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector, address(oUnderlyingOracle1), 1.8e18, 1.05e18
+            )
+        );
         oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.AboveMaxValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            1.8e18,
-            1.05e18
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector, address(oUnderlyingOracle1), 1.8e18, 1.05e18
+            )
+        );
         oOracle1.latestPrices(
             IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN,
@@ -201,7 +171,9 @@ contract OrigamiOracleWithPriceCheckTestLatestPrice is OrigamiOracleWithPriceChe
 
     function test_convertAmount_inRange() public {
         assertEq(
-            oOracle1.convertAmount(token1, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            oOracle1.convertAmount(
+                token1, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             99e6
         );
         assertEq(
@@ -217,68 +189,56 @@ contract OrigamiOracleWithPriceCheckTestLatestPrice is OrigamiOracleWithPriceChe
         vm.prank(origamiMultisig);
         oOracle1.setValidPriceRange(0, 100e18);
         vm.mockCall(
-            address(oUnderlyingOracle1),
-            abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector),
-            abi.encode(0)
+            address(oUnderlyingOracle1), abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector), abi.encode(0)
         );
         assertEq(
-            oOracle1.convertAmount(token1, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            oOracle1.convertAmount(
+                token1, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             0
         );
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.InvalidPrice.selector, 
-            address(oOracle1), 
-            0
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.InvalidPrice.selector, address(oOracle1), 0));
         oOracle1.convertAmount(token2, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     function test_convertAmount_belowRange() public {
         vm.mockCall(
-            address(oUnderlyingOracle1),
-            abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector),
-            abi.encode(0.8e18)
+            address(oUnderlyingOracle1), abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector), abi.encode(0.8e18)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.BelowMinValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            0.8e18,
-            0.95e18
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.BelowMinValidRange.selector, address(oUnderlyingOracle1), 0.8e18, 0.95e18
+            )
+        );
         oOracle1.convertAmount(token1, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.BelowMinValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            0.8e18,
-            0.95e18
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.BelowMinValidRange.selector, address(oUnderlyingOracle1), 0.8e18, 0.95e18
+            )
+        );
         oOracle1.convertAmount(token2, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     function test_convertAmount_aboveRange() public {
         vm.mockCall(
-            address(oUnderlyingOracle1),
-            abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector),
-            abi.encode(1.8e18)
+            address(oUnderlyingOracle1), abi.encodeWithSelector(IOrigamiOracle.latestPrice.selector), abi.encode(1.8e18)
         );
-        
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.AboveMaxValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            1.8e18,
-            1.05e18
-        ));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector, address(oUnderlyingOracle1), 1.8e18, 1.05e18
+            )
+        );
         oOracle1.convertAmount(token1, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.AboveMaxValidRange.selector, 
-            address(oUnderlyingOracle1), 
-            1.8e18,
-            1.05e18
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector, address(oUnderlyingOracle1), 1.8e18, 1.05e18
+            )
+        );
         oOracle1.convertAmount(token2, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
     }
 }

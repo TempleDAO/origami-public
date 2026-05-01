@@ -10,7 +10,7 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
 /**
  * @title OrigamiCrossRateOracle
  * @notice A derived cross rate oracle price, by dividing baseOracle / quotedOracle
- * @dev Both baseOracle and quotedOracle prices are checked against a valid range (eg a peg). 
+ * @dev Both baseOracle and quotedOracle prices are checked against a valid range (eg a peg).
  * If outside of that range, the latestPrice() function will revert.
  */
 contract OrigamiCrossRateOracle is OrigamiOracleBase {
@@ -41,14 +41,12 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
      */
     bool public immutable multiply;
 
-    constructor (
+    constructor(
         BaseOracleParams memory baseParams,
         address _baseAssetOracle,
         address _quoteAssetOracle,
         address _priceCheckOracle
-    )
-        OrigamiOracleBase(baseParams)
-    {
+    ) OrigamiOracleBase(baseParams) {
         baseAssetOracle = IOrigamiOracle(_baseAssetOracle);
         quoteAssetOracle = IOrigamiOracle(_quoteAssetOracle);
         priceCheckOracle = IOrigamiOracle(_priceCheckOracle);
@@ -62,7 +60,9 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
 
         // 2. The quote asset and the cross asset must match the quoteAssetOracle, in either order.
         address _crossAsset = baseAssetOracle.quoteAsset();
-        if (!quoteAssetOracle.matchAssets(_crossAsset, baseParams.quoteAssetAddress)) revert CommonEventsAndErrors.InvalidParam();
+        if (!quoteAssetOracle.matchAssets(_crossAsset, baseParams.quoteAssetAddress)) {
+            revert CommonEventsAndErrors.InvalidParam();
+        }
 
         multiply = quoteAsset == quoteAssetOracle.quoteAsset();
     }
@@ -71,37 +71,37 @@ contract OrigamiCrossRateOracle is OrigamiOracleBase {
      * @notice Return the latest oracle price, to `decimals` precision
      * @dev This may still revert - eg if deemed stale, div by 0, negative price
      * @param priceType What kind of price - Spot or Historic
-     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified direction.
+     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified
+     * direction.
      */
-    function latestPrice(
-        PriceType priceType, 
-        OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256) {
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode)
+        public
+        view
+        override
+        returns (uint256)
+    {
         // check reference price is valid and does not revert
-        if (address(priceCheckOracle) != address(0))
+        if (address(priceCheckOracle) != address(0)) {
             priceCheckOracle.latestPrice(priceType, roundingMode);
+        }
 
         // baseOracle (the numerator) price follows the requested roundingMode
         // So if roundDown, then we want the numerator to be lower (round down)
-        uint256 _basePrice = baseAssetOracle.latestPrice(
-            priceType, 
-            roundingMode
-        );
+        uint256 _basePrice = baseAssetOracle.latestPrice(priceType, roundingMode);
 
         if (multiply) {
             // Also the numerator - so follow the requested roundingMode
-            uint256 _quotePrice = quoteAssetOracle.latestPrice(
-                priceType, 
-                roundingMode
-            );
+            uint256 _quotePrice = quoteAssetOracle.latestPrice(priceType, roundingMode);
 
             return _basePrice.mulDiv(_quotePrice, precision, roundingMode);
         } else {
             // quotedOracle (the denominator) price follows the opposite roundingMode
             // So if roundDown, then we want the denominator to be higher (round up)
             uint256 _quotePrice = quoteAssetOracle.latestPrice(
-                priceType, 
-                roundingMode == OrigamiMath.Rounding.ROUND_DOWN ? OrigamiMath.Rounding.ROUND_UP : OrigamiMath.Rounding.ROUND_DOWN
+                priceType,
+                roundingMode == OrigamiMath.Rounding.ROUND_DOWN
+                    ? OrigamiMath.Rounding.ROUND_UP
+                    : OrigamiMath.Rounding.ROUND_DOWN
             );
             if (_quotePrice == 0) revert InvalidPrice(address(quoteAssetOracle), int256(_quotePrice));
 

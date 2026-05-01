@@ -17,15 +17,10 @@ import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
  *  - Permit support
  *  - IERC165 support
  *  - Reentrancy guard on deposit/mint/withdraw/redeem
- *  - maxRedeem & maxWithdraw for address(0) returns the total vault capacity (given any caps within the implementation) 
+ *  - maxRedeem & maxWithdraw for address(0) returns the total vault capacity (given any caps within the implementation)
  *    which can be withdrawn/redeemed (rather than always returning zero)
  */
-interface IOrigamiErc4626 is 
-    IERC4626, 
-    IERC20Permit, 
-    IERC165, 
-    IERC5267
-{
+interface IOrigamiErc4626 is IERC4626, IERC20Permit, IERC165, IERC5267 {
     /// @dev Attempted to deposit more assets than the max amount for `receiver`.
     error ERC4626ExceededMaxDeposit(address receiver, uint256 assets, uint256 max);
 
@@ -67,11 +62,7 @@ interface IOrigamiErc4626 is
     /// @notice Origami protocol seeds the initial deposit
     /// @dev The new maxTotalSupply is set and a trusted deposit
     /// is made
-    function seedDeposit(
-        uint256 assets,
-        address receiver,
-        uint256 maxTotalSupply
-    ) external returns (uint256 shares);
+    function seedDeposit(uint256 assets, address receiver, uint256 maxTotalSupply) external returns (uint256 shares);
 
     /// @notice The current deposit fee in basis points.
     function depositFeeBps() external view returns (uint256);

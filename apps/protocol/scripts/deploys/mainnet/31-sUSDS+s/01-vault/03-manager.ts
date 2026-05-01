@@ -13,7 +13,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.SUSDSpS.TOKEN,
+    ADDRS.VAULTS.SUSDSpS.TOKEN.address,
     ADDRS.EXTERNAL.SKY.SUSDS_TOKEN,
     DEFAULT_SETTINGS.VAULTS.SUSDSpS.SWITCH_FARM_COOLDOWN_SECS,
     ADDRS.VAULTS.SUSDSpS.COW_SWAPPER,

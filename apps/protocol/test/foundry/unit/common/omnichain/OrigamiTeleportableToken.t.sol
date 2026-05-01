@@ -1,11 +1,12 @@
 pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-
 import { OrigamiTeleportableToken } from "contracts/common/omnichain/OrigamiTeleportableToken.sol";
 
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
-import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
+import {
+    ITokenizedBalanceSheetVault
+} from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
@@ -42,7 +43,7 @@ contract OrigamiTeleportableTokenTestAdmin is OrigamiTeleportableTokenTestBase {
         assertEq(token.supportsInterface(type(IERC20Permit).interfaceId), true);
         assertEq(token.supportsInterface(type(EIP712).interfaceId), true);
         assertEq(token.supportsInterface(type(IERC165).interfaceId), true);
-        assertEq(token.supportsInterface(type(IOrigamiInvestment).interfaceId), false);
+        assertEq(token.supportsInterface(type(ITokenizedBalanceSheetVault).interfaceId), false);
     }
 
     function test_access_setTeleporter() public {
@@ -55,7 +56,7 @@ contract OrigamiTeleportableTokenTestAdmin is OrigamiTeleportableTokenTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
         token.setTeleporter(address(0));
     }
-    
+
     function test_setTeleporter_success() public {
         assertEq(address(token.teleporter()), teleporter);
 
@@ -73,7 +74,7 @@ contract OrigamiTeleportableTokenTestPermit is OrigamiTeleportableTokenTestBase 
     }
 
     function test_allowance_bob() public {
-        deal(address(token), alice, 1_000e18);
+        deal(address(token), alice, 1000e18);
 
         assertEq(token.allowance(alice, bob), 0);
         vm.prank(alice);
@@ -87,7 +88,7 @@ contract OrigamiTeleportableTokenTestPermit is OrigamiTeleportableTokenTestBase 
 
     // Always type(uint256).max
     function test_allowance_teleporter() public {
-        deal(address(token), alice, 1_000e18);
+        deal(address(token), alice, 1000e18);
         assertEq(token.allowance(alice, teleporter), type(uint256).max);
 
         vm.prank(alice);

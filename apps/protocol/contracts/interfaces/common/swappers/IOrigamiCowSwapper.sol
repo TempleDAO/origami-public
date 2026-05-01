@@ -54,7 +54,7 @@ interface IOrigamiCowSwapper is IConditionalOrder {
         /// @dev The minimum amount of sellToken to place an order for
         /// MUST be <= maxSellAmount;
         uint96 minSellAmount;
-        
+
         /// @dev The amount of sellToken to place an order for
         /// MUST be > 0
         /// This can be set to a higher amount than the current balance the contract holds.
@@ -69,8 +69,9 @@ interface IOrigamiCowSwapper is IConditionalOrder {
         bool useCurrentBalanceForSellAmount;
 
         /// @dev How many basis points above or below the `limitPriceOracle` is the limit order set.
-        ///     - negative value: Accept trades where the price is greater than or equal `limitPriceOracle` minus this discount
-        ///     - positive value: Accept trades where the price is greater than or equal to `limitPriceOracle` plus this premium
+        ///     - negative value: Accept trades where the price is greater than or equal `limitPriceOracle` minus this
+        /// discount - positive value: Accept trades where the price is greater than or equal to `limitPriceOracle` plus
+        /// this premium
         ///     - zero: Use the exact oracle price
         int16 limitPriceAdjustmentBps;
 
@@ -93,14 +94,14 @@ interface IOrigamiCowSwapper is IConditionalOrder {
         /// Eg if buyToken is 18dp, to round down to the nearest 50 tokens, set this to 50e18
         /// Not used if set to zero
         uint96 roundDownDivisor;
-        
+
         // ---- END SLOT 3
 
         /// @dev The receiver of buyToken's on each fill.
         address recipient;
 
         /// @dev The acceptable slippage (in basis points) to the unrounded buyAmount between
-        /// T1. The order being picked up by watchtower. 
+        /// T1. The order being picked up by watchtower.
         /// T2. It being verified and added to the cow swap order book.
         /// Not used if set to zero
         uint16 verifySlippageBps;
@@ -108,11 +109,11 @@ interface IOrigamiCowSwapper is IConditionalOrder {
         // ---- END SLOT 4 (NB: there is padded space here which could be used for future use if needed)
 
         /// @dev The appData for any new discrete orders.
-        /// It refers to an IPFS blob containing metadata, but also controls the pre and post hooks to run upon settlement.
+        /// It refers to an IPFS blob containing metadata, but also controls the pre and post hooks to run upon
+        /// settlement.
         /// This is set on the contract in advance to avoid incorrect setting.
         /// NOTE: There are constraints around hooks - study the docs
         bytes32 appData;
-
         // ---- END SLOT 5
     }
 
@@ -132,29 +133,27 @@ interface IOrigamiCowSwapper is IConditionalOrder {
 
     /**
      * @notice Sets or updates the order configuration for a particular sellToken
-     * @dev Registering the conditional order with CowSwap's Watchtower is done separately 
+     * @dev Registering the conditional order with CowSwap's Watchtower is done separately
      * via createConditionalOrder()
      * It is up to elevated access to ensure there is no circular loops that may cause infinite swaps
      * back and forth (bleeding fees in the process). There may be valid situations where there is a loop
      * but with different limit prices, for example.
      */
-    function setOrderConfig(
-        address sellToken, 
-        OrderConfig calldata config
-    ) external;
+    function setOrderConfig(address sellToken, OrderConfig calldata config) external;
 
     /**
      * @notice Remove the order configuration for a given sellToken
-     * @dev Note the next time Watchtower polls getTradeableOrderWithSignature() for an order, 
+     * @dev Note the next time Watchtower polls getTradeableOrderWithSignature() for an order,
      * it will revert with OrderNotValid. This will drop the order from Watchtower.
      */
     function removeOrderConfig(address sellToken) external;
 
     /**
-     * @notice A convenience function to update the minSellAmount, maxSellAmount, minBuyAmount and price premium on future discrete orders.
+     * @notice A convenience function to update the minSellAmount, maxSellAmount, minBuyAmount and price premium on
+     * future discrete orders.
      */
     function updateAmountsAndAdjustmentBps(
-        address sellToken, 
+        address sellToken,
         uint96 minSellAmount,
         uint96 maxSellAmount,
         uint96 minBuyAmount,
@@ -188,19 +187,17 @@ interface IOrigamiCowSwapper is IConditionalOrder {
     /**
      * @notice Calculate the sellAmount as of now for a given token
      */
-    function getSellAmount(address sellToken) external view returns (
-        uint256 sellAmount
-    );
+    function getSellAmount(address sellToken) external view returns (uint256 sellAmount);
 
     /**
-     * @notice Calculate the buyAmount as of now for a given sellToken. 
+     * @notice Calculate the buyAmount as of now for a given sellToken.
      * @dev If it's a MARKET order, this is set to the `minBuyAmount`
      * If it's a LIMIT order it is derived from the `limitPriceOracle` + `limitPriceAdjustmentBps`
      * (floored by the `minBuyAmount`)
      * `roundedBuyAmount` is the `unroundedBuyAmount` rounded down to the nearest `roundDownDivisor`
      */
-    function getBuyAmount(address sellToken) external view returns (
-        uint256 unroundedBuyAmount, 
-        uint256 roundedBuyAmount
-    );
+    function getBuyAmount(address sellToken)
+        external
+        view
+        returns (uint256 unroundedBuyAmount, uint256 roundedBuyAmount);
 }

@@ -9,12 +9,18 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 import { IMerklDistributor } from "contracts/interfaces/external/merkl/IMerklDistributor.sol";
-import { IMorphoUniversalRewardsDistributor } from "contracts/interfaces/external/morpho/IMorphoUniversalRewardsDistributor.sol";
+import {
+    IMorphoUniversalRewardsDistributor
+} from "contracts/interfaces/external/morpho/IMorphoUniversalRewardsDistributor.sol";
 
 import { IOrigamiCompoundingVaultManager } from "contracts/interfaces/investments/IOrigamiCompoundingVaultManager.sol";
-import { IOrigamiErc4626WithRewardsManager } from "contracts/interfaces/investments/erc4626/IOrigamiErc4626WithRewardsManager.sol";
+import {
+    IOrigamiErc4626WithRewardsManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiErc4626WithRewardsManager.sol";
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
 
 import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAccess.sol";
@@ -28,17 +34,19 @@ import { OrigamiVestingReserves } from "contracts/investments/OrigamiVestingRese
  * @title Origami Vault Manager for ERC4626 deposits + merkl/morpho rewards
  * @notice A manager for auto-compounding strategies on ERC-4626 vaults, where rewards can be claimed
  * from Merkl or Morpho rewards distributors
- * 
+ *
  * @dev
- *  - Morpho rewards distributor: https://github.com/morpho-org/universal-rewards-distributor/blob/v1.0.0/src/UniversalRewardsDistributor.sol
- *  - Merkl rewards distributor: https://github.com/AngleProtocol/merkl-contracts/blob/43ae80ea64834a2792421f1eb09350c36cabee17/contracts/Distributor.sol
- * 
+ *  - Morpho rewards distributor:
+ * https://github.com/morpho-org/universal-rewards-distributor/blob/v1.0.0/src/UniversalRewardsDistributor.sol
+ *  - Merkl rewards distributor:
+ * https://github.com/AngleProtocol/merkl-contracts/blob/43ae80ea64834a2792421f1eb09350c36cabee17/contracts/Distributor.sol
+ *
  * Rewards are claimed, swapped into the deposit asset, and reinvested
  * New assets for the vault are dripped over a period of time rather than instantaneously
  *
  * Constraints on the underlying ERC4626 vault:
  *  - There must not be deposit or exit fees on the underyling vault
- *  - In order to upgrade the manager in OrigamiDelegated4626Vault::setManager() all remaining assets must be able 
+ *  - In order to upgrade the manager in OrigamiDelegated4626Vault::setManager() all remaining assets must be able
  *    to be withdrawn in one single transaction
  */
 contract OrigamiErc4626WithRewardsManager is
@@ -70,7 +78,7 @@ contract OrigamiErc4626WithRewardsManager is
     uint16 public constant override MAX_WITHDRAWAL_FEE_BPS = 330; // 3.3%
 
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
-    uint16 public constant override MAX_PERFORMANCE_FEE_BPS = 1_000; // 10%
+    uint16 public constant override MAX_PERFORMANCE_FEE_BPS = 1000; // 10%
 
     /// @inheritdoc IOrigamiCompoundingVaultManager
     address public override swapper;
@@ -88,7 +96,7 @@ contract OrigamiErc4626WithRewardsManager is
     address[] private _rewardTokens;
 
     /// @dev Performance fees (in basis points) for Origami as a fraction of the asset tokens reinvested.
-    /// If `underlyingVault` shares are donated into the vault (or as merkl/morpho rewards) it will hit 
+    /// If `underlyingVault` shares are donated into the vault (or as merkl/morpho rewards) it will hit
     /// the totalAssets immediately (not vested over time) and fees aren't taken on that amount.
     uint16 private _performanceFeeBps;
 
@@ -100,15 +108,12 @@ contract OrigamiErc4626WithRewardsManager is
         address swapper_,
         uint16 performanceFeeBps_,
         uint48 reservesVestingDuration_,
-        address merklRewardsDistributor_,   
+        address merklRewardsDistributor_,
         address morphoRewardsDistributor_
-    )
-        OrigamiElevatedAccess(initialOwner_)
-        OrigamiVestingReserves(reservesVestingDuration_)
-    {
+    ) OrigamiElevatedAccess(initialOwner_) OrigamiVestingReserves(reservesVestingDuration_) {
         vault = IOrigamiDelegated4626Vault(vault_);
         underlyingVault = IERC4626(underlyingVault_);
-        _asset = IERC20(underlyingVault.asset());        
+        _asset = IERC20(underlyingVault.asset());
 
         swapper = swapper_;
         feeCollector = feeCollector_;
@@ -134,16 +139,16 @@ contract OrigamiErc4626WithRewardsManager is
         _rewardTokens = newRewardTokens;
         emit RewardTokensSet();
     }
-    
+
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
-    function setMerklRewardsDistributor(address distributor) external override onlyElevatedAccess  {
+    function setMerklRewardsDistributor(address distributor) external override onlyElevatedAccess {
         // OK to be set to address(0), effectively disabling
         merklRewardsDistributor = IMerklDistributor(distributor);
         emit MerklRewardsDistributorSet(distributor);
     }
 
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
-    function setMorphoRewardsDistributor(address distributor) external override onlyElevatedAccess  {
+    function setMorphoRewardsDistributor(address distributor) external override onlyElevatedAccess {
         // OK to be set to address(0), effectively disabling
         morphoRewardsDistributor = IMorphoUniversalRewardsDistributor(distributor);
         emit MorphoRewardsDistributorSet(distributor);
@@ -179,14 +184,14 @@ contract OrigamiErc4626WithRewardsManager is
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
     function setPerformanceFees(uint16 origamiFeeBps) external override onlyElevatedAccess {
         if (origamiFeeBps > MAX_PERFORMANCE_FEE_BPS) revert CommonEventsAndErrors.InvalidParam();
-        
+
         // Ensure previous fees are collected before updating
         _reinvest();
 
         _performanceFeeBps = origamiFeeBps;
         OrigamiDelegated4626Vault(address(vault)).logPerformanceFeesSet(origamiFeeBps);
     }
-    
+
     /**
      * @notice Recover tokens other than the underlying asset
      * @param token Token to recover
@@ -222,21 +227,20 @@ contract OrigamiErc4626WithRewardsManager is
     }
 
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
-    function merklClaim(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        bytes32[][] calldata proofs
-    ) external override {
+    function merklClaim(address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs)
+        external
+        override
+    {
         // reinvest() may need to be called externally to ensure rewards are sent
         // to the swapper. This can be monitored/actioned by a keeper
 
-        // Create a users list for this address matching the length of tokens/amounts/proofs 
-        // No need to explicitly check tokens/amounts/proofs lengths are the same 
+        // Create a users list for this address matching the length of tokens/amounts/proofs
+        // No need to explicitly check tokens/amounts/proofs lengths are the same
         address[] memory users = new address[](tokens.length);
         for (uint256 i; i < tokens.length; ++i) {
             users[i] = address(this);
         }
-        
+
         // Claim from merkl. No check required on the tokens here
         merklRewardsDistributor.claim(users, tokens, amounts, proofs);
 
@@ -245,11 +249,10 @@ contract OrigamiErc4626WithRewardsManager is
     }
 
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
-    function morphoClaim(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        bytes32[][] calldata proofs
-    ) external override {
+    function morphoClaim(address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs)
+        external
+        override
+    {
         // Note anyone is allowed to claim on behalf of this contract, in which case
         // reinvest() may need to be called externally to ensure rewards are sent
         // to the swapper. This can be monitored/actioned by a keeper
@@ -262,7 +265,13 @@ contract OrigamiErc4626WithRewardsManager is
     }
 
     /// @inheritdoc IOrigamiCompoundingVaultManager
-    function harvestRewards(address /*incentivesReceiver*/) external override nonReentrant {
+    function harvestRewards(
+        address /*incentivesReceiver*/
+    )
+        external
+        override
+        nonReentrant
+    {
         // This only does the reinvest, as Merkl/Morpho reward claims require more complex
         // interactions with extra parameters. Implemented to as it's required in the interface
         _reinvest();
@@ -275,18 +284,18 @@ contract OrigamiErc4626WithRewardsManager is
 
     /// @inheritdoc IOrigamiSwapCallback
     function swapCallback() external override nonReentrant {
-        // If the swapper is of type `OrigamiSwapperWithCallback`, upon successful fills, 
+        // If the swapper is of type `OrigamiSwapperWithCallback`, upon successful fills,
         // it will call this function to automatically reinvest the proceeds.
         _reinvest();
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function maxDeposit() external override view returns (uint256) {
+    function maxDeposit() external view override returns (uint256) {
         return underlyingVault.maxDeposit(address(this));
     }
-    
+
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function maxWithdraw() external override view returns (uint256) {
+    function maxWithdraw() external view override returns (uint256) {
         return underlyingVault.maxWithdraw(address(this));
     }
 
@@ -311,12 +320,10 @@ contract OrigamiErc4626WithRewardsManager is
     /// @inheritdoc IOrigamiErc4626WithRewardsManager
     function depositedAssets() public view override returns (uint256) {
         // Intentionally does not consider earned but not yet claimed rewards (nor the claimed
-        // rewards that have been sent to the swapper) since they are in different tokens 
+        // rewards that have been sent to the swapper) since they are in different tokens
         // which need swapping first.
         // Also doesn't include `unallocatedAssets()`, as they will be vested in over time when reinvest() is called
-        return underlyingVault.previewRedeem(
-            underlyingVault.balanceOf(address(this))
-        );
+        return underlyingVault.previewRedeem(underlyingVault.balanceOf(address(this)));
     }
 
     /// @inheritdoc IOrigamiCompoundingVaultManager
@@ -371,7 +378,7 @@ contract OrigamiErc4626WithRewardsManager is
         uint256 rewardAmount;
         for (uint256 i; i < length; ++i) {
             rewardToken = IERC20(_rewardTokens[i]);
-            
+
             // Rewards in the base asset token or underlying vault are handled separately
             if (_isProtectedToken(address(rewardToken))) continue;
 
@@ -387,10 +394,8 @@ contract OrigamiErc4626WithRewardsManager is
         uint256 assetAmount = _asset.balanceOf(address(this));
         if (assetAmount > 0) {
             uint256 feeForOrigami;
-            (amountForVault, feeForOrigami) = assetAmount.splitSubtractBps(
-                _performanceFeeBps,
-                OrigamiMath.Rounding.ROUND_DOWN
-            );
+            (amountForVault, feeForOrigami) =
+                assetAmount.splitSubtractBps(_performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
 
             if (feeForOrigami > 0) {
                 _asset.safeTransfer(feeCollector, feeForOrigami);

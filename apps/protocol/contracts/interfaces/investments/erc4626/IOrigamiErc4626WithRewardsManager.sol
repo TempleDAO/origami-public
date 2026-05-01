@@ -4,7 +4,9 @@ pragma solidity ^0.8.19;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { IMerklDistributor } from "contracts/interfaces/external/merkl/IMerklDistributor.sol";
-import { IMorphoUniversalRewardsDistributor } from "contracts/interfaces/external/morpho/IMorphoUniversalRewardsDistributor.sol";
+import {
+    IMorphoUniversalRewardsDistributor
+} from "contracts/interfaces/external/morpho/IMorphoUniversalRewardsDistributor.sol";
 
 import { IOrigamiCompoundingVaultManager } from "contracts/interfaces/investments/IOrigamiCompoundingVaultManager.sol";
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
@@ -14,20 +16,22 @@ import { IOrigamiVestingReserves } from "contracts/interfaces/investments/IOriga
  * @title Origami Vault Manager for ERC4626 deposits + merkl/morpho rewards
  * @notice A manager for auto-compounding strategies on ERC-4626 vaults, where rewards can be claimed
  * from Merkl or Morpho rewards distributors
- * 
+ *
  * @dev
- *  - Morpho rewards distributor: https://github.com/morpho-org/universal-rewards-distributor/blob/v1.0.0/src/UniversalRewardsDistributor.sol
- *  - Merkl rewards distributor: https://github.com/AngleProtocol/merkl-contracts/blob/43ae80ea64834a2792421f1eb09350c36cabee17/contracts/Distributor.sol
- * 
+ *  - Morpho rewards distributor:
+ * https://github.com/morpho-org/universal-rewards-distributor/blob/v1.0.0/src/UniversalRewardsDistributor.sol
+ *  - Merkl rewards distributor:
+ * https://github.com/AngleProtocol/merkl-contracts/blob/43ae80ea64834a2792421f1eb09350c36cabee17/contracts/Distributor.sol
+ *
  * Rewards are claimed, swapped into the deposit asset, and reinvested
  * New assets for the vault are dripped over a period of time rather than instantaneously
  *
  * Constraints on the underlying ERC4626 vault:
  *  - There must not be deposit or exit fees on the underyling vault
- *  - In order to upgrade the manager in OrigamiDelegated4626Vault::setManager() all remaining assets must be able 
+ *  - In order to upgrade the manager in OrigamiDelegated4626Vault::setManager() all remaining assets must be able
  *    to be withdrawn in one single transaction
  */
-interface IOrigamiErc4626WithRewardsManager is 
+interface IOrigamiErc4626WithRewardsManager is
     IOrigamiCompoundingVaultManager,
     IOrigamiSwapCallback,
     IOrigamiVestingReserves
@@ -62,19 +66,11 @@ interface IOrigamiErc4626WithRewardsManager is
 
     /// @notice Claim rewards from Merkl and immediately call reinvest, which
     /// also sends the claimed rewards to the swapper
-    function merklClaim(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        bytes32[][] calldata proofs
-    ) external;
+    function merklClaim(address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external;
 
     /// @notice Claim rewards from Morpho and immediately call reinvest, which
     /// also sends the claimed rewards to the swapper
-    function morphoClaim(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        bytes32[][] calldata proofs
-    ) external;
+    function morphoClaim(address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external;
 
     /// @notice The maximum possible value for the retention bonus on withdrawals
     function MAX_WITHDRAWAL_FEE_BPS() external view returns (uint16);

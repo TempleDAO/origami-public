@@ -10,7 +10,9 @@ import { ISkyVat } from "contracts/interfaces/external/sky/ISkyVat.sol";
 
 import { ISkyStakingRewards } from "contracts/interfaces/external/sky/ISkyStakingRewards.sol";
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 import { IOrigamiSuperSkyManager } from "contracts/interfaces/investments/sky/IOrigamiSuperSkyManager.sol";
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 
@@ -27,7 +29,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
  * @dev Uses an immutable SKY Lockstake Engine. If that ever changes, a new vault will be deployed.
  * Users would need to withdraw from Origami Vault A and deposit into Origami Vault B.
  */
-contract OrigamiSuperSkyManager is 
+contract OrigamiSuperSkyManager is
     IOrigamiSuperSkyManager,
     OrigamiElevatedAccess,
     OrigamiManagerPausable,
@@ -68,7 +70,7 @@ contract OrigamiSuperSkyManager is
 
     /// @inheritdoc IOrigamiSuperSkyManager
     address public override feeCollector;
-    
+
     uint16 private _performanceFeeBpsForCaller;
 
     uint16 private _performanceFeeBpsForOrigami;
@@ -76,14 +78,14 @@ contract OrigamiSuperSkyManager is
     uint256 private immutable WAD = 1e18;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint256 public override constant maxDeposit = type(uint256).max;
+    uint256 public constant override maxDeposit = type(uint256).max;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint256 public override constant maxWithdraw = type(uint256).max;
+    uint256 public constant override maxWithdraw = type(uint256).max;
 
     /**
      * @dev The mapping of farm details.
-     * `farmIndex` at index zero is empty, as that represents holding 
+     * `farmIndex` at index zero is empty, as that represents holding
      * raw SKY in the urn (as LSSKY) rather than staking in a farm
      */
     mapping(uint256 farmIndex => Farm farm) private _farms;
@@ -94,7 +96,7 @@ contract OrigamiSuperSkyManager is
     uint256 private constant MAX_FARMS = 100;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint16 public override constant depositFeeBps = 0;
+    uint16 public constant override depositFeeBps = 0;
 
     uint256 private constant URN_INDEX = 0;
 
@@ -107,9 +109,7 @@ contract OrigamiSuperSkyManager is
         address feeCollector_,
         uint16 performanceFeeBpsForCaller_,
         uint16 performanceFeeBpsForOrigami_
-    ) 
-        OrigamiElevatedAccess(initialOwner_)
-    {
+    ) OrigamiElevatedAccess(initialOwner_) {
         vault = IOrigamiDelegated4626Vault(vault_);
         LOCKSTAKE_ENGINE = ISkyLockstakeEngine(lockstakeEngine_);
         SKY = IERC20(LOCKSTAKE_ENGINE.sky());
@@ -148,7 +148,7 @@ contract OrigamiSuperSkyManager is
         _performanceFeeBpsForCaller = callerFeeBps;
         _performanceFeeBpsForOrigami = origamiFeeBps;
     }
-    
+
     /// @inheritdoc IOrigamiSuperSkyManager
     function setFeeCollector(address feeCollector_) external override onlyElevatedAccess {
         if (feeCollector_ == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
@@ -171,14 +171,14 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function addFarm(
-        address stakingAddress, 
-        uint16 referralCode
-    ) external override onlyElevatedAccess returns (
-        uint32 nextFarmIndex
-    ) {
+    function addFarm(address stakingAddress, uint16 referralCode)
+        external
+        override
+        onlyElevatedAccess
+        returns (uint32 nextFarmIndex)
+    {
         // Farm index starts at 1
-        nextFarmIndex = maxFarmIndex + 1; 
+        nextFarmIndex = maxFarmIndex + 1;
         if (nextFarmIndex > MAX_FARMS) revert MaxFarms();
 
         // Use removeFarm to delete
@@ -217,10 +217,7 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function setFarmReferralCode(
-        uint32 farmIndex,
-        uint16 referralCode
-    ) external override onlyElevatedAccess {
+    function setFarmReferralCode(uint32 farmIndex, uint16 referralCode) external override onlyElevatedAccess {
         Farm storage farm = _getFarm(farmIndex);
         farm.referral = referralCode;
         emit FarmReferralCodeSet(farmIndex, referralCode);
@@ -236,10 +233,12 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function withdraw(
-        uint256 assetsAmount,
-        address receiver
-    ) external override onlyVault returns (uint256 assetsWithdrawn) {
+    function withdraw(uint256 assetsAmount, address receiver)
+        external
+        override
+        onlyVault
+        returns (uint256 assetsWithdrawn)
+    {
         // `staking` has an exit() function which also claims rewards in the same tx.
         // However we intentionally want to separate that out to incentivise external claims.
 
@@ -248,7 +247,7 @@ contract OrigamiSuperSkyManager is
         uint256 lseFee = LOCKSTAKE_ENGINE.fee();
         uint256 amountToFree;
         if (lseFee > 0) {
-            // Back out the amount actually required to withdraw in order to end up receiving the 
+            // Back out the amount actually required to withdraw in order to end up receiving the
             // requested `assetsAmount`.
             //
             // The vault calling this withdraw() is expected to take an exit fee from the caller,
@@ -267,10 +266,12 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function switchFarms(uint32 newFarmIndex) external override onlyElevatedAccess returns (
-        uint256 amountWithdrawn,
-        uint256 amountDeposited
-    ) {
+    function switchFarms(uint32 newFarmIndex)
+        external
+        override
+        onlyElevatedAccess
+        returns (uint256 amountWithdrawn, uint256 amountDeposited)
+    {
         if (block.timestamp < lastSwitchTime + switchFarmCooldown) revert BeforeCooldownEnd();
 
         uint32 _currentFarmIndex = currentFarmIndex;
@@ -280,13 +281,8 @@ contract OrigamiSuperSkyManager is
         _harvestFarm(_currentFarmIndex);
 
         Farm storage newFarm = _getFarm(newFarmIndex);
-        LOCKSTAKE_ENGINE.selectFarm(
-            address(this),
-            URN_INDEX,
-            address(newFarm.staking),
-            newFarm.referral
-        );
-        
+        LOCKSTAKE_ENGINE.selectFarm(address(this), URN_INDEX, address(newFarm.staking), newFarm.referral);
+
         amountWithdrawn = amountDeposited = stakedBalance();
         emit SwitchedFarms(_currentFarmIndex, newFarmIndex, amountWithdrawn, amountDeposited);
         currentFarmIndex = newFarmIndex;
@@ -294,10 +290,11 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function claimFarmRewards(
-        uint32[] calldata farmIndexes, 
-        address incentivesReceiver
-    ) external override nonReentrant {
+    function claimFarmRewards(uint32[] calldata farmIndexes, address incentivesReceiver)
+        external
+        override
+        nonReentrant
+    {
         HarvestRewardCache memory cache = _populateRewardsCache(incentivesReceiver);
         uint32 farmIndex;
         uint256 _length = farmIndexes.length;
@@ -330,7 +327,7 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function asset() external override view returns (address) {
+    function asset() external view override returns (address) {
         return address(SKY);
     }
 
@@ -346,14 +343,19 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function performanceFeeBps() external view returns (uint16 /*forCaller*/, uint16 /*forOrigami*/) {
+    function performanceFeeBps()
+        external
+        view
+        returns (
+            uint16, /*forCaller*/
+            uint16 /*forOrigami*/
+        )
+    {
         return (_performanceFeeBpsForCaller, _performanceFeeBpsForOrigami);
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function farmDetails(uint32[] calldata farmIndexes) external override view returns (
-        FarmDetails[] memory details
-    ) {
+    function farmDetails(uint32[] calldata farmIndexes) external view override returns (FarmDetails[] memory details) {
         uint256 _length = farmIndexes.length;
         details = new FarmDetails[](_length);
         for (uint256 i; i < _length; ++i) {
@@ -362,45 +364,44 @@ contract OrigamiSuperSkyManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function totalAssets() external override view returns (uint256 totalManagedAssets) {
+    function totalAssets() external view override returns (uint256 totalManagedAssets) {
         // This contract may have a balance of SKY, from Cow Swapper rewards and/or donations
         // Intentionally does not consider earned but not yet claimed rewards (nor the claimed
-        // rewards that have been sent to the swapper) since they are in different tokens 
+        // rewards that have been sent to the swapper) since they are in different tokens
         // which need swapping first.
         return unallocatedAssets() + stakedBalance();
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function stakedBalance() public override view returns (uint256) {
+    function stakedBalance() public view override returns (uint256) {
         ISkyVat vat = ISkyVat(LOCKSTAKE_ENGINE.vat());
         (uint256 ink,) = vat.urns(LOCKSTAKE_ENGINE.ilk(), URN_ADDRESS);
         return ink;
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function unallocatedAssets() public override view returns (uint256) {
+    function unallocatedAssets() public view override returns (uint256) {
         return SKY.balanceOf(address(this));
     }
 
     /// @inheritdoc IOrigamiSuperSkyManager
-    function getFarm(uint256 farmIndex) external override view returns (Farm memory farm) {
+    function getFarm(uint256 farmIndex) external view override returns (Farm memory farm) {
         return _farms[farmIndex];
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function areDepositsPaused() external virtual override view returns (bool) {
+    function areDepositsPaused() external view virtual override returns (bool) {
         return _paused.investmentsPaused;
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function areWithdrawalsPaused() external virtual override view returns (bool) {
+    function areWithdrawalsPaused() external view virtual override returns (bool) {
         return _paused.exitsPaused;
     }
 
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public override pure returns (bool) {
-        return interfaceId == type(IOrigamiSuperSkyManager).interfaceId
-            || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        return interfaceId == type(IOrigamiSuperSkyManager).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     function _getFarm(uint32 farmIndex) internal view returns (Farm storage farm) {
@@ -418,24 +419,15 @@ contract OrigamiSuperSkyManager is
         uint16 feeBpsForOrigami;
     }
 
-    function _transferRewards(
-        IERC20 rewardsToken,
-        uint256 totalRewardsClaimed,
-        HarvestRewardCache memory cache
-    ) internal returns (
-        uint256 amountForCaller,
-        uint256 amountForOrigami,
-        uint256 amountForVault
-    ) {
+    function _transferRewards(IERC20 rewardsToken, uint256 totalRewardsClaimed, HarvestRewardCache memory cache)
+        internal
+        returns (uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault)
+    {
         amountForCaller = totalRewardsClaimed.mulDiv(
-            cache.feeBpsForCaller, 
-            OrigamiMath.BASIS_POINTS_DIVISOR, 
-            OrigamiMath.Rounding.ROUND_DOWN
+            cache.feeBpsForCaller, OrigamiMath.BASIS_POINTS_DIVISOR, OrigamiMath.Rounding.ROUND_DOWN
         );
         amountForOrigami = totalRewardsClaimed.mulDiv(
-            cache.feeBpsForOrigami, 
-            OrigamiMath.BASIS_POINTS_DIVISOR, 
-            OrigamiMath.Rounding.ROUND_DOWN
+            cache.feeBpsForOrigami, OrigamiMath.BASIS_POINTS_DIVISOR, OrigamiMath.Rounding.ROUND_DOWN
         );
 
         uint256 totalFees = amountForCaller + amountForOrigami;
@@ -459,42 +451,23 @@ contract OrigamiSuperSkyManager is
         }
     }
 
-    function _harvestRewards(
-        uint32 farmIndex, 
-        Farm storage farm, 
-        HarvestRewardCache memory cache
-    ) internal {
+    function _harvestRewards(uint32 farmIndex, Farm storage farm, HarvestRewardCache memory cache) internal {
         // Nothing to harvest if the farm has been removed
         if (address(farm.staking) == address(0)) return;
 
         IERC20 rewardsToken = farm.rewardsToken;
-        uint256 amountClaimed = LOCKSTAKE_ENGINE.getReward(
-            address(this),
-            URN_INDEX,
-            address(farm.staking),
-            address(this)
-        );
+        uint256 amountClaimed =
+            LOCKSTAKE_ENGINE.getReward(address(this), URN_INDEX, address(farm.staking), address(this));
 
-        (
-            uint256 amountForCaller,
-            uint256 amountForOrigami,
-            uint256 amountForVault
-        ) = _transferRewards(rewardsToken, amountClaimed, cache);
+        (uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault) =
+            _transferRewards(rewardsToken, amountClaimed, cache);
 
         if (amountClaimed > 0) {
-            emit ClaimedReward(
-                farmIndex, 
-                address(rewardsToken), 
-                amountForCaller, 
-                amountForOrigami, 
-                amountForVault
-            );
+            emit ClaimedReward(farmIndex, address(rewardsToken), amountForCaller, amountForOrigami, amountForVault);
         }
     }
 
-    function _buildFarmDetails(
-        uint32 farmIndex
-    ) private view returns (FarmDetails memory details) {
+    function _buildFarmDetails(uint32 farmIndex) private view returns (FarmDetails memory details) {
         // Only possible to deposit/withdraw from one farm at a time
         // via the lockstake engine. So only fill the staked balance if the
         // requested farmIndex is the current one.
@@ -509,7 +482,8 @@ contract OrigamiSuperSkyManager is
             // The total supply of locked SKY across all users
             // All other details can remain zero/uninitialized
             details.totalSupply = LSSKY.totalSupply();
-        } if (address(farm.staking) != address(0)) {
+        }
+        if (address(farm.staking) != address(0)) {
             details.farm = farm;
             details.totalSupply = farm.staking.totalSupply();
             details.rewardRate = farm.staking.rewardRate();
@@ -517,9 +491,7 @@ contract OrigamiSuperSkyManager is
         }
     }
 
-    function _populateRewardsCache(
-        address incentivesReceiver
-    ) private view returns (HarvestRewardCache memory) {
+    function _populateRewardsCache(address incentivesReceiver) private view returns (HarvestRewardCache memory) {
         return HarvestRewardCache({
             swapper: swapper,
             caller: incentivesReceiver,
@@ -528,7 +500,7 @@ contract OrigamiSuperSkyManager is
             feeBpsForOrigami: _performanceFeeBpsForOrigami
         });
     }
-    
+
     function _lock(uint256 amount) private {
         LOCKSTAKE_ENGINE.lock(address(this), URN_INDEX, amount, _farms[currentFarmIndex].referral);
     }
@@ -536,11 +508,7 @@ contract OrigamiSuperSkyManager is
     function _harvestFarm(uint32 farmIndex) private {
         if (farmIndex > 0) {
             // The `feeCollector` receives the extra incentives for harvesting.
-            _harvestRewards(
-                farmIndex, 
-                _farms[farmIndex],
-                _populateRewardsCache(feeCollector)
-            );
+            _harvestRewards(farmIndex, _farms[farmIndex], _populateRewardsCache(feeCollector));
         }
     }
 

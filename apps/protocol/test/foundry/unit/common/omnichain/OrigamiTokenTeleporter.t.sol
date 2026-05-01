@@ -14,7 +14,6 @@ import { OFT, OrigamiOFT } from "contracts/common/omnichain/OrigamiOFT.sol";
 import { TestHelperOz5, EndpointV2 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
 contract OrigamiTokenTeleporterTestBase is TestHelperOz5 {
-
     OrigamiTokenTeleporter public teleporter_ttoken_a;
     OrigamiOFT public oftToken_b;
     OrigamiOFT public oftToken_c;
@@ -57,29 +56,33 @@ contract OrigamiTokenTeleporterTestBase is TestHelperOz5 {
         oftToken_b = OrigamiOFT(
             _deployOApp(
                 type(OrigamiOFT).creationCode,
-                abi.encode(OFT.ConstructorArgs({
-                    name: "OFT_TOKEN",
-                    symbol: "OFT",
-                    lzEndpoint: address(endpoints[bEid]),
-                    delegate: origamiMultisig
-                }))
+                abi.encode(
+                    OFT.ConstructorArgs({
+                        name: "OFT_TOKEN",
+                        symbol: "OFT",
+                        lzEndpoint: address(endpoints[bEid]),
+                        delegate: origamiMultisig
+                    })
+                )
             )
         );
         vm.label(address(oftToken_b), "OFT_CHAIN_B");
         oftToken_c = OrigamiOFT(
             _deployOApp(
                 type(OrigamiOFT).creationCode,
-                abi.encode(OFT.ConstructorArgs({
-                    name: "OFT_TOKEN",
-                    symbol: "OFT",
-                    lzEndpoint: address(endpoints[cEid]),
-                    delegate: origamiMultisig
-                }))
+                abi.encode(
+                    OFT.ConstructorArgs({
+                        name: "OFT_TOKEN",
+                        symbol: "OFT",
+                        lzEndpoint: address(endpoints[cEid]),
+                        delegate: origamiMultisig
+                    })
+                )
             )
         );
         vm.label(address(oftToken_c), "OFT_CHAIN_C");
 
-        deal(address(ttoken_a), alice, 1_000e18);
+        deal(address(ttoken_a), alice, 1000e18);
 
         // config and wire the ofts
         {
@@ -192,20 +195,13 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
     }
 
     function test_send_oft_dust() public {
-        uint256 aliceBalance = 1_000e18;
-        deal(address(oftToken_b), alice, 1_000e18);
+        uint256 aliceBalance = 1000e18;
+        deal(address(oftToken_b), alice, 1000e18);
         uint256 sendAmount = 123.456789876543212345e18;
         uint256 sendAmountLessDust = 123.456789e18;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            cEid,
-            addressToBytes32(bob),
-            sendAmount,
-            sendAmountLessDust,
-            options,
-            "",
-            ""
-        );
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+        SendParam memory sendParam =
+            SendParam(cEid, addressToBytes32(bob), sendAmount, sendAmountLessDust, options, "", "");
 
         MessagingFee memory fee = oftToken_b.quoteSend(sendParam, false);
         assertEq(oftToken_b.balanceOf(alice), aliceBalance);
@@ -214,10 +210,10 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
         assertEq(oftToken_c.balanceOf(bob), 0);
 
         vm.startPrank(alice);
-        oftToken_b.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        oftToken_b.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(cEid, addressToBytes32(address(oftToken_c)));
 
-        assertEq(oftToken_b.balanceOf(alice), aliceBalance-sendAmountLessDust);
+        assertEq(oftToken_b.balanceOf(alice), aliceBalance - sendAmountLessDust);
         assertEq(oftToken_b.balanceOf(bob), 0);
         assertEq(oftToken_c.balanceOf(alice), 0);
         assertEq(oftToken_c.balanceOf(bob), sendAmountLessDust);
@@ -225,19 +221,12 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
 
     function test_send_token_adapter_dust_aTob() public {
         uint256 aliceBalance = ttoken_a.balanceOf(alice);
-        assertEq(aliceBalance, 1_000e18);
+        assertEq(aliceBalance, 1000e18);
         uint256 sendAmount = 123.456789876543212345e18;
         uint256 sendAmountLessDust = 123.456789e18;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            sendAmount,
-            sendAmountLessDust,
-            options,
-            "",
-            ""
-        );
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+        SendParam memory sendParam =
+            SendParam(bEid, addressToBytes32(bob), sendAmount, sendAmountLessDust, options, "", "");
 
         MessagingFee memory fee = teleporter_ttoken_a.quoteSend(sendParam, false);
         assertEq(ttoken_a.balanceOf(alice), aliceBalance);
@@ -248,10 +237,10 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
 
         // No explicit token approval is needed for the teleporter to spend on behalf of alice
         vm.startPrank(alice);
-        teleporter_ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        teleporter_ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(bEid, addressToBytes32(address(oftToken_b)));
 
-        assertEq(ttoken_a.balanceOf(alice), aliceBalance-sendAmountLessDust);
+        assertEq(ttoken_a.balanceOf(alice), aliceBalance - sendAmountLessDust);
         assertEq(ttoken_a.balanceOf(bob), 0);
         assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), sendAmountLessDust);
         assertEq(oftToken_b.balanceOf(alice), 0);
@@ -260,22 +249,15 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
 
     function test_send_token_adapter_dust_bToa() public {
         deal(address(ttoken_a), alice, 0);
-        deal(address(oftToken_b), bob, 1_000e18);
+        deal(address(oftToken_b), bob, 1000e18);
 
         uint256 bobBalance = oftToken_b.balanceOf(bob);
-        assertEq(bobBalance, 1_000e18);
+        assertEq(bobBalance, 1000e18);
         uint256 sendAmount = 123.456789876543212345e18;
         uint256 sendAmountLessDust = 123.456789e18;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            aEid,
-            addressToBytes32(alice),
-            sendAmount,
-            sendAmountLessDust,
-            options,
-            "",
-            ""
-        );
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+        SendParam memory sendParam =
+            SendParam(aEid, addressToBytes32(alice), sendAmount, sendAmountLessDust, options, "", "");
 
         MessagingFee memory fee = oftToken_b.quoteSend(sendParam, false);
         assertEq(oftToken_b.balanceOf(alice), 0);
@@ -287,11 +269,11 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
         // teleporter needs some simulated 'locked' tokens
         deal(address(ttoken_a), address(teleporter_ttoken_a), sendAmountLessDust);
         vm.startPrank(bob);
-        oftToken_b.send{value:fee.nativeFee}(sendParam, fee, payable(address(bob)));
+        oftToken_b.send{ value: fee.nativeFee }(sendParam, fee, payable(address(bob)));
         verifyPackets(aEid, addressToBytes32(address(teleporter_ttoken_a)));
 
         assertEq(oftToken_b.balanceOf(alice), 0);
-        assertEq(oftToken_b.balanceOf(bob), bobBalance-sendAmountLessDust);
+        assertEq(oftToken_b.balanceOf(bob), bobBalance - sendAmountLessDust);
         assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), 0);
         assertEq(ttoken_a.balanceOf(alice), sendAmountLessDust);
         assertEq(ttoken_a.balanceOf(bob), 0);
@@ -299,19 +281,12 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
 
     function test_send_token_passthrough_dust_aTob() public {
         uint256 aliceBalance = ttoken_a.balanceOf(alice);
-        assertEq(aliceBalance, 1_000e18);
+        assertEq(aliceBalance, 1000e18);
         uint256 sendAmount = 123.456789876543212345e18;
         uint256 sendAmountLessDust = 123.456789e18;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            sendAmount,
-            sendAmountLessDust,
-            options,
-            "",
-            ""
-        );
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+        SendParam memory sendParam =
+            SendParam(bEid, addressToBytes32(bob), sendAmount, sendAmountLessDust, options, "", "");
 
         MessagingFee memory fee = ttoken_a.quoteSend(sendParam, false);
         assertEq(ttoken_a.balanceOf(alice), aliceBalance);
@@ -322,10 +297,10 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
 
         // No explicit token approval is needed for the teleporter to spend on behalf of alice
         vm.startPrank(alice);
-        ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(bEid, addressToBytes32(address(oftToken_b)));
 
-        assertEq(ttoken_a.balanceOf(alice), aliceBalance-sendAmountLessDust);
+        assertEq(ttoken_a.balanceOf(alice), aliceBalance - sendAmountLessDust);
         assertEq(ttoken_a.balanceOf(address(ttoken_a)), 0);
         assertEq(ttoken_a.balanceOf(bob), 0);
         assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), sendAmountLessDust);
@@ -337,16 +312,8 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
         uint256 aliceBalance = ttoken_a.balanceOf(alice);
         uint256 sendAmount = 123 ether;
         uint256 minSendAmount = sendAmount;
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
-        SendParam memory sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            sendAmount,
-            minSendAmount,
-            options,
-            "",
-            ""
-        );
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+        SendParam memory sendParam = SendParam(bEid, addressToBytes32(bob), sendAmount, minSendAmount, options, "", "");
 
         // get send quote
         MessagingFee memory fee = teleporter_ttoken_a.quoteSend(sendParam, false);
@@ -356,7 +323,7 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
 
         // No explicit token approval is needed for the teleporter to spend on behalf of alice
         vm.startPrank(alice);
-        teleporter_ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        teleporter_ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(bEid, addressToBytes32(address(oftToken_b)));
 
         assertEq(oftToken_b.balanceOf(bob), sendAmount);
@@ -364,41 +331,25 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
         assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), sendAmount); // locked amount
 
         // checking lossless transfers
-        uint256 sendAmount2 = 123456789876543212345;
+        uint256 sendAmount2 = 123_456_789_876_543_212_345;
         minSendAmount = _removeDust(sendAmount2);
-        sendParam = SendParam(
-            bEid,
-            addressToBytes32(bob),
-            sendAmount2,
-            minSendAmount,
-            options,
-            "",
-            ""
-        );
+        sendParam = SendParam(bEid, addressToBytes32(bob), sendAmount2, minSendAmount, options, "", "");
         fee = teleporter_ttoken_a.quoteSend(sendParam, false);
         vm.startPrank(alice);
-        teleporter_ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        teleporter_ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(bEid, addressToBytes32(address(oftToken_b)));
-        assertEq(oftToken_b.balanceOf(bob), sendAmount+minSendAmount);
+        assertEq(oftToken_b.balanceOf(bob), sendAmount + minSendAmount);
         assertEq(ttoken_a.balanceOf(alice), aliceBalance - sendAmount - minSendAmount);
-        assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), sendAmount+minSendAmount);
+        assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), sendAmount + minSendAmount);
 
         // bob sends to alice
         uint256 toSend = oftToken_b.balanceOf(bob);
         minSendAmount = _removeDust(toSend);
         uint256 dustAmount = toSend - minSendAmount;
-        sendParam = SendParam(
-            aEid,
-            addressToBytes32(alice),
-            toSend,
-            minSendAmount,
-            options,
-            "",
-            ""
-        );
+        sendParam = SendParam(aEid, addressToBytes32(alice), toSend, minSendAmount, options, "", "");
         fee = oftToken_b.quoteSend(sendParam, false);
         vm.startPrank(bob);
-        oftToken_b.send{value:fee.nativeFee}(sendParam, fee, payable(address(bob)));
+        oftToken_b.send{ value: fee.nativeFee }(sendParam, fee, payable(address(bob)));
         verifyPackets(aEid, addressToBytes32(address(teleporter_ttoken_a)));
         assertEq(oftToken_b.balanceOf(bob), dustAmount);
         assertEq(ttoken_a.balanceOf(alice), aliceBalance - dustAmount);
@@ -406,9 +357,9 @@ contract OrigamiTokenTeleporterTest is OrigamiTokenTeleporterTestBase {
     }
 
     function _setExplicitAccess(
-        IOrigamiElevatedAccess theContract, 
-        address allowedCaller, 
-        bytes4 fnSelector, 
+        IOrigamiElevatedAccess theContract,
+        address allowedCaller,
+        bytes4 fnSelector,
         bool value
     ) private {
         IOrigamiElevatedAccess.ExplicitAccess[] memory access = new IOrigamiElevatedAccess.ExplicitAccess[](1);

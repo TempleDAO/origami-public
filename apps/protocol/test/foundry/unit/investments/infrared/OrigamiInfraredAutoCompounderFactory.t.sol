@@ -4,14 +4,24 @@ pragma solidity ^0.8.19;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiDelegated4626VaultDeployer } from "contracts/factories/infrared/OrigamiDelegated4626VaultDeployer.sol";
-import { OrigamiInfraredVaultManagerDeployer } from "contracts/factories/infrared/OrigamiInfraredVaultManagerDeployer.sol";
-import { OrigamiSwapperWithLiquidityManagementDeployer } from "contracts/factories/swappers/OrigamiSwapperWithLiquidityManagementDeployer.sol";
-import { OrigamiInfraredAutoCompounderFactory } from "contracts/factories/infrared/OrigamiInfraredAutoCompounderFactory.sol";
+import {
+    OrigamiInfraredVaultManagerDeployer
+} from "contracts/factories/infrared/OrigamiInfraredVaultManagerDeployer.sol";
+import {
+    OrigamiSwapperWithLiquidityManagementDeployer
+} from "contracts/factories/swappers/OrigamiSwapperWithLiquidityManagementDeployer.sol";
+import {
+    OrigamiInfraredAutoCompounderFactory
+} from "contracts/factories/infrared/OrigamiInfraredAutoCompounderFactory.sol";
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiInfraredVaultManager } from "contracts/investments/infrared/OrigamiInfraredVaultManager.sol";
-import { OrigamiSwapperWithLiquidityManagement } from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
+import {
+    OrigamiSwapperWithLiquidityManagement
+} from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
 import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.sol";
-import { IOrigamiSwapperWithLiquidityManagement } from "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
+import {
+    IOrigamiSwapperWithLiquidityManagement
+} from "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
 import { IKodiakIsland } from "contracts/interfaces/external/kodiak/IKodiakIsland.sol";
 import { IKodiakIslandRouter } from "contracts/interfaces/external/kodiak/IKodiakIslandRouter.sol";
 import { TokenPrices } from "contracts/common/TokenPrices.sol";
@@ -24,9 +34,10 @@ contract OrigamiInfraredAutoCompounderFactoryTest is OrigamiTest {
     OrigamiInfraredVaultManagerDeployer internal managerDeployer;
     OrigamiSwapperWithLiquidityManagementDeployer internal swapperDeployer;
     OrigamiInfraredAutoCompounderFactory internal factory;
-    
+
     address internal constant OOGA_BOOGA_ROUTER = 0xFd88aD4849BA0F729D6fF4bC27Ff948Ab1Ac3dE7;
-    IKodiakIslandRouter internal constant KODIAK_ISLAND_ROUTER = IKodiakIslandRouter(0x679a7C63FC83b6A4D9C1F931891d705483d4791F);
+    IKodiakIslandRouter internal constant KODIAK_ISLAND_ROUTER =
+        IKodiakIslandRouter(0x679a7C63FC83b6A4D9C1F931891d705483d4791F);
     IERC20 internal constant OHM_TOKEN = IERC20(0x18878Df23e2a36f81e820e4b47b4A40576D3159C);
     IERC20 internal constant HONEY_TOKEN = IERC20(0xFCBD14DC51f0A4d49d5E53C2E0950e0bC26d0Dce);
     IERC20 internal constant IBGT_TOKEN = IERC20(0xac03CABA51e17c86c921E1f6CBFBdC91F8BB2E6b);
@@ -41,12 +52,7 @@ contract OrigamiInfraredAutoCompounderFactoryTest is OrigamiTest {
     event VaultDeployerSet(address indexed deployer);
     event SwapperDeployerSet(address indexed deployer);
 
-    event VaultCreated(
-        address vault,
-        address asset,
-        address manager,
-        address swapper
-    );
+    event VaultCreated(address vault, address asset, address manager, address swapper);
 
     function setUp() public virtual {
         fork("berachain_mainnet", 3_099_123);
@@ -71,14 +77,7 @@ contract OrigamiInfraredAutoCompounderFactoryTest is OrigamiTest {
         swapRouters[0] = address(KODIAK_ISLAND_ROUTER);
         swapRouters[1] = address(OOGA_BOOGA_ROUTER);
 
-        newVault = factory.create(
-            "New Vault",
-            "NEW_VAULT",
-            rewardVault,
-            PERF_FEE_FOR_ORIGAMI,
-            overlord,
-            swapRouters
-        );
+        newVault = factory.create("New Vault", "NEW_VAULT", rewardVault, PERF_FEE_FOR_ORIGAMI, overlord, swapRouters);
     }
 }
 
@@ -161,14 +160,7 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Access is OrigamiInfraredAutoC
 
     function test_create_access() public {
         expectElevatedAccess();
-        factory.create(
-            "XXX",
-            "XXX",
-            INFRARED_VAULT,
-            0,
-            address(0),
-            new address[](0)
-        );
+        factory.create("XXX", "XXX", INFRARED_VAULT, 0, address(0), new address[](0));
     }
 
     function test_seedVault_access() public {
@@ -190,20 +182,9 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Create is OrigamiInfraredAutoC
 
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(factory));
-        emit VaultCreated(
-            expectedVault,
-            expectedAsset,
-            expectedManager,
-            expectedSwapper
-        );
-        OrigamiDelegated4626Vault newVault = factory.create(
-            "New Vault",
-            "NEW_VAULT",
-            INFRARED_VAULT,
-            PERF_FEE_FOR_ORIGAMI,
-            overlord,
-            swapRouters
-        );
+        emit VaultCreated(expectedVault, expectedAsset, expectedManager, expectedSwapper);
+        OrigamiDelegated4626Vault newVault =
+            factory.create("New Vault", "NEW_VAULT", INFRARED_VAULT, PERF_FEE_FOR_ORIGAMI, overlord, swapRouters);
         assertEq(address(newVault), expectedVault);
         assertEq(address(factory.registeredVaults(expectedAsset)), expectedVault);
 
@@ -238,9 +219,11 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Create is OrigamiInfraredAutoC
         // Check overlord access
         {
             assertTrue(swapper.explicitFunctionAccess(overlord, OrigamiSwapperWithLiquidityManagement.execute.selector));
-            assertTrue(swapper.explicitFunctionAccess(overlord, OrigamiSwapperWithLiquidityManagement.addLiquidity.selector));
+            assertTrue(
+                swapper.explicitFunctionAccess(overlord, OrigamiSwapperWithLiquidityManagement.addLiquidity.selector)
+            );
         }
-        
+
         // Check the routers are whitelisted
         {
             assertTrue(swapper.whitelistedRouters(OOGA_BOOGA_ROUTER));
@@ -267,14 +250,8 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Create is OrigamiInfraredAutoC
 
         // Create twice
         OrigamiDelegated4626Vault newVault = create(INFRARED_VAULT);
-        OrigamiDelegated4626Vault newVault2 = factory.create(
-            "XXX",
-            "XXX",
-            INFRARED_VAULT,
-            0,
-            address(0),
-            new address[](0)
-        );
+        OrigamiDelegated4626Vault newVault2 =
+            factory.create("XXX", "XXX", INFRARED_VAULT, 0, address(0), new address[](0));
 
         address expectedAsset = INFRARED_VAULT.stakingToken();
         assertEq(address(newVault), address(newVault2));
@@ -293,12 +270,14 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Create is OrigamiInfraredAutoC
         OrigamiDelegated4626Vault newVault3 = create(INFRARED_VAULT2);
         assertNotEq(address(newVault3), address(newVault));
         assertEq(address(newVault3), 0x8d2C17FAd02B7bb64139109c6533b7C2b9CADb81);
-        assertEq(address(factory.registeredVaults(INFRARED_VAULT2.stakingToken())), 0x8d2C17FAd02B7bb64139109c6533b7C2b9CADb81);
+        assertEq(
+            address(factory.registeredVaults(INFRARED_VAULT2.stakingToken())),
+            0x8d2C17FAd02B7bb64139109c6533b7C2b9CADb81
+        );
     }
 }
 
 contract OrigamiInfraredAutoCompounderFactoryTest_Interact is OrigamiInfraredAutoCompounderFactoryTest {
-
     DummyDexRouter internal router;
     OrigamiDelegated4626Vault internal vault;
     IERC20 internal asset;
@@ -354,12 +333,14 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Interact is OrigamiInfraredAut
 
     function test_seedVault_fail_notRegistered() public {
         vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(OrigamiInfraredAutoCompounderFactory.AssetNotRegistered.selector, OHM_TOKEN));
+        vm.expectRevert(
+            abi.encodeWithSelector(OrigamiInfraredAutoCompounderFactory.AssetNotRegistered.selector, OHM_TOKEN)
+        );
         factory.seedVault(OHM_TOKEN, 123, origamiMultisig, 123);
     }
 
     function test_seedVault_and_harvest() public {
-        uint256 seedAmount = 1_000e18;
+        uint256 seedAmount = 1000e18;
         seedDeposit(seedAmount, 1_000_000e18);
 
         assertEq(vault.convertToAssets(1e18), 1e18);
@@ -367,7 +348,7 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Interact is OrigamiInfraredAut
 
         manager.harvestRewards(alice);
         uint256 ibgtRewards = IBGT_TOKEN.balanceOf(address(swapper));
-        assertEq(ibgtRewards, 578.524461956512238000e18);
+        assertEq(ibgtRewards, 578.524461956512238e18);
 
         IKodiakIsland lpToken = IKodiakIsland(vault.asset());
         (uint256 ohmToPair, uint256 honeyToPair, uint256 mintAmount) = lpToken.getMintAmounts(100e9, type(uint256).max);
@@ -378,19 +359,14 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Interact is OrigamiInfraredAut
         vm.startPrank(origamiMultisig);
         // swap ~half the iBGT for 100 ohm
         swapper.execute(
-            IBGT_TOKEN, 250, OHM_TOKEN, 
-            encodeSwap(
-                address(IBGT_TOKEN), 
-                250, address(OHM_TOKEN), 100e9, 100e9
-            )
+            IBGT_TOKEN, 250, OHM_TOKEN, encodeSwap(address(IBGT_TOKEN), 250, address(OHM_TOKEN), 100e9, 100e9)
         );
         // swap ~half of the iBGT for 983 honey
         swapper.execute(
-            IBGT_TOKEN, ibgtRewards - 250, HONEY_TOKEN,
-            encodeSwap(
-                address(IBGT_TOKEN),
-                ibgtRewards - 250, address(HONEY_TOKEN), honeyToPair, honeyToPair
-            )
+            IBGT_TOKEN,
+            ibgtRewards - 250,
+            HONEY_TOKEN,
+            encodeSwap(address(IBGT_TOKEN), ibgtRewards - 250, address(HONEY_TOKEN), honeyToPair, honeyToPair)
         );
 
         IOrigamiSwapperWithLiquidityManagement.TokenAmount[] memory tokenAmounts;
@@ -419,6 +395,6 @@ contract OrigamiInfraredAutoCompounderFactoryTest_Interact is OrigamiInfraredAut
         // Skip to the end of the drip duration
         skip(10 minutes);
 
-        assertEq(vault.convertToAssets(1e18), 1.000016582843753990e18, "new share price");
+        assertEq(vault.convertToAssets(1e18), 1.00001658284375399e18, "new share price");
     }
 }

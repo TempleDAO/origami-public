@@ -10,11 +10,7 @@ import { MockErc4626VaultWithFees } from "test/foundry/mocks/common/erc4626/Mock
 contract MockERC20 is ERC20 {
     uint8 private immutable decimals_;
 
-    constructor(
-        string memory _name, 
-        string memory _symbol, 
-        uint8 _decimals
-    ) ERC20(_name, _symbol) {
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol) {
         decimals_ = _decimals;
     }
 
@@ -26,7 +22,7 @@ contract MockERC20 is ERC20 {
         _burn(account, amount);
     }
 
-    function decimals() public override view returns (uint8) {
+    function decimals() public view override returns (uint8) {
         return decimals_;
     }
 }
@@ -53,8 +49,8 @@ contract ERC4626FuzzTest is ERC4626Test, OrigamiTest {
         underlying = new MockERC20("UNDERLYING", "UDLY", 6);
         vault = new MockErc4626VaultWithFees(origamiMultisig, "VAULT", "VLT", underlying, DEPOSIT_FEE, EXIT_FEE);
         seedDeposit(origamiMultisig, 1, MAX_SUPPLY);
-        precisionDivisor = (10**(vault.decimals() - underlying.decimals()));
-        
+        precisionDivisor = (10 ** (vault.decimals() - underlying.decimals()));
+
         _underlying_ = address(underlying);
         _vault_ = address(vault);
         _delta_ = 0;
@@ -65,7 +61,7 @@ contract ERC4626FuzzTest is ERC4626Test, OrigamiTest {
     // Tweaks to the base function in order
     function setUpVault(Init memory init) public override {
         // setup initial shares and assets for individual users
-        for (uint i = 0; i < N; i++) {
+        for (uint256 i = 0; i < N; i++) {
             address user = init.user[i];
             vm.assume(_isEOA(user));
 
@@ -73,38 +69,48 @@ contract ERC4626FuzzTest is ERC4626Test, OrigamiTest {
             // @note Updated: bound to the max depositable by the user (would just error otherwise slowing things down)
             uint256 maxDeposit = vault.maxDeposit(user);
             uint256 minDeposit = maxDeposit > 0 ? 1 : 0; // Attempt to deposit at least 1
-            uint shares = _bound(init.share[i], minDeposit, maxDeposit);
+            uint256 shares = _bound(init.share[i], minDeposit, maxDeposit);
 
-            try underlying.mint(user, shares) {} catch { vm.assume(false); }
+            try underlying.mint(user, shares) { }
+            catch {
+                vm.assume(false);
+            }
             _approve(_underlying_, user, _vault_, shares);
 
-            vm.prank(user); try vault.deposit(shares, user) {} catch { vm.assume(false); }
+            vm.prank(user);
+            try vault.deposit(shares, user) { }
+            catch {
+                vm.assume(false);
+            }
 
             // assets
-            // @note Updated: bound to 100x the shares such that the share price isn't crazy big            
-            uint assets = _bound(init.asset[i], 0, shares*100);
+            // @note Updated: bound to 100x the shares such that the share price isn't crazy big
+            uint256 assets = _bound(init.asset[i], 0, shares * 100);
 
-            try underlying.mint(user, assets) {} catch { vm.assume(false); }
+            try underlying.mint(user, assets) { }
+            catch {
+                vm.assume(false);
+            }
         }
 
         // setup initial yield for vault
         // @note Updated: bound to 2x the supply currently in the vault so the share price isn't too imbalanced.
-        //   Otherwise there's many cases of minting zero shares (which will revert later) causing 
+        //   Otherwise there's many cases of minting zero shares (which will revert later) causing
         //   a lot of unnecessary re-runs.
         uint256 totalAssets = underlying.balanceOf(address(vault));
-        init.yield = _bound(init.yield, -int256(totalAssets)*11/10, int256(totalAssets)*11/10);
+        init.yield = _bound(init.yield, -int256(totalAssets) * 11 / 10, int256(totalAssets) * 11 / 10);
         setUpYield(init);
     }
 
     // @note Updated: Cap to the max deposit of the vault
-    function _max_deposit(address from) internal view override returns (uint) {
+    function _max_deposit(address from) internal view override returns (uint256) {
         uint256 max = vault.maxDeposit(from);
         uint256 bal = underlying.balanceOf(from);
         return max < bal ? max : bal;
     }
 
     // @note Updated: Cap to the max mint of the vault
-    function _max_mint(address from) internal override returns (uint) {
+    function _max_mint(address from) internal override returns (uint256) {
         uint256 max = vault.maxMint(from);
         uint256 bal = vault_convertToShares(underlying.balanceOf(from));
         return max < bal ? max : bal;

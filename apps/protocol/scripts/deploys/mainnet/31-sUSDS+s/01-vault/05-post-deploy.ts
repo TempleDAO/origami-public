@@ -32,7 +32,7 @@ const getEncodedPrices = () => (
     sUsdsToUsd: encodedErc4626TokenPrice(ADDRS.EXTERNAL.SKY.SUSDS_TOKEN),
 
     vaultTokenToUsd: encodedErc4626TokenPrice(
-      ADDRS.VAULTS.SUSDSpS.TOKEN
+      ADDRS.VAULTS.SUSDSpS.TOKEN.address
     ),
   }
 );
@@ -49,7 +49,7 @@ async function updatePrices(contract: TokenPrices) {
     encodedPrices.sUsdsToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.SUSDSpS.TOKEN,
+    ADDRS.VAULTS.SUSDSpS.TOKEN.address,
     encodedPrices.vaultTokenToUsd
   ));
 }
@@ -65,7 +65,7 @@ async function updatePricesSafeBatch(contract: TokenPrices) {
       setTokenPriceFunction(contract, ADDRS.EXTERNAL.SKY.SUSDS_TOKEN,
         encodedPrices.sUsdsToUsd
       ),
-      setTokenPriceFunction(contract, ADDRS.VAULTS.SUSDSpS.TOKEN,
+      setTokenPriceFunction(contract, ADDRS.VAULTS.SUSDSpS.TOKEN.address,
         encodedPrices.vaultTokenToUsd
       ),
     ],

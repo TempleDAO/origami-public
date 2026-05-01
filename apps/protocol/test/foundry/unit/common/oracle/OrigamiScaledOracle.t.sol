@@ -26,24 +26,12 @@ contract OrigamiScaledOracleTestBase is OrigamiTest {
     function setupOracles() internal {
         // 6 decimals for baseAsset, 18 decimals for quoteAsset
         referenceOracle = new OrigamiFixedPriceOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN2/USD",
-                token1,
-                6,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
-            REF_PRICE,
-            address(0)
+            IOrigamiOracle.BaseOracleParams("TOKEN2/USD", token1, 6, INTERNAL_USD_ADDRESS, 18), REF_PRICE, address(0)
         );
 
         scalarOracle = new OrigamiFixedPriceOracle(
             IOrigamiOracle.BaseOracleParams(
-                "PT_DISCOUNT_FACTOR",
-                INTERNAL_CONSTANT_ADDRESS,
-                18,
-                INTERNAL_CONSTANT_ADDRESS,
-                18
+                "PT_DISCOUNT_FACTOR", INTERNAL_CONSTANT_ADDRESS, 18, INTERNAL_CONSTANT_ADDRESS, 18
             ),
             SCALAR,
             address(0)
@@ -51,13 +39,7 @@ contract OrigamiScaledOracleTestBase is OrigamiTest {
 
         // referenceOracle * scalarOracle
         scaledOracleMultiply = new OrigamiScaledOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN2/USD * DF",
-                token1,
-                6,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("TOKEN2/USD * DF", token1, 6, INTERNAL_USD_ADDRESS, 18),
             address(referenceOracle),
             address(scalarOracle),
             true
@@ -65,13 +47,7 @@ contract OrigamiScaledOracleTestBase is OrigamiTest {
 
         // referenceOracle / scalarOracle
         scaledOracleDivide = new OrigamiScaledOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN2/USD / DF",
-                token1,
-                6,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("TOKEN2/USD / DF", token1, 6, INTERNAL_USD_ADDRESS, 18),
             address(referenceOracle),
             address(scalarOracle),
             false
@@ -79,7 +55,7 @@ contract OrigamiScaledOracleTestBase is OrigamiTest {
     }
 
     function _setUp() public {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
         vm.startPrank(origamiMultisig);
         setupOracles();
         vm.stopPrank();
@@ -113,13 +89,7 @@ contract OrigamiScaledOracleTestInit is OrigamiScaledOracleTestBase {
         {
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, INTERNAL_USD_ADDRESS));
             new OrigamiScaledOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "TOKEN2/USD / DF",
-                    INTERNAL_USD_ADDRESS,
-                    6,
-                    INTERNAL_USD_ADDRESS,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("TOKEN2/USD / DF", INTERNAL_USD_ADDRESS, 6, INTERNAL_USD_ADDRESS, 18),
                 address(referenceOracle),
                 address(scalarOracle),
                 false
@@ -130,13 +100,7 @@ contract OrigamiScaledOracleTestInit is OrigamiScaledOracleTestBase {
         {
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(token1)));
             new OrigamiScaledOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "TOKEN2/USD / DF",
-                    token1,
-                    6,
-                    token1,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("TOKEN2/USD / DF", token1, 6, token1, 18),
                 address(referenceOracle),
                 address(scalarOracle),
                 false
@@ -147,13 +111,7 @@ contract OrigamiScaledOracleTestInit is OrigamiScaledOracleTestBase {
         {
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
             new OrigamiScaledOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "TOKEN2/USD / DF",
-                    token1,
-                    18,
-                    INTERNAL_USD_ADDRESS,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("TOKEN2/USD / DF", token1, 18, INTERNAL_USD_ADDRESS, 18),
                 address(referenceOracle),
                 address(scalarOracle),
                 false
@@ -163,52 +121,28 @@ contract OrigamiScaledOracleTestInit is OrigamiScaledOracleTestBase {
         // non-matching scalar baseAsset & quoteAsset
         {
             scalarOracle = new OrigamiFixedPriceOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "PT_DISCOUNT_FACTOR",
-                    token1,
-                    18,
-                    INTERNAL_CONSTANT_ADDRESS,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("PT_DISCOUNT_FACTOR", token1, 18, INTERNAL_CONSTANT_ADDRESS, 18),
                 0.953e18,
                 address(0)
             );
 
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
             new OrigamiScaledOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "TOKEN2/USD * DF",
-                    token1,
-                    6,
-                    INTERNAL_USD_ADDRESS,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("TOKEN2/USD * DF", token1, 6, INTERNAL_USD_ADDRESS, 18),
                 address(referenceOracle),
                 address(scalarOracle),
                 true
             );
 
             scalarOracle = new OrigamiFixedPriceOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "PT_DISCOUNT_FACTOR",
-                    INTERNAL_CONSTANT_ADDRESS,
-                    18,
-                    token1,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("PT_DISCOUNT_FACTOR", INTERNAL_CONSTANT_ADDRESS, 18, token1, 18),
                 0.953e18,
                 address(0)
             );
 
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
             new OrigamiScaledOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "TOKEN2/USD * DF",
-                    token1,
-                    6,
-                    INTERNAL_USD_ADDRESS,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("TOKEN2/USD * DF", token1, 6, INTERNAL_USD_ADDRESS, 18),
                 address(referenceOracle),
                 address(scalarOracle),
                 true
@@ -219,11 +153,7 @@ contract OrigamiScaledOracleTestInit is OrigamiScaledOracleTestBase {
         {
             scalarOracle = new OrigamiFixedPriceOracle(
                 IOrigamiOracle.BaseOracleParams(
-                    "PT_DISCOUNT_FACTOR",
-                    INTERNAL_CONSTANT_ADDRESS,
-                    6,
-                    INTERNAL_CONSTANT_ADDRESS,
-                    18
+                    "PT_DISCOUNT_FACTOR", INTERNAL_CONSTANT_ADDRESS, 6, INTERNAL_CONSTANT_ADDRESS, 18
                 ),
                 0.953e18,
                 address(0)
@@ -231,13 +161,7 @@ contract OrigamiScaledOracleTestInit is OrigamiScaledOracleTestBase {
 
             vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
             new OrigamiScaledOracle(
-                IOrigamiOracle.BaseOracleParams(
-                    "TOKEN2/USD * DF",
-                    token1,
-                    6,
-                    INTERNAL_USD_ADDRESS,
-                    18
-                ),
+                IOrigamiOracle.BaseOracleParams("TOKEN2/USD * DF", token1, 6, INTERNAL_USD_ADDRESS, 18),
                 address(referenceOracle),
                 address(scalarOracle),
                 true
@@ -267,39 +191,27 @@ contract OrigamiScaledOracleTestLatestPriceMultiply is OrigamiScaledOracleTestBa
     function test_convertAmount() public view {
         assertEq(
             scaledOracleMultiply.convertAmount(
-                token1,
-                100e6,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_DOWN
-            ), 
+                token1, 100e6, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             REF_PRICE * SCALAR / 1e18 * 100
         );
         assertEq(
             scaledOracleMultiply.convertAmount(
-                INTERNAL_USD_ADDRESS,
-                100e18,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_DOWN
-            ), 
+                INTERNAL_USD_ADDRESS, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             100e18 * 1e18 * 1e6 / (REF_PRICE * SCALAR)
         );
 
         assertEq(
             scaledOracleMultiply.convertAmount(
-                token1,
-                100e6,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_UP
-            ), 
+                token1, 100e6, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP
+            ),
             (REF_PRICE * SCALAR / 1e18 + 1) * 100
         );
         assertEq(
             scaledOracleMultiply.convertAmount(
-                INTERNAL_USD_ADDRESS,
-                100e18,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_UP
-            ), 
+                INTERNAL_USD_ADDRESS, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP
+            ),
             100e18 * 1e18 * 1e6 / (REF_PRICE * SCALAR) + 1
         );
     }
@@ -327,73 +239,47 @@ contract OrigamiScaledOracleTestLatestPriceDivide is OrigamiScaledOracleTestBase
         // Zero price
         scalarOracle = new OrigamiFixedPriceOracle(
             IOrigamiOracle.BaseOracleParams(
-                "PT_DISCOUNT_FACTOR",
-                INTERNAL_CONSTANT_ADDRESS,
-                18,
-                INTERNAL_CONSTANT_ADDRESS,
-                18
+                "PT_DISCOUNT_FACTOR", INTERNAL_CONSTANT_ADDRESS, 18, INTERNAL_CONSTANT_ADDRESS, 18
             ),
             0,
             address(0)
         );
 
         scaledOracleDivide = new OrigamiScaledOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN2/USD / DF",
-                token1,
-                6,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("TOKEN2/USD / DF", token1, 6, INTERNAL_USD_ADDRESS, 18),
             address(referenceOracle),
             address(scalarOracle),
             false
         );
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IOrigamiOracle.InvalidPrice.selector, 
-            address(scalarOracle), 
-            0
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.InvalidPrice.selector, address(scalarOracle), 0));
         scaledOracleDivide.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
     function test_convertAmount() public view {
         assertEq(
             scaledOracleDivide.convertAmount(
-                token1,
-                100e6,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_DOWN
-            ), 
+                token1, 100e6, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             1e18 * REF_PRICE / SCALAR * 100
         );
         assertEq(
             scaledOracleDivide.convertAmount(
-                INTERNAL_USD_ADDRESS,
-                100e18,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_DOWN
-            ), 
+                INTERNAL_USD_ADDRESS, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             100e18 * 1e6 / (1e18 * REF_PRICE / SCALAR)
         );
 
         assertEq(
             scaledOracleDivide.convertAmount(
-                token1,
-                100e6,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_UP
-            ), 
+                token1, 100e6, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP
+            ),
             (1e18 * REF_PRICE / SCALAR + 1) * 100
         );
         assertEq(
             scaledOracleDivide.convertAmount(
-                INTERNAL_USD_ADDRESS,
-                100e18,
-                IOrigamiOracle.PriceType.SPOT_PRICE, 
-                OrigamiMath.Rounding.ROUND_UP
-            ), 
+                INTERNAL_USD_ADDRESS, 100e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP
+            ),
             100e18 * 1e6 / (1e18 * REF_PRICE / SCALAR) + 1
         );
     }

@@ -1,0 +1,10 @@
+// berachain: ORACLES.IBGT_WBERA_WITH_PRICE_CHECK=0x43eD180A2DE866EEc12c538492bb3103E1a00E82
+// yarn hardhat verify --network berachain 0x43eD180A2DE866EEc12c538492bb3103E1a00E82 --constructor-args scripts/deploys/berachain/deploymentArgs/0x43eD180A2DE866EEc12c538492bb3103E1a00E82.js
+module.exports = [
+  "0x781B4c57100738095222bd92D37B07ed034AB696",
+  "0x7fCA8EF746c53Be9BC0c90AA8b79DA6c5c333817",
+  {
+    "floor": "900000000000000000",
+    "ceiling": "2000000000000000000"
+  }
+];

@@ -18,7 +18,7 @@ async function main() {
         vaultDeployerFactory,
         vaultDeployerFactory.deploy,
         ADDRS.EXTERNAL.INFRARED.IBGT_TOKEN,
-        ADDRS.VAULTS.ORIBGT.TOKEN,
+        ADDRS.VAULTS.ORIBGT.TOKEN.address,
     );
 
     // NB: No need for the swapper for now as Infrared only gives iBGT rewards

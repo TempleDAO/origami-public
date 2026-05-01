@@ -28,10 +28,10 @@ abstract contract MintableToken is IMintableToken, ERC20Permit, OrigamiElevatedA
     error CannotMintOrBurn(address caller);
 
     constructor(string memory _name, string memory _symbol, address _initialOwner)
-        ERC20(_name, _symbol) 
-        ERC20Permit(_name) 
+        ERC20(_name, _symbol)
+        ERC20Permit(_name)
         OrigamiElevatedAccess(_initialOwner)
-    {}
+    { }
 
     function mint(address _to, uint256 _amount) external override {
         if (!_minters[msg.sender]) revert CannotMintOrBurn(msg.sender);

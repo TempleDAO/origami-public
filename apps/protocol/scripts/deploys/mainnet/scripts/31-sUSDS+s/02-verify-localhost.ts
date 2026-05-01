@@ -38,7 +38,7 @@ async function dumpPrices() {
   const prices = await INSTANCES.CORE.TOKEN_PRICES.V3.tokenPrices([
     ADDRS.EXTERNAL.SKY.USDS_TOKEN,
     ADDRS.EXTERNAL.SKY.SUSDS_TOKEN,
-    ADDRS.VAULTS.SUSDSpS.TOKEN,
+    ADDRS.VAULTS.SUSDSpS.TOKEN.address,
   ]);
   console.log("Token Prices:");
   console.log("\tUSDS:", ethers.utils.formatUnits(prices[0], 30));

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {ROLESv1} from "../../modules/ROLES/ROLES.v1.sol";
-import {RolesConsumer} from "../../modules/ROLES/OlympusRoles.sol";
-import {ADMIN_ROLE, EMERGENCY_ROLE} from "./RoleDefinitions.sol";
+import { ROLESv1 } from "../../modules/ROLES/ROLES.v1.sol";
+import { RolesConsumer } from "../../modules/ROLES/OlympusRoles.sol";
+import { ADMIN_ROLE, EMERGENCY_ROLE } from "./RoleDefinitions.sol";
 
 abstract contract PolicyAdmin is RolesConsumer {
     error NotAuthorised();

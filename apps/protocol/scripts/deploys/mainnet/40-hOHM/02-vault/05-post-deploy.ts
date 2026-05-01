@@ -44,7 +44,7 @@ const getEncodedPrices = () => {
     ethToUsd: usd_per_weth,
     ohmToUsd: usd_per_ohm,
     gohmToUsd: encodedMulPrice(encodedTokenPrice(ADDRS.EXTERNAL.OLYMPUS.OHM_TOKEN), ohm_per_gohm),   
-    vaultToUsd: encodedTokenizedBalanceSheetTokenPrice(ADDRS.VAULTS.hOHM.TOKEN),
+    vaultToUsd: encodedTokenizedBalanceSheetTokenPrice(ADDRS.VAULTS.hOHM.TOKEN.address),
   }
 };
 
@@ -63,7 +63,7 @@ async function setupPrices() {
   ));
 
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     encodedPrices.vaultToUsd
   ));
 }

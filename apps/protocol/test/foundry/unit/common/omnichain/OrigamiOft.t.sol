@@ -13,7 +13,9 @@ import { OrigamiOFT } from "contracts/common/omnichain/OrigamiOFT.sol";
 import { TestHelperOz5, EndpointV2 } from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { EnforcedOptionParam } from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
-import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
+import {
+    ITokenizedBalanceSheetVault
+} from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
@@ -70,34 +72,20 @@ contract OrigamiOftTestBase is TestHelperOz5, OrigamiTest {
         origamiOft_b = OrigamiOFT(
             _deployOApp(
                 type(OrigamiOFT).creationCode,
-                abi.encode(
-                    OFT.ConstructorArgs(
-                        "ORIGAMI TOKEN B",
-                        "ORGMB",
-                        address(endpoints[bEid]),
-                        origamiMultisig
-                    )   
-                )
+                abi.encode(OFT.ConstructorArgs("ORIGAMI TOKEN B", "ORGMB", address(endpoints[bEid]), origamiMultisig))
             )
         );
 
         origamiOft_c = OrigamiOFT(
             _deployOApp(
                 type(OrigamiOFT).creationCode,
-                abi.encode(
-                    OFT.ConstructorArgs(
-                        "ORIGAMI TOKEN C",
-                        "ORGMC",
-                        address(endpoints[cEid]),
-                        origamiMultisig
-                    )
-                )
+                abi.encode(OFT.ConstructorArgs("ORIGAMI TOKEN C", "ORGMC", address(endpoints[cEid]), origamiMultisig))
             )
         );
     }
 
     function _sendInitialTokens(address _recipient, uint256 _amount) internal {
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
         SendParam memory sendParam = SendParam(
             bEid, // send to other origami oft
             addressToBytes32(_recipient),
@@ -112,7 +100,7 @@ contract OrigamiOftTestBase is TestHelperOz5, OrigamiTest {
         // approve
         vm.startPrank(_recipient);
         ttoken_a.approve(address(teleporter_ttoken_a), _amount);
-        teleporter_ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(_recipient)));
+        teleporter_ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(_recipient)));
         verifyPackets(bEid, addressToBytes32(address(origamiOft_b)));
     }
 
@@ -137,12 +125,11 @@ contract OrigamiOftTestBase is TestHelperOz5, OrigamiTest {
     }
 
     function _getOptions() internal pure returns (bytes memory options) {
-        options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
     }
 }
 
 contract OrigamiOftTestAdmin is OrigamiOftTestBase {
-
     function test_init() public view {
         {
             assertEq(origamiOft_b.name(), "ORIGAMI TOKEN B");
@@ -153,7 +140,7 @@ contract OrigamiOftTestAdmin is OrigamiOftTestBase {
             assertEq(origamiOft_b.sharedDecimals(), 6);
             assertEq(origamiOft_c.sharedDecimals(), 6);
         }
-       
+
         {
             assertEq(teleporter_ttoken_a.approvalRequired(), true);
             assertEq(teleporter_ttoken_a.token(), address(ttoken_a));
@@ -172,7 +159,7 @@ contract OrigamiOftTestAdmin is OrigamiOftTestBase {
         assertEq(origamiOft_b.supportsInterface(type(IERC20Permit).interfaceId), true);
         assertEq(origamiOft_b.supportsInterface(type(EIP712).interfaceId), true);
         assertEq(origamiOft_b.supportsInterface(type(IERC165).interfaceId), true);
-        assertEq(origamiOft_b.supportsInterface(type(IOrigamiInvestment).interfaceId), false);
+        assertEq(origamiOft_b.supportsInterface(type(ITokenizedBalanceSheetVault).interfaceId), false);
     }
 }
 
@@ -185,7 +172,7 @@ contract OrigamiOftTestAccess is OrigamiOftTestBase {
         origamiOft_b.setPeer(cEid, addressToBytes32(address(origamiOft_c)));
     }
 
-     function test_access_setDelegate() public {
+    function test_access_setDelegate() public {
         expectElevatedAccess();
         origamiOft_b.setDelegate(alice);
 
@@ -226,7 +213,6 @@ contract OrigamiOftTestPermit is OrigamiOftTestBase {
 }
 
 contract OrigamiOftTestSend is OrigamiOftTestBase {
-
     function test_setPeer() public {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(origamiOft_b));
@@ -284,7 +270,7 @@ contract OrigamiOftTestSend is OrigamiOftTestBase {
         assertEq(origamiOft_b.balanceOf(bob), 0);
 
         vm.startPrank(alice);
-        origamiOft_b.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        origamiOft_b.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(cEid, addressToBytes32(address(origamiOft_c)));
 
         assertEq(origamiOft_c.balanceOf(bob), sendAmount);
@@ -305,10 +291,10 @@ contract OrigamiOftTestSend is OrigamiOftTestBase {
         aliceBalance = origamiOft_b.balanceOf(alice);
         uint256 bobBalance = origamiOft_c.balanceOf(bob);
         vm.startPrank(bob);
-        origamiOft_c.send{value:fee.nativeFee}(sendParam, fee, payable(address(bob)));
+        origamiOft_c.send{ value: fee.nativeFee }(sendParam, fee, payable(address(bob)));
         verifyPackets(bEid, addressToBytes32(address(origamiOft_b)));
-        assertEq(origamiOft_b.balanceOf(alice), aliceBalance+sendAmount);
-        assertEq(origamiOft_c.balanceOf(bob), bobBalance-sendAmount);
+        assertEq(origamiOft_b.balanceOf(alice), aliceBalance + sendAmount);
+        assertEq(origamiOft_c.balanceOf(bob), bobBalance - sendAmount);
     }
 
     function test_send_origami_oft_token_multi() public {
@@ -334,12 +320,12 @@ contract OrigamiOftTestSend is OrigamiOftTestBase {
         // from initial send in setup
         assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), 0);
 
-        teleporter_ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        teleporter_ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(bEid, addressToBytes32(address(origamiOft_b)));
 
         assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), minAmount);
         assertEq(origamiOft_b.balanceOf(alice), minAmount);
-        assertEq(ttoken_a.balanceOf(alice), aliceBalance-sendAmount);
+        assertEq(ttoken_a.balanceOf(alice), aliceBalance - sendAmount);
 
         // bob sends to alice
         vm.startPrank(bob);
@@ -358,13 +344,13 @@ contract OrigamiOftTestSend is OrigamiOftTestBase {
         fee = teleporter_ttoken_a.quoteSend(sendParam, false);
         uint256 teleporterBalance = ttoken_a.balanceOf(address(teleporter_ttoken_a));
         uint256 oft_b_aliceBalance = origamiOft_b.balanceOf(alice);
-        teleporter_ttoken_a.send{value:fee.nativeFee}(sendParam, fee, payable(address(bob)));
+        teleporter_ttoken_a.send{ value: fee.nativeFee }(sendParam, fee, payable(address(bob)));
         verifyPackets(bEid, addressToBytes32(address(origamiOft_b)));
-        assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), teleporterBalance+minAmount);
-        assertEq(origamiOft_b.balanceOf(alice), oft_b_aliceBalance+minAmount);
+        assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), teleporterBalance + minAmount);
+        assertEq(origamiOft_b.balanceOf(alice), oft_b_aliceBalance + minAmount);
         assertEq(ttoken_a.balanceOf(bob), 0);
 
-         // send all back to bob
+        // send all back to bob
         oft_b_aliceBalance = origamiOft_b.balanceOf(alice);
         teleporterBalance = ttoken_a.balanceOf(address(teleporter_ttoken_a));
         minAmount = _removeDust(oft_b_aliceBalance, origamiOft_b.decimals());
@@ -379,9 +365,9 @@ contract OrigamiOftTestSend is OrigamiOftTestBase {
             ""
         );
         fee = origamiOft_b.quoteSend(sendParam, false);
-        origamiOft_b.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        origamiOft_b.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(aEid, addressToBytes32(address(teleporter_ttoken_a)));
-        assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), teleporterBalance-minAmount);
+        assertEq(ttoken_a.balanceOf(address(teleporter_ttoken_a)), teleporterBalance - minAmount);
         assertEq(origamiOft_b.balanceOf(alice), 0);
         assertEq(ttoken_a.balanceOf(bob), minAmount);
     }
@@ -403,10 +389,10 @@ contract OrigamiOftTestSend is OrigamiOftTestBase {
             ""
         );
         MessagingFee memory fee = teleporter_ttoken_a.quoteSend(sendParam, false);
-        origamiOft_b.send{value:fee.nativeFee}(sendParam, fee, payable(address(alice)));
+        origamiOft_b.send{ value: fee.nativeFee }(sendParam, fee, payable(address(alice)));
         verifyPackets(cEid, addressToBytes32(address(origamiOft_c)));
 
-        assertEq(origamiOft_b.balanceOf(address(alice)), aliceBalance-amount);
+        assertEq(origamiOft_b.balanceOf(address(alice)), aliceBalance - amount);
         assertEq(origamiOft_b.balanceOf(bob), 0);
         assertEq(origamiOft_c.balanceOf(bob), minAmount);
         // didn't change with locker

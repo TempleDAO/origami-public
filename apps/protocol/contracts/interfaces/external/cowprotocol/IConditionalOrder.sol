@@ -1,7 +1,8 @@
 pragma solidity >=0.8.0 <0.9.0;
 // SPDX-License-Identifier: MIT
 
-// @note Forked from https://github.com/cowprotocol/composable-cow/blob/24d556b634e21065e0ee70dd27469a6e699a8998/src/interfaces/IConditionalOrder.sol#L12
+// @note Forked from
+// https://github.com/cowprotocol/composable-cow/blob/24d556b634e21065e0ee70dd27469a6e699a8998/src/interfaces/IConditionalOrder.sol#L12
 
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
@@ -38,7 +39,8 @@ interface IConditionalOrder is IERC165, IERC1271, IWatchtowerErrors {
      * aren't required when implementing directly.
      * @param owner of the order.
      * @param params `ConditionalOrderParams` for the order
-     * @param offchainInput any dynamic off-chain input for generating the discrete order. As of writing, watchtower sets as bytes("")
+     * @param offchainInput any dynamic off-chain input for generating the discrete order. As of writing, watchtower
+     * sets as bytes("")
      * @param proof if using merkle-roots that H(handler || salt || staticInput) is in the merkle tree
      * @return order discrete order for submitting to CoW Protocol API
      * @return signature for submitting to CoW Protocol API
@@ -50,8 +52,5 @@ interface IConditionalOrder is IERC165, IERC1271, IWatchtowerErrors {
         IConditionalOrder.ConditionalOrderParams calldata params,
         bytes calldata offchainInput,
         bytes32[] calldata proof
-    ) external view returns (
-        GPv2Order.Data memory order, 
-        bytes memory signature
-    );
+    ) external view returns (GPv2Order.Data memory order, bytes memory signature);
 }

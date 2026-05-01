@@ -45,7 +45,9 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
      * @dev Maps user address to reward token address to amount already paid
      * Used to calculate new rewards since last claim
      */
-    mapping(address user => mapping(address rewardToken => uint256 alreadyPaidAmount)) public override userRewardPerTokenPaid;
+    mapping(address user => mapping(address rewardToken => uint256 alreadyPaidAmount))
+        public
+        override userRewardPerTokenPaid;
 
     /**
      * @notice Tracks the unclaimed rewards for each user for each reward token
@@ -113,27 +115,17 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMultiRewards
-    function totalSupply() external override view returns (uint256) {
+    function totalSupply() external view override returns (uint256) {
         return _totalSupply;
     }
 
     /// @inheritdoc IMultiRewards
-    function balanceOf(address account)
-        external
-        override 
-        view
-        returns (uint256 _balance)
-    {
+    function balanceOf(address account) external view override returns (uint256 _balance) {
         return _balances[account];
     }
 
     /// @inheritdoc IMultiRewards
-    function lastTimeRewardApplicable(address _rewardsToken)
-        public
-        override 
-        view
-        returns (uint256)
-    {
+    function lastTimeRewardApplicable(address _rewardsToken) public view override returns (uint256) {
         // min value between timestamp and period finish
         uint256 periodFinish = rewardData[_rewardsToken].periodFinish;
         uint256 ts = block.timestamp;
@@ -141,50 +133,28 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
     }
 
     /// @inheritdoc IMultiRewards
-    function rewardPerToken(address _rewardsToken)
-        public
-        override 
-        view
-        returns (uint256)
-    {
+    function rewardPerToken(address _rewardsToken) public view override returns (uint256) {
         Reward storage $ = rewardData[_rewardsToken];
         if (_totalSupply == 0) {
             return $.rewardPerTokenStored;
         }
-        return $.rewardPerTokenStored
-            + (
-                lastTimeRewardApplicable(_rewardsToken) - $.lastUpdateTime
-            ) * $.rewardRate * 1e18 / _totalSupply;
+        return $.rewardPerTokenStored + (lastTimeRewardApplicable(_rewardsToken) - $.lastUpdateTime) * $.rewardRate
+            * 1e18 / _totalSupply;
     }
 
     /// @inheritdoc IMultiRewards
-    function earned(address account, address _rewardsToken)
-        public
-        override 
-        view
-        returns (uint256)
-    {
-        return (
-            _balances[account]
-                * (
-                    rewardPerToken(_rewardsToken)
-                        - userRewardPerTokenPaid[account][_rewardsToken]
-                )
-        ) / 1e18 + rewards[account][_rewardsToken];
+    function earned(address account, address _rewardsToken) public view override returns (uint256) {
+        return (_balances[account] * (rewardPerToken(_rewardsToken) - userRewardPerTokenPaid[account][_rewardsToken]))
+            / 1e18 + rewards[account][_rewardsToken];
     }
 
     /// @inheritdoc IMultiRewards
-    function getRewardForDuration(address _rewardsToken)
-        external
-        override 
-        view
-        returns (uint256)
-    {
+    function getRewardForDuration(address _rewardsToken) external view override returns (uint256) {
         Reward storage $ = rewardData[_rewardsToken];
         return $.rewardRate * $.rewardsDuration;
     }
 
-    function stakingToken() public override view returns (address) {
+    function stakingToken() public view override returns (address) {
         return address(_stakingToken);
     }
 
@@ -193,12 +163,7 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IMultiRewards
-    function stake(uint256 amount)
-        external
-        override 
-        nonReentrant
-        updateReward(msg.sender)
-    {
+    function stake(uint256 amount) external override nonReentrant updateReward(msg.sender) {
         if (amount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         _totalSupply = _totalSupply + amount;
         _balances[msg.sender] = _balances[msg.sender] + amount;
@@ -216,16 +181,11 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
     function onStake(uint256 amount) internal virtual;
 
     /// @inheritdoc IMultiRewards
-    function withdraw(uint256 amount)
-        public
-        override 
-        nonReentrant
-        updateReward(msg.sender)
-    {
+    function withdraw(uint256 amount) public override nonReentrant updateReward(msg.sender) {
         if (amount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         uint256 balance = _balances[msg.sender];
         if (amount > balance) revert CommonEventsAndErrors.InvalidAmount(address(_stakingToken), amount);
-        
+
         _totalSupply = _totalSupply - amount;
         _balances[msg.sender] = balance - amount;
 
@@ -242,12 +202,7 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
     function onWithdraw(uint256 amount) internal virtual;
 
     /// @inheritdoc IMultiRewards
-    function getRewardForUser(address _user)
-        public
-        override 
-        nonReentrant
-        updateReward(_user)
-    {
+    function getRewardForUser(address _user) public override nonReentrant updateReward(_user) {
         onReward();
         uint256 len = rewardTokens.length;
         for (uint256 i; i < len; i++) {
@@ -259,9 +214,8 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
                 // Limit the gas to 200k to avoid potential gas DoS for dodgy reward tokens
                 // (which requires the low level call)
                 // This also adds SafeERC20 checks.
-                (bool success, bytes memory data) = _rewardsToken.call{gas: 200_000}(
-                    abi.encodeWithSelector(IERC20.transfer.selector, _user, reward)
-                );
+                (bool success, bytes memory data) =
+                    _rewardsToken.call{ gas: 200_000 }(abi.encodeWithSelector(IERC20.transfer.selector, _user, reward));
                 if (success && (data.length == 0 || abi.decode(data, (bool)))) {
                     rewards[_user][_rewardsToken] = 0;
                     totalUnclaimedRewards[_rewardsToken] -= reward;
@@ -298,12 +252,9 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
      * @param _rewardsToken       address The address of the reward token.
      * @param _rewardsDuration    uint256 The duration of the rewards period.
      */
-    function _addReward(
-        address _rewardsToken,
-        uint256 _rewardsDuration
-    ) internal {
+    function _addReward(address _rewardsToken, uint256 _rewardsDuration) internal {
         if (_rewardsDuration == 0) revert CommonEventsAndErrors.ExpectedNonZero();
-        
+
         rewardTokens.push(_rewardsToken);
         // rewardsDistributor is left uninitialized as it's unused.
         rewardData[_rewardsToken].rewardsDuration = _rewardsDuration;
@@ -337,10 +288,7 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
      * @param _rewardsToken address The address of the reward token.
      * @param reward        uint256 The amount of reward tokens.
      */
-    function _notifyRewardAmount(address _rewardsToken, uint256 reward)
-        internal
-        updateReward(address(0))
-    {
+    function _notifyRewardAmount(address _rewardsToken, uint256 reward) internal updateReward(address(0)) {
         Reward storage $ = rewardData[_rewardsToken];
         totalUnclaimedRewards[_rewardsToken] += reward;
 
@@ -378,11 +326,7 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
      * If a reward token was removed and then recovered, then prior to adding it again
      * that balance must be depoisted back into the contract again.
      */
-    function _recoverERC20(
-        address to,
-        address tokenAddress,
-        uint256 tokenAmount
-    ) internal {
+    function _recoverERC20(address to, address tokenAddress, uint256 tokenAmount) internal {
         if (rewardData[tokenAddress].lastUpdateTime != 0) revert CannotRecoverRewardToken();
         IERC20(tokenAddress).safeTransfer(to, tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
@@ -393,10 +337,7 @@ abstract contract MultiRewards is ReentrancyGuard, IMultiRewards {
      * @param _rewardsToken    address The address of the reward token.
      * @param _rewardsDuration uint256 The new duration of the rewards period.
      */
-    function _setRewardsDuration(
-        address _rewardsToken,
-        uint256 _rewardsDuration
-    ) internal {
+    function _setRewardsDuration(address _rewardsToken, uint256 _rewardsDuration) internal {
         if (_rewardsDuration == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         Reward storage $ = rewardData[_rewardsToken];
         if ($.rewardsDuration == 0) revert RewardDoesntExist();

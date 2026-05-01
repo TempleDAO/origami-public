@@ -13,7 +13,7 @@ let ADDRS: ContractAddresses;
 async function dumpPrices() {
   const prices = await INSTANCES.CORE.TOKEN_PRICES.V5.tokenPrices([
     ADDRS.EXTERNAL.OLYMPUS.OHM_TOKEN,
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     ADDRS.EXTERNAL.KODIAK.ISLANDS.OHM_HOHM_V3,
   ]);
   console.log("Token Prices ($):");

@@ -24,7 +24,8 @@ contract OrigamiSuperSkyManagerTestBase is OrigamiTest {
 
     IERC20 internal constant SKY = IERC20(0x56072C95FAA701256059aa122697B133aDEd9279);
     IERC20 internal constant LSSKY = IERC20(0xf9A9cfD3229E985B91F99Bc866d42938044FFa1C);
-    ISkyLockstakeEngine internal constant LOCKSTAKE_ENGINE = ISkyLockstakeEngine(0xCe01C90dE7FD1bcFa39e237FE6D8D9F569e8A6a3);
+    ISkyLockstakeEngine internal constant LOCKSTAKE_ENGINE =
+        ISkyLockstakeEngine(0xCe01C90dE7FD1bcFa39e237FE6D8D9F569e8A6a3);
     address internal constant LSE_WARD = 0x35526314F18FeB5b7F124e40D6A99d64F7D7e89a;
     address internal URN_ADDRESS;
 
@@ -54,15 +55,11 @@ contract OrigamiSuperSkyManagerTestBase is OrigamiTest {
     );
 
     function setUp() public virtual {
-        fork("mainnet", 22694300);
+        fork("mainnet", 22_694_300);
 
         tokenPrices = new TokenPrices(30);
         vault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami SKY Auto-Compounder", 
-            "oAC-SKY-a",
-            SKY,
-            address(tokenPrices)
+            origamiMultisig, "Origami SKY Auto-Compounder", "oAC-SKY-a", SKY, address(tokenPrices)
         );
 
         manager = new OrigamiSuperSkyManager(
@@ -81,9 +78,9 @@ contract OrigamiSuperSkyManagerTestBase is OrigamiTest {
         FARM2 = new DummySkyStakingRewards(address(FARM2_REWARDS_TOKEN), address(LSSKY));
         vm.prank(LSE_WARD);
         LOCKSTAKE_ENGINE.addFarm(address(FARM2));
-        deal(address(FARM2_REWARDS_TOKEN), address(FARM2), 3_000e18);
-        FARM2.notifyRewardAmount(3_000e18);
-        
+        deal(address(FARM2_REWARDS_TOKEN), address(FARM2), 3000e18);
+        FARM2.notifyRewardAmount(3000e18);
+
         vm.startPrank(origamiMultisig);
         vault.setManager(address(manager), 0);
         vm.stopPrank();
@@ -129,23 +126,16 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
     event FarmReferralCodeSet(uint32 indexed farmIndex, uint16 referralCode);
 
     event FarmAdded(
-        uint32 indexed farmIndex,
-        address indexed stakingAddress,
-        address indexed rewardsToken,
-        uint16 referralCode
+        uint32 indexed farmIndex, address indexed stakingAddress, address indexed rewardsToken, uint16 referralCode
     );
 
-    event FarmRemoved(
-        uint32 indexed farmIndex,
-        address indexed stakingAddress,
-        address indexed rewardsToken
-    );
+    event FarmRemoved(uint32 indexed farmIndex, address indexed stakingAddress, address indexed rewardsToken);
 
     event ClaimedReward(
-        uint32 indexed farmIndex, 
-        address indexed rewardsToken, 
-        uint256 amountForCaller, 
-        uint256 amountForOrigami, 
+        uint32 indexed farmIndex,
+        address indexed rewardsToken,
+        uint256 amountForCaller,
+        uint256 amountForOrigami,
         uint256 amountForVault
     );
 
@@ -158,8 +148,8 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
             SWITCH_FARM_COOLDOWN,
             swapper,
             feeCollector,
-            9_000,
-            1_001
+            9000,
+            1001
         );
     }
 
@@ -175,7 +165,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         assertEq(manager.maxFarmIndex(), 0);
         assertEq(manager.currentFarmIndex(), 0);
         assertEq(manager.switchFarmCooldown(), SWITCH_FARM_COOLDOWN);
-        assertEq(manager.lastSwitchTime(), 1749801587);
+        assertEq(manager.lastSwitchTime(), 1_749_801_587);
         assertEq(manager.swapper(), swapper);
         assertEq(manager.feeCollector(), feeCollector);
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
@@ -194,7 +184,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         assertEq(address(farm.rewardsToken), address(0));
         assertEq(farm.referral, 0);
 
-        // Max approval set for 
+        // Max approval set for
         assertEq(SKY.allowance(address(manager), address(LOCKSTAKE_ENGINE)), type(uint256).max);
     }
 
@@ -214,7 +204,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 101);
         assertEq(forOrigami, 399);
-        
+
         vm.expectEmit(address(vault));
         emit PerformanceFeeSet(301);
         manager.setPerformanceFees(101, 200);
@@ -230,13 +220,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         skip(SWITCH_FARM_COOLDOWN);
 
         vm.expectEmit(address(manager));
-        emit ClaimedReward(
-            1, 
-            address(FARM1_REWARDS_TOKEN), 
-            0.6423418783239e18,
-            2.5693675132956e18,
-            61.0224784407705e18
-        );
+        emit ClaimedReward(1, address(FARM1_REWARDS_TOKEN), 0.6423418783239e18, 2.5693675132956e18, 61.0224784407705e18);
 
         // It's emitted from the vault
         vm.expectEmit(address(vault));
@@ -245,7 +229,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 101);
         assertEq(forOrigami, 399);
-        
+
         vm.expectEmit(address(vault));
         emit PerformanceFeeSet(301);
         manager.setPerformanceFees(101, 200);
@@ -334,7 +318,8 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
     }
 
     function test_addFarm_failWrongFarmToken() public {
-        DummySkyStakingRewards badFarm = new DummySkyStakingRewards(address(FARM1_REWARDS_TOKEN), address(FARM2_REWARDS_TOKEN));
+        DummySkyStakingRewards badFarm =
+            new DummySkyStakingRewards(address(FARM1_REWARDS_TOKEN), address(FARM2_REWARDS_TOKEN));
 
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSkyManager.InvalidFarm.selector, 1));
@@ -402,7 +387,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
     function test_removeFarm_failures() public {
         vm.startPrank(origamiMultisig);
 
-        // Adding the same farm to a different slot 
+        // Adding the same farm to a different slot
         manager.addFarm(address(FARM1), 1);
         manager.addFarm(address(FARM2), 2);
 
@@ -416,7 +401,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         // Not added yet
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSkyManager.InvalidFarm.selector, 69));
         manager.removeFarm(69);
-        
+
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(2);
         assertEq(manager.currentFarmIndex(), 2);
@@ -457,9 +442,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
 
         vm.assertEq(FARM2.earned(URN_ADDRESS), 0);
         vm.mockCall(
-            address(FARM2),
-            abi.encodeWithSelector(ISkyStakingRewards.earned.selector, URN_ADDRESS),
-            abi.encode(100e18)
+            address(FARM2), abi.encodeWithSelector(ISkyStakingRewards.earned.selector, URN_ADDRESS), abi.encode(100e18)
         );
         vm.assertEq(FARM2.earned(URN_ADDRESS), 100e18);
 
@@ -468,9 +451,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         manager.removeFarm(2);
 
         vm.mockCall(
-            address(FARM2),
-            abi.encodeWithSelector(ISkyStakingRewards.earned.selector, URN_ADDRESS),
-            abi.encode(0)
+            address(FARM2), abi.encodeWithSelector(ISkyStakingRewards.earned.selector, URN_ADDRESS), abi.encode(0)
         );
         vm.assertEq(FARM2.earned(URN_ADDRESS), 0);
 
@@ -485,7 +466,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
     function test_removeFarm_success() public {
         vm.startPrank(origamiMultisig);
 
-        // Adding the same farm to a different slot 
+        // Adding the same farm to a different slot
         manager.addFarm(address(FARM1), 1);
         manager.addFarm(address(FARM2), 2);
 
@@ -525,7 +506,7 @@ contract OrigamiSuperSkyManagerTestAdmin is OrigamiSuperSkyManagerTestBase {
         vm.expectEmit(address(manager));
         emit FarmReferralCodeSet(1, 123);
         manager.setFarmReferralCode(1, 123);
-        
+
         IOrigamiSuperSkyManager.Farm memory farm = manager.getFarm(1);
         assertEq(address(farm.staking), address(FARM1));
         assertEq(address(farm.rewardsToken), address(FARM1_REWARDS_TOKEN));
@@ -649,7 +630,7 @@ contract OrigamiSuperSkyManagerTestDeposit is OrigamiSuperSkyManagerTestBase {
         IOrigamiSuperSkyManager.FarmDetails[] memory farmDetails = allFarmDetails();
         assertEq(farmDetails.length, 1);
         IOrigamiSuperSkyManager.FarmDetails memory details = farmDetails[0];
-        
+
         assertEq(address(details.farm.staking), address(0));
         assertEq(address(details.farm.rewardsToken), address(0));
         assertEq(details.farm.referral, 0);
@@ -675,7 +656,7 @@ contract OrigamiSuperSkyManagerTestDeposit is OrigamiSuperSkyManagerTestBase {
         IOrigamiSuperSkyManager.FarmDetails[] memory farmDetails = allFarmDetails();
         assertEq(farmDetails.length, 1);
         IOrigamiSuperSkyManager.FarmDetails memory details = farmDetails[0];
-        
+
         assertEq(address(details.farm.staking), address(0));
         assertEq(address(details.farm.rewardsToken), address(0));
         assertEq(details.farm.referral, 0);
@@ -750,7 +731,7 @@ contract OrigamiSuperSkyManagerTestDeposit is OrigamiSuperSkyManagerTestBase {
             assertEq(details.stakedBalance, 25e18);
             assertEq(details.totalSupply, 7_783_016_868.252905107379963658e18);
             assertEq(details.rewardRate, 289.351851851851851851e18);
-            assertEq(details.unclaimedRewards, 0.001606061018701850e18);
+            assertEq(details.unclaimedRewards, 0.00160606101870185e18);
         }
     }
 
@@ -783,7 +764,7 @@ contract OrigamiSuperSkyManagerTestDeposit is OrigamiSuperSkyManagerTestBase {
             assertEq(details.stakedBalance, 100e18);
             assertEq(details.totalSupply, 7_783_016_943.252905107379963658e18);
             assertEq(details.rewardRate, 289.351851851851851851e18);
-            assertEq(details.unclaimedRewards, 0.006424244012901000e18);
+            assertEq(details.unclaimedRewards, 0.006424244012901e18);
         }
     }
 
@@ -816,7 +797,7 @@ contract OrigamiSuperSkyManagerTestDeposit is OrigamiSuperSkyManagerTestBase {
             assertEq(details.stakedBalance, 100e18);
             assertEq(details.totalSupply, 7_783_016_943.252905107379963658e18);
             assertEq(details.rewardRate, 289.351851851851851851e18);
-            assertEq(details.unclaimedRewards, 0.006424244012901000e18);
+            assertEq(details.unclaimedRewards, 0.006424244012901e18);
         }
     }
 }
@@ -877,7 +858,7 @@ contract OrigamiSuperSkyManagerTestWithdraw is OrigamiSuperSkyManagerTestBase {
             assertEq(details.rewardRate, 0);
             assertEq(details.unclaimedRewards, 0);
         }
-        
+
         assertEq(manager.totalAssets(), 0);
     }
 
@@ -958,7 +939,7 @@ contract OrigamiSuperSkyManagerTestWithdraw is OrigamiSuperSkyManagerTestBase {
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 7_783_016_843.252905107379963658e18);
             assertEq(details.rewardRate, 289.351851851851851851e18);
-            assertEq(details.unclaimedRewards, 0.006424244012901000e18);
+            assertEq(details.unclaimedRewards, 0.006424244012901e18);
         }
         assertEq(manager.totalAssets(), 0);
     }
@@ -997,7 +978,7 @@ contract OrigamiSuperSkyManagerTestWithdraw is OrigamiSuperSkyManagerTestBase {
             assertEq(details.stakedBalance, 50e18);
             assertEq(details.totalSupply, 7_783_016_893.252905107379963658e18);
             assertEq(details.rewardRate, 289.351851851851851851e18);
-            assertEq(details.unclaimedRewards, 0.009636366039986950e18);
+            assertEq(details.unclaimedRewards, 0.00963636603998695e18);
         }
         assertEq(manager.totalAssets(), 100e18);
     }
@@ -1005,17 +986,14 @@ contract OrigamiSuperSkyManagerTestWithdraw is OrigamiSuperSkyManagerTestBase {
 
 contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
     event SwitchedFarms(
-        uint32 indexed oldFarmIndex, 
-        uint32 indexed newFarmIndex, 
-        uint256 amountWithdrawn, 
-        uint256 amountDeposited
+        uint32 indexed oldFarmIndex, uint32 indexed newFarmIndex, uint256 amountWithdrawn, uint256 amountDeposited
     );
 
     event ClaimedReward(
-        uint32 indexed farmIndex, 
-        address indexed rewardsToken, 
-        uint256 amountForCaller, 
-        uint256 amountForOrigami, 
+        uint32 indexed farmIndex,
+        address indexed rewardsToken,
+        uint256 amountForCaller,
+        uint256 amountForOrigami,
         uint256 amountForVault
     );
 
@@ -1023,7 +1001,7 @@ contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
         vm.startPrank(origamiMultisig);
         assertEq(manager.addFarm(address(FARM1), 123), 1);
 
-        skip(SWITCH_FARM_COOLDOWN-1);
+        skip(SWITCH_FARM_COOLDOWN - 1);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSkyManager.BeforeCooldownEnd.selector));
         manager.switchFarms(1);
     }
@@ -1152,7 +1130,7 @@ contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
         assertEq(manager.addFarm(address(FARM2), 456), 2);
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(1);
-        
+
         skip(SWITCH_FARM_COOLDOWN);
         vm.expectEmit(address(manager));
         emit SwitchedFarms(1, 2, 0, 0);
@@ -1196,7 +1174,7 @@ contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
             assertEq(details.farm.referral, 456);
             assertEq(details.stakedBalance, 100e18);
             assertEq(details.totalSupply, 100e18);
-            assertEq(details.rewardRate, 0.004960317460317460e18);
+            assertEq(details.rewardRate, 0.00496031746031746e18);
             assertEq(details.unclaimedRewards, 0);
         }
 
@@ -1219,11 +1197,7 @@ contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
 
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            1, 
-            address(FARM1_REWARDS_TOKEN), 
-            0.000064242440129010e18,
-            0.000256969760516040e18,
-            0.006103031812255950e18
+            1, address(FARM1_REWARDS_TOKEN), 0.00006424244012901e18, 0.00025696976051604e18, 0.00610303181225595e18
         );
         vm.expectEmit(address(manager));
         emit SwitchedFarms(1, 0, 100e18, 100e18);
@@ -1243,7 +1217,7 @@ contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
             assertEq(details.totalSupply, 7_783_016_843.252905107379963658e18);
             assertEq(details.rewardRate, 289.351851851851851851e18);
             assertEq(details.unclaimedRewards, 0); // claimed when switching
-            assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 0.000064242440129010e18 + 0.000256969760516040e18);
+            assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 0.00006424244012901e18 + 0.00025696976051604e18);
         }
 
         {
@@ -1264,10 +1238,10 @@ contract OrigamiSuperSkyManagerTestSwitch is OrigamiSuperSkyManagerTestBase {
 
 contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
     event ClaimedReward(
-        uint32 indexed farmIndex, 
-        address indexed rewardsToken, 
-        uint256 amountForCaller, 
-        uint256 amountForOrigami, 
+        uint32 indexed farmIndex,
+        address indexed rewardsToken,
+        uint256 amountForCaller,
+        uint256 amountForOrigami,
         uint256 amountForVault
     );
     event Reinvest(uint256 amount);
@@ -1327,18 +1301,12 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
         uint32[] memory indexes = new uint32[](1);
         indexes[0] = 1;
         vm.expectEmit(address(manager));
-        emit ClaimedReward(
-            1, 
-            address(FARM1_REWARDS_TOKEN),
-            0.642341878323900000e18,
-            2.569367513295600000e18,
-            61.022478440770500000e18
-        );
+        emit ClaimedReward(1, address(FARM1_REWARDS_TOKEN), 0.6423418783239e18, 2.5693675132956e18, 61.0224784407705e18);
         manager.claimFarmRewards(indexes, alice);
 
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(alice), 0.642341878323900000e18);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.569367513295600000e18);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.022478440770500000e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(alice), 0.6423418783239e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.5693675132956e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.0224784407705e18);
     }
 
     function test_claimFarmRewards_successDifferentRecipient() public {
@@ -1351,19 +1319,13 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
         uint32[] memory indexes = new uint32[](1);
         indexes[0] = 1;
         vm.expectEmit(address(manager));
-        emit ClaimedReward(
-            1, 
-            address(FARM1_REWARDS_TOKEN),
-            0.642341878323900000e18,
-            2.569367513295600000e18,
-            61.022478440770500000e18
-        );
+        emit ClaimedReward(1, address(FARM1_REWARDS_TOKEN), 0.6423418783239e18, 2.5693675132956e18, 61.0224784407705e18);
         manager.claimFarmRewards(indexes, bob);
 
         assertEq(FARM1_REWARDS_TOKEN.balanceOf(alice), 0);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(bob), 0.642341878323900000e18);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.569367513295600000e18);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.022478440770500000e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(bob), 0.6423418783239e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.5693675132956e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.0224784407705e18);
     }
 
     function test_claimFarmRewards_successMultiple() public {
@@ -1381,13 +1343,7 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
 
         // Switching farms claims the rewards
         vm.expectEmit(address(manager));
-        emit ClaimedReward(
-            1, 
-            address(FARM1_REWARDS_TOKEN), 
-            0.642341878323900000e18,
-            2.569367513295600000e18,
-            61.022478440770500000e18
-        );
+        emit ClaimedReward(1, address(FARM1_REWARDS_TOKEN), 0.6423418783239e18, 2.5693675132956e18, 61.0224784407705e18);
         manager.switchFarms(2);
         skip(SWITCH_FARM_COOLDOWN);
         notifyRewards();
@@ -1398,20 +1354,16 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
         indexes[1] = 2;
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            2, 
-            address(FARM2_REWARDS_TOKEN), 
-            4.285714285714280000e18,
-            17.142857142857120000e18,
-            407.142857142856600000e18
+            2, address(FARM2_REWARDS_TOKEN), 4.28571428571428e18, 17.14285714285712e18, 407.1428571428566e18
         );
         manager.claimFarmRewards(indexes, alice);
 
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(alice), 0);  // all went to the fee collector when switching farms
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.569367513295600000e18 + 0.642341878323900000e18);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.022478440770500000e18);
-        assertEq(FARM2_REWARDS_TOKEN.balanceOf(alice), 4.285714285714280000e18);
-        assertEq(FARM2_REWARDS_TOKEN.balanceOf(feeCollector), 17.142857142857120000e18);
-        assertEq(FARM2_REWARDS_TOKEN.balanceOf(swapper), 407.142857142856600000e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(alice), 0); // all went to the fee collector when switching farms
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.5693675132956e18 + 0.6423418783239e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.0224784407705e18);
+        assertEq(FARM2_REWARDS_TOKEN.balanceOf(alice), 4.28571428571428e18);
+        assertEq(FARM2_REWARDS_TOKEN.balanceOf(feeCollector), 17.14285714285712e18);
+        assertEq(FARM2_REWARDS_TOKEN.balanceOf(swapper), 407.1428571428566e18);
     }
 
     function test_claimFarmRewards_withDonation() public {
@@ -1430,13 +1382,7 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
 
         // Switching farms claims the rewards
         vm.expectEmit(address(manager));
-        emit ClaimedReward(
-            1, 
-            address(FARM1_REWARDS_TOKEN), 
-            0.642341878323900000e18,
-            2.569367513295600000e18,
-            61.022478440770500000e18
-        );
+        emit ClaimedReward(1, address(FARM1_REWARDS_TOKEN), 0.6423418783239e18, 2.5693675132956e18, 61.0224784407705e18);
         manager.switchFarms(2);
         skip(SWITCH_FARM_COOLDOWN);
         notifyRewards();
@@ -1449,20 +1395,16 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
         indexes[1] = 2;
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            2, 
-            address(FARM2_REWARDS_TOKEN), 
-            4.285714285714280000e18,
-            17.142857142857120000e18,
-            407.142857142856600000e18
+            2, address(FARM2_REWARDS_TOKEN), 4.28571428571428e18, 17.14285714285712e18, 407.1428571428566e18
         );
         manager.claimFarmRewards(indexes, alice);
 
         assertEq(FARM1_REWARDS_TOKEN.balanceOf(alice), 0); // all went to the fee collector when switching farms
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.569367513295600000e18 + 0.642341878323900000e18);
-        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.022478440770500000e18);
-        assertEq(FARM2_REWARDS_TOKEN.balanceOf(alice), 4.285714285714280000e18);
-        assertEq(FARM2_REWARDS_TOKEN.balanceOf(feeCollector), 17.142857142857120000e18);
-        assertEq(FARM2_REWARDS_TOKEN.balanceOf(swapper), 407.142857142856600000e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(feeCollector), 2.5693675132956e18 + 0.6423418783239e18);
+        assertEq(FARM1_REWARDS_TOKEN.balanceOf(swapper), 61.0224784407705e18);
+        assertEq(FARM2_REWARDS_TOKEN.balanceOf(alice), 4.28571428571428e18);
+        assertEq(FARM2_REWARDS_TOKEN.balanceOf(feeCollector), 17.14285714285712e18);
+        assertEq(FARM2_REWARDS_TOKEN.balanceOf(swapper), 407.1428571428566e18);
     }
 
     function test_reinvest_nothing() public {
@@ -1480,10 +1422,10 @@ contract OrigamiSuperSkyManagerTestRewards is OrigamiSuperSkyManagerTestBase {
 
         assertEq(manager.unallocatedAssets(), 0);
         assertEq(manager.stakedBalance(), 1_000_000e18);
-        deal(address(SKY), address(manager), 5_555e18);
-        assertEq(manager.unallocatedAssets(), 5_555e18);
+        deal(address(SKY), address(manager), 5555e18);
+        assertEq(manager.unallocatedAssets(), 5555e18);
         vm.expectEmit(address(manager));
-        emit Reinvest(5_555e18);
+        emit Reinvest(5555e18);
         manager.reinvest();
         assertEq(manager.unallocatedAssets(), 0);
         assertEq(manager.stakedBalance(), 1_005_555e18);
@@ -1508,7 +1450,7 @@ contract OrigamiSuperSkyManagerTestViews is OrigamiSuperSkyManagerTestBase {
 
         // SKY donation
         deal(address(SKY), address(manager), SKY.balanceOf(address(manager)) + 22.2e18, true);
-        assertEq(manager.totalAssets(), 111e18+22.2e18);
+        assertEq(manager.totalAssets(), 111e18 + 22.2e18);
         assertEq(manager.stakedBalance(), 111e18);
 
         // Switch to farm 1
@@ -1518,7 +1460,7 @@ contract OrigamiSuperSkyManagerTestViews is OrigamiSuperSkyManagerTestBase {
         manager.switchFarms(1);
 
         deal(address(SKY), address(manager), SKY.balanceOf(address(manager)) + 13e18, true);
-        assertEq(manager.totalAssets(), 111e18+22.2e18 + 13e18);
+        assertEq(manager.totalAssets(), 111e18 + 22.2e18 + 13e18);
         assertEq(manager.stakedBalance(), 111e18);
     }
 
@@ -1556,7 +1498,7 @@ contract OrigamiSuperSkyManagerTestViews is OrigamiSuperSkyManagerTestBase {
             assertEq(details.rewardRate, 0);
             assertEq(details.unclaimedRewards, 0);
         }
-        
+
         {
             IOrigamiSuperSkyManager.FarmDetails memory details = farmDetails[2];
             assertEq(address(details.farm.staking), address(FARM2));
@@ -1564,7 +1506,7 @@ contract OrigamiSuperSkyManagerTestViews is OrigamiSuperSkyManagerTestBase {
             assertEq(details.farm.referral, 456);
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 0);
-            assertEq(details.rewardRate, 0.004960317460317460e18);
+            assertEq(details.rewardRate, 0.00496031746031746e18);
             assertEq(details.unclaimedRewards, 0);
         }
     }
@@ -1614,7 +1556,7 @@ contract OrigamiSuperSkyManagerTestWithFee is OrigamiSuperSkyManagerTestBase {
             assertEq(details.rewardRate, 0);
             assertEq(details.unclaimedRewards, 0);
         }
-        
+
         assertEq(manager.totalAssets(), 89.875006960932714359e18);
     }
 
@@ -1653,7 +1595,7 @@ contract OrigamiSuperSkyManagerTestWithFee is OrigamiSuperSkyManagerTestBase {
             assertEq(details.rewardRate, 0);
             assertEq(details.unclaimedRewards, 0);
         }
-        
+
         assertEq(manager.totalAssets(), 0);
     }
 }

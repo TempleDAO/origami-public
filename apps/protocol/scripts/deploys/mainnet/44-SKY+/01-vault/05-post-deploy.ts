@@ -22,7 +22,7 @@ let INSTANCES: ContractInstances;
 const getEncodedPrices = () => (
   {
     vaultTokenToUsd: encodedErc4626TokenPrice(
-      ADDRS.VAULTS.SKYp.TOKEN
+      ADDRS.VAULTS.SKYp.TOKEN.address
     ),
     spkTokenToUsd: encodedOraclePrice(
       ADDRS.EXTERNAL.REDSTONE.SPK_USD_ORACLE, 
@@ -35,7 +35,7 @@ async function updatePrices(contract: TokenPrices) {
   const encodedPrices = getEncodedPrices();
 
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.SKYp.TOKEN,
+    ADDRS.VAULTS.SKYp.TOKEN.address,
     encodedPrices.vaultTokenToUsd
   ));
   await mine(contract.setTokenPriceFunction(
@@ -50,7 +50,7 @@ async function updatePricesSafeBatch(contract: TokenPrices) {
   const batch = createSafeBatch(
     [
       setTokenPriceFunction(contract,
-        ADDRS.VAULTS.SKYp.TOKEN,
+        ADDRS.VAULTS.SKYp.TOKEN.address,
         encodedPrices.vaultTokenToUsd
       ),
       setTokenPriceFunction(contract,

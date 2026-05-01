@@ -15,7 +15,7 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
     using OrigamiMath for uint256;
 
     DummyMintableToken public asset;
-    MockSDaiToken public sUSDS; 
+    MockSDaiToken public sUSDS;
     OrigamiDelegated4626Vault public vault;
     OrigamiSuperSavingsUsdsManager public manager;
     TokenPrices public tokenPrices;
@@ -42,13 +42,8 @@ contract OrigamiSuperSavingsUsdsVaultTestBase is OrigamiTest {
         doMint(asset, address(sUSDS), BOOTSTRAPPED_USDS_AMOUNT);
 
         tokenPrices = new TokenPrices(30);
-        vault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami sUSDS+s", 
-            "sUSDS+s",
-            asset,
-            address(tokenPrices)
-        );
+        vault =
+            new OrigamiDelegated4626Vault(origamiMultisig, "Origami sUSDS+s", "sUSDS+s", asset, address(tokenPrices));
 
         manager = new OrigamiSuperSavingsUsdsManager(
             origamiMultisig,
@@ -171,13 +166,8 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
 
     function test_setManager_fail_notWedToVault() public {
         vm.startPrank(origamiMultisig);
-        OrigamiDelegated4626Vault newVault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami sUSDS+s", 
-            "sUSDS+s",
-            asset,
-            address(tokenPrices)
-        );
+        OrigamiDelegated4626Vault newVault =
+            new OrigamiDelegated4626Vault(origamiMultisig, "Origami sUSDS+s", "sUSDS+s", asset, address(tokenPrices));
 
         OrigamiSuperSavingsUsdsManager newManager = new OrigamiSuperSavingsUsdsManager(
             origamiMultisig,
@@ -212,7 +202,7 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
             PERF_FEE_FOR_CALLER,
             PERF_FEE_FOR_ORIGAMI
         );
-       
+
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vault));
         emit ManagerSet(address(newManager));
@@ -240,7 +230,7 @@ contract OrigamiSuperSavingsUsdsVaultTestAdmin is OrigamiSuperSavingsUsdsVaultTe
 
 contract OrigamiSuperSavingsUsdsVaultTestAccess is OrigamiSuperSavingsUsdsVaultTestBase {
     event PerformanceFeeSet(uint256 fee);
-    
+
     function test_setManager_access() public {
         expectElevatedAccess();
         vault.setManager(alice, 0);
@@ -305,7 +295,7 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxDeposit(alice), type(uint256).max);
         assertEq(vault.maxMint(alice), type(uint256).max);
@@ -313,7 +303,7 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
-        // NOTE(chachlex): the vault no longer calls deposit with uint256.max in _depositHook so 
+        // NOTE(chachlex): the vault no longer calls deposit with uint256.max in _depositHook so
         // changes to the manager need to be made for this test to pass.
         // the mainnet-deployed contract will auto invest the donated amount
         // assertEq(asset.balanceOf(address(manager)), 0); // donation was added into sUSDS
@@ -326,7 +316,7 @@ contract OrigamiSuperSavingsUsdsVaultTestDeposit is OrigamiSuperSavingsUsdsVault
 
         // Deposit fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -350,7 +340,8 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
 
         addToSharePrice(100e18);
 
-        uint256 expectedAssets = 100e18 + OrigamiMath.inverseSubtractBps(123e18, DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP);
+        uint256 expectedAssets =
+            100e18 + OrigamiMath.inverseSubtractBps(123e18, DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP);
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
@@ -368,7 +359,7 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxDeposit(alice), type(uint256).max);
         assertEq(vault.maxMint(alice), type(uint256).max);
@@ -376,8 +367,8 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 0);
-        
-        // NOTE(chachlex): the vault no longer calls deposit with uint256.max in _depositHook so 
+
+        // NOTE(chachlex): the vault no longer calls deposit with uint256.max in _depositHook so
         // changes to the manager need to be made for this test to pass.
         // the mainnet-deployed contract will auto invest the donated amount
         // assertEq(asset.balanceOf(address(manager)), 0);
@@ -389,7 +380,7 @@ contract OrigamiSuperSavingsUsdsVaultTestMint is OrigamiSuperSavingsUsdsVaultTes
 
         // Deposit fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -434,7 +425,7 @@ contract OrigamiSuperSavingsUsdsVaultTestWithdraw is OrigamiSuperSavingsUsdsVaul
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxWithdraw(alice), 109.990009990009990009e18);
         assertEq(vault.maxRedeem(alice), 100e18);
@@ -450,7 +441,7 @@ contract OrigamiSuperSavingsUsdsVaultTestWithdraw is OrigamiSuperSavingsUsdsVaul
 
         // Withdrawal fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }
 
@@ -497,7 +488,7 @@ contract OrigamiSuperSavingsUsdsVaultTestRedeem is OrigamiSuperSavingsUsdsVaultT
 
         addToSharePrice(10e18); // 10% increase
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
 
         assertEq(vault.maxWithdraw(alice), 109.990009990009990009e18);
         assertEq(vault.maxRedeem(alice), 100e18);
@@ -515,6 +506,6 @@ contract OrigamiSuperSavingsUsdsVaultTestRedeem is OrigamiSuperSavingsUsdsVaultT
 
         // Withdrawal fees continue to help the share price
         assertEq(vault.convertToShares(1e18), 0.909173478655767484e18);
-        assertEq(vault.convertToAssets(1e18), 1.099900099900099900e18);
+        assertEq(vault.convertToAssets(1e18), 1.0999000999000999e18);
     }
 }

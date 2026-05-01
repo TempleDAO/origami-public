@@ -25,7 +25,7 @@ let INSTANCES: ContractInstances;
 const getEncodedPrices = () => (
   {
     vaultTokenToUsd: encodedErc4626TokenPrice(
-      ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN
+      ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN.address
     ),
 
     imfTokenToUsd: encodedMulPrice(
@@ -44,7 +44,7 @@ async function updatePrices(contract: TokenPrices) {
   const encodedPrices = getEncodedPrices();
 
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN,
+    ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN.address,
     encodedPrices.vaultTokenToUsd
   ));
   await mine(contract.setTokenPriceFunction(
@@ -59,7 +59,7 @@ async function updatePricesSafeBatch(contract: TokenPrices) {
   const batch = createSafeBatch(
     [
       setTokenPriceFunction(contract,
-        ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN,
+        ADDRS.VAULTS.OAC_USDS_IMF_MOR.TOKEN.address,
         encodedPrices.vaultTokenToUsd
       ),
       setTokenPriceFunction(contract,

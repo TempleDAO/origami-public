@@ -10,7 +10,6 @@ import { IAggregatorV3Interface } from "contracts/interfaces/external/chainlink/
 
 /* solhint-disable func-name-mixedcase, contract-name-camelcase, not-rely-on-time */
 contract OrigamiVolatileChainlinkOracleTestBase is OrigamiTest {
-
     DummyOracle public oracle1;
     OrigamiVolatileChainlinkOracle public oOracle1;
 
@@ -20,30 +19,18 @@ contract OrigamiVolatileChainlinkOracleTestBase is OrigamiTest {
     address public constant INTERNAL_USD_ADDRESS = 0x000000000000000000000000000000000000115d;
 
     function _setUp() internal {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
         vm.startPrank(origamiMultisig);
 
         // 8 decimals
         oracle1 = new DummyOracle(
-            DummyOracle.Answer({
-                roundId: 1,
-                answer: 1.00044127e8,
-                startedAt: 0,
-                updatedAtLag: 0,
-                answeredInRound: 1
-            }),
+            DummyOracle.Answer({ roundId: 1, answer: 1.00044127e8, startedAt: 0, updatedAtLag: 0, answeredInRound: 1 }),
             8
         );
 
         // 18 decimals for baseAsset and quoteAsset
         oOracle1 = new OrigamiVolatileChainlinkOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN1/USD",
-                token1,
-                18,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("TOKEN1/USD", token1, 18, INTERNAL_USD_ADDRESS, 18),
             address(oracle1),
             100 days,
             true,
@@ -67,7 +54,6 @@ contract OrigamiVolatileChainlinkOracleTestInit is OrigamiVolatileChainlinkOracl
         assertEq(oOracle1.priceStalenessThreshold(), 100 days);
         assertEq(oOracle1.validateRoundId(), true);
         assertEq(oOracle1.validateLastUpdatedAt(), true);
-        
     }
 }
 
@@ -96,31 +82,29 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
 
     function test_latestPrice_success() public view {
         assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            1.00044127e18
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 1.00044127e18
         );
         assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             1.00044127e18
         );
     }
 
     function test_historicPrice() public view {
         assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            1.00044127e18
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 1.00044127e18
         );
         assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracle1.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             1.00044127e18
         );
     }
 
     function test_latestPrices_sameRounding() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracle1.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_UP,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_UP
         );
         assertEq(spot, 1.00044127e18);
@@ -131,9 +115,9 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
 
     function test_latestPrices_differentRounding() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oOracle1.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_UP,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN
         );
         assertEq(spot, 1.00044127e18);
@@ -154,22 +138,13 @@ contract OrigamiVolatileChainlinkOracle1_LatestPrice is OrigamiVolatileChainlink
 
         // Again with no validation
         oOracle1 = new OrigamiVolatileChainlinkOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "TOKEN1/USD",
-                token1,
-                18,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("TOKEN1/USD", token1, 18, INTERNAL_USD_ADDRESS, 18),
             address(oracle1),
             100 days,
             false,
             false
         );
 
-        assertEq(
-            oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
-            1e18
-        );
+        assertEq(oOracle1.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 1e18);
     }
 }

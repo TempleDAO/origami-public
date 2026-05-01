@@ -1,29 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-import {IERC20 as ERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Module} from "../../Kernel.sol";
+import { IERC20 as ERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Module } from "../../Kernel.sol";
 
 /// @notice Treasury holds all other assets under the control of the protocol.
 abstract contract TRSRYv1 is Module {
     // =========  EVENTS ========= //
 
-    event IncreaseWithdrawApproval(
-        address indexed withdrawer_,
-        ERC20 indexed token_,
-        uint256 newAmount_
-    );
-    event DecreaseWithdrawApproval(
-        address indexed withdrawer_,
-        ERC20 indexed token_,
-        uint256 newAmount_
-    );
-    event Withdrawal(
-        address indexed policy_,
-        address indexed withdrawer_,
-        ERC20 indexed token_,
-        uint256 amount_
-    );
+    event IncreaseWithdrawApproval(address indexed withdrawer_, ERC20 indexed token_, uint256 newAmount_);
+    event DecreaseWithdrawApproval(address indexed withdrawer_, ERC20 indexed token_, uint256 newAmount_);
+    event Withdrawal(address indexed policy_, address indexed withdrawer_, ERC20 indexed token_, uint256 amount_);
     event IncreaseDebtorApproval(address indexed debtor_, ERC20 indexed token_, uint256 newAmount_);
     event DecreaseDebtorApproval(address indexed debtor_, ERC20 indexed token_, uint256 newAmount_);
     event DebtIncurred(ERC20 indexed token_, address indexed policy_, uint256 amount_);
@@ -62,36 +49,20 @@ abstract contract TRSRYv1 is Module {
     }
 
     /// @notice Increase approval for specific withdrawer addresses
-    function increaseWithdrawApproval(
-        address withdrawer_,
-        ERC20 token_,
-        uint256 amount_
-    ) external virtual;
+    function increaseWithdrawApproval(address withdrawer_, ERC20 token_, uint256 amount_) external virtual;
 
     /// @notice Decrease approval for specific withdrawer addresses
-    function decreaseWithdrawApproval(
-        address withdrawer_,
-        ERC20 token_,
-        uint256 amount_
-    ) external virtual;
+    function decreaseWithdrawApproval(address withdrawer_, ERC20 token_, uint256 amount_) external virtual;
 
     /// @notice Allow withdrawal of reserve funds from pre-approved addresses.
     function withdrawReserves(address to_, ERC20 token_, uint256 amount_) external virtual;
 
     /// @notice Increase approval for someone to accrue debt in order to withdraw reserves.
     /// @dev    Debt will generally be taken by contracts to allocate treasury funds in yield sources.
-    function increaseDebtorApproval(
-        address debtor_,
-        ERC20 token_,
-        uint256 amount_
-    ) external virtual;
+    function increaseDebtorApproval(address debtor_, ERC20 token_, uint256 amount_) external virtual;
 
     /// @notice Decrease approval for someone to withdraw reserves as debt.
-    function decreaseDebtorApproval(
-        address debtor_,
-        ERC20 token_,
-        uint256 amount_
-    ) external virtual;
+    function decreaseDebtorApproval(address debtor_, ERC20 token_, uint256 amount_) external virtual;
 
     /// @notice Pre-approved policies can get a loan to perform operations with treasury assets.
     function incurDebt(ERC20 token_, uint256 amount_) external virtual;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {IMultiRewards} from "contracts/interfaces/external/staking/IMultiRewards.sol";
+import { IMultiRewards } from "contracts/interfaces/external/staking/IMultiRewards.sol";
 
 interface IInfraredVault is IMultiRewards {
     /**
@@ -26,10 +26,7 @@ interface IInfraredVault is IMultiRewards {
      * @param _user The address of the user
      * @return An array of UserReward structs
      */
-    function getAllRewardsForUser(address _user)
-        external
-        view
-        returns (UserReward[] memory);
+    function getAllRewardsForUser(address _user) external view returns (UserReward[] memory);
 
     /**
      * @notice Returns the Infrared protocol coordinator
@@ -50,10 +47,7 @@ interface IInfraredVault is IMultiRewards {
      * @param _rewardsDuration The new duration in seconds
      * @custom:access-control Requires INFRARED_ROLE
      */
-    function updateRewardsDuration(
-        address _rewardsToken,
-        uint256 _rewardsDuration
-    ) external;
+    function updateRewardsDuration(address _rewardsToken, uint256 _rewardsDuration) external;
 
     /**
      * @notice Pauses staking functionality on a specific vault
@@ -74,8 +68,7 @@ interface IInfraredVault is IMultiRewards {
      * @param _rewardsDuration The reward period duration
      * @custom:access-control Requires INFRARED_ROLE
      */
-    function addReward(address _rewardsToken, uint256 _rewardsDuration)
-        external;
+    function addReward(address _rewardsToken, uint256 _rewardsDuration) external;
 
     /**
      * @notice Used to remove malicious or unused reward tokens
@@ -90,8 +83,7 @@ interface IInfraredVault is IMultiRewards {
      * @param _rewardToken The reward token address
      * @param _reward The amount of new rewards
      */
-    function notifyRewardAmount(address _rewardToken, uint256 _reward)
-        external;
+    function notifyRewardAmount(address _rewardToken, uint256 _reward) external;
 
     /**
      * @notice Recovers accidentally sent tokens
@@ -100,6 +92,5 @@ interface IInfraredVault is IMultiRewards {
      * @param _token The token to recover
      * @param _amount The amount to recover
      */
-    function recoverERC20(address _to, address _token, uint256 _amount)
-        external;
+    function recoverERC20(address _to, address _token, uint256 _amount) external;
 }

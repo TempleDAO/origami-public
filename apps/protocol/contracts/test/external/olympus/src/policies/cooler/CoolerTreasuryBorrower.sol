@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {Kernel, Policy, Keycode, Permissions, toKeycode} from "../../Kernel.sol";
-import {PolicyEnabler} from "../utils/PolicyEnabler.sol";
-import {ROLESv1} from "../../modules/ROLES/OlympusRoles.sol";
-import {TRSRYv1} from "../../modules/TRSRY/TRSRY.v1.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata as ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IERC4626 as ERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import {SafeERC20 as SafeTransferLib} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ICoolerTreasuryBorrower} from "../interfaces/cooler/ICoolerTreasuryBorrower.sol";
+import { Kernel, Policy, Keycode, Permissions, toKeycode } from "../../Kernel.sol";
+import { PolicyEnabler } from "../utils/PolicyEnabler.sol";
+import { ROLESv1 } from "../../modules/ROLES/OlympusRoles.sol";
+import { TRSRYv1 } from "../../modules/TRSRY/TRSRY.v1.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata as ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC4626 as ERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import { SafeERC20 as SafeTransferLib } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ICoolerTreasuryBorrower } from "../interfaces/cooler/ICoolerTreasuryBorrower.sol";
 
 /**
  * @title Cooler Treasury Borrower - USDS borrows, sUSDS at rest
  * @notice Policy which can borrow from Treasury on behalf of Cooler
  *  - Cooler will always represent the debt amount in 18 decimal places.
  *  - This logic is split out into a separate policy (rather than using `TreasuryCustodian`):
- *      1/ So the Cooler debt token can be updated if required in future to another stablecoin without a redeploy of Cooler.
+ *      1/ So the Cooler debt token can be updated if required in future to another stablecoin without a redeploy of
+ * Cooler.
  *      2/ In this case, debt is denominated in USDS but stored 'at rest' in Treasury into sUSDS for extra yield.
  *  - Upon an upgrade, if the actual debt token is changed (with a new deployment of this contract) to a non 18dp asset
  *    eg USDC, then borrow() and repay() will need to do the conversion.
@@ -58,8 +59,8 @@ contract CoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, PolicyEnable
         ROLES = ROLESv1(getModuleAddress(dependencies[0]));
         TRSRY = TRSRYv1(getModuleAddress(dependencies[1]));
 
-        (uint8 ROLES_MAJOR, ) = ROLES.VERSION();
-        (uint8 TRSRY_MAJOR, ) = TRSRY.VERSION();
+        (uint8 ROLES_MAJOR,) = ROLES.VERSION();
+        (uint8 TRSRY_MAJOR,) = TRSRY.VERSION();
 
         // Ensure Modules are using the expected major version.
         // Modules should be sorted in alphabetical order.
@@ -77,19 +78,12 @@ contract CoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, PolicyEnable
     }
 
     /// @inheritdoc ICoolerTreasuryBorrower
-    function borrow(
-        uint256 amountInWad,
-        address recipient
-    ) external override onlyEnabled onlyRole(COOLER_ROLE) {
+    function borrow(uint256 amountInWad, address recipient) external override onlyEnabled onlyRole(COOLER_ROLE) {
         if (amountInWad == 0) revert ExpectedNonZero();
         if (recipient == address(0)) revert InvalidAddress();
 
         uint256 outstandingDebt = TRSRY.reserveDebt(_USDS, address(this));
-        TRSRY.setDebt({
-            debtor_: address(this),
-            token_: _USDS,
-            amount_: outstandingDebt + amountInWad
-        });
+        TRSRY.setDebt({ debtor_: address(this), token_: _USDS, amount_: outstandingDebt + amountInWad });
 
         // Since TRSRY holds sUSDS, a conversion must be done before funding.
         // Withdraw that sUSDS amount locally and then redeem to USDS sending to the recipient
@@ -115,7 +109,7 @@ contract CoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, PolicyEnable
 
     /// @inheritdoc ICoolerTreasuryBorrower
     function setDebt(uint256 debtTokenAmount) external override onlyEnabled onlyAdminRole {
-        TRSRY.setDebt({debtor_: address(this), token_: _USDS, amount_: debtTokenAmount});
+        TRSRY.setDebt({ debtor_: address(this), token_: _USDS, amount_: debtTokenAmount });
     }
 
     /// @inheritdoc ICoolerTreasuryBorrower
@@ -124,9 +118,12 @@ contract CoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, PolicyEnable
     }
 
     /// @inheritdoc ICoolerTreasuryBorrower
-    function convertToDebtTokenAmount(
-        uint256 amountInWad
-    ) external view override returns (IERC20 dToken, uint256 dTokenAmount) {
+    function convertToDebtTokenAmount(uint256 amountInWad)
+        external
+        view
+        override
+        returns (IERC20 dToken, uint256 dTokenAmount)
+    {
         dToken = IERC20(address(_USDS));
         dTokenAmount = amountInWad;
     }
@@ -144,6 +141,6 @@ contract CoolerTreasuryBorrower is ICoolerTreasuryBorrower, Policy, PolicyEnable
                 delta = outstandingDebt - debtTokenAmount;
             }
         }
-        TRSRY.setDebt({debtor_: address(this), token_: _USDS, amount_: delta});
+        TRSRY.setDebt({ debtor_: address(this), token_: _USDS, amount_: delta });
     }
 }

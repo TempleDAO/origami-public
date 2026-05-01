@@ -7,7 +7,9 @@ import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol
 import { MockSUsdsToken } from "contracts/test/external/maker/MockSUsdsToken.m.sol";
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiSuperSavingsUsdsManager } from "contracts/investments/sky/OrigamiSuperSavingsUsdsManager.sol";
-import { IOrigamiSuperSavingsUsdsManager } from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
+import {
+    IOrigamiSuperSavingsUsdsManager
+} from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
 import { TokenPrices } from "contracts/common/TokenPrices.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { IOrigamiErc4626 } from "contracts/interfaces/common/IOrigamiErc4626.sol";
@@ -20,7 +22,7 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
     using OrigamiMath for uint256;
 
     DummyMintableToken public asset;
-    MockSUsdsToken public sUSDS; 
+    MockSUsdsToken public sUSDS;
     OrigamiDelegated4626Vault public vault;
     OrigamiSuperSavingsUsdsManager public manager;
     TokenPrices public tokenPrices;
@@ -46,7 +48,7 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
     );
 
     function setUp() public {
-        vm.warp(1726300000);
+        vm.warp(1_726_300_000);
 
         asset = new DummyMintableToken(origamiMultisig, "USDS", "USDS", 18);
         sUSDS = new MockSUsdsToken(asset);
@@ -54,13 +56,8 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
         doMint(asset, address(sUSDS), BOOTSTRAPPED_USDS_AMOUNT);
 
         tokenPrices = new TokenPrices(30);
-        vault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami sUSDS+s", 
-            "sUSDS+s",
-            asset,
-            address(tokenPrices)
-        );
+        vault =
+            new OrigamiDelegated4626Vault(origamiMultisig, "Origami sUSDS+s", "sUSDS+s", asset, address(tokenPrices));
 
         manager = new OrigamiSuperSavingsUsdsManager(
             origamiMultisig,
@@ -80,9 +77,9 @@ contract OrigamiSuperSavingsUsdsManagerTestBase is OrigamiTest {
 
         skyFarm2RewardsToken = new DummyMintableToken(origamiMultisig, "SUBDAO1", "SUBDAO1", 18);
         skyFarm2 = new DummySkyStakingRewards(address(skyFarm2RewardsToken), address(asset));
-        deal(address(skyFarm2RewardsToken), address(skyFarm2), 3_000e18);
-        skyFarm2.notifyRewardAmount(3_000e18);
-        
+        deal(address(skyFarm2RewardsToken), address(skyFarm2), 3000e18);
+        skyFarm2.notifyRewardAmount(3000e18);
+
         vm.startPrank(origamiMultisig);
         vault.setManager(address(manager), 0);
         vm.stopPrank();
@@ -118,37 +115,23 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
     event FarmReferralCodeSet(uint32 indexed farmIndex, uint16 referralCode);
 
     event FarmAdded(
-        uint32 indexed farmIndex,
-        address indexed stakingAddress,
-        address indexed rewardsToken,
-        uint16 referralCode
+        uint32 indexed farmIndex, address indexed stakingAddress, address indexed rewardsToken, uint16 referralCode
     );
 
-    event FarmRemoved(
-        uint32 indexed farmIndex,
-        address indexed stakingAddress,
-        address indexed rewardsToken
-    );
+    event FarmRemoved(uint32 indexed farmIndex, address indexed stakingAddress, address indexed rewardsToken);
 
     event ClaimedReward(
-        uint32 indexed farmIndex, 
-        address indexed rewardsToken, 
-        uint256 amountForCaller, 
-        uint256 amountForOrigami, 
+        uint32 indexed farmIndex,
+        address indexed rewardsToken,
+        uint256 amountForCaller,
+        uint256 amountForOrigami,
         uint256 amountForVault
     );
 
     function test_bad_constructor() public {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         new OrigamiSuperSavingsUsdsManager(
-            origamiMultisig,
-            address(vault),
-            address(sUSDS),
-            SWITCH_FARM_COOLDOWN,
-            swapper,
-            feeCollector,
-            9_000,
-            1_001
+            origamiMultisig, address(vault), address(sUSDS), SWITCH_FARM_COOLDOWN, swapper, feeCollector, 9000, 1001
         );
     }
 
@@ -163,7 +146,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         assertEq(manager.maxFarmIndex(), 0);
         assertEq(manager.currentFarmIndex(), 0);
         assertEq(manager.switchFarmCooldown(), SWITCH_FARM_COOLDOWN);
-        assertEq(manager.lastSwitchTime(), 1726300000);
+        assertEq(manager.lastSwitchTime(), 1_726_300_000);
         assertEq(manager.swapper(), swapper);
         assertEq(manager.feeCollector(), feeCollector);
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
@@ -197,7 +180,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 101);
         assertEq(forOrigami, 399);
-        
+
         vm.expectEmit(address(vault));
         emit PerformanceFeeSet(301);
         manager.setPerformanceFees(101, 200);
@@ -215,11 +198,11 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
 
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            1, 
-            address(skyFarm1RewardsToken), 
-            14.285714285714285376e18, 
-            57.142857142857141504e18, 
-            1357.142857142857110720e18
+            1,
+            address(skyFarm1RewardsToken),
+            14.285714285714285376e18,
+            57.142857142857141504e18,
+            1357.14285714285711072e18
         );
 
         // It's emitted from the vault
@@ -229,7 +212,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 101);
         assertEq(forOrigami, 399);
-        
+
         vm.expectEmit(address(vault));
         emit PerformanceFeeSet(301);
         manager.setPerformanceFees(101, 200);
@@ -240,7 +223,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         // Both incentives go to the feeCollector
         assertEq(skyFarm1RewardsToken.balanceOf(feeCollector), 14.285714285714285376e18 + 57.142857142857141504e18);
         assertEq(skyFarm1RewardsToken.balanceOf(origamiMultisig), 0);
-        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.142857142857110720e18);
+        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.14285714285711072e18);
     }
 
     function test_setFeeCollector_fail() public {
@@ -307,7 +290,9 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
             manager.addFarm(address(farm), uint16(i));
         }
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSavingsUsdsManager.FarmExistsAlready.selector, address(farm)));
+        vm.expectRevert(
+            abi.encodeWithSelector(IOrigamiSuperSavingsUsdsManager.FarmExistsAlready.selector, address(farm))
+        );
         manager.addFarm(address(farm), 100);
     }
 
@@ -318,7 +303,8 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
     }
 
     function test_addFarm_failWrongFarmToken() public {
-        DummySkyStakingRewards badFarm = new DummySkyStakingRewards(address(skyFarm1RewardsToken), address(skyFarm2RewardsToken));
+        DummySkyStakingRewards badFarm =
+            new DummySkyStakingRewards(address(skyFarm1RewardsToken), address(skyFarm2RewardsToken));
 
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSavingsUsdsManager.InvalidFarm.selector, 1));
@@ -386,7 +372,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
     function test_removeFarm_failures() public {
         vm.startPrank(origamiMultisig);
 
-        // Adding the same farm to a different slot 
+        // Adding the same farm to a different slot
         manager.addFarm(address(skyFarm1), 1);
         manager.addFarm(address(skyFarm2), 2);
 
@@ -396,7 +382,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         // Can't remove farm zero
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSavingsUsdsManager.FarmStillInUse.selector, 0));
         manager.removeFarm(0);
-        
+
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(2);
         assertEq(manager.currentFarmIndex(), 2);
@@ -460,7 +446,7 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
     function test_removeFarm_success() public {
         vm.startPrank(origamiMultisig);
 
-        // Adding the same farm to a different slot 
+        // Adding the same farm to a different slot
         manager.addFarm(address(skyFarm1), 1);
         manager.addFarm(address(skyFarm2), 2);
 
@@ -501,14 +487,14 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
         manager.setFarmReferralCode(0, 123);
         assertEq(manager.sUsdsReferral(), 123);
     }
-    
+
     function test_setFarmReferralCode_farmSuccess() public {
         vm.startPrank(origamiMultisig);
         manager.addFarm(address(skyFarm1), 1);
         vm.expectEmit(address(manager));
         emit FarmReferralCodeSet(1, 123);
         manager.setFarmReferralCode(1, 123);
-        
+
         IOrigamiSuperSavingsUsdsManager.Farm memory farm = manager.getFarm(1);
         assertEq(address(farm.staking), address(skyFarm1));
         assertEq(address(farm.rewardsToken), address(skyFarm1RewardsToken));
@@ -526,7 +512,6 @@ contract OrigamiSuperSavingsUsdsManagerTestAdmin is OrigamiSuperSavingsUsdsManag
     function test_recoverToken_success() public {
         check_recoverToken(address(manager));
     }
-
 }
 
 contract OrigamiSuperSavingsUsdsManagerTestAccess is OrigamiSuperSavingsUsdsManagerTestBase {
@@ -637,7 +622,7 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
         assertEq(farmDetails.length, 1);
         IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
-        
+
         assertEq(address(details.farm.staking), address(0));
         assertEq(address(details.farm.rewardsToken), address(0));
         assertEq(details.farm.referral, 0);
@@ -665,7 +650,7 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
         IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
         assertEq(farmDetails.length, 1);
         IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[0];
-        
+
         assertEq(address(details.farm.staking), address(0));
         assertEq(address(details.farm.rewardsToken), address(0));
         assertEq(details.farm.referral, 0);
@@ -735,7 +720,7 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
             assertEq(details.stakedBalance, 25e18);
             assertEq(details.totalSupply, 25e18);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
     }
 
@@ -767,7 +752,7 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
             assertEq(details.stakedBalance, 100e18);
             assertEq(details.totalSupply, 100e18);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
     }
 
@@ -800,7 +785,7 @@ contract OrigamiSuperSavingsUsdsManagerTestDeposit is OrigamiSuperSavingsUsdsMan
             assertEq(details.stakedBalance, 100e18);
             assertEq(details.totalSupply, 100e18);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
     }
 }
@@ -857,7 +842,7 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
             assertEq(details.rewardRate, 0.05e18);
             assertEq(details.unclaimedRewards, 0);
         }
-        
+
         assertEq(manager.totalAssets(), 0);
     }
 
@@ -953,7 +938,7 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 0);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
         assertEq(manager.totalAssets(), 0);
     }
@@ -981,7 +966,7 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 0);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
         assertEq(manager.totalAssets(), 0);
     }
@@ -1009,7 +994,7 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
             assertEq(details.stakedBalance, 50e18);
             assertEq(details.totalSupply, 50e18);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 2857.142857142857075200e18);
+            assertEq(details.unclaimedRewards, 2857.1428571428570752e18);
         }
         assertEq(manager.totalAssets(), 100e18);
     }
@@ -1017,17 +1002,14 @@ contract OrigamiSuperSavingsUsdsManagerTestWithdraw is OrigamiSuperSavingsUsdsMa
 
 contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsManagerTestBase {
     event SwitchedFarms(
-        uint32 indexed oldFarmIndex, 
-        uint32 indexed newFarmIndex, 
-        uint256 amountWithdrawn, 
-        uint256 amountDeposited
+        uint32 indexed oldFarmIndex, uint32 indexed newFarmIndex, uint256 amountWithdrawn, uint256 amountDeposited
     );
 
     function test_switchFarms_failBeforeCooldown() public {
         vm.startPrank(origamiMultisig);
         assertEq(manager.addFarm(address(skyFarm1), 123), 1);
 
-        skip(SWITCH_FARM_COOLDOWN-1);
+        skip(SWITCH_FARM_COOLDOWN - 1);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiSuperSavingsUsdsManager.BeforeCooldownEnd.selector));
         manager.switchFarms(1);
     }
@@ -1168,7 +1150,7 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
         assertEq(manager.addFarm(address(skyFarm2), 456), 2);
         skip(SWITCH_FARM_COOLDOWN);
         manager.switchFarms(1);
-        
+
         skip(SWITCH_FARM_COOLDOWN);
         vm.expectRevert("Cannot withdraw 0");
         manager.switchFarms(2);
@@ -1196,7 +1178,6 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
         assertEq(deposited, 100e18);
         assertEq(manager.totalAssets(), 100e18);
 
-
         IOrigamiSuperSavingsUsdsManager.FarmDetails[] memory farmDetails = allFarmDetails();
         assertEq(farmDetails.length, 3);
         {
@@ -1207,7 +1188,7 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 0);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
 
         {
@@ -1217,7 +1198,7 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
             assertEq(details.farm.referral, 456);
             assertEq(details.stakedBalance, 100e18);
             assertEq(details.totalSupply, 100e18);
-            assertEq(details.rewardRate, 0.004960317460317460e18);
+            assertEq(details.rewardRate, 0.00496031746031746e18);
             assertEq(details.unclaimedRewards, 0);
         }
 
@@ -1261,7 +1242,7 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 0);
             assertEq(details.rewardRate, 0.016534391534391534e18);
-            assertEq(details.unclaimedRewards, 1428.571428571428537600e18);
+            assertEq(details.unclaimedRewards, 1428.5714285714285376e18);
         }
 
         {
@@ -1286,10 +1267,10 @@ contract OrigamiSuperSavingsUsdsManagerTestSwitch is OrigamiSuperSavingsUsdsMana
 
 contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsManagerTestBase {
     event ClaimedReward(
-        uint32 indexed farmIndex, 
-        address indexed rewardsToken, 
-        uint256 amountForCaller, 
-        uint256 amountForOrigami, 
+        uint32 indexed farmIndex,
+        address indexed rewardsToken,
+        uint256 amountForCaller,
+        uint256 amountForOrigami,
         uint256 amountForVault
     );
 
@@ -1324,17 +1305,17 @@ contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsMan
         indexes[0] = 1;
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            1, 
-            address(skyFarm1RewardsToken), 
-            14.285714285714285376e18, 
-            57.142857142857141504e18, 
-            1357.142857142857110720e18
+            1,
+            address(skyFarm1RewardsToken),
+            14.285714285714285376e18,
+            57.142857142857141504e18,
+            1357.14285714285711072e18
         );
         manager.claimFarmRewards(indexes, alice);
 
         assertEq(skyFarm1RewardsToken.balanceOf(alice), 14.285714285714285376e18);
         assertEq(skyFarm1RewardsToken.balanceOf(feeCollector), 57.142857142857141504e18);
-        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.142857142857110720e18);
+        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.14285714285711072e18);
     }
 
     function test_claimFarmRewards_successDifferentRecipient() public {
@@ -1349,18 +1330,18 @@ contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsMan
         indexes[0] = 1;
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            1, 
-            address(skyFarm1RewardsToken), 
-            14.285714285714285376e18, 
-            57.142857142857141504e18, 
-            1357.142857142857110720e18
+            1,
+            address(skyFarm1RewardsToken),
+            14.285714285714285376e18,
+            57.142857142857141504e18,
+            1357.14285714285711072e18
         );
         manager.claimFarmRewards(indexes, bob);
 
         assertEq(skyFarm1RewardsToken.balanceOf(alice), 0);
         assertEq(skyFarm1RewardsToken.balanceOf(bob), 14.285714285714285376e18);
         assertEq(skyFarm1RewardsToken.balanceOf(feeCollector), 57.142857142857141504e18);
-        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.142857142857110720e18);
+        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.14285714285711072e18);
     }
 
     function test_claimFarmRewards_successMultiple() public {
@@ -1383,28 +1364,24 @@ contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsMan
         indexes[1] = 2;
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            1, 
-            address(skyFarm1RewardsToken), 
-            14.285714285714285376e18, 
-            57.142857142857141504e18, 
-            1357.142857142857110720e18
+            1,
+            address(skyFarm1RewardsToken),
+            14.285714285714285376e18,
+            57.142857142857141504e18,
+            1357.14285714285711072e18
         );
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            2, 
-            address(skyFarm2RewardsToken), 
-            4.285714285714285440e18, 
-            17.142857142857141760e18, 
-            407.142857142857116800e18
+            2, address(skyFarm2RewardsToken), 4.28571428571428544e18, 17.14285714285714176e18, 407.1428571428571168e18
         );
         manager.claimFarmRewards(indexes, alice);
 
         assertEq(skyFarm1RewardsToken.balanceOf(alice), 14.285714285714285376e18);
         assertEq(skyFarm1RewardsToken.balanceOf(feeCollector), 57.142857142857141504e18);
-        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.142857142857110720e18);
-        assertEq(skyFarm2RewardsToken.balanceOf(alice), 4.285714285714285440e18);
-        assertEq(skyFarm2RewardsToken.balanceOf(feeCollector), 17.142857142857141760e18);
-        assertEq(skyFarm2RewardsToken.balanceOf(swapper), 407.142857142857116800e18);
+        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1357.14285714285711072e18);
+        assertEq(skyFarm2RewardsToken.balanceOf(alice), 4.28571428571428544e18);
+        assertEq(skyFarm2RewardsToken.balanceOf(feeCollector), 17.14285714285714176e18);
+        assertEq(skyFarm2RewardsToken.balanceOf(swapper), 407.1428571428571168e18);
     }
 
     function test_claimFarmRewards_withDonation() public {
@@ -1428,28 +1405,24 @@ contract OrigamiSuperSavingsUsdsManagerTestRewards is OrigamiSuperSavingsUsdsMan
         indexes[1] = 2;
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            1, 
-            address(skyFarm1RewardsToken), 
-            16.785714285714285376e18, 
-            67.142857142857141504e18, 
-            1594.642857142857110720e18
+            1,
+            address(skyFarm1RewardsToken),
+            16.785714285714285376e18,
+            67.142857142857141504e18,
+            1594.64285714285711072e18
         );
         vm.expectEmit(address(manager));
         emit ClaimedReward(
-            2, 
-            address(skyFarm2RewardsToken), 
-            4.285714285714285440e18, 
-            17.142857142857141760e18, 
-            407.142857142857116800e18
+            2, address(skyFarm2RewardsToken), 4.28571428571428544e18, 17.14285714285714176e18, 407.1428571428571168e18
         );
         manager.claimFarmRewards(indexes, alice);
 
         assertEq(skyFarm1RewardsToken.balanceOf(alice), 16.785714285714285376e18);
         assertEq(skyFarm1RewardsToken.balanceOf(feeCollector), 67.142857142857141504e18);
-        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1594.642857142857110720e18);
-        assertEq(skyFarm2RewardsToken.balanceOf(alice), 4.285714285714285440e18);
-        assertEq(skyFarm2RewardsToken.balanceOf(feeCollector), 17.142857142857141760e18);
-        assertEq(skyFarm2RewardsToken.balanceOf(swapper), 407.142857142857116800e18);
+        assertEq(skyFarm1RewardsToken.balanceOf(swapper), 1594.64285714285711072e18);
+        assertEq(skyFarm2RewardsToken.balanceOf(alice), 4.28571428571428544e18);
+        assertEq(skyFarm2RewardsToken.balanceOf(feeCollector), 17.14285714285714176e18);
+        assertEq(skyFarm2RewardsToken.balanceOf(swapper), 407.1428571428571168e18);
     }
 }
 
@@ -1464,9 +1437,9 @@ contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManag
         // Bob deposits some into sUSDS just to bootstrap it
         {
             vm.startPrank(bob);
-            deal(address(asset), bob, 1_000e18, true);
-            asset.approve(address(sUSDS), 1_000e18);
-            sUSDS.deposit(1_000e18, bob);
+            deal(address(asset), bob, 1000e18, true);
+            asset.approve(address(sUSDS), 1000e18);
+            sUSDS.deposit(1000e18, bob);
         }
 
         // Only counts any current USDS deposit donations (or from swaps)
@@ -1478,18 +1451,18 @@ contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManag
         deal(address(asset), address(manager), 111e18, true);
         depositAll();
 
-        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 1_000e18 + 111e18);
+        assertEq(asset.balanceOf(address(sUSDS)), BOOTSTRAPPED_USDS_AMOUNT + 1000e18 + 111e18);
         assertEq(sUSDS.convertToAssets(1e18), 1e18);
 
         // USDS donation
         deal(address(asset), address(manager), asset.balanceOf(address(manager)) + 22.2e18, true);
 
-        assertEq(manager.totalAssets(), 111e18+22.2e18);
+        assertEq(manager.totalAssets(), 111e18 + 22.2e18);
 
         // A bit of interest
         skip(SWITCH_FARM_COOLDOWN);
         assertEq(sUSDS.convertToAssets(1e18), 1.000136986301369863e18);
-        assertEq(manager.totalAssets(), 111e18+22.2e18 + 0.015205479452054794e18);
+        assertEq(manager.totalAssets(), 111e18 + 22.2e18 + 0.015205479452054794e18);
 
         // Switch to farm 1
         manager.switchFarms(1);
@@ -1497,7 +1470,9 @@ contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManag
 
         deal(address(asset), address(manager), asset.balanceOf(address(manager)) + 13e18, true);
         deal(address(sUSDS), address(manager), sUSDS.balanceOf(address(manager)) + 9e18, true);
-        assertEq(manager.totalAssets(), 111e18+22.2e18 + 0.015205479452054794e18 + 13e18 + 9e18 - 0.079055622683519557e18);
+        assertEq(
+            manager.totalAssets(), 111e18 + 22.2e18 + 0.015205479452054794e18 + 13e18 + 9e18 - 0.079055622683519557e18
+        );
     }
 
     function test_farmViewsPartial() public {
@@ -1535,7 +1510,7 @@ contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManag
             assertEq(details.rewardRate, 0);
             assertEq(details.unclaimedRewards, 0);
         }
-        
+
         {
             IOrigamiSuperSavingsUsdsManager.FarmDetails memory details = farmDetails[2];
             assertEq(address(details.farm.staking), address(skyFarm2));
@@ -1543,7 +1518,7 @@ contract OrigamiSuperSavingsUsdsManagerTestViews is OrigamiSuperSavingsUsdsManag
             assertEq(details.farm.referral, 456);
             assertEq(details.stakedBalance, 0);
             assertEq(details.totalSupply, 0);
-            assertEq(details.rewardRate, 0.004960317460317460e18);
+            assertEq(details.rewardRate, 0.00496031746031746e18);
             assertEq(details.unclaimedRewards, 0);
         }
     }

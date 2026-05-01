@@ -16,8 +16,12 @@ import { OrigamiSwapperWithCallback } from "contracts/common/swappers/OrigamiSwa
 import { IInfraredVault } from "contracts/interfaces/external/infrared/IInfraredVault.sol";
 import { IMultiRewards } from "contracts/interfaces/external/staking/IMultiRewards.sol";
 import { IOrigamiCompoundingVaultManager } from "contracts/interfaces/investments/IOrigamiCompoundingVaultManager.sol";
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
-import { IOrigamiInfraredVaultManager } from "contracts/interfaces/investments/infrared/IOrigamiInfraredVaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiInfraredVaultManager
+} from "contracts/interfaces/investments/infrared/IOrigamiInfraredVaultManager.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { stdError } from "forge-std/StdError.sol";
 
@@ -98,7 +102,13 @@ contract OrigamiInfraredVaultManagerTest_Admin is OrigamiInfraredVaultManagerTes
         // unexpected staking token or asset
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, address(honeyToken)));
         new OrigamiInfraredVaultManager(
-            origamiMultisig, address(vault), address(honeyToken), address(iBgtVault), feeCollector, swapper, PERF_FEE_FOR_ORIGAMI
+            origamiMultisig,
+            address(vault),
+            address(honeyToken),
+            address(iBgtVault),
+            feeCollector,
+            swapper,
+            PERF_FEE_FOR_ORIGAMI
         );
     }
 
@@ -304,7 +314,7 @@ contract OrigamiInfraredVaultManagerTest_Access is OrigamiInfraredVaultManagerTe
 }
 
 // @todo Donation by staking on behalf of the manager
-// 
+//
 
 contract OrigamiInfraredVaultManagerTest_Staking is OrigamiInfraredVaultManagerTestBase {
     function test_stakeIBGT() public {
@@ -473,9 +483,9 @@ contract OrigamiInfraredVaultManagerTest_Deposit is OrigamiInfraredVaultManagerT
         assertEq(depositedAmount, 25e18);
         assertEq(iBgtVault.balanceOf(address(manager)), expectedTotalAssets);
         // donations/rewards were compounded as part of the users's deposit
-        assertEq(iBgtToken.balanceOf(address(manager)), 0); 
+        assertEq(iBgtToken.balanceOf(address(manager)), 0);
         // 2% fee on the 100e18 donation only total assets doesn't change immediately
-        assertEq(iBgtToken.balanceOf(feeCollector), 1e18); 
+        assertEq(iBgtToken.balanceOf(feeCollector), 1e18);
         assertEq(manager.totalAssets(), 25e18);
 
         // total assets has increased after vesting period
@@ -505,9 +515,9 @@ contract OrigamiInfraredVaultManagerTest_Deposit is OrigamiInfraredVaultManagerT
         deal(address(iBgtToken), address(manager), 100e18);
         depositAll();
 
-        // Check that harvestRewards still gets called        
+        // Check that harvestRewards still gets called
         skip(1 weeks);
-        uint256 expectedHoneyRewards = 0.033550281743035400e18;
+        uint256 expectedHoneyRewards = 0.0335502817430354e18;
         vm.expectEmit(address(honeyToken));
         emit Transfer(address(manager), address(swapper), expectedHoneyRewards);
 
@@ -518,7 +528,7 @@ contract OrigamiInfraredVaultManagerTest_Deposit is OrigamiInfraredVaultManagerT
         assertEq(manager.totalAssets(), 100e18);
         assertEq(honeyToken.balanceOf(swapper), expectedHoneyRewards);
 
-        assertEq(iBgtToken.balanceOf(feeCollector), 0); 
+        assertEq(iBgtToken.balanceOf(feeCollector), 0);
         vm.warp(block.timestamp + 10 minutes);
         assertEq(manager.totalAssets(), 100e18);
     }
@@ -554,7 +564,7 @@ contract OrigamiInfraredVaultManagerTest_Withdraw is OrigamiInfraredVaultManager
 
         // Check that harvestRewards still gets called first
         skip(1 weeks);
-        uint256 expectedHoneyRewards = 0.033550281743035400e18;
+        uint256 expectedHoneyRewards = 0.0335502817430354e18;
         vm.expectEmit(address(honeyToken));
         emit Transfer(address(manager), address(swapper), expectedHoneyRewards);
 
@@ -634,7 +644,8 @@ contract OrigamiInfraredVaultManagerTest_Withdraw is OrigamiInfraredVaultManager
 
         vm.startPrank(address(vault));
         // attempt to withdraw `totalStaked` amount
-        // this produces a sensible result even though the vault would never call it (199e18 > totalAssets at the beginning of the drip window)
+        // this produces a sensible result even though the vault would never call it (199e18 > totalAssets at the
+        // beginning of the drip window)
         assertEq(manager.withdraw(199e18, alice), 199e18);
         assertEq(iBgtVault.balanceOf(address(manager)), 0);
         assertEq(iBgtToken.balanceOf(address(manager)), 0);
@@ -700,9 +711,7 @@ contract OrigamiInfraredVaultManagerTest_Withdraw is OrigamiInfraredVaultManager
 }
 
 contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManagerTestBase {
-    function test_harvestRewards() public {
-
-    }
+    function test_harvestRewards() public { }
 
     function test_reinvest_noRewards() public {
         manager.reinvest();
@@ -729,7 +738,7 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
         assertEq(manager.lastVestingCheckpoint(), oldCheckpoint);
 
         skip(5 minutes); // half way through the duration
-        assertEq(manager.totalAssets(), 99e18/2);
+        assertEq(manager.totalAssets(), 99e18 / 2);
         assertEq(manager.futureVestingReserves(), 0);
         assertEq(manager.vestingReserves(), 99e18);
         assertEq(manager.lastVestingCheckpoint(), oldCheckpoint);
@@ -744,8 +753,8 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
 
         deal(address(iBgtToken), address(manager), 100e18);
         manager.reinvest();
-        assertEq(manager.totalAssets(), 99e18/2);
-        assertEq(manager.stakedAssets(), 2*99e18);
+        assertEq(manager.totalAssets(), 99e18 / 2);
+        assertEq(manager.stakedAssets(), 2 * 99e18);
         assertEq(manager.unallocatedAssets(), 0);
         assertEq(manager.futureVestingReserves(), 99e18);
         assertEq(manager.vestingReserves(), 99e18);
@@ -761,7 +770,7 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
         deal(address(iBgtToken), address(manager), 100e18);
         manager.reinvest();
         assertEq(manager.totalAssets(), 99e18);
-        assertEq(manager.stakedAssets(), 2*99e18);
+        assertEq(manager.stakedAssets(), 2 * 99e18);
         assertEq(manager.unallocatedAssets(), 0);
         assertEq(manager.futureVestingReserves(), 0);
         assertEq(manager.vestingReserves(), 99e18);
@@ -778,11 +787,11 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
         manager.reinvest();
         deal(address(iBgtToken), address(manager), 100e18);
         manager.reinvest();
-        
-        assertEq(manager.totalAssets(), 99e18/2);
-        assertEq(manager.stakedAssets(), 3*99e18);
+
+        assertEq(manager.totalAssets(), 99e18 / 2);
+        assertEq(manager.stakedAssets(), 3 * 99e18);
         assertEq(manager.unallocatedAssets(), 0);
-        assertEq(manager.futureVestingReserves(), 2*99e18);
+        assertEq(manager.futureVestingReserves(), 2 * 99e18);
         assertEq(manager.vestingReserves(), 99e18);
         assertEq(manager.lastVestingCheckpoint(), oldBlockTime);
     }
@@ -797,12 +806,12 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
         manager.reinvest();
         deal(address(iBgtToken), address(manager), 100e18);
         manager.reinvest();
-        
+
         {
-            assertEq(manager.totalAssets(), 99e18/2);
-            assertEq(manager.stakedAssets(), 3*99e18);
+            assertEq(manager.totalAssets(), 99e18 / 2);
+            assertEq(manager.stakedAssets(), 3 * 99e18);
             assertEq(manager.unallocatedAssets(), 0);
-            assertEq(manager.futureVestingReserves(), 2*99e18);
+            assertEq(manager.futureVestingReserves(), 2 * 99e18);
             assertEq(manager.vestingReserves(), 99e18);
             assertEq(manager.lastVestingCheckpoint(), oldBlockTime);
         }
@@ -812,9 +821,9 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
         skip(1 days);
         {
             assertEq(manager.totalAssets(), 99e18);
-            assertEq(manager.stakedAssets(), 3*99e18);
+            assertEq(manager.stakedAssets(), 3 * 99e18);
             assertEq(manager.unallocatedAssets(), 0);
-            assertEq(manager.futureVestingReserves(), 2*99e18);
+            assertEq(manager.futureVestingReserves(), 2 * 99e18);
             assertEq(manager.vestingReserves(), 99e18);
             assertEq(manager.lastVestingCheckpoint(), oldBlockTime);
         }
@@ -823,20 +832,20 @@ contract OrigamiInfraredVaultManagerTest_Reinvest is OrigamiInfraredVaultManager
         uint256 newBlockTime = vm.getBlockTimestamp();
         {
             assertEq(manager.totalAssets(), 99e18);
-            assertEq(manager.stakedAssets(), 3*99e18);
+            assertEq(manager.stakedAssets(), 3 * 99e18);
             assertEq(manager.unallocatedAssets(), 0);
             assertEq(manager.futureVestingReserves(), 0);
-            assertEq(manager.vestingReserves(), 2*99e18);
+            assertEq(manager.vestingReserves(), 2 * 99e18);
             assertEq(manager.lastVestingCheckpoint(), newBlockTime);
         }
 
         skip(9 minutes); // 9/10ths through
         {
-            assertEq(manager.totalAssets(), 99e18 + 2*99e18*9/10);
-            assertEq(manager.stakedAssets(), 3*99e18);
+            assertEq(manager.totalAssets(), 99e18 + 2 * 99e18 * 9 / 10);
+            assertEq(manager.stakedAssets(), 3 * 99e18);
             assertEq(manager.unallocatedAssets(), 0);
             assertEq(manager.futureVestingReserves(), 0);
-            assertEq(manager.vestingReserves(), 2*99e18);
+            assertEq(manager.vestingReserves(), 2 * 99e18);
             assertEq(manager.lastVestingCheckpoint(), newBlockTime);
         }
     }
@@ -885,7 +894,7 @@ contract OrigamiInfraredVaultManagerTest_Views is OrigamiInfraredVaultManagerTes
         deal(address(iBgtToken), address(manager), 100e18);
         manager.reinvest();
         skip(5 minutes);
-        assertEq(manager.totalAssets(), 100e18 + 99e18/2);
+        assertEq(manager.totalAssets(), 100e18 + 99e18 / 2);
     }
 
     function test_totalAssets_flooredAtZero() public {
@@ -895,27 +904,24 @@ contract OrigamiInfraredVaultManagerTest_Views is OrigamiInfraredVaultManagerTes
         assertEq(manager.totalAssets(), 100e18);
 
         skip(10 minutes);
-        deal(address(iBgtToken), address(manager), 1_000e18);
+        deal(address(iBgtToken), address(manager), 1000e18);
         manager.reinvest();
         skip(1 minutes);
-        assertEq(manager.totalAssets(), 100e18 + 990e18/10);
+        assertEq(manager.totalAssets(), 100e18 + 990e18 / 10);
         assertEq(vault.totalSupply(), 100e18);
         assertEq(vault.convertToAssets(1e18), 1.989999999999999999e18);
         assertEq(vault.convertToShares(1e18), 0.502512562814070351e18);
         assertEq(manager.stakedAssets(), 100e18 + 990e18);
-        (
-            uint256 currentPeriodVested,
-            uint256 currentPeriodUnvested,
-            uint256 futurePeriodUnvested
-        ) = manager.vestingStatus();
-        assertEq(currentPeriodVested, 990e18/10);
-        assertEq(currentPeriodUnvested, 990e18*9/10);
+        (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+            manager.vestingStatus();
+        assertEq(currentPeriodVested, 990e18 / 10);
+        assertEq(currentPeriodUnvested, 990e18 * 9 / 10);
         assertEq(futurePeriodUnvested, 0);
 
         // Now a huge donation so the futureVestingReserves is large doesn't change things
         deal(address(iBgtToken), address(manager), 1_000_000e18);
         manager.reinvest();
-        assertEq(manager.totalAssets(), 100e18 + 990e18/10);
+        assertEq(manager.totalAssets(), 100e18 + 990e18 / 10);
 
         // This is not possible - but if there were a large withdraw (more than actual vesting)
         // the totalAssets gets floored to zero
@@ -924,15 +930,11 @@ contract OrigamiInfraredVaultManagerTest_Views is OrigamiInfraredVaultManagerTes
         manager.withdraw(991_000e18, alice);
         assertEq(manager.totalAssets(), 0);
         assertEq(vault.convertToAssets(1e18), 0);
-        assertEq(vault.convertToShares(1e18), 100000000000000000001e18);
+        assertEq(vault.convertToShares(1e18), 100_000_000_000_000_000_001e18);
         assertEq(manager.stakedAssets(), 90e18);
-        (
-            currentPeriodVested,
-            currentPeriodUnvested,
-            futurePeriodUnvested
-        ) = manager.vestingStatus();
-        assertEq(currentPeriodVested, 990e18/10);
-        assertEq(currentPeriodUnvested, 990e18*9/10);
+        (currentPeriodVested, currentPeriodUnvested, futurePeriodUnvested) = manager.vestingStatus();
+        assertEq(currentPeriodVested, 990e18 / 10);
+        assertEq(currentPeriodUnvested, 990e18 * 9 / 10);
         assertEq(futurePeriodUnvested, 990_000e18);
     }
 
@@ -1061,24 +1063,22 @@ contract OrigamiInfraredVaultManagerTest_Swapper is OrigamiInfraredVaultManagerT
         doMint(iBgtToken, address(router), 1_000_000e18);
     }
 
-    function encode(
-        uint256 sellAmount,
-        uint256 requestedBuyAmount,
-        uint256 buyTokenToReceiveAmount
-    )
+    function encode(uint256 sellAmount, uint256 requestedBuyAmount, uint256 buyTokenToReceiveAmount)
         internal
         view
         returns (bytes memory)
     {
-        return abi.encode(IOrigamiSwapper.RouteDataWithCallback({
-            minBuyAmount: requestedBuyAmount,
-            router: address(router),
-            receiver: address(manager),
-            data: abi.encodeCall(
-                DummyDexRouter.doExactSwap,
-                (address(honeyToken), sellAmount, address(iBgtToken), buyTokenToReceiveAmount)
-            )
-        }));
+        return abi.encode(
+            IOrigamiSwapper.RouteDataWithCallback({
+                minBuyAmount: requestedBuyAmount,
+                router: address(router),
+                receiver: address(manager),
+                data: abi.encodeCall(
+                    DummyDexRouter.doExactSwap,
+                    (address(honeyToken), sellAmount, address(iBgtToken), buyTokenToReceiveAmount)
+                )
+            })
+        );
     }
 
     function test_swapAfterHarvest_success() public {
@@ -1119,7 +1119,7 @@ contract OrigamiInfraredVaultManagerTest_Swapper is OrigamiInfraredVaultManagerT
         assertEq(iBgtToken.balanceOf(address(manager)), 0);
         assertEq(manager.unallocatedAssets(), 0);
         // Staked - 2% as fees
-        assertEq(manager.stakedAssets(), 1_000e18 + 99e18);
+        assertEq(manager.stakedAssets(), 1000e18 + 99e18);
         assertEq(iBgtVault.balanceOf(address(manager)), 1000e18 + 99e18);
 
         assertEq(manager.unallocatedAssets(), 0);
@@ -1128,7 +1128,7 @@ contract OrigamiInfraredVaultManagerTest_Swapper is OrigamiInfraredVaultManagerT
 
         // after the drip window, the totalAssets matches the staked amount
         skip(10 minutes);
-        assertEq(manager.totalAssets(), 1_000e18 + 99e18);
+        assertEq(manager.totalAssets(), 1000e18 + 99e18);
     }
 
     function test_swapAfterHarvest_fail() public {

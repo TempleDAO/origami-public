@@ -18,7 +18,7 @@ contract MockSDaiToken is ERC4626 {
     event Checkpoint(uint256 checkpointValue, uint256 checkpointTime);
     event InterestRateSet(uint96 rate);
 
-    constructor(IERC20 _asset) ERC4626(_asset) ERC20("SDAI", "SDAI") {}
+    constructor(IERC20 _asset) ERC4626(_asset) ERC20("SDAI", "SDAI") { }
 
     function setInterestRate(uint96 rate) external {
         checkpoint();
@@ -26,22 +26,20 @@ contract MockSDaiToken is ERC4626 {
         emit InterestRateSet(rate);
     }
 
-    /** @dev See {IERC4626-totalAssets}. */
+    /**
+     * @dev See {IERC4626-totalAssets}.
+     */
     function totalAssets() public view virtual override returns (uint256) {
         return calcCheckpoint();
     }
 
     function _convertToShares(uint256 assets, Math.Rounding rounding) internal view virtual override returns (uint256) {
         uint256 _totalAssets = totalAssets();
-        return _totalAssets == 0
-            ? assets
-            : assets.mulDiv(totalSupply(), _totalAssets, rounding);
+        return _totalAssets == 0 ? assets : assets.mulDiv(totalSupply(), _totalAssets, rounding);
     }
 
     function _convertToAssets(uint256 shares, Math.Rounding rounding) internal view virtual override returns (uint256) {
-        return totalSupply() == 0
-            ? shares
-            : shares.mulDiv(totalAssets(), totalSupply(), rounding);
+        return totalSupply() == 0 ? shares : shares.mulDiv(totalAssets(), totalSupply(), rounding);
     }
 
     function calcCheckpoint() internal view returns (uint256 newCheckpoint) {
@@ -49,11 +47,7 @@ contract MockSDaiToken is ERC4626 {
         newCheckpoint = checkpointValue;
         if (timeDelta > 0) {
             // Simple interest
-            newCheckpoint += Math.mulDiv(
-                newCheckpoint * interestRate,
-                timeDelta,
-                365 days * 1e18
-            );
+            newCheckpoint += Math.mulDiv(newCheckpoint * interestRate, timeDelta, 365 days * 1e18);
         }
     }
 
@@ -77,20 +71,14 @@ contract MockSDaiToken is ERC4626 {
     /**
      * @dev Withdraw/redeem common workflow.
      */
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual override {
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+    {
         checkpoint();
 
-        ERC4626._withdraw(caller,
-            receiver,
-            owner,
-            assets,
-            shares);
+        ERC4626._withdraw(caller, receiver, owner, assets, shares);
 
         checkpointValue -= assets;
     }

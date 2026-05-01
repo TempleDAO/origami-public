@@ -27,23 +27,28 @@ contract DummyOracle is IAggregatorV3Interface {
         emit AnswerSet(__answer);
     }
 
-    function latestRoundData() external override view returns (
-        uint80 /*roundId*/,
-        int256 /*answer*/,
-        uint256 /*startedAt*/,
-        uint256 /*updatedAt*/,
-        uint80 /*answeredInRound*/
-    ) {
+    function latestRoundData()
+        external
+        view
+        override
+        returns (
+            uint80, /*roundId*/
+            int256, /*answer*/
+            uint256, /*startedAt*/
+            uint256, /*updatedAt*/
+            uint80 /*answeredInRound*/
+        )
+    {
         return (
-            _answer.roundId, 
-            _answer.answer, 
-            _answer.startedAt, 
+            _answer.roundId,
+            _answer.answer,
+            _answer.startedAt,
             block.timestamp - _answer.updatedAtLag,
             _answer.answeredInRound
         );
     }
 
-    function decimals() external override view returns (uint8) {
+    function decimals() external view override returns (uint8) {
         return _decimals;
     }
 }

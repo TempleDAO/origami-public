@@ -43,17 +43,18 @@ abstract contract OrigamiVestingReserves is IOrigamiVestingReserves {
     }
 
     /// @inheritdoc IOrigamiVestingReserves
-    function vestingStatus() external view override returns (
-        uint256 currentPeriodVested,
-        uint256 currentPeriodUnvested,
-        uint256 futurePeriodUnvested
-    ) {
+    function vestingStatus()
+        external
+        view
+        override
+        returns (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested)
+    {
         (currentPeriodVested, currentPeriodUnvested) = _vestingStatus();
         futurePeriodUnvested = futureVestingReserves;
     }
 
     /// @dev If the elapsed time since `lastVestingCheckpoint` has crossed into a new vesting window
-    /// then start the new vesting period on total 
+    /// then start the new vesting period on total
     function _checkpointPendingReserves(uint256 amountReinvested) internal {
         // New pending reserves is the prior `futureVestingReserves` plus the new amount reinvested
         uint128 pendingReserves = (futureVestingReserves + amountReinvested).encodeUInt128();
@@ -87,7 +88,7 @@ abstract contract OrigamiVestingReserves is IOrigamiVestingReserves {
             secsSinceLastCheckpoint = uint48(block.timestamp) - lastVestingCheckpoint;
         }
 
-        // The whole amount has been accrued (vested but not yet added to `vestedReserves`) 
+        // The whole amount has been accrued (vested but not yet added to `vestedReserves`)
         // if the time since the last checkpoint has passed the vesting duration
         uint256 totalPending = vestingReserves;
         vested = (secsSinceLastCheckpoint >= vestingDuration)

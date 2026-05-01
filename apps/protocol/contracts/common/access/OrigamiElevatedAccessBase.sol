@@ -7,11 +7,11 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
 
 /**
  * @notice Inherit to add Owner roles for DAO elevated access.
- */ 
+ */
 abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
     /**
      * @notice The address of the current owner.
-     */ 
+     */
     address public override owner;
 
     /**
@@ -33,7 +33,7 @@ abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
     }
 
     /**
-     * @notice Revoke ownership. 
+     * @notice Revoke ownership.
      * @dev To enforce a two-step revoke, it must first propose to 0x000...dEaD prior to calling.
      * This cannot be undone.
      */
@@ -70,7 +70,11 @@ abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
      * @notice Grant `allowedCaller` the rights to call the function selectors in the access list.
      * @dev fnSelector == bytes4(keccak256("fn(argType1,argType2,...)"))
      */
-    function setExplicitAccess(address allowedCaller, ExplicitAccess[] calldata access) external override onlyElevatedAccess {
+    function setExplicitAccess(address allowedCaller, ExplicitAccess[] calldata access)
+        external
+        override
+        onlyElevatedAccess
+    {
         if (allowedCaller == address(0)) revert CommonEventsAndErrors.InvalidAddress(allowedCaller);
         ExplicitAccess memory _access;
         for (uint256 i; i < access.length; ++i) {
@@ -81,20 +85,21 @@ abstract contract OrigamiElevatedAccessBase is IOrigamiElevatedAccess {
     }
 
     function isElevatedAccess(address caller, bytes4 fnSelector) internal view returns (bool) {
-        return (
-            caller == owner || 
-            explicitFunctionAccess[caller][fnSelector]
-        );
+        return (caller == owner || explicitFunctionAccess[caller][fnSelector]);
     }
 
     /**
      * @notice The owner is allowed to call, or if explicit access has been given to the caller.
-     * @dev Important: Only for use when called from an *external* contract. 
-     * If a function with this modifier is called internally then the `msg.sig` 
+     * @dev Important: Only for use when called from an *external* contract.
+     * If a function with this modifier is called internally then the `msg.sig`
      * will still refer to the top level externally called function.
      */
     modifier onlyElevatedAccess() {
-        if (!isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
+        _onlyElevatedAccess();
         _;
+    }
+
+    function _onlyElevatedAccess() private view {
+        if (!isElevatedAccess(msg.sender, msg.sig)) revert CommonEventsAndErrors.InvalidAccess();
     }
 }

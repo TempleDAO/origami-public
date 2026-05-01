@@ -25,7 +25,7 @@ contract TokenPricesTestAdmin is TokenPricesTestBase {
 
     function test_setTokenPriceFunction_once() public {
         address token = address(1);
-        bytes memory fnData = abi.encodeCall(tokenPrices.scalar, (69.420e30));
+        bytes memory fnData = abi.encodeCall(tokenPrices.scalar, (69.42e30));
 
         vm.expectEmit(address(tokenPrices));
         emit TokenPriceFunctionSet(token, fnData);
@@ -37,16 +37,16 @@ contract TokenPricesTestAdmin is TokenPricesTestBase {
         address[] memory tokens = tokenPrices.allMappedTokens();
         assertEq(tokens.length, 1);
         assertEq(tokens[0], token);
-        assertEq(tokenPrices.tokenPrice(token), 69.420e30);
+        assertEq(tokenPrices.tokenPrice(token), 69.42e30);
         uint256[] memory prices = tokenPrices.tokenPrices(tokens);
         assertEq(prices.length, 1);
-        assertEq(prices[0], 69.420e30);
+        assertEq(prices[0], 69.42e30);
     }
 
     function test_setTokenPriceFunction_multi() public {
         address token1 = address(1);
         address token2 = address(2);
-        bytes memory fnData = abi.encodeCall(tokenPrices.scalar, (69.420e30));
+        bytes memory fnData = abi.encodeCall(tokenPrices.scalar, (69.42e30));
 
         vm.expectEmit(address(tokenPrices));
         emit TokenPriceFunctionSet(token1, fnData);
@@ -70,17 +70,17 @@ contract TokenPricesTestAdmin is TokenPricesTestBase {
         assertEq(tokens[0], token1);
         assertEq(tokens[1], token2);
         assertEq(tokenPrices.tokenPrice(token1), 123e30);
-        assertEq(tokenPrices.tokenPrice(token2), 69.420e30);
+        assertEq(tokenPrices.tokenPrice(token2), 69.42e30);
         uint256[] memory prices = tokenPrices.tokenPrices(tokens);
         assertEq(prices.length, 2);
         assertEq(prices[0], 123e30);
-        assertEq(prices[1], 69.420e30);
+        assertEq(prices[1], 69.42e30);
     }
 
     function test_setTokenPriceFunctions() public {
         address token1 = address(1);
         address token2 = address(2);
-        bytes memory fnData = abi.encodeCall(tokenPrices.scalar, (69.420e30));
+        bytes memory fnData = abi.encodeCall(tokenPrices.scalar, (69.42e30));
 
         TokenPrices.PriceMapping[] memory mappings = new TokenPrices.PriceMapping[](3);
         mappings[0] = TokenPrices.PriceMapping(token1, fnData);
@@ -105,11 +105,11 @@ contract TokenPricesTestAdmin is TokenPricesTestBase {
         assertEq(tokens[0], token1);
         assertEq(tokens[1], token2);
         assertEq(tokenPrices.tokenPrice(token1), 123e30);
-        assertEq(tokenPrices.tokenPrice(token2), 69.420e30);
+        assertEq(tokenPrices.tokenPrice(token2), 69.42e30);
         uint256[] memory prices = tokenPrices.tokenPrices(tokens);
         assertEq(prices.length, 2);
         assertEq(prices[0], 123e30);
-        assertEq(prices[1], 69.420e30);
+        assertEq(prices[1], 69.42e30);
     }
 }
 
@@ -121,7 +121,7 @@ contract TokenPricesTestAccess is TokenPricesTestBase {
 
     function test_setTokenPriceFunction_access() public {
         expectOnlyOwner();
-        tokenPrices.setTokenPriceFunction(address(1), abi.encodeCall(tokenPrices.scalar, (69.420e30)));
+        tokenPrices.setTokenPriceFunction(address(1), abi.encodeCall(tokenPrices.scalar, (69.42e30)));
     }
 }
 
@@ -152,7 +152,7 @@ contract TokenPricesTestBerachain is TokenPricesTestBase {
 
     function setUp() public override {
         TokenPricesTestBase.setUp();
-        fork("berachain_mainnet", 3429337);
+        fork("berachain_mainnet", 3_429_337);
     }
 
     function test_kodiakV3Price() public view {
@@ -168,12 +168,18 @@ contract TokenPricesTestBerachain is TokenPricesTestBase {
     }
 
     function test_ibgt_usd_cross() public {
-        tokenPrices.setTokenPriceFunction(WBERA_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_BERA_USD_FEED, 6 hours + 5 minutes)));
-        tokenPrices.setTokenPriceFunction(IBGT_TOKEN, 
-            abi.encodeCall(tokenPrices.mul, (
-                abi.encodeCall(tokenPrices.tokenPrice, WBERA_TOKEN),
-                abi.encodeCall(tokenPrices.kodiakV3Price, (WBERA_IBGT_POOL, false))
-            ))
+        tokenPrices.setTokenPriceFunction(
+            WBERA_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_BERA_USD_FEED, 6 hours + 5 minutes))
+        );
+        tokenPrices.setTokenPriceFunction(
+            IBGT_TOKEN,
+            abi.encodeCall(
+                tokenPrices.mul,
+                (
+                    abi.encodeCall(tokenPrices.tokenPrice, WBERA_TOKEN),
+                    abi.encodeCall(tokenPrices.kodiakV3Price, (WBERA_IBGT_POOL, false))
+                )
+            )
         );
 
         assertEq(tokenPrices.tokenPrice(WBERA_TOKEN), 3.86051522e30);
@@ -181,12 +187,18 @@ contract TokenPricesTestBerachain is TokenPricesTestBase {
     }
 
     function test_kodiakIslandPrice_wbera_ibera() public {
-        tokenPrices.setTokenPriceFunction(WBERA_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_BERA_USD_FEED, 6 hours + 5 minutes)));
-        tokenPrices.setTokenPriceFunction(IBERA_TOKEN, 
-            abi.encodeCall(tokenPrices.mul, (
-                abi.encodeCall(tokenPrices.tokenPrice, WBERA_TOKEN),
-                abi.encodeCall(tokenPrices.kodiakV3Price, (WBERA_IBERA_POOL, false))
-            ))
+        tokenPrices.setTokenPriceFunction(
+            WBERA_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_BERA_USD_FEED, 6 hours + 5 minutes))
+        );
+        tokenPrices.setTokenPriceFunction(
+            IBERA_TOKEN,
+            abi.encodeCall(
+                tokenPrices.mul,
+                (
+                    abi.encodeCall(tokenPrices.tokenPrice, WBERA_TOKEN),
+                    abi.encodeCall(tokenPrices.kodiakV3Price, (WBERA_IBERA_POOL, false))
+                )
+            )
         );
 
         assertEq(tokenPrices.tokenPrice(WBERA_TOKEN), 3.86051522e30);
@@ -200,7 +212,7 @@ contract TokenPricesTestBerachain is TokenPricesTestBase {
         assertEq(tokenPrices.kodiakV3Price(OHM_WBERA_POOL, true), 6.067581489857267420949388680356e30);
         // WBERA => OHM
         assertEq(tokenPrices.kodiakV3Price(OHM_WBERA_POOL, false), 0.164810312258949784772129444611e30);
-        
+
         // BREAD-OHM: token0=BREAD (18dp), token1=OHM (9dp)
         // BREAD => OHM
         assertEq(tokenPrices.kodiakV3Price(BREAD_OHM_POOL, true), 0.180090609114754011213049871974e30);
@@ -209,12 +221,18 @@ contract TokenPricesTestBerachain is TokenPricesTestBase {
     }
 
     function test_kodiakIslandPrice_non18dp() public {
-        tokenPrices.setTokenPriceFunction(HONEY_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_HONEY_USD_FEED, 6 hours + 5 minutes)));
-        tokenPrices.setTokenPriceFunction(OHM_TOKEN, 
-            abi.encodeCall(tokenPrices.mul, (
-                abi.encodeCall(tokenPrices.tokenPrice, HONEY_TOKEN),
-                abi.encodeCall(tokenPrices.kodiakV3Price, (OHM_HONEY_POOL, true))
-            ))
+        tokenPrices.setTokenPriceFunction(
+            HONEY_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_HONEY_USD_FEED, 6 hours + 5 minutes))
+        );
+        tokenPrices.setTokenPriceFunction(
+            OHM_TOKEN,
+            abi.encodeCall(
+                tokenPrices.mul,
+                (
+                    abi.encodeCall(tokenPrices.tokenPrice, HONEY_TOKEN),
+                    abi.encodeCall(tokenPrices.kodiakV3Price, (OHM_HONEY_POOL, true))
+                )
+            )
         );
 
         assertEq(tokenPrices.tokenPrice(HONEY_TOKEN), 1.00235409e30);
@@ -223,8 +241,13 @@ contract TokenPricesTestBerachain is TokenPricesTestBase {
     }
 
     function test_balancerV2BptPrice() public {
-        tokenPrices.setTokenPriceFunction(HONEY_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_HONEY_USD_FEED, 6 hours + 5 minutes)));
+        tokenPrices.setTokenPriceFunction(
+            HONEY_TOKEN, abi.encodeCall(tokenPrices.oraclePrice, (REDSTONE_HONEY_USD_FEED, 6 hours + 5 minutes))
+        );
         tokenPrices.setTokenPriceFunction(BYUSD_TOKEN, abi.encodeCall(tokenPrices.scalar, 1e30));
-        assertEq(tokenPrices.balancerV2BptPrice(BALANCER_VAULT, BALANCER_HONEY_BYUSD_BPT), 1.001620864826226683040726583251e30);
+        assertEq(
+            tokenPrices.balancerV2BptPrice(BALANCER_VAULT, BALANCER_HONEY_BYUSD_BPT),
+            1.001620864826226683040726583251e30
+        );
     }
 }

@@ -30,7 +30,7 @@ const getEncodedPrices = (ADDRS: ContractAddresses) => (
 
     solvbtcbnb_solvbtc_LP_toUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.SOLVBTCBNB_SOLVBTC_V3),
     solvbtcbnb_xsolvbtc_LP_toUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.SOLVBTCBNB_XSOLVBTC_V3),
-    oac_solvbtcbnb_xsolvbtc_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.TOKEN),
+    oac_solvbtcbnb_xsolvbtc_toUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.TOKEN.address),
   }
 );
 
@@ -56,7 +56,7 @@ function updatePricesSafeBatch(contract: TokenPrices, ADDRS: ContractAddresses):
     setTokenPriceFunction(contract, ADDRS.EXTERNAL.KODIAK.ISLANDS.SOLVBTCBNB_XSOLVBTC_V3,
       encodedPrices.solvbtcbnb_xsolvbtc_LP_toUsd
     ),
-    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.TOKEN,
+    setTokenPriceFunction(contract, ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.TOKEN.address,
       encodedPrices.oac_solvbtcbnb_xsolvbtc_toUsd
     ),
   ];
@@ -68,10 +68,10 @@ async function main() {
   const filename = path.join(__dirname, "./02-access-and-rates.json");
   writeSafeTransactionsBatch(
     createSafeBatch([
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.TOKEN),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.TOKEN.address),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.MANAGER),
       acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_SOLVBTCBNB_XSOLVBTC_A.SWAPPER),
-      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_SOLVBTCBNB_XSOLVBTC_A.VAULT),
+      acceptOwnerAddr(ADDRS.VAULTS.INFRARED_AUTO_STAKING_SOLVBTCBNB_XSOLVBTC_A.VAULT.address),
       ...updatePricesSafeBatch(INSTANCES.CORE.TOKEN_PRICES.V5, ADDRS),
     ]),
     filename

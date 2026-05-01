@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { TokenPrices } from "../../typechain/contracts/common/TokenPrices";
 import { BigNumber, Contract } from "ethers";
-import { IOrigamiElevatedAccess, IOrigamiInvestment } from "../../typechain";
+import { IOrigamiElevatedAccess } from "../../typechain";
 import { network } from "hardhat";
 
 interface SafeTransactionsBatch {
@@ -29,9 +29,11 @@ type DataType =
   | "uint256"
   | "uint128"
   | "uint16"
+  | "uint32"
   | "uint24"
   | "string"
-  | "contract IInfraredVault";
+  | "contract IInfraredVault"
+  | "struct TokenPrices.PriceMapping[]";
 
 interface InputType {
   internalType: DataType;
@@ -148,6 +150,45 @@ export function setTokenPriceFunction(
   )
 }
 
+export function setTokenPriceFunctions(
+  contract: Contract,
+  mappings: TokenPrices.PriceMappingStruct[]
+): SafeTransaction {
+  const mappingDatas = mappings.map(m => `[\"${m.token}\",\"${m.fnCalldata}\"]`);
+  
+  return {
+    to: contract.address,
+    value: "0",
+    data: null,
+    contractMethod: {
+      name: "setTokenPriceFunctions",
+      payable: false,
+      inputs: [
+        {
+          components: [
+            { 
+              internalType: "address",
+              name: "token",
+              type: "address"
+            },
+            {
+              internalType: "bytes",
+              name: "fnCalldata",
+              type: "bytes"
+            },
+          ],
+          internalType: "struct TokenPrices.PriceMapping[]",
+          name: "mappings",
+          type: "tuple[]",
+        },
+      ],
+    },
+    contractInputsValues: {
+      mappings: `[${mappingDatas.join(`,`)}]`,
+    },
+  };
+}
+
 export function acceptOwner(
   contract: Contract
 ) {
@@ -248,76 +289,6 @@ export function setMaxTotalSupply(
   )
 }
 
-export function investWithToken(
-  contract: Contract,
-  quoteData: IOrigamiInvestment.InvestQuoteDataStructOutput,
-): SafeTransaction {
-  return {
-    to: contract.address,
-    value: "0",
-    data: null,
-    contractMethod: {
-      name: "investWithToken",
-      payable: false,
-      inputs: [
-        {
-          components: [
-            {
-              internalType: "address",
-              name: "fromToken",
-              type: "address"
-            },
-            {
-              internalType: "uint256",
-              name: "fromTokenAmount",
-              type: "uint256"
-            },
-            {
-              internalType: "uint256",
-              name: "maxSlippageBps",
-              type: "uint256"
-            },
-            {
-              internalType: "uint256",
-              name: "deadline",
-              type: "uint256"
-            },
-            {
-              internalType: "uint256",
-              name: "expectedInvestmentAmount",
-              type: "uint256"
-            },
-            {
-              internalType: "uint256",
-              name: "minInvestmentAmount",
-              type: "uint256"
-            },
-            {
-              internalType: "bytes",
-              name: "underlyingInvestmentQuoteData",
-              type: "bytes"
-            },
-          ],
-          internalType: "struct IOrigamiInvestment.InvestQuoteData",
-          name: "quoteData",
-          type: "tuple"
-        }
-      ],
-    },
-    contractInputsValues: {
-      quoteData: `["${[
-        quoteData.fromToken,
-        quoteData.fromTokenAmount.toString(),
-        quoteData.maxSlippageBps.toString(),
-        quoteData.deadline.toString(),
-        quoteData.expectedInvestmentAmount.toString(),
-        quoteData.minInvestmentAmount.toString(),
-        quoteData.underlyingInvestmentQuoteData,
-      ].join('","')}"]`
-    }
-  }
-}
-
 export function seedOrigami4626(
   contract: Contract,
   assetAmount: BigNumber,
@@ -354,6 +325,7 @@ export function seedTokenizedBalanceSheet(
   sharesToMint: BigNumber,
   receiver: string,
   newMaxTotalSupply: BigNumber,
+  balanceSheetData: string,
 ): SafeTransaction {
   return createSafeTransaction(
     contract.address,
@@ -383,6 +355,11 @@ export function seedTokenizedBalanceSheet(
         argType: "uint256",
         name: "newMaxTotalSupply",
         value: newMaxTotalSupply.toString(),
+      },
+      {
+        argType: "bytes",
+        name: "balanceSheetData",
+        value: balanceSheetData,
       },
     ],
   );
@@ -507,3 +484,200 @@ export function whitelistRouter(
   ]);
 }
 
+export function addOpalAdapter(
+  managerContract: Contract,
+  implementationAddress: string,
+  description: string,
+  immutableArgsData: string,
+  initData: string,
+): SafeTransaction {
+  return createSafeTransaction(managerContract.address, "addAdapter", [
+    {
+      argType: "address",
+      name: "implementation",
+      value: implementationAddress,
+    },
+    {
+      argType: "bytes32",
+      name: "description",
+      value: description,
+    },
+    {
+      argType: "bytes",
+      name: "immutableArgsData",
+      value: immutableArgsData,
+    },
+    {
+      argType: "bytes",
+      name: "initData",
+      value: initData,
+    },
+  ]);
+}
+
+export function setFeeCollector(
+  contract: Contract,
+  newFeeCollector: string,
+): SafeTransaction {
+  return createSafeTransaction(contract.address, "setFeeCollector", [
+    {
+      argType: "address",
+      name: "_feeCollector",
+      value: newFeeCollector,
+    },
+  ]);
+}
+
+export function setOpalAdapterDeprecated(
+  adapterContract: Contract,
+  value: boolean
+): SafeTransaction {
+  return createSafeTransaction(adapterContract.address, "setDeprecated", [
+    {
+      argType: "bool",
+      name: "value",
+      value: value ? "true" : "false",
+    },
+  ]);
+}
+
+export function removeOpalAdapter(
+  managerContract: Contract,
+  adapterContract: Contract
+): SafeTransaction {
+  return createSafeTransaction(managerContract.address, "removeAdapter", [
+    {
+      argType: "address",
+      name: "adapter",
+      value: adapterContract.address,
+    },
+  ]);
+}
+
+export function setBundlerApproved(
+  pluginContract: Contract,
+  opalManager: Contract,
+  value: boolean
+): SafeTransaction {
+  return createSafeTransaction(pluginContract.address, "setBundlerApproved", [
+    {
+      argType: "address",
+      name: "account",
+      value: opalManager.address,
+    },
+    {
+      argType: "bool",
+      name: "value",
+      value: value ? "true" : "false",
+    },
+  ]);
+}
+
+export function setTbsPluginTrusted(
+  tbsPlugin: Contract,
+  opalToken: Contract,
+): SafeTransaction {
+  return createSafeTransaction(tbsPlugin.address, "trustVault", [
+    {
+      argType: "address",
+      name: "vault",
+      value: opalToken.address,
+    },
+  ]);
+}
+
+export function setPauserEnabled(
+  managerContract: Contract,
+  account: string,
+  canPause: boolean,
+): SafeTransaction {
+  return createSafeTransaction(managerContract.address, "setPauser", [
+    {
+      argType: "address",
+      name: "account",
+      value: account,
+    },
+    {
+      argType: "bool",
+      name: "canPause",
+      value: canPause.toString(),
+    },
+  ]);
+}
+
+export function setPaused(
+  managerContract: Contract,
+  investmentsPaused: boolean,
+  exitsPaused: boolean,
+): SafeTransaction {
+  return {
+    to: managerContract.address,
+    value: "0",
+    data: null,
+    contractMethod: {
+      name: "setPaused",
+      payable: false,
+      inputs: [
+        {
+          components: [
+            {
+              internalType: "bool",
+              name: "investmentsPaused",
+              type: "bool",
+            },
+            {
+              internalType: "bool",
+              name: "exitsPaused",
+              type: "bool",
+            },
+          ],
+          internalType: "struct IOrigamiManagerPausable.Paused",
+          name: "updatedPaused",
+          type: "tuple",
+        },
+      ],
+    },
+    contractInputsValues: {
+      updatedPaused: JSON.stringify([investmentsPaused, exitsPaused]),
+    },
+  };
+}
+
+export function setOasPaused(
+  oasContract: Contract,
+  onStake: boolean,
+  onWithdraw: boolean,
+  onGetReward: boolean,
+): SafeTransaction {
+  return {
+    to: oasContract.address,
+    value: "0",
+    data: null,
+    contractMethod: {
+      name: "setPaused",
+      payable: false,
+      inputs: [
+        {
+          name: "onStake_",
+          type: "bool",
+          internalType: "bool",
+        },
+        {
+          name: "onWithdraw_",
+          type: "bool",
+          internalType: "bool",
+        },
+        {
+          name: "onGetReward_",
+          type: "bool",
+          internalType: "bool",
+        },
+      ],
+    },
+    contractInputsValues: {
+      onStake_: `${onStake}`,
+      onWithdraw_: `${onWithdraw}`,
+      onGetReward_: `${onGetReward}`,
+    },
+  };
+}

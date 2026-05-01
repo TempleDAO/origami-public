@@ -14,10 +14,10 @@ import { IMorpho } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
  * @title Origami hOHM arbitrage bot
  * @notice Close the arbitrage for known/fixed routes between hOHM and the underlying
  * gOHM collateral and USDS liabilities
- * 
+ *
  * The contract does not need a starting sUSDS balance, unless it expects to operate at a loss.
  * A bot will monitor and will execute either route 1 or route 2 when appropriate.
- * 
+ *
  * ROUTE 1 - when hOHM is trading at a discount:
  *  1. Flashloan sUSDS via MORPHO
  *  2. Sell sUSDS (from this contract balance) to buy hOHM via uniswap
@@ -26,7 +26,7 @@ import { IMorpho } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
  *  5. Unstake gOHM (from 4) for OHM
  *  6. Sell OHM (from 5) for sUSDS via uniswap
  *  7. Repay sUSDS flashloan
- *  8. Ensure min profit is met. 
+ *  8. Ensure min profit is met.
  *      Profit = (6) - (2) - (3)
  *
  * ROUTE 2 - when hOHM is trading at a premium:
@@ -37,11 +37,10 @@ import { IMorpho } from "@morpho-org/morpho-blue/src/interfaces/IMorpho.sol";
  *  5. Use USDS (from 4) to mint sUSDS
  *  6. Sell hOHM (from 4) for sUSDS via uniswap
  *  7. Repay sUSDS flashloan
- *  8. Ensure min profit is met. 
+ *  8. Ensure min profit is met.
  *      Profit = (6) + (7) - (2)
  */
 interface IOrigamiHOhmArbBot {
-
     struct Route1Quote {
         /// @dev The expected profit (positive) or loss (negative) from this route
         int256 profit;
@@ -110,14 +109,12 @@ interface IOrigamiHOhmArbBot {
 
     /**
      * @notice Get the quote details for Route 1
-     * @dev Should be called via callStatic() to emulate a view 
+     * @dev Should be called via callStatic() to emulate a view
      * (uniswap quoter doesn't allow the function to be a view)
      */
-    function quoteRoute1(
-        uint256 sUsdsSold,
-        uint24 susdsHohmPoolFee,
-        uint24 ohmSusdsPoolFee
-    ) external returns (Route1Quote memory);
+    function quoteRoute1(uint256 sUsdsSold, uint24 susdsHohmPoolFee, uint24 ohmSusdsPoolFee)
+        external
+        returns (Route1Quote memory);
 
     /**
      * @notice Execute the arbitrage for Route 1
@@ -134,14 +131,12 @@ interface IOrigamiHOhmArbBot {
 
     /**
      * @notice Get the quote details for Route 2
-     * @dev Should be called via callStatic() to emulate a view 
+     * @dev Should be called via callStatic() to emulate a view
      * (uniswap quoter doesn't allow the function to be a view)
      */
-    function quoteRoute2(
-        uint256 sUsdsSold,
-        uint24 susdsHohmPoolFee,
-        uint24 ohmSusdsPoolFee
-    ) external returns (Route2Quote memory quoteData);
+    function quoteRoute2(uint256 sUsdsSold, uint24 susdsHohmPoolFee, uint24 ohmSusdsPoolFee)
+        external
+        returns (Route2Quote memory quoteData);
 
     /**
      * @notice Execute the arbitrage for Route 2
@@ -159,10 +154,7 @@ interface IOrigamiHOhmArbBot {
      * @notice Get a quote to swap `amountIn` of `tokenIn` to `tokenOut` for a given
      * pool fee
      */
-    function uniV3Quote(
-        IERC20 tokenIn,
-        uint256 amountIn,
-        IERC20 tokenOut,
-        uint24 fee
-    ) external returns (uint256 amountOut);
+    function uniV3Quote(IERC20 tokenIn, uint256 amountIn, IERC20 tokenOut, uint24 fee)
+        external
+        returns (uint256 amountOut);
 }

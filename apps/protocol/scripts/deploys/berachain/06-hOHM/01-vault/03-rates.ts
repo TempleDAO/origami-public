@@ -26,7 +26,7 @@ function updatePricesSafeBatch(contract: TokenPrices): SafeTransaction[] {
   const encodedPrices = getEncodedPrices();
 
   return [
-    setTokenPriceFunction(contract, ADDRS.VAULTS.hOHM.TOKEN,
+    setTokenPriceFunction(contract, ADDRS.VAULTS.hOHM.TOKEN.address,
       encodedPrices.hOHM_toUsd
     ),
     setTokenPriceFunction(contract, ADDRS.EXTERNAL.KODIAK.ISLANDS.OHM_HOHM_V3,
@@ -39,7 +39,7 @@ async function updatePrices(contract: TokenPrices) {
   const encodedPrices = getEncodedPrices();
 
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     encodedPrices.hOHM_toUsd
   ));
   await mine(contract.setTokenPriceFunction(

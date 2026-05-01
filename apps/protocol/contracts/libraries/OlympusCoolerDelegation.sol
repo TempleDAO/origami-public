@@ -29,16 +29,16 @@ library OlympusCoolerDelegation {
     }
 
     /**
-     * @notice Update the gOHM delegation address and amount for a particular account, 
+     * @notice Update the gOHM delegation address and amount for a particular account,
      * and update the `$delegation` state for that account.
-     * @dev 
+     * @dev
      *  - `account` cannot be address(0) - this will revert
      *  - `newDelegateAddress` may be address(0), meaning that gOHM collateral will become
      *    undelegated.
      *  - `newDelegateAddress` may remain the same as the existing one, meaning just the amount
      *    is updated
      *  - `newAmount` may be zero, meaning that any existing gOHM collateral is undelegated.
-     *    however the `$delegation.delegateAddress` will remain as is unless `newDelegateAddress` 
+     *    however the `$delegation.delegateAddress` will remain as is unless `newDelegateAddress`
      *    has also changed
      */
     function updateDelegateAndAmount(
@@ -84,19 +84,12 @@ library OlympusCoolerDelegation {
     /**
      * @dev Create a request (and sync state) to update the delegated amount for `account`
      */
-    function syncAccountAmount(
-        Data storage $delegation,
-        address account,
-        uint256 accountNewAmount
-    ) internal returns (IDLGTEv1.DelegationRequest[] memory) {
+    function syncAccountAmount(Data storage $delegation, address account, uint256 accountNewAmount)
+        internal
+        returns (IDLGTEv1.DelegationRequest[] memory)
+    {
         return _generateRequests(
-            _syncAmount(
-                $delegation,
-                account,
-                $delegation.delegateAddress,
-                $delegation.amount,
-                accountNewAmount
-            )
+            _syncAmount($delegation, account, $delegation.delegateAddress, $delegation.amount, accountNewAmount)
         );
     }
 
@@ -115,20 +108,8 @@ library OlympusCoolerDelegation {
         if (account1 == account2) revert CommonEventsAndErrors.InvalidAddress(account2);
 
         return _generateRequests(
-            _syncAmount(
-                $delegation1,
-                account1,
-                $delegation1.delegateAddress,
-                $delegation1.amount,
-                account1NewAmount
-            ),
-            _syncAmount(
-                $delegation2,
-                account2,
-                $delegation2.delegateAddress,
-                $delegation2.amount,
-                account2NewAmount
-            )
+            _syncAmount($delegation1, account1, $delegation1.delegateAddress, $delegation1.amount, account1NewAmount),
+            _syncAmount($delegation2, account2, $delegation2.delegateAddress, $delegation2.amount, account2NewAmount)
         );
     }
 
@@ -142,9 +123,7 @@ library OlympusCoolerDelegation {
         address delegateAddress,
         uint256 existingAmount,
         uint256 newAmount
-    ) private returns (
-        _Request memory request
-    ) {
+    ) private returns (_Request memory request) {
         // If the delegate address is 0, then ensure the amount is also zero
         if (delegateAddress == address(0)) {
             newAmount = 0;
@@ -173,25 +152,17 @@ library OlympusCoolerDelegation {
         // No delegate for this account - no request required.
         if (delegateAddress == address(0)) return request;
 
-        // Only set the sync request item if the existing delegated amount is 
+        // Only set the sync request item if the existing delegated amount is
         // different to the target amount
         int256 delta = newDelegationAmount.encodeInt256() - existingDelegationAmount.encodeInt256();
 
         if (delta != 0) {
-            request = _Request(
-                account,
-                IDLGTEv1.DelegationRequest({
-                    delegate: delegateAddress,
-                    amount: delta
-                })
-            );
+            request = _Request(account, IDLGTEv1.DelegationRequest({ delegate: delegateAddress, amount: delta }));
         }
     }
 
     /// @dev Generate the Cooler DelegationRequest list for one (potentially uninitialized) request
-    function _generateRequests(
-        _Request memory cdr
-    ) private returns (IDLGTEv1.DelegationRequest[] memory requests) {
+    function _generateRequests(_Request memory cdr) private returns (IDLGTEv1.DelegationRequest[] memory requests) {
         if (cdr.account != address(0)) {
             requests = new IDLGTEv1.DelegationRequest[](1);
             requests[0] = cdr.request;
@@ -202,10 +173,10 @@ library OlympusCoolerDelegation {
     }
 
     /// @dev Generate the Cooler DelegationRequest list for two (potentially uninitialized) requests
-    function _generateRequests(
-        _Request memory cdr1,
-        _Request memory cdr2
-    ) private returns (IDLGTEv1.DelegationRequest[] memory requests) {
+    function _generateRequests(_Request memory cdr1, _Request memory cdr2)
+        private
+        returns (IDLGTEv1.DelegationRequest[] memory requests)
+    {
         if (cdr1.account != address(0) && cdr2.account != address(0)) {
             requests = new IDLGTEv1.DelegationRequest[](2);
             (requests[0], requests[1]) = (cdr1.request, cdr2.request);

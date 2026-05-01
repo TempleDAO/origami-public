@@ -26,11 +26,23 @@ export const DEFAULT_SETTINGS = {
         PERFORMANCE_FEE: 100, // 1%
         SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.001214019317498205"),
       },
-      BYUSD_HONEY: {
+      BYUSD_HONEY_BEX: {
         TOKEN_SYMBOL: "oAC-BYUSD-HONEY-a",
         TOKEN_NAME: "Origami BYUSD-HONEY LP Auto-Compounder (BEX)",
         PERFORMANCE_FEE: 100, // 1%
         SEED_DEPOSIT_SIZE: ethers.utils.parseEther("232.565709656086033852"),
+      },
+      BYUSD_HONEY_KDK: {
+        TOKEN_SYMBOL: "oAC-BYUSD-HONEY-b",
+        TOKEN_NAME: "Origami BYUSD-HONEY LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("1"),
+      },
+      WETH_HONEY: {
+        TOKEN_SYMBOL: "oAC-WETH-HONEY-a",
+        TOKEN_NAME: "Origami WETH-HONEY LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("3"),
       },
       RUSD_HONEY: {
         TOKEN_SYMBOL: "oAC-rUSD-HONEY-a",
@@ -110,6 +122,12 @@ export const DEFAULT_SETTINGS = {
         PERFORMANCE_FEE: 100, // 1%
         SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.0000025"),
       },
+      SWBERA_OSBGT: {
+        TOKEN_SYMBOL: "oAC-SWBERA-OSBGT-a",
+        TOKEN_NAME: "Origami SWBERA-OSBGT LP Auto-Compounder (Kodiak)",
+        PERFORMANCE_FEE: 100, // 1%
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("114"),
+      },
     },
     INFRARED_AUTO_STAKING: {
       PERFORMANCE_FEE: 100, // 1%
@@ -136,6 +154,15 @@ export const DEFAULT_SETTINGS = {
       },
       WBTC_WBERA: {
         SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.000002862504909527"),
+      },
+      SWBERA_OSBGT: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("113.926917011492176932"),
+      },
+      BYUSD_HONEY_B: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("0.979312185913616206"),
+      },
+      WETH_HONEY: {
+        SEED_DEPOSIT_SIZE: ethers.utils.parseEther("2.25979739358699824"),
       },
     },
     hOHM: {

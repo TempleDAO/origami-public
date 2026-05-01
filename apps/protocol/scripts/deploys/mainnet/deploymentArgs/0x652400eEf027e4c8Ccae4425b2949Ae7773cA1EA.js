@@ -1,0 +1,7 @@
+// mainnet: BUNDLER.PLUGINS.ENTRY_POINT=0x652400eEf027e4c8Ccae4425b2949Ae7773cA1EA
+// yarn hardhat verify --network mainnet 0x652400eEf027e4c8Ccae4425b2949Ae7773cA1EA --constructor-args scripts/deploys/mainnet/deploymentArgs/0x652400eEf027e4c8Ccae4425b2949Ae7773cA1EA.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+];

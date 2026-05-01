@@ -42,8 +42,8 @@ async function setupPrices() {
 
     // $lov-sUSDe
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_SUSDE_A.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_SUSDE_A.TOKEN)
+      ADDRS.LOV_SUSDE_A.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_SUSDE_A.TOKEN.address)
     ));
   }
 
@@ -51,8 +51,8 @@ async function setupPrices() {
   {
     // $lov-sUSDe
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_USDE_A.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_USDE_A.TOKEN)
+      ADDRS.LOV_USDE_A.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_USDE_A.TOKEN.address)
     ));
   }
 
@@ -60,8 +60,8 @@ async function setupPrices() {
   {
     // lov-weETH-a/USD
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_WEETH_A.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_WEETH_A.TOKEN)
+      ADDRS.LOV_WEETH_A.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_WEETH_A.TOKEN.address)
     ));
     
     // weETH/USD using the Redstone oracle
@@ -79,8 +79,8 @@ async function setupPrices() {
   {
     // lov-ezETH-a/USD
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_EZETH_A.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_EZETH_A.TOKEN)
+      ADDRS.LOV_EZETH_A.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_EZETH_A.TOKEN.address)
     ));
 
     // ETH/USD and wETH/USD
@@ -116,8 +116,8 @@ async function setupPrices() {
   {
     // lov-wstETH-a/USD
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_WSTETH_A.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_WSTETH_A.TOKEN)
+      ADDRS.LOV_WSTETH_A.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_WSTETH_A.TOKEN.address)
     ));
 
     // stETH/USD = stETH/ETH * ETH/USD
@@ -149,8 +149,8 @@ async function setupPrices() {
   {
     // $lov-sUSDe
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_SUSDE_B.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_SUSDE_B.TOKEN)
+      ADDRS.LOV_SUSDE_B.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_SUSDE_B.TOKEN.address)
     ));
   }
 
@@ -158,8 +158,8 @@ async function setupPrices() {
   {
     // $lov-USDE
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_USDE_B.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_USDE_B.TOKEN)
+      ADDRS.LOV_USDE_B.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_USDE_B.TOKEN.address)
     ));
   }
 
@@ -167,8 +167,8 @@ async function setupPrices() {
   {
     // $lov-woETH
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(
-      ADDRS.LOV_WOETH_A.TOKEN,
-      encodedRepricingTokenPrice(ADDRS.LOV_WOETH_A.TOKEN)
+      ADDRS.LOV_WOETH_A.TOKEN.address,
+      encodedRepricingTokenPrice(ADDRS.LOV_WOETH_A.TOKEN.address)
     ));
 
     await mine(INSTANCES.CORE.TOKEN_PRICES.V2.setTokenPriceFunction(

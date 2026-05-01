@@ -21,34 +21,28 @@ contract OrigamiErc4626Oracle is OrigamiOracleBase {
      */
     IOrigamiOracle public immutable quoteAssetOracle;
 
-    constructor (
-        BaseOracleParams memory baseParams,
-        address _quoteAssetOracle
-    ) 
-        OrigamiOracleBase(baseParams)
-    {
+    constructor(BaseOracleParams memory baseParams, address _quoteAssetOracle) OrigamiOracleBase(baseParams) {
         quoteAssetOracle = IOrigamiOracle(_quoteAssetOracle);
     }
 
     /**
      * @notice Return the latest oracle price, to `decimals` precision
      * @param priceType What kind of price - Spot or Historic
-     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified direction.
+     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified
+     * direction.
      */
-    function latestPrice(
-        PriceType priceType, 
-        OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256 price) {
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode)
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // How many assets for 1e18 shares
         price = IERC4626(baseAsset).convertToAssets(precision);
 
         // Convert to the quote asset if required
         if (address(quoteAssetOracle) != address(0)) {
-            price = price.mulDiv(
-                quoteAssetOracle.latestPrice(priceType, roundingMode),
-                precision,
-                roundingMode
-            );
+            price = price.mulDiv(quoteAssetOracle.latestPrice(priceType, roundingMode), precision, roundingMode);
         }
     }
 }

@@ -60,17 +60,14 @@ interface IDLGTEv1 {
     /**
      * @notice Undelegated gOHM is transferred to the calling policy.
      * @dev
-     *   - If `autoRescindMaxNumDelegates` is greater than zero, the delegations will be automatically rescinded if required
+     *   - If `autoRescindMaxNumDelegates` is greater than zero, the delegations will be automatically rescinded if
+     * required
      *     from up to `autoRescindMaxNumDelegates` number of delegate escrows. See `rescindDelegations()` for details
      *   - Will revert if there is still not enough undelegated gOHM for `onBehalfOf` OR
      *     if policy is attempting to withdraw more gOHM than it deposited
      *     Deposted gOHM balances are tracked per policy. policyA cannot withdraw gOHM that policyB deposited
      */
-    function withdrawUndelegatedGohm(
-        address onBehalfOf,
-        uint256 amount,
-        uint256 autoRescindMaxNumDelegates
-    ) external;
+    function withdrawUndelegatedGohm(address onBehalfOf, uint256 amount, uint256 autoRescindMaxNumDelegates) external;
 
     /**
      * @notice Apply a set of delegation requests on behalf of a given account.
@@ -78,10 +75,7 @@ interface IDLGTEv1 {
      *  - It applies across total gOHM balances for a given account across all calling policies
      *    So policyA may (un)delegate the account's gOHM set by policyA, B and C
      */
-    function applyDelegations(
-        address onBehalfOf,
-        DelegationRequest[] calldata delegationRequests
-    )
+    function applyDelegations(address onBehalfOf, DelegationRequest[] calldata delegationRequests)
         external
         returns (uint256 totalDelegated, uint256 totalUndelegated, uint256 undelegatedBalance);
 
@@ -100,20 +94,15 @@ interface IDLGTEv1 {
      *      return parameter may be less than `requestedUndelegatedBalance`. The caller must decide
      *      on how to handle that.
      */
-    function rescindDelegations(
-        address onBehalfOf,
-        uint256 requestedUndelegatedBalance,
-        uint256 maxNumDelegates
-    ) external returns (uint256 totalRescinded, uint256 newUndelegatedBalance);
+    function rescindDelegations(address onBehalfOf, uint256 requestedUndelegatedBalance, uint256 maxNumDelegates)
+        external
+        returns (uint256 totalRescinded, uint256 newUndelegatedBalance);
 
     /**
      * @notice Report the total delegated and undelegated gOHM balance for an account
      * in a given policy
      */
-    function policyAccountBalances(
-        address policy,
-        address account
-    ) external view returns (uint256 gOhmBalance);
+    function policyAccountBalances(address policy, address account) external view returns (uint256 gOhmBalance);
 
     /**
      * @notice Paginated view of an account's delegations
@@ -121,18 +110,15 @@ interface IDLGTEv1 {
      * returned in the previous call, until number of items returned is less than `maxItems`
      * The `totalAmount` delegated within the return struct is across all policies for that account delegate
      */
-    function accountDelegationsList(
-        address account,
-        uint256 startIndex,
-        uint256 maxItems
-    ) external view returns (AccountDelegation[] memory delegations);
+    function accountDelegationsList(address account, uint256 startIndex, uint256 maxItems)
+        external
+        view
+        returns (AccountDelegation[] memory delegations);
 
     /**
      * @notice A summary of an account's delegations
      */
-    function accountDelegationSummary(
-        address account
-    )
+    function accountDelegationSummary(address account)
         external
         view
         returns (

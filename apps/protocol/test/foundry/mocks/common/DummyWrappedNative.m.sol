@@ -6,8 +6,8 @@ import { MintableToken } from "contracts/common/MintableToken.sol";
 
 contract DummyWrappedNative is MintableToken {
     constructor(string memory _name, string memory _symbol, address _initialOwner)
-        MintableToken(_name, _symbol, _initialOwner) 
-    {}
+        MintableToken(_name, _symbol, _initialOwner)
+    { }
 
     function deposit() public payable {
         _mint(msg.sender, msg.value);

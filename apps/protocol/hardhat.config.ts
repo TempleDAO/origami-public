@@ -29,12 +29,15 @@ module.exports = {
     solidity: {
         compilers: [
             {
-                version: '0.8.22',
+                version: '0.8.28',
                 settings: {
                     optimizer: {
                         enabled: true,
+                        // Note OrigamiLovTokenFlashAndBorrowManagerMarketAL requires this to be lowered
+                        // down to 7_650 runs to fit under 24kb
                         runs: 9_999,
                     },
+                    evmVersion: "cancun",
                 },
             },
         ],
@@ -116,6 +119,13 @@ module.exports = {
                 : [],
             chainId: 80094,
         },
+        plasma: {
+            url: process.env.PLASMA_RPC_URL || '',
+            accounts: process.env.PLASMA_ADDRESS_PRIVATE_KEY
+                ? [process.env.PLASMA_ADDRESS_PRIVATE_KEY]
+                : [],
+            chainId: 9745,
+        },
         bepolia: {
             url: process.env.BEPOLIA_RPC_URL || '',
             accounts: process.env.BEPOLIA_ADDRESS_PRIVATE_KEY
@@ -131,19 +141,17 @@ module.exports = {
     etherscan: {
         // Your API key for Etherscan
         // Obtain one at https://etherscan.io/
-        apiKey: {
-            polygonMumbai: process.env.POLYGONSCAN_API_KEY,
-            polygon: process.env.POLYGONSCAN_API_KEY,
-            arbitrumOne: process.env.ARBISCAN_API_KEY,
-            sepolia: process.env.ETHERSCAN_API_KEY,
-            holesky: process.env.ETHERSCAN_API_KEY,
-            mainnet: process.env.ETHERSCAN_API_KEY,
-            bartio: "berachainbArtio", // unused
-            cartio: "berachaincArtio", // unused
-            berachain: process.env.BERASCAN_API_KEY,
-            bepolia: "berachainbepolia", // unused
-        },
+        apiKey: process.env.ETHERSCAN_API_KEY,
         customChains: [
+            {
+                network: "mainnet",
+                chainId: 1,
+                urls: {
+                    apiURL:
+                        "https://api.etherscan.io/v2/api?chainid=1",
+                    browserURL: "https://etherscan.io/",
+                },
+            },
             {
                 network: "bartio",
                 chainId: 80084,
@@ -166,15 +174,9 @@ module.exports = {
                 network: "berachain",
                 chainId: 80094,
                 urls: {
-                    // For Routescan if required (API key is unused, so can be anything)
-                    // apiURL:
-                    // "https://api.routescan.io/v2/network/mainnet/evm/80094/etherscan",
-                    // browserURL: "https://80094.routescan.io/",
-
-                    // For Berascan
                     apiURL:
-                        "https://api.berascan.com/api",
-                    browserURL: "https://berascan.com//",
+                        "https://api.etherscan.io/v2/api?chainid=80094",
+                    browserURL: "https://berascan.com/",
                 },
             },
             {
@@ -192,6 +194,15 @@ module.exports = {
                 urls: {
                     apiURL: "https://api-holesky.etherscan.io/api/",
                     browserURL: "https://holesky.etherscan.io/",
+                },
+            },
+            {
+                network: "plasma",
+                chainId: 9745,
+                urls: {
+                    apiURL:
+                        "https://api.etherscan.io/v2/api?chainid=9745",
+                    browserURL: "https://plasmascan.to/",
                 },
             },
         ],

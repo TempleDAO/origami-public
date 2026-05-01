@@ -10,9 +10,7 @@ import { OrigamiSwapperWithCallback } from "contracts/common/swappers/OrigamiSwa
  */
 contract OrigamiSwapperWithCallbackDeployer {
     /// @notice Deploys a new `OrigamiSwapperWithCallback` contract.
-    function deploy(
-        address owner
-    ) external returns (OrigamiSwapperWithCallback deployedAddress) {
+    function deploy(address owner) external returns (OrigamiSwapperWithCallback deployedAddress) {
         return new OrigamiSwapperWithCallback(owner);
     }
 }

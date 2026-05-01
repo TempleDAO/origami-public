@@ -8,7 +8,10 @@ interface ISkyVat {
     // spot == Price with Safety Margin  [ray]
     // line == Debt Ceiling              [rad]
     // dust == Urn Debt Floor            [rad]
-    function ilks(bytes32 ilk) external view returns (uint256 Art, uint256 rate, uint256 spot, uint256 line, uint256 dust);
+    function ilks(bytes32 ilk)
+        external
+        view
+        returns (uint256 Art, uint256 rate, uint256 spot, uint256 line, uint256 dust);
 
     // ink == Locked Collateral  [wad]
     // art == Normalised Debt    [wad]

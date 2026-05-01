@@ -9,37 +9,27 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracle.sol";
 
 contract ChainlinkMock {
-    function price(
-        Chainlink.Config memory config,
-        OrigamiMath.Rounding roundingMode
-    ) external view returns (uint256) {
+    function price(Chainlink.Config memory config, OrigamiMath.Rounding roundingMode) external view returns (uint256) {
         return Chainlink.price(config, roundingMode);
     }
 
-    function scalingFactor(
-        IAggregatorV3Interface oracle,
-        uint8 targetDecimals
-    ) external view returns (uint128 scalar, bool scaleDown) {
+    function scalingFactor(IAggregatorV3Interface oracle, uint8 targetDecimals)
+        external
+        view
+        returns (uint128 scalar, bool scaleDown)
+    {
         return Chainlink.scalingFactor(oracle, targetDecimals);
     }
 }
 
 contract ChainlinkTest is OrigamiTest {
-    
     DummyOracle public oracle;
     ChainlinkMock public chainlinkMock;
 
     function setUp() public {
-
         // 8 decimals
         oracle = new DummyOracle(
-            DummyOracle.Answer({
-                roundId: 1,
-                answer: 1.00044127e8,
-                startedAt: 0,
-                updatedAtLag: 0,
-                answeredInRound: 1
-            }),
+            DummyOracle.Answer({ roundId: 1, answer: 1.00044127e8, startedAt: 0, updatedAtLag: 0, answeredInRound: 1 }),
             8
         );
 
@@ -64,14 +54,14 @@ contract ChainlinkTest is OrigamiTest {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, true, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(2, 1e18, block.timestamp, block.timestamp - 10 days, 1)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.StalePrice.selector, address(oracle), 136000, 1e18));        
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.StalePrice.selector, address(oracle), 136_000, 1e18));
         chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
@@ -79,41 +69,33 @@ contract ChainlinkTest is OrigamiTest {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, false, false);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
-            address(oracle),
-            abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
-            abi.encode(0, 1e8, 0, 0, 0)
+            address(oracle), abi.encodeWithSelector(DummyOracle.latestRoundData.selector), abi.encode(0, 1e8, 0, 0, 0)
         );
 
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN),
-            1e18
-        );
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN), 1e18);
     }
 
     function test_price_zeroRoundId_noValidation() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, false, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(0, 1e8, block.timestamp, block.timestamp, 0)
         );
 
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN),
-            1e18
-        );
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN), 1e18);
     }
 
     function test_price_zeroRoundId_withValidation() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 1 days, true, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
@@ -128,31 +110,28 @@ contract ChainlinkTest is OrigamiTest {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(2, 123e8, block.timestamp, block.timestamp - 10 days, 2)
         );
 
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN),
-            123e18
-        );
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN), 123e18);
     }
 
     function test_price_negativePrice() public {
         (uint128 scalar, bool scaleDown) = chainlinkMock.scalingFactor(oracle, 18);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(2, -123e8, block.timestamp, block.timestamp - 10 days, 2)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.InvalidPrice.selector, address(oracle), -123e8));        
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.InvalidPrice.selector, address(oracle), -123e8));
         chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
@@ -161,21 +140,15 @@ contract ChainlinkTest is OrigamiTest {
         assertEq(scaleDown, true);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(2, 123.45678999e8, block.timestamp, block.timestamp - 10 days, 2)
         );
 
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN),
-            123.456789e6
-        );
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_UP),
-            123.45679e6
-        );
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN), 123.456789e6);
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_UP), 123.45679e6);
     }
 
     function test_price_scaleUp() public {
@@ -183,20 +156,14 @@ contract ChainlinkTest is OrigamiTest {
         assertEq(scaleDown, false);
         Chainlink.Config memory config = Chainlink.Config(oracle, scaleDown, scalar, 10 days, true, true);
 
-        vm.warp(1000000);
+        vm.warp(1_000_000);
         vm.mockCall(
             address(oracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(2, 123.12312312e8, block.timestamp, block.timestamp - 10 days, 2)
         );
 
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN),
-            123.12312312e18
-        );
-        assertEq(
-            chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_UP),
-            123.12312312e18
-        );
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_DOWN), 123.12312312e18);
+        assertEq(chainlinkMock.price(config, OrigamiMath.Rounding.ROUND_UP), 123.12312312e18);
     }
 }

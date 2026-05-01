@@ -11,12 +11,14 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import { TestUtilsLib } from "test/foundry/TestUtilsLib.sol";
+
 interface IRecoverToken {
     function recoverToken(address token, address to, uint256 amount) external;
 }
 
 /// @notice A forge test base class which can setup to use a fork, deploy UUPS proxies, etc
-abstract contract OrigamiTest is Test {
+abstract contract OrigamiTest is TestUtilsLib {
     uint256 internal forkId;
     uint256 internal blockNumber;
     StdChains.Chain internal chain;
@@ -29,24 +31,27 @@ abstract contract OrigamiTest is Test {
     address public feeCollector = makeAddr("feeCollector");
 
     constructor() {
-        setChain("berachain_bartio_testnet", StdChains.ChainData({
-            name: "berachain_bartio_testnet",
-            chainId: 80084,
-            rpcUrl: "https://bartio.rpc.berachain.com/"
-        }));
-        setChain("berachain_bepolia_testnet", StdChains.ChainData({
-            name: "berachain_bepolia_testnet",
-            chainId: 80069,
-            rpcUrl: "https://bepolia.rpc.berachain.com/"
-        }));
+        setChain(
+            "berachain_bartio_testnet",
+            StdChains.ChainData({
+                name: "berachain_bartio_testnet", chainId: 80_084, rpcUrl: "https://bartio.rpc.berachain.com/"
+            })
+        );
+        setChain(
+            "berachain_bepolia_testnet",
+            StdChains.ChainData({
+                name: "berachain_bepolia_testnet", chainId: 80_069, rpcUrl: "https://bepolia.rpc.berachain.com/"
+            })
+        );
         string memory defaultUrl = "https://rpc.berachain.com/";
-        setChain("berachain_mainnet", StdChains.ChainData({
-            name: "berachain_mainnet",
-            chainId: 80094,
-            rpcUrl: vm.envOr("BERACHAIN_RPC_URL", defaultUrl)
-        }));
+        setChain(
+            "berachain_mainnet",
+            StdChains.ChainData({
+                name: "berachain_mainnet", chainId: 80_094, rpcUrl: vm.envOr("BERACHAIN_RPC_URL", defaultUrl)
+            })
+        );
     }
-    
+
     bytes32 private constant _EIP712_TYPE_HASH =
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
     bytes32 private constant _PERMIT_TYPEHASH =
@@ -74,26 +79,27 @@ abstract contract OrigamiTest is Test {
     }
 
     function expectElevatedAccess() internal {
-        vm.prank(unauthorizedUser);
+        expectNoAccess(unauthorizedUser);
+    }
+
+    function expectNoAccess(address account) internal {
+        vm.prank(account);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
     }
 
-    function setExplicitAccess(
-        IOrigamiElevatedAccess theContract, 
-        address allowedCaller, 
-        bytes4 fnSelector, 
-        bool value
-    ) internal {
+    function setExplicitAccess(IOrigamiElevatedAccess theContract, address allowedCaller, bytes4 fnSelector, bool value)
+        internal
+    {
         IOrigamiElevatedAccess.ExplicitAccess[] memory access = new IOrigamiElevatedAccess.ExplicitAccess[](1);
         access[0] = IOrigamiElevatedAccess.ExplicitAccess(fnSelector, value);
         theContract.setExplicitAccess(allowedCaller, access);
     }
 
     function setExplicitAccess(
-        IOrigamiElevatedAccess theContract, 
-        address allowedCaller, 
-        bytes4 fnSelector1, 
-        bytes4 fnSelector2, 
+        IOrigamiElevatedAccess theContract,
+        address allowedCaller,
+        bytes4 fnSelector1,
+        bytes4 fnSelector2,
         bool value
     ) internal {
         IOrigamiElevatedAccess.ExplicitAccess[] memory access = new IOrigamiElevatedAccess.ExplicitAccess[](2);
@@ -134,14 +140,15 @@ abstract contract OrigamiTest is Test {
 
     function signedPermit(
         IERC20Permit erc20,
-        address signer, 
-        uint256 signerPk, 
-        address spender, 
-        uint256 amount, 
+        address signer,
+        uint256 signerPk,
+        address spender,
+        uint256 amount,
         uint256 deadline
     ) private view returns (uint8 v, bytes32 r, bytes32 s) {
         bytes32 domainSeparator = buildDomainSeparator(erc20);
-        bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, signer, spender, amount, erc20.nonces(signer), deadline));
+        bytes32 structHash =
+            keccak256(abi.encode(_PERMIT_TYPEHASH, signer, spender, amount, erc20.nonces(signer), deadline));
         bytes32 typedDataHash = ECDSA.toTypedDataHash(domainSeparator, structHash);
         return vm.sign(signerPk, typedDataHash);
     }
@@ -155,7 +162,7 @@ abstract contract OrigamiTest is Test {
         uint256 allowanceBefore = IERC20(address(erc20)).allowance(signer, spender);
 
         // Check for expired deadlines
-        uint256 deadline = block.timestamp-1;
+        uint256 deadline = block.timestamp - 1;
         (uint8 v, bytes32 r, bytes32 s) = signedPermit(erc20, signer, signerPk, spender, amount, deadline);
         vm.expectRevert("ERC20Permit: expired deadline");
 
@@ -165,7 +172,7 @@ abstract contract OrigamiTest is Test {
         deadline = block.timestamp + 3600;
         (v, r, s) = signedPermit(erc20, signer, signerPk, spender, amount, deadline);
         erc20.permit(signer, spender, amount, deadline, v, r, s);
-        assertEq(IERC20(address(erc20)).allowance(signer, spender), allowanceBefore+amount);
+        assertEq(IERC20(address(erc20)).allowance(signer, spender), allowanceBefore + amount);
         assertEq(erc20.nonces(signer), 1);
 
         // Can't re-use the same signature for another permit (the nonce was incremented)

@@ -398,7 +398,7 @@ contract TestnetMonoCoolerDeployer is Script, StdAssertions {
         vm.stopBroadcast();
 
         vm.startBroadcast(account);
-        hOhmVault.seed(assetAmounts, liabilityAmounts, HOHM_SEED_HOHM_SHARES, account, maxSupply);
+        hOhmVault.seed(assetAmounts, liabilityAmounts, HOHM_SEED_HOHM_SHARES, account, maxSupply, hOhmVault.currentTokensHash());
         vm.stopBroadcast();
     }
 
@@ -572,6 +572,6 @@ contract TestnetMonoCoolerDeployer is Script, StdAssertions {
         // Add a small fraction for rounding
         mintGohm(account, previewAssets[0] + 1e10);
         gOhmToken.approve(address(hOhmVault), previewAssets[0] + 1e10);
-        hOhmVault.joinWithShares(shares, account);
+        hOhmVault.joinWithShares(shares, account, hOhmVault.currentTokensHash());
     }
 }

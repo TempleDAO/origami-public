@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import {SafeERC20 as SafeTransferLib} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20 as ERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import { SafeERC20 as SafeTransferLib } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 as ERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {Kernel, Module, Keycode, toKeycode} from "../../Kernel.sol";
-import {IDLGTEv1} from "contracts/interfaces/external/olympus/IDLGTE.v1.sol";
-import {DLGTEv1} from "./DLGTE.v1.sol";
-import {DelegateEscrow} from "../../external/cooler/DelegateEscrow.sol";
-import {DelegateEscrowFactory} from "../../external/cooler/DelegateEscrowFactory.sol";
-import {SafeCast} from "contracts/libraries/SafeCast.sol";
+import { Kernel, Module, Keycode, toKeycode } from "../../Kernel.sol";
+import { IDLGTEv1 } from "contracts/interfaces/external/olympus/IDLGTE.v1.sol";
+import { DLGTEv1 } from "./DLGTE.v1.sol";
+import { DelegateEscrow } from "../../external/cooler/DelegateEscrow.sol";
+import { DelegateEscrowFactory } from "../../external/cooler/DelegateEscrowFactory.sol";
+import { SafeCast } from "contracts/libraries/SafeCast.sol";
 
 /**
  * @title  Olympus Governance Delegation
@@ -57,18 +57,16 @@ contract OlympusGovDelegation is DLGTEv1 {
      * One policy isn't allowed to deposit/withdraw to another policy's tracked balances
      * Eg policy B cannot withdraw gOHM from the collateral held here by the Cooler policy
      */
-    mapping(address /*policy*/ => mapping(address /*account*/ => uint256 /*totalGOhm*/))
-        private _policyAccountBalances;
+    mapping(address /*policy*/ => mapping(address /*account*/ => uint256 /*totalGOhm*/)) private _policyAccountBalances;
 
     //============================================================================================//
     //                                      MODULE SETUP                                          //
     //============================================================================================//
 
-    constructor(
-        Kernel kernel_,
-        address gohm_,
-        DelegateEscrowFactory delegateEscrowFactory_
-    ) Module(kernel_) DLGTEv1(gohm_) {
+    constructor(Kernel kernel_, address gohm_, DelegateEscrowFactory delegateEscrowFactory_)
+        Module(kernel_)
+        DLGTEv1(gohm_)
+    {
         delegateEscrowFactory = delegateEscrowFactory_;
     }
 
@@ -88,10 +86,7 @@ contract OlympusGovDelegation is DLGTEv1 {
     //============================================================================================//
 
     /// @inheritdoc DLGTEv1
-    function depositUndelegatedGohm(
-        address onBehalfOf,
-        uint256 amount
-    ) external override permissioned {
+    function depositUndelegatedGohm(address onBehalfOf, uint256 amount) external override permissioned {
         if (onBehalfOf == address(0)) revert DLGTE_InvalidAddress();
         if (amount == 0) revert DLGTE_InvalidAmount();
 
@@ -107,11 +102,11 @@ contract OlympusGovDelegation is DLGTEv1 {
     }
 
     /// @inheritdoc DLGTEv1
-    function withdrawUndelegatedGohm(
-        address onBehalfOf,
-        uint256 amount,
-        uint256 autoRescindMaxNumDelegates
-    ) external override permissioned {
+    function withdrawUndelegatedGohm(address onBehalfOf, uint256 amount, uint256 autoRescindMaxNumDelegates)
+        external
+        override
+        permissioned
+    {
         if (onBehalfOf == address(0)) revert DLGTE_InvalidAddress();
         if (amount == 0) revert DLGTE_InvalidAmount();
         AccountState storage aState = _accountState[onBehalfOf];
@@ -120,23 +115,19 @@ contract OlympusGovDelegation is DLGTEv1 {
         if (autoRescindMaxNumDelegates > 0) {
             // Don't need to handle the case where it didn't rescind enough
             // As it will just fail with DLGTE_ExceededUndelegatedBalance below.
-            _autoRescindDelegations(
-                onBehalfOf,
-                amount,
-                aState,
-                totalAccountGOhm,
-                autoRescindMaxNumDelegates
-            );
+            _autoRescindDelegations(onBehalfOf, amount, aState, totalAccountGOhm, autoRescindMaxNumDelegates);
         }
 
         mapping(address => uint256) storage policyBalances = _policyAccountBalances[msg.sender];
         uint256 policyAccountBalance = policyBalances[onBehalfOf];
-        if (amount > policyAccountBalance)
+        if (amount > policyAccountBalance) {
             revert DLGTE_ExceededPolicyAccountBalance(policyAccountBalance, amount);
+        }
 
         uint256 accountUndelegatedBalance = totalAccountGOhm - aState.delegatedGOhm;
-        if (amount > accountUndelegatedBalance)
+        if (amount > accountUndelegatedBalance) {
             revert DLGTE_ExceededUndelegatedBalance(accountUndelegatedBalance, amount);
+        }
 
         // Update state
         policyBalances[onBehalfOf] = policyAccountBalance - amount;
@@ -147,11 +138,7 @@ contract OlympusGovDelegation is DLGTEv1 {
     }
 
     /// @inheritdoc DLGTEv1
-    function rescindDelegations(
-        address onBehalfOf,
-        uint256 requestedUndelegatedBalance,
-        uint256 maxNumDelegates
-    )
+    function rescindDelegations(address onBehalfOf, uint256 requestedUndelegatedBalance, uint256 maxNumDelegates)
         external
         override
         permissioned
@@ -161,28 +148,15 @@ contract OlympusGovDelegation is DLGTEv1 {
         if (maxNumDelegates == 0) revert DLGTE_InvalidAmount();
         AccountState storage aState = _accountState[onBehalfOf];
         return
-            _autoRescindDelegations(
-                onBehalfOf,
-                requestedUndelegatedBalance,
-                aState,
-                aState.totalGOhm,
-                maxNumDelegates
-            );
+            _autoRescindDelegations(onBehalfOf, requestedUndelegatedBalance, aState, aState.totalGOhm, maxNumDelegates);
     }
 
     /// @inheritdoc DLGTEv1
-    function applyDelegations(
-        address onBehalfOf,
-        IDLGTEv1.DelegationRequest[] calldata delegationRequests
-    )
+    function applyDelegations(address onBehalfOf, IDLGTEv1.DelegationRequest[] calldata delegationRequests)
         external
         override
         permissioned
-        returns (
-            uint256 appliedDelegationAmounts,
-            uint256 appliedUndelegationAmounts,
-            uint256 undelegatedBalance
-        )
+        returns (uint256 appliedDelegationAmounts, uint256 appliedUndelegationAmounts, uint256 undelegatedBalance)
     {
         if (onBehalfOf == address(0)) revert DLGTE_InvalidAddress();
         if (delegationRequests.length == 0) revert DLGTE_InvalidDelegationRequests();
@@ -191,21 +165,15 @@ contract OlympusGovDelegation is DLGTEv1 {
         uint256 totalAccountGOhm = aState.totalGOhm;
         undelegatedBalance = totalAccountGOhm - aState.delegatedGOhm;
 
-        (
-            appliedDelegationAmounts,
-            appliedUndelegationAmounts,
-            undelegatedBalance
-        ) = _applyDelegations(onBehalfOf, aState, undelegatedBalance, delegationRequests);
+        (appliedDelegationAmounts, appliedUndelegationAmounts, undelegatedBalance) =
+            _applyDelegations(onBehalfOf, aState, undelegatedBalance, delegationRequests);
 
         // Update state for the delegated amount of gOHM for this account
         aState.delegatedGOhm = (totalAccountGOhm - undelegatedBalance).encodeUInt112();
     }
 
     /// @inheritdoc DLGTEv1
-    function setMaxDelegateAddresses(
-        address account,
-        uint32 maxDelegates
-    ) external override permissioned {
+    function setMaxDelegateAddresses(address account, uint32 maxDelegates) external override permissioned {
         emit MaxDelegateAddressesSet(account, maxDelegates);
         _accountState[account].maxDelegateAddresses = maxDelegates;
     }
@@ -215,19 +183,22 @@ contract OlympusGovDelegation is DLGTEv1 {
     //============================================================================================//
 
     /// @inheritdoc DLGTEv1
-    function policyAccountBalances(
-        address policy,
-        address account
-    ) external view override returns (uint256 gOhmBalance) {
+    function policyAccountBalances(address policy, address account)
+        external
+        view
+        override
+        returns (uint256 gOhmBalance)
+    {
         return _policyAccountBalances[policy][account];
     }
 
     /// @inheritdoc DLGTEv1
-    function accountDelegationsList(
-        address account,
-        uint256 startIndex,
-        uint256 maxItems
-    ) external view override returns (IDLGTEv1.AccountDelegation[] memory delegations) {
+    function accountDelegationsList(address account, uint256 startIndex, uint256 maxItems)
+        external
+        view
+        override
+        returns (IDLGTEv1.AccountDelegation[] memory delegations)
+    {
         AccountState storage aState = _accountState[account];
         EnumerableMap.AddressToUintMap storage acctDelegatedAmounts = aState.delegatedAmounts;
 
@@ -263,28 +234,21 @@ contract OlympusGovDelegation is DLGTEv1 {
     }
 
     /// @inheritdoc DLGTEv1
-    function accountDelegationSummary(
-        address account
-    )
+    function accountDelegationSummary(address account)
         external
         view
         override
         returns (
-            uint256 /*totalGOhm*/,
-            uint256 /*delegatedGOhm*/,
-            uint256 /*numDelegateAddresses*/,
+            uint256, /*totalGOhm*/
+            uint256, /*delegatedGOhm*/
+            uint256, /*numDelegateAddresses*/
             uint256 /*maxAllowedDelegateAddresses*/
         )
     {
         AccountState storage aState = _accountState[account];
         uint32 maxDelegates = aState.maxDelegateAddresses;
         if (maxDelegates == 0) maxDelegates = DEFAULT_MAX_DELEGATE_ADDRESSES;
-        return (
-            aState.totalGOhm,
-            aState.delegatedGOhm,
-            aState.delegatedAmounts.length(),
-            maxDelegates
-        );
+        return (aState.totalGOhm, aState.delegatedGOhm, aState.delegatedAmounts.length(), maxDelegates);
     }
 
     /// @inheritdoc DLGTEv1
@@ -304,11 +268,7 @@ contract OlympusGovDelegation is DLGTEv1 {
         IDLGTEv1.DelegationRequest[] calldata delegationRequests
     )
         private
-        returns (
-            uint256 appliedDelegationAmounts,
-            uint256 appliedUndelegationAmounts,
-            uint256 newUndelegatedBalance
-        )
+        returns (uint256 appliedDelegationAmounts, uint256 appliedUndelegationAmounts, uint256 newUndelegatedBalance)
     {
         uint32 maxDelegates = _maxDelegateAddresses(aState);
         EnumerableMap.AddressToUintMap storage acctDelegatedAmounts = aState.delegatedAmounts;
@@ -319,28 +279,19 @@ contract OlympusGovDelegation is DLGTEv1 {
         newUndelegatedBalance = undelegatedBalance;
         for (uint256 i; i < length; ++i) {
             (currentDelegatedAmount, currentUndelegatedAmount) = _applyDelegation(
-                onBehalfOf,
-                newUndelegatedBalance,
-                maxDelegates,
-                acctDelegatedAmounts,
-                delegationRequests[i]
+                onBehalfOf, newUndelegatedBalance, maxDelegates, acctDelegatedAmounts, delegationRequests[i]
             );
 
             appliedDelegationAmounts += currentDelegatedAmount;
             appliedUndelegationAmounts += currentUndelegatedAmount;
-            newUndelegatedBalance =
-                newUndelegatedBalance +
-                currentUndelegatedAmount -
-                currentDelegatedAmount;
+            newUndelegatedBalance = newUndelegatedBalance + currentUndelegatedAmount - currentDelegatedAmount;
         }
     }
 
     // If this is the first delegation, set to the default.
     // NB: This means the lowest number of delegate addresses an account can have after
     // whitelisting is 1 (since if it's set to zero, it will reset to the default)
-    function _maxDelegateAddresses(
-        AccountState storage aState
-    ) private returns (uint32 maxDelegates) {
+    function _maxDelegateAddresses(AccountState storage aState) private returns (uint32 maxDelegates) {
         maxDelegates = aState.maxDelegateAddresses;
         if (maxDelegates == 0) {
             aState.maxDelegateAddresses = maxDelegates = DEFAULT_MAX_DELEGATE_ADDRESSES;
@@ -360,9 +311,8 @@ contract OlympusGovDelegation is DLGTEv1 {
         // negative will rescind the delegation
         if (delegationRequest.amount >= 0) {
             // Special case to delegate all remaining (undelegated) gOhm.
-            delegatedAmount = delegationRequest.amount == type(int256).max
-                ? undelegatedBalance
-                : uint256(delegationRequest.amount);
+            delegatedAmount =
+                delegationRequest.amount == type(int256).max ? undelegatedBalance : uint256(delegationRequest.amount);
             if (delegatedAmount == 0) revert DLGTE_InvalidAmount();
 
             // Ensure the account isn't delegating more than the undelegated balance
@@ -370,41 +320,24 @@ contract OlympusGovDelegation is DLGTEv1 {
                 revert DLGTE_ExceededUndelegatedBalance(undelegatedBalance, delegatedAmount);
             }
 
-            _addDelegation(
-                onBehalfOf,
-                delegationRequest.delegate,
-                delegatedAmount,
-                acctDelegatedAmounts,
-                maxDelegates
-            );
+            _addDelegation(onBehalfOf, delegationRequest.delegate, delegatedAmount, acctDelegatedAmounts, maxDelegates);
         } else {
             // Revert with a custom error if trying to rescind and there's no record of this delegation.
-            (bool exists, uint256 delegatedBalance) = acctDelegatedAmounts.tryGet(
-                delegationRequest.delegate
-            );
+            (bool exists, uint256 delegatedBalance) = acctDelegatedAmounts.tryGet(delegationRequest.delegate);
             if (!exists) revert DLGTE_InvalidDelegateEscrow();
 
             // Special case to undelegate all remaining (delegated) gOhm.
-            undelegatedAmount = delegationRequest.amount == type(int256).min
-                ? delegatedBalance
-                : uint256(-delegationRequest.amount);
+            undelegatedAmount =
+                delegationRequest.amount == type(int256).min ? delegatedBalance : uint256(-delegationRequest.amount);
             if (undelegatedAmount == 0) revert DLGTE_InvalidAmount();
 
             // Ensure the account isn't trying to undelegate more than the recorded amount
             if (undelegatedAmount > delegatedBalance) {
-                revert DLGTE_ExceededDelegatedBalance(
-                    delegationRequest.delegate,
-                    delegatedBalance,
-                    undelegatedAmount
-                );
+                revert DLGTE_ExceededDelegatedBalance(delegationRequest.delegate, delegatedBalance, undelegatedAmount);
             }
 
             _rescindDelegation(
-                onBehalfOf,
-                delegationRequest.delegate,
-                delegatedBalance,
-                undelegatedAmount,
-                acctDelegatedAmounts
+                onBehalfOf, delegationRequest.delegate, delegatedBalance, undelegatedAmount, acctDelegatedAmounts
             );
         }
     }
@@ -492,7 +425,8 @@ contract OlympusGovDelegation is DLGTEv1 {
         }
 
         // Update state for the delegated amount of gOHM for this account
-        // Note: May not have undelegated the full requested amount - left up to the calling policy on how to handle this gap
+        // Note: May not have undelegated the full requested amount - left up to the calling policy on how to handle
+        // this gap
         newUndelegatedBalance = newUndelegatedBalance + totalRescinded;
         aState.delegatedGOhm = (totalAccountGOhm - newUndelegatedBalance).encodeUInt112();
     }

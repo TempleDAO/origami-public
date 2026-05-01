@@ -1,0 +1,6 @@
+// mainnet: VAULTS.SUSDSpS.COW_SWAPPER=0x80B921C724202969295dCF2DA2B36e9F052315b4
+// yarn hardhat verify --network mainnet 0x80B921C724202969295dCF2DA2B36e9F052315b4 --constructor-args scripts/deploys/mainnet/deploymentArgs/0x80B921C724202969295dCF2DA2B36e9F052315b4.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110"
+];

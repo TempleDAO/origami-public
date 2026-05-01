@@ -5,7 +5,9 @@ pragma solidity ^0.8.4;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ISkySUsds } from "contracts/interfaces/external/sky/ISkySUsds.sol";
 
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 import { ISkyStakingRewards } from "contracts/interfaces/external/sky/ISkyStakingRewards.sol";
 
 /**
@@ -26,30 +28,20 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
     event SwapperSet(address indexed newSwapper);
 
     event FarmAdded(
-        uint32 indexed farmIndex,
-        address indexed stakingAddress,
-        address indexed rewardsToken,
-        uint16 referralCode
+        uint32 indexed farmIndex, address indexed stakingAddress, address indexed rewardsToken, uint16 referralCode
     );
 
-    event FarmRemoved(
-        uint32 indexed farmIndex,
-        address indexed stakingAddress,
-        address indexed rewardsToken
-    );
+    event FarmRemoved(uint32 indexed farmIndex, address indexed stakingAddress, address indexed rewardsToken);
 
     event SwitchedFarms(
-        uint32 indexed oldFarmIndex, 
-        uint32 indexed newFarmIndex, 
-        uint256 amountWithdrawn, 
-        uint256 amountDeposited
+        uint32 indexed oldFarmIndex, uint32 indexed newFarmIndex, uint256 amountWithdrawn, uint256 amountDeposited
     );
 
     event ClaimedReward(
-        uint32 indexed farmIndex, 
-        address indexed rewardsToken, 
-        uint256 amountForCaller, 
-        uint256 amountForOrigami, 
+        uint32 indexed farmIndex,
+        address indexed rewardsToken,
+        uint256 amountForCaller,
+        uint256 amountForOrigami,
         uint256 amountForVault
     );
 
@@ -78,7 +70,7 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
     function setFeeCollector(address _feeCollector) external;
 
     /**
-     * @notice Set the swapper contract responsible for swapping 
+     * @notice Set the swapper contract responsible for swapping
      * farm reward tokens into USDS
      */
     function setSwapper(address swapper) external;
@@ -90,39 +82,28 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
     function setSwitchFarmCooldown(uint32 cooldown) external;
 
     /**
-     * @notice Add a new USDS farm configuation 
-     * @dev Only a maximum of 100 farms can be added. Will revert if the same `stakingAddress` is 
+     * @notice Add a new USDS farm configuation
+     * @dev Only a maximum of 100 farms can be added. Will revert if the same `stakingAddress` is
      * added a second time.
-     */ 
-    function addFarm(
-        address stakingAddress, 
-        uint16 referralCode
-    ) external returns (
-        uint32 newFarmIndex
-    );
+     */
+    function addFarm(address stakingAddress, uint16 referralCode) external returns (uint32 newFarmIndex);
 
     /**
      * @notice Remove a deprecated farm configuration item for house keeping
      * @dev This will revert if there's still a staked balance or rewards to claim.
      * If a farm is removed, the `maxFarmIndex` doesn't decrease
-     */ 
+     */
     function removeFarm(uint32 farmIndex) external;
 
     /**
      * @notice Set the referral code for a given USDS staking contract
      */
-    function setFarmReferralCode(
-        uint32 farmIndex,
-        uint16 referralCode
-    ) external;
+    function setFarmReferralCode(uint32 farmIndex, uint16 referralCode) external;
 
     /**
      * @notice Elevated access can decide to switch which farm to use if the yield is greater
      */
-    function switchFarms(uint32 newFarmIndex) external returns (
-        uint256 amountWithdrawn,
-        uint256 amountDeposited
-    );
+    function switchFarms(uint32 newFarmIndex) external returns (uint256 amountWithdrawn, uint256 amountDeposited);
 
     /**
      * @notice A permisionless function to claim farm rewards from a given farm
@@ -132,10 +113,7 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
      * USDS proceeds from the swap will sent back to this contract, ready to add to the
      * current farm on the next deposit.
      */
-    function claimFarmRewards(
-        uint32[] calldata farmIndexes,
-        address incentivesReceiver
-    ) external;
+    function claimFarmRewards(uint32[] calldata farmIndexes, address incentivesReceiver) external;
 
     /**
      * @notice The Sky USDS contract
@@ -164,7 +142,7 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
     function sUsdsReferral() external view returns (uint16);
 
     /**
-     * @notice The swapper contract responsible for swapping 
+     * @notice The swapper contract responsible for swapping
      * farm reward tokens into USDS
      */
     function swapper() external view returns (address);
@@ -192,7 +170,7 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
      * - index 1+: A Sky USDS staking contract
      */
     function currentFarmIndex() external view returns (uint32);
-    
+
     /**
      * @notice The farm config of a particular index
      * @dev Does not revert - A farm index is invalid if the returned
@@ -221,15 +199,13 @@ interface IOrigamiSuperSavingsUsdsManager is IOrigamiDelegated4626VaultManager {
         /// @dev The amount of emissions earned which can
         /// currently be claimed.
         /// For sUSDS, this will always be zero
-        uint256 unclaimedRewards;        
+        uint256 unclaimedRewards;
     }
 
-    /** 
+    /**
      * @notice A helper to show the current positions for a set of farm indexes.
-     * @dev If the farmIndex is not valid/removed that item will remain 
+     * @dev If the farmIndex is not valid/removed that item will remain
      * empty
      */
-    function farmDetails(uint32[] calldata farmIndexes) external view returns (
-        FarmDetails[] memory
-    );
+    function farmDetails(uint32[] calldata farmIndexes) external view returns (FarmDetails[] memory);
 }

@@ -87,7 +87,7 @@ library OrigamiCoolerMigratorHelperLib {
         return addresses;
     }
 
-    function exampleCoolers() internal pure returns (address[3] memory data){
+    function exampleCoolers() internal pure returns (address[3] memory data) {
         data[0] = 0x6f40DF8cC60F52125467838D15f9080748c2baea; // chud, 1 loan v1
         data[1] = 0x5bEC4E03B15e07e597702ca461CB6F4DB4DEb72f; // 3milli, 2 loans v2
         data[2] = 0xA7442440fb2627eAAB07f28b3E658D01dE0e5161; // 1 loan v3
@@ -118,23 +118,16 @@ library OrigamiCoolerMigratorHelperLib {
         mtContracts.factoryv2 = IOlympusCoolerFactoryV1_2(addresses.factoryv2);
     }
 
-    function deployAndConfigureMonoCooler(
-        OlympusMonoCoolerDeployerLib.Contracts memory contracts
-    ) internal {
+    function deployAndConfigureMonoCooler(OlympusMonoCoolerDeployerLib.Contracts memory contracts) internal {
         OlympusMonoCoolerDeployerLib.deployMonoCooler(contracts, bytes32(0));
         OlympusMonoCoolerDeployerLib.installModulesAndPoliciesMonoCooler(contracts);
     }
 
-    function setAccessMonoCooler(
-        OlympusMonoCoolerDeployerLib.Contracts memory contracts,
-        address admin
-    ) internal {
+    function setAccessMonoCooler(OlympusMonoCoolerDeployerLib.Contracts memory contracts, address admin) internal {
         OlympusMonoCoolerDeployerLib.setAccessMonoCooler(contracts, admin);
     }
 
-    function enableOracleAndTrsryBorrowerPolicies(
-        OlympusMonoCoolerDeployerLib.Contracts memory contracts
-    ) internal {
+    function enableOracleAndTrsryBorrowerPolicies(OlympusMonoCoolerDeployerLib.Contracts memory contracts) internal {
         OlympusMonoCoolerDeployerLib.enablePolicies(contracts);
     }
 }

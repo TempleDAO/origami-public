@@ -11,8 +11,8 @@ import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.so
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
 
 contract MockBurnableToken is ERC20 {
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
-    
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) { }
+
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
     }
@@ -22,7 +22,7 @@ contract MockBurnableToken is ERC20 {
     }
 }
 
-contract MockCallbackHandler is IOrigamiSwapCallback {   
+contract MockCallbackHandler is IOrigamiSwapCallback {
     MockBurnableToken internal immutable token;
 
     constructor(MockBurnableToken _token) {
@@ -39,7 +39,7 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
     DummyDexRouter internal router;
 
     MockBurnableToken internal sellToken;
-    MockBurnableToken internal buyToken; 
+    MockBurnableToken internal buyToken;
 
     MockCallbackHandler internal callbackHandler;
 
@@ -51,7 +51,7 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
         sellToken = new MockBurnableToken("SELL_TOKEN", "SELL_TOKEN");
         buyToken = new MockBurnableToken("BUY_TOKEN", "BUY_TOKEN");
         callbackHandler = new MockCallbackHandler(buyToken);
-        
+
         swapper = new OrigamiSwapperWithCallback(origamiMultisig);
         router = new DummyDexRouter();
 
@@ -104,38 +104,48 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
         check_recoverToken(address(swapper));
     }
 
-    function encode(uint256 sellAmount, uint256 minBuyAmount, uint256 buyTokenToReceiveAmount) internal view returns (bytes memory) {
-        return abi.encode(IOrigamiSwapper.RouteDataWithCallback({
-            minBuyAmount: minBuyAmount,
-            router: address(router),
-            receiver: address(callbackHandler),
-            data: abi.encodeCall(DummyDexRouter.doExactSwap, (address(sellToken), sellAmount, address(buyToken), buyTokenToReceiveAmount))
-        }));
+    function encode(uint256 sellAmount, uint256 minBuyAmount, uint256 buyTokenToReceiveAmount)
+        internal
+        view
+        returns (bytes memory)
+    {
+        return abi.encode(
+            IOrigamiSwapper.RouteDataWithCallback({
+                minBuyAmount: minBuyAmount,
+                router: address(router),
+                receiver: address(callbackHandler),
+                data: abi.encodeCall(
+                    DummyDexRouter.doExactSwap,
+                    (address(sellToken), sellAmount, address(buyToken), buyTokenToReceiveAmount)
+                )
+            })
+        );
     }
 
     function test_execute_fail_invalidRouter() public {
         vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidRouter.selector, bob));        
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidRouter.selector, bob));
         swapper.execute(
-            sellToken, 123, buyToken, 
-            abi.encode(IOrigamiSwapper.RouteDataWithCallback({
-                minBuyAmount: 0,
-                router: address(bob),
-                receiver: origamiMultisig,
-                data: bytes("")
-            }))
+            sellToken,
+            123,
+            buyToken,
+            abi.encode(
+                IOrigamiSwapper.RouteDataWithCallback({
+                    minBuyAmount: 0, router: address(bob), receiver: origamiMultisig, data: bytes("")
+                })
+            )
         );
     }
 
     function test_execute_success() public {
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         doMint(sellToken, address(swapper), sellTokenAmount);
 
         vm.startPrank(address(callbackHandler));
-        uint256 expectedBuyTokenAmount = 1_000e18;
+        uint256 expectedBuyTokenAmount = 1000e18;
         vm.expectEmit(address(swapper));
         emit Swap(address(sellToken), sellTokenAmount, address(buyToken), expectedBuyTokenAmount);
-        
+
         uint256 buySupplyBefore = buyToken.totalSupply();
 
         vm.expectEmit(address(buyToken));
@@ -143,7 +153,7 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
         uint256 buyTokenAmount = swapper.execute(
             sellToken,
             sellTokenAmount,
-            buyToken, 
+            buyToken,
             encode(sellTokenAmount, expectedBuyTokenAmount, expectedBuyTokenAmount)
         );
 
@@ -151,58 +161,58 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
         assertEq(sellToken.balanceOf(address(swapper)), 0);
         assertEq(sellToken.balanceOf(address(callbackHandler)), 0);
 
-        assertEq(buyToken.totalSupply(), buySupplyBefore-expectedBuyTokenAmount);
+        assertEq(buyToken.totalSupply(), buySupplyBefore - expectedBuyTokenAmount);
         assertEq(buyToken.balanceOf(address(swapper)), 0);
         assertEq(buyToken.balanceOf(address(callbackHandler)), 0);
     }
 
     function test_execute_success_sellTokenSurplus() public {
-        uint256 sellTokenAmount = 1_000e18;
-        uint256 expectedBuyTokenAmount = 1_000e18;
-        doMint(sellToken, address(swapper), sellTokenAmount*2);
+        uint256 sellTokenAmount = 1000e18;
+        uint256 expectedBuyTokenAmount = 1000e18;
+        doMint(sellToken, address(swapper), sellTokenAmount * 2);
         uint256 buySupplyBefore = buyToken.totalSupply();
 
         vm.startPrank(address(callbackHandler));
         uint256 buyTokenAmount = swapper.execute(
             sellToken,
             sellTokenAmount,
-            buyToken, 
-            encode(sellTokenAmount-1, expectedBuyTokenAmount, expectedBuyTokenAmount)
+            buyToken,
+            encode(sellTokenAmount - 1, expectedBuyTokenAmount, expectedBuyTokenAmount)
         );
 
         assertEq(buyTokenAmount, expectedBuyTokenAmount);
-        assertEq(sellToken.balanceOf(address(swapper)), sellTokenAmount+1); // The surplus remains
+        assertEq(sellToken.balanceOf(address(swapper)), sellTokenAmount + 1); // The surplus remains
         assertEq(sellToken.balanceOf(address(callbackHandler)), 0);
 
-        assertEq(buyToken.totalSupply(), buySupplyBefore-expectedBuyTokenAmount);
+        assertEq(buyToken.totalSupply(), buySupplyBefore - expectedBuyTokenAmount);
         assertEq(buyToken.balanceOf(address(swapper)), 0);
         assertEq(buyToken.balanceOf(address(callbackHandler)), 0);
     }
 
     function test_execute_fail_sellTokenDefecit() public {
-        uint256 sellTokenAmount = 1_000e18;
-        uint256 expectedBuyTokenAmount = 1_000e18;
-        doMint(sellToken, address(swapper), sellTokenAmount*2);
+        uint256 sellTokenAmount = 1000e18;
+        uint256 expectedBuyTokenAmount = 1000e18;
+        doMint(sellToken, address(swapper), sellTokenAmount * 2);
 
         vm.startPrank(address(callbackHandler));
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));    
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidSwap.selector));
         swapper.execute(
             sellToken,
             sellTokenAmount,
-            buyToken, 
-            encode(sellTokenAmount+1, expectedBuyTokenAmount, expectedBuyTokenAmount)
+            buyToken,
+            encode(sellTokenAmount + 1, expectedBuyTokenAmount, expectedBuyTokenAmount)
         );
     }
 
     function test_execute_differentReceiver_success() public {
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         doMint(sellToken, address(swapper), sellTokenAmount);
 
         vm.startPrank(origamiMultisig); // <-- not the callback handler
-        uint256 expectedBuyTokenAmount = 1_000e18;
+        uint256 expectedBuyTokenAmount = 1000e18;
         vm.expectEmit(address(swapper));
         emit Swap(address(sellToken), sellTokenAmount, address(buyToken), expectedBuyTokenAmount);
-        
+
         uint256 buySupplyBefore = buyToken.totalSupply();
 
         vm.expectEmit(address(buyToken));
@@ -210,7 +220,7 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
         uint256 buyTokenAmount = swapper.execute(
             sellToken,
             sellTokenAmount,
-            buyToken, 
+            buyToken,
             encode(sellTokenAmount, expectedBuyTokenAmount, expectedBuyTokenAmount)
         );
 
@@ -218,24 +228,28 @@ contract OrigamiSwapperWithCallbackTest is OrigamiTest {
         assertEq(sellToken.balanceOf(address(swapper)), 0);
         assertEq(sellToken.balanceOf(address(callbackHandler)), 0);
 
-        assertEq(buyToken.totalSupply(), buySupplyBefore-expectedBuyTokenAmount);
+        assertEq(buyToken.totalSupply(), buySupplyBefore - expectedBuyTokenAmount);
         assertEq(buyToken.balanceOf(address(swapper)), 0);
         assertEq(buyToken.balanceOf(address(callbackHandler)), 0);
     }
 
     function test_execute_fail_slippageExceeded() public {
-        uint256 sellTokenAmount = 1_000e18;
-        uint256 expectedBuyTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
+        uint256 expectedBuyTokenAmount = 1000e18;
         uint256 buyTokenToReceiveAmount = expectedBuyTokenAmount - 1;
         doMint(sellToken, address(swapper), sellTokenAmount);
         uint256 buySupplyBefore = buyToken.totalSupply();
 
         vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, expectedBuyTokenAmount, buyTokenToReceiveAmount));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CommonEventsAndErrors.Slippage.selector, expectedBuyTokenAmount, buyTokenToReceiveAmount
+            )
+        );
         swapper.execute(
             sellToken,
-            sellTokenAmount, 
-            buyToken, 
+            sellTokenAmount,
+            buyToken,
             encode(sellTokenAmount, expectedBuyTokenAmount, buyTokenToReceiveAmount)
         );
 

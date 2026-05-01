@@ -33,7 +33,7 @@ interface IOrigamiOracle {
         /// @notice The current spot price of this Oracle
         SPOT_PRICE,
 
-        /// @notice The historic price of this Oracle. 
+        /// @notice The historic price of this Oracle.
         /// It may be a fixed expectation (eg DAI/USD would be fixed to 1)
         /// or use a TWAP or some other moving average, etc.
         HISTORIC_PRICE
@@ -85,27 +85,20 @@ interface IOrigamiOracle {
      * @notice Return the latest oracle price, to `decimals` precision
      * @dev This may still revert - eg if deemed stale, div by 0, negative price
      * @param priceType What kind of price - Spot or Historic
-     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified direction.
+     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified
+     * direction.
      */
-    function latestPrice(
-        PriceType priceType, 
-        OrigamiMath.Rounding roundingMode
-    ) external view returns (uint256 price);
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode) external view returns (uint256 price);
 
     /**
-     * @notice Same as `latestPrice()` but for two separate prices from this oracle	
+     * @notice Same as `latestPrice()` but for two separate prices from this oracle
      */
     function latestPrices(
-        PriceType priceType1, 
+        PriceType priceType1,
         OrigamiMath.Rounding roundingMode1,
-        PriceType priceType2, 
+        PriceType priceType2,
         OrigamiMath.Rounding roundingMode2
-    ) external view returns (
-        uint256 price1, 
-        uint256 price2, 
-        address oracleBaseAsset,
-        address oracleQuoteAsset
-    );
+    ) external view returns (uint256 price1, uint256 price2, address oracleBaseAsset, address oracleQuoteAsset);
 
     /**
      * @notice Convert either the baseAsset->quoteAsset or quoteAsset->baseAsset

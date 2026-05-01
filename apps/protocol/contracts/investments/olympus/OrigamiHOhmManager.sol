@@ -28,27 +28,23 @@ import { OlympusCoolerDelegation } from "contracts/libraries/OlympusCoolerDelega
  *
  * @dev
  *   - There will be a surplus `debtToken` amount held by this contract which can expand and contract
- *     on each join and exit. 
- *   - This surplus is excluded from the balance sheet totals used to calculate the `debtToken per hOHM` 
+ *     on each join and exit.
+ *   - This surplus is excluded from the balance sheet totals used to calculate the `debtToken per hOHM`
  *     share price.
  *   - Under normal circumstances it will grow on aggregate:
- *     a/ The origination LTV within cooler increases every second to some set gradient. 
+ *     a/ The origination LTV within cooler increases every second to some set gradient.
  *        This increases the capacity to borrow
- *     b/ The cooler interest rate is flat (0.5% APY as of writing). 
+ *     b/ The cooler interest rate is flat (0.5% APY as of writing).
  *        This decreases the capacity to borrow
- *     c/ Any surplus is added into a savings vault (eg sUSDS) which has a higher interest rate than (b). 
+ *     c/ Any surplus is added into a savings vault (eg sUSDS) which has a higher interest rate than (b).
  *        The surplus in debtToken terms (eg USDS) increases faster than the cooler debt.
  *     It is expected that (a)+(c) will outpace (b)
  *   - sweep() can be called in order to use the surplus `debtToken` to buy hOHM from the open market
- *     and then burn the hOHM. 
- *     When this happens the totalSupply decreases, which increases the share price of both the collateral and 
+ *     and then burn the hOHM.
+ *     When this happens the totalSupply decreases, which increases the share price of both the collateral and
  *     debt tokens per hOHM
  */
-contract OrigamiHOhmManager is 
-    IOrigamiHOhmManager,
-    OrigamiElevatedAccess,
-    OrigamiManagerPausable
-{
+contract OrigamiHOhmManager is IOrigamiHOhmManager, OrigamiElevatedAccess, OrigamiManagerPausable {
     using SafeERC20 for IERC20;
     using SafeERC20 for OrigamiHOhmVault;
     using SafeCast for uint256;
@@ -101,7 +97,7 @@ contract OrigamiHOhmManager is
     mapping(address account => OlympusCoolerDelegation.Data delegation) public override delegations;
 
     /// @inheritdoc IOrigamiHOhmManager
-    uint16 public override constant MAX_EXIT_FEE_BPS = 330; // 3.3%
+    uint16 public constant override MAX_EXIT_FEE_BPS = 330; // 3.3%
 
     /// @inheritdoc IOrigamiHOhmManager
     uint16 public constant override MAX_PERFORMANCE_FEE_BPS = 330; // 3.3%
@@ -116,9 +112,7 @@ contract OrigamiHOhmManager is
         address debtTokenSavingsVault_,
         uint16 performanceFeeBps_,
         address feeCollector_
-    ) 
-        OrigamiElevatedAccess(initialOwner_)
-    {
+    ) OrigamiElevatedAccess(initialOwner_) {
         _vault = OrigamiHOhmVault(vault_);
         collateralToken = IERC20(_vault.collateralToken());
         cooler = IMonoCooler(cooler_);
@@ -149,15 +143,16 @@ contract OrigamiHOhmManager is
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function setSweepParams(
-        uint40 newSweepCooldownSecs,
-        uint96 newMaxSweepSellAmount
-    ) external override onlyElevatedAccess {
+    function setSweepParams(uint40 newSweepCooldownSecs, uint96 newMaxSweepSellAmount)
+        external
+        override
+        onlyElevatedAccess
+    {
         sweepCooldownSecs = newSweepCooldownSecs;
         maxSweepSellAmount = newMaxSweepSellAmount;
         emit SweepParamsSet(newSweepCooldownSecs, newMaxSweepSellAmount);
     }
-    
+
     /// @inheritdoc IOrigamiHOhmManager
     function setSweepSwapper(address newSwapper) external override onlyElevatedAccess {
         if (newSwapper == address(0)) revert CommonEventsAndErrors.InvalidAddress(newSwapper);
@@ -194,7 +189,7 @@ contract OrigamiHOhmManager is
         if (address(_oldDebtTokenSavingsVault) != address(0)) {
             _oldDebtToken.safeApprove(_oldDebtTokenSavingsVault, 0);
         }
-    
+
         // Set the state and approvals for the new debt token and savings
         IERC20 _newDebtToken = cooler.debtToken();
         IERC4626 _newSavingsVault = IERC4626(newDebtTokenSavingsVault);
@@ -210,9 +205,11 @@ contract OrigamiHOhmManager is
      * @param amount Amount to recover
      */
     function recoverToken(address token, address to, uint256 amount) external onlyElevatedAccess {
-        // Collateral is added/removed from Cooler just in time. Any other collateral sent here by mistake can be recovered.
-        // The current debt token surplus cannot be recovered, it can only be transferred by using `sweep()`
-        if (token == address(debtToken) || token == address(debtTokenSavingsVault)) revert CommonEventsAndErrors.InvalidToken(token);
+        // Collateral is added/removed from Cooler just in time. Any other collateral sent here by mistake can be
+        // recovered. The current debt token surplus cannot be recovered, it can only be transferred by using `sweep()`
+        if (token == address(debtToken) || token == address(debtTokenSavingsVault)) {
+            revert CommonEventsAndErrors.InvalidToken(token);
+        }
 
         emit CommonEventsAndErrors.TokenRecovered(to, token, amount);
         IERC20(token).safeTransfer(to, amount);
@@ -224,10 +221,7 @@ contract OrigamiHOhmManager is
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function sweep(
-        uint256 amount,
-        bytes memory swapData
-    ) external override onlyElevatedAccess {
+    function sweep(uint256 amount, bytes memory swapData) external override onlyElevatedAccess {
         if (amount > maxSweepSellAmount) revert SweepTooLarge();
         if (block.timestamp < lastSweepTime + sweepCooldownSecs) revert BeforeCooldownEnd();
         lastSweepTime = uint40(block.timestamp);
@@ -236,24 +230,23 @@ contract OrigamiHOhmManager is
         IOrigamiSwapper _swapper = sweepSwapper;
         IERC4626 _savingsVault = debtTokenSavingsVault;
         IERC20 _debtToken = debtToken;
-        IERC20 _sweepDebtToken = address(_savingsVault) == address(0)
-            ? _debtToken
-            : _savingsVault;
+        IERC20 _sweepDebtToken = address(_savingsVault) == address(0) ? _debtToken : _savingsVault;
 
         _sweepDebtToken.safeTransfer(address(_swapper), amount);
 
         emit SweepStarted(address(_sweepDebtToken), amount);
 
         // This swap may be synchronous (eg via 1Inch/Kyberswap/0x), or asynchronous (eg CoW swap programmatic orders)
-        // The swapper is responsible for checking slippage (minBuyAmount) and calling the permisionless `sweepCallback()`
-        // after the swap has concluded. For CoW swap that may be via their hooks framework.
+        // The swapper is responsible for checking slippage (minBuyAmount) and calling the permisionless
+        // `sweepCallback()` after the swap has concluded. For CoW swap that may be via their hooks framework.
         _swapper.execute(_sweepDebtToken, amount, _vault, swapData);
     }
 
     /// @inheritdoc IOrigamiSwapCallback
     function swapCallback() external override {
         uint256 vaultBalance = _vault.balanceOf(address(this));
-        (uint256 amountToBurn, uint256 feeAmount) = vaultBalance.splitSubtractBps(performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
+        (uint256 amountToBurn, uint256 feeAmount) =
+            vaultBalance.splitSubtractBps(performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
 
         // No correlation id between the SweepStarted and SweepFinished events since this can be
         // permissionlessly called anyway
@@ -277,12 +270,8 @@ contract OrigamiHOhmManager is
     ) external override onlyVault {
         // Sync delegations to the latest proportional gOHM the will have after the join.
         // If it doesn't have a delegate set, there will be no delegation requests.
-        IDLGTEv1.DelegationRequest[] memory delegationRequests = _delegationRequest(
-            receiver,
-            int256(collateralAmount),
-            receiverSharesPostMint,
-            totalSupplyPostMint
-        );
+        IDLGTEv1.DelegationRequest[] memory delegationRequests =
+            _delegationRequest(receiver, int256(collateralAmount), receiverSharesPostMint, totalSupplyPostMint);
 
         // Add the gOHM balance as collateral. The vault is trusted to have sent the exact amount first
         IDLGTEv1.DelegationRequest[] memory emptyDR;
@@ -290,7 +279,7 @@ contract OrigamiHOhmManager is
 
         // Now apply the delegation requests
         // NB: This needs to be done as a separate step after addCollateral() because of the `MIN_DELEGATION_AMOUNT`
-        // Otherwise MonoCooler could revert as it may try and delegate more than it's trying to add, if the 
+        // Otherwise MonoCooler could revert as it may try and delegate more than it's trying to add, if the
         // delegation was previously floored at zero
         if (delegationRequests.length != 0) cooler.applyDelegations(delegationRequests, address(this));
 
@@ -321,15 +310,12 @@ contract OrigamiHOhmManager is
         // Sync delegations to the latest proportional gOHM the will have after the exit.
         {
             // If `sharesOwner` doesn't have a delegate set, there will be no delegation requests.
-            IDLGTEv1.DelegationRequest[] memory delegationRequests = _delegationRequest(
-                sharesOwner,
-                negCollateralAmount128,
-                ownerSharesPostBurn,
-                totalSupplyPostBurn
-            );
+            IDLGTEv1.DelegationRequest[] memory delegationRequests =
+                _delegationRequest(sharesOwner, negCollateralAmount128, ownerSharesPostBurn, totalSupplyPostBurn);
 
-            // NB: This needs to be done as a separate step prior to withdrawCollateral() because of the `MIN_DELEGATION_AMOUNT`
-            // Otherwise MonoCooler could revert as it may try and undelegate more than it's trying to withdraw in order to bring
+            // NB: This needs to be done as a separate step prior to withdrawCollateral() because of the
+            // `MIN_DELEGATION_AMOUNT` Otherwise MonoCooler could revert as it may try and undelegate more than it's
+            // trying to withdraw in order to bring
             // the delegation to zero
             if (delegationRequests.length != 0) cooler.applyDelegations(delegationRequests, address(this));
         }
@@ -342,9 +328,9 @@ contract OrigamiHOhmManager is
 
     /// @inheritdoc IOrigamiHOhmManager
     function updateDelegateAndAmount(
-        address account, 
-        uint256 accountShares, 
-        uint256 totalSupply, 
+        address account,
+        uint256 accountShares,
+        uint256 totalSupply,
         address newDelegateAddress
     ) external override onlyVault {
         _applyDelegations(
@@ -357,15 +343,14 @@ contract OrigamiHOhmManager is
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function setDelegationAmount1(
-        address account,
-        uint256 accountShares,
-        uint256 totalSupply
-    ) external override onlyVault {
+    function setDelegationAmount1(address account, uint256 accountShares, uint256 totalSupply)
+        external
+        override
+        onlyVault
+    {
         _applyDelegations(
             delegations[account].syncAccountAmount(
-                account,
-                _convertSharesToCollateral(accountShares, collateralTokenBalance(), totalSupply, true)
+                account, _convertSharesToCollateral(accountShares, collateralTokenBalance(), totalSupply, true)
             )
         );
     }
@@ -398,46 +383,41 @@ contract OrigamiHOhmManager is
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function vault() external override view returns (address) {
+    function vault() external view override returns (address) {
         return address(_vault);
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function areJoinsPaused() external virtual override view returns (bool) {
+    function areJoinsPaused() external view virtual override returns (bool) {
         return _paused.investmentsPaused;
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function areExitsPaused() external virtual override view returns (bool) {
+    function areExitsPaused() external view virtual override returns (bool) {
         return _paused.exitsPaused;
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function debtTokenBalance() external override view returns (uint256) {
+    function debtTokenBalance() external view override returns (uint256) {
         // Convert the debt into the debt token units, rounding up
-        uint256 _coolerDebtInDebtTokens = OrigamiMath.scaleDown(
-            coolerDebtInWad(),
-            debtTokenDecimalsToWadScalar,
-            OrigamiMath.Rounding.ROUND_UP
-        );
+        uint256 _coolerDebtInDebtTokens =
+            OrigamiMath.scaleDown(coolerDebtInWad(), debtTokenDecimalsToWadScalar, OrigamiMath.Rounding.ROUND_UP);
         uint256 _surplus = surplusDebtTokenAmount();
 
         // Since:
         //  - The cooler debt could be repaid by someone else
         //  - The surplus just trackes current token balances
         // Either is a donation which will change the [debtToken per hOHM] share price
-        return _coolerDebtInDebtTokens > _surplus
-            ? _coolerDebtInDebtTokens - _surplus
-            : 0;
+        return _coolerDebtInDebtTokens > _surplus ? _coolerDebtInDebtTokens - _surplus : 0;
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function coolerDebtInWad() public override view returns (uint128) {
+    function coolerDebtInWad() public view override returns (uint128) {
         return cooler.accountDebt(address(this));
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function surplusDebtTokenAmount() public override view returns (uint256 surplus) {
+    function surplusDebtTokenAmount() public view override returns (uint256 surplus) {
         IERC20 _debtToken = debtToken;
         IERC4626 _savingsVault = debtTokenSavingsVault;
         bool hasSavingsVault = address(_savingsVault) != address(0);
@@ -461,59 +441,47 @@ contract OrigamiHOhmManager is
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function collateralTokenBalance() public override view returns (uint256) {
+    function collateralTokenBalance() public view override returns (uint256) {
         // Donations are allowed - if someone adds collateral into cooler on this contracts behalf.
         // A donation will change the [collateral token per hOHM] share price
         return cooler.accountCollateral(address(this));
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function convertSharesToCollateral(
-        uint256 shares,
-        uint256 totalSupply
-    ) public override view returns (uint256) {
-        return _convertSharesToCollateral(
-            shares,
-            collateralTokenBalance(),
-            totalSupply,
-            false
-        );
+    function convertSharesToCollateral(uint256 shares, uint256 totalSupply) public view override returns (uint256) {
+        return _convertSharesToCollateral(shares, collateralTokenBalance(), totalSupply, false);
     }
 
     /// @inheritdoc IOrigamiHOhmManager
-    function accountDelegationBalances(
-        address account,
-        uint256 shares,
-        uint256 totalSupply
-    ) external override view returns (
-        uint256 totalCollateral,
-        address delegateAddress,
-        uint256 delegatedCollateral
-    ) {
+    function accountDelegationBalances(address account, uint256 shares, uint256 totalSupply)
+        external
+        view
+        override
+        returns (uint256 totalCollateral, address delegateAddress, uint256 delegatedCollateral)
+    {
         totalCollateral = convertSharesToCollateral(shares, totalSupply);
         OlympusCoolerDelegation.Data memory delegation = delegations[account];
         (delegateAddress, delegatedCollateral) = (delegation.delegateAddress, delegation.amount);
     }
 
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public override pure returns (bool) {
-        return interfaceId == type(IOrigamiHOhmManager).interfaceId
-            || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        return interfaceId == type(IOrigamiHOhmManager).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     /// @dev Perform either a borrow or repayment in the cooler, in order to get the LTV
     /// as close to the cooler max Origination LTV as possible, given an amount of added/removed collateral
     /// and a required of raw debtTokens (not in the savings vault) to be available in this contract.
-    /// 
+    ///
     /// This will withdraw the required debtToken from the `debtTokenSavingsVault` if required.
-    /// @param changeInCollateral The change in `collateralToken` to use when solving for the required change 
+    /// @param changeInCollateral The change in `collateralToken` to use when solving for the required change
     ///        in debt to hit max origination LTV in cooler, in the native decimals of the collateralToken
     /// @param requiredDebtTokenAmount The amount of `debtToken` required to be available in the contract
     ///        after the cooler borrow or repay
-    function _coolerMaxBorrow(
-        int128 changeInCollateral, 
-        uint256 requiredDebtTokenAmount
-    ) private returns (int128 debtDeltaInWad) {
+    function _coolerMaxBorrow(int128 changeInCollateral, uint256 requiredDebtTokenAmount)
+        private
+        returns (int128 debtDeltaInWad)
+    {
         // Calculate the change in debt (always 18dp regardless of the token) in order to get the LTV
         // to the max cooler origination LTV.
         debtDeltaInWad = cooler.debtDeltaForMaxOriginationLtv(address(this), changeInCollateral);
@@ -523,7 +491,8 @@ contract OrigamiHOhmManager is
             // A positive `debtDeltaInWad` means we have surplus which can be borrowed to the Origination LTV
             cooler.borrow(uint128(debtDeltaInWad), address(this), address(this));
 
-            // Sync any surplus debtToken into savings, leaving the requiredDebtTokenAmount as raw debtTokens to send to the receiver
+            // Sync any surplus debtToken into savings, leaving the requiredDebtTokenAmount as raw debtTokens to send to
+            // the receiver
             _syncSavings(requiredDebtTokenAmount);
         } else if (debtDeltaInWad < 0) {
             // A negative `debtDeltaInWad` means we need to repay that amount to get to the Origination LTV
@@ -532,18 +501,15 @@ contract OrigamiHOhmManager is
             // the requiredDebtTokenAmount to send the reciever + the amount we want to repay.
             // Convert `debtDeltaInWad` into the debt token decimals, rounding up to ensure there's enough
             uint128 repayAmountWad = uint128(-debtDeltaInWad);
-            uint256 repayAmountNative = OrigamiMath.scaleDown(
-                repayAmountWad,
-                debtTokenDecimalsToWadScalar,
-                OrigamiMath.Rounding.ROUND_UP
-            );
+            uint256 repayAmountNative =
+                OrigamiMath.scaleDown(repayAmountWad, debtTokenDecimalsToWadScalar, OrigamiMath.Rounding.ROUND_UP);
 
             _syncSavings(requiredDebtTokenAmount + repayAmountNative);
 
             // And then repay
             // In the case where there is not enough debtToken to repay, this will (intentionally) revert.
-            // The surplus is expected to always be growing/replenishing, if not it means Cooler interest rate is increasing
-            // faster than the Olympus treasury, then Cooler no longer has product market fit.
+            // The surplus is expected to always be growing/replenishing, if not it means Cooler interest rate is
+            // increasing faster than the Olympus treasury, then Cooler no longer has product market fit.
             // Debt repayment will need to be funded from external sources for remaining users to exit.
             cooler.repay(repayAmountWad, address(this));
         }
@@ -594,10 +560,7 @@ contract OrigamiHOhmManager is
 
     // @dev Set the debtToken and debtTokenSavingsVault, along with setting
     // max approvals for those.
-    function _setDebtTokenAndSavings(
-        IERC20 newDebtToken,
-        IERC4626 newDebtTokenSavingsVault
-    ) private {
+    function _setDebtTokenAndSavings(IERC20 newDebtToken, IERC4626 newDebtTokenSavingsVault) private {
         uint8 _decimals = IERC20Metadata(address(newDebtToken)).decimals();
         if (_decimals > OrigamiMath.WAD_DECIMALS) revert CommonEventsAndErrors.InvalidToken(address(newDebtToken));
         debtToken = newDebtToken;
@@ -613,13 +576,12 @@ contract OrigamiHOhmManager is
             }
             newDebtToken.safeApprove(address(newDebtTokenSavingsVault), type(uint256).max);
         }
+
+        _vault.updateCurrentTokensHash();
     }
 
     /// @dev Use the entire balance rather maxRedeem, so this amount isn't capped by redemption limits
-    function _uncappedSavingsVaultBalance(
-        IERC4626 sVault, 
-        address account
-    ) private view returns (uint256 balance) {
+    function _uncappedSavingsVaultBalance(IERC4626 sVault, address account) private view returns (uint256 balance) {
         uint256 savingsSurplus = sVault.balanceOf(account);
         if (savingsSurplus > 0) {
             balance = sVault.previewRedeem(savingsSurplus);
@@ -645,13 +607,7 @@ contract OrigamiHOhmManager is
             if (newTotalCollateral < 0) revert CommonEventsAndErrors.InvalidParam();
 
             delegationRequests = $delegation.syncAccountAmount(
-                account,
-                _convertSharesToCollateral(
-                    newAccountShares,
-                    uint256(newTotalCollateral),
-                    newTotalSupply,
-                    true
-                )
+                account, _convertSharesToCollateral(newAccountShares, uint256(newTotalCollateral), newTotalSupply, true)
             );
         }
 
@@ -663,7 +619,7 @@ contract OrigamiHOhmManager is
             cooler.applyDelegations(requests, address(this));
         }
     }
-    
+
     modifier onlyVault() {
         if (msg.sender != address(_vault)) revert CommonEventsAndErrors.InvalidAccess();
         _;

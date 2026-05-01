@@ -12,7 +12,7 @@ import { IOrigamiVestingReserves } from "contracts/interfaces/investments/IOriga
  * @notice A manager for auto-compounding strategies on Infrared Vaults that handles staking of user
  * deposits and restaking of claimed rewards.
  */
-interface IOrigamiInfraredVaultManager is 
+interface IOrigamiInfraredVaultManager is
     IOrigamiCompoundingVaultManager,
     IOrigamiSwapCallback,
     IOrigamiVestingReserves

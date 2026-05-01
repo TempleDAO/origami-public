@@ -14,7 +14,7 @@ import { Chainlink } from "contracts/libraries/Chainlink.sol";
  * @notice The historic price is fixed to an expected value (eg 1 for DAI/USD).
  * The spot price references a Chainlink Oracle
  * If the spot price falls outside of a policy-expected price range, then the price lookup will revert.
- * 
+ *
  * @dev Note the Chainlink lib is only suitable for mainnet. If a Chainlink Oracle is required on
  * an L2, then it should also take the sequencer staleness into consideration.
  * eg: https://docs.chain.link/data-feeds/l2-sequencer-feeds#example-code
@@ -34,7 +34,8 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
     IAggregatorV3Interface public immutable spotPriceOracle;
 
     /**
-     * @notice True if the `spotPriceOracle` price should be scaled down by `spotPricePrecisionScalar` to match `decimals`
+     * @notice True if the `spotPriceOracle` price should be scaled down by `spotPricePrecisionScalar` to match
+     * `decimals`
      */
     bool public immutable spotPricePrecisionScaleDown;
 
@@ -67,7 +68,7 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
      */
     Range.Data public validSpotPriceRange;
 
-    constructor (
+    constructor(
         address _initialOwner,
         BaseOracleParams memory baseParams,
         uint256 _stableHistoricPrice,
@@ -76,17 +77,11 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
         Range.Data memory _validSpotPriceRange,
         bool _validateRoundId,
         bool _validateLastUpdatedAt
-    )
-        OrigamiOracleBase(baseParams)
-        OrigamiElevatedAccess(_initialOwner)
-    {
+    ) OrigamiOracleBase(baseParams) OrigamiElevatedAccess(_initialOwner) {
         stableHistoricPrice = _stableHistoricPrice;
         spotPriceOracle = IAggregatorV3Interface(_spotPriceOracle);
         spotPriceStalenessThreshold = _spotPriceStalenessThreshold;
-        (spotPricePrecisionScalar, spotPricePrecisionScaleDown) = Chainlink.scalingFactor(
-            spotPriceOracle, 
-            decimals
-        );
+        (spotPricePrecisionScalar, spotPricePrecisionScaleDown) = Chainlink.scalingFactor(spotPriceOracle, decimals);
         validateRoundId = _validateRoundId;
         validateLastUpdatedAt = _validateLastUpdatedAt;
         validSpotPriceRange.set(_validSpotPriceRange.floor, _validSpotPriceRange.ceiling);
@@ -97,10 +92,10 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
      * @dev Any price outside of this range for that oracle will revert when `latestPrice()` is called
      * with priceType=SPOT_PRICE
      */
-    function setValidSpotPriceRange(
-        uint128 _validSpotPriceFloor, 
-        uint128 _validSpotPriceCeiling
-    ) external onlyElevatedAccess {
+    function setValidSpotPriceRange(uint128 _validSpotPriceFloor, uint128 _validSpotPriceCeiling)
+        external
+        onlyElevatedAccess
+    {
         emit ValidPriceRangeSet(_validSpotPriceFloor, _validSpotPriceCeiling);
         validSpotPriceRange.set(_validSpotPriceFloor, _validSpotPriceCeiling);
     }
@@ -109,27 +104,34 @@ contract OrigamiStableChainlinkOracle is OrigamiOracleBase, OrigamiElevatedAcces
      * @notice Return the latest oracle price, to `decimals` precision
      * @dev This may still revert - eg if deemed stale, div by 0, negative price
      * @param priceType What kind of price - Spot or Historic
-     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified direction.
+     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified
+     * direction.
      */
-    function latestPrice(
-        PriceType priceType, 
-        OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256 price) {
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode)
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         if (priceType == PriceType.SPOT_PRICE) {
             price = Chainlink.price(
                 Chainlink.Config(
-                    spotPriceOracle, 
-                    spotPricePrecisionScaleDown, 
+                    spotPriceOracle,
+                    spotPricePrecisionScaleDown,
                     spotPricePrecisionScalar,
-                    spotPriceStalenessThreshold, 
+                    spotPriceStalenessThreshold,
                     validateRoundId,
                     validateLastUpdatedAt
                 ),
                 roundingMode
             );
             Range.Data memory _validSpotPriceRange = validSpotPriceRange;
-            if (price < _validSpotPriceRange.floor) revert BelowMinValidRange(address(spotPriceOracle), price, _validSpotPriceRange.floor);
-            if (price > _validSpotPriceRange.ceiling) revert AboveMaxValidRange(address(spotPriceOracle), price, _validSpotPriceRange.ceiling);
+            if (price < _validSpotPriceRange.floor) {
+                revert BelowMinValidRange(address(spotPriceOracle), price, _validSpotPriceRange.floor);
+            }
+            if (price > _validSpotPriceRange.ceiling) {
+                revert AboveMaxValidRange(address(spotPriceOracle), price, _validSpotPriceRange.ceiling);
+            }
         } else if (priceType == PriceType.HISTORIC_PRICE) {
             return stableHistoricPrice;
         } else {

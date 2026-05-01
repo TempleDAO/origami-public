@@ -13,7 +13,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.ORIBGT.TOKEN,
+    ADDRS.VAULTS.ORIBGT.TOKEN.address,
     ADDRS.EXTERNAL.INFRARED.IBGT_TOKEN,
     ADDRS.EXTERNAL.INFRARED.IBGT_VAULT,
     ADDRS.CORE.FEE_COLLECTOR,

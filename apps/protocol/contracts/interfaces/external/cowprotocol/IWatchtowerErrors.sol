@@ -1,7 +1,9 @@
 pragma solidity >=0.8.0 <0.9.0;
+
 // SPDX-License-Identifier: MIT
 
-// @note Used by watchtower: https://github.com/cowprotocol/watch-tower/blob/90ecbf5de87447657a36dfcd49a714b1b5105380/src/utils/contracts.ts#L93
+// @note Used by watchtower:
+// https://github.com/cowprotocol/watch-tower/blob/90ecbf5de87447657a36dfcd49a714b1b5105380/src/utils/contracts.ts#L93
 
 /**
  * @title Watchtower Errors Interface

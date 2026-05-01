@@ -7,7 +7,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockErc4626VaultWithFees is OrigamiErc4626 {
     uint256 private _depositFeeBps;
     uint256 private _exitFeeBps;
-    
+
     bool private _areDepositsPaused;
     bool private _areWithdrawalsPaused;
 
@@ -18,8 +18,7 @@ contract MockErc4626VaultWithFees is OrigamiErc4626 {
         IERC20 asset_,
         uint256 depositFeeBps_,
         uint256 exitFeeBps_
-    ) OrigamiErc4626(initialOwner_, name_, symbol_, asset_)
-    {
+    ) OrigamiErc4626(initialOwner_, name_, symbol_, asset_) {
         _depositFeeBps = depositFeeBps_;
         _exitFeeBps = exitFeeBps_;
     }
@@ -29,20 +28,19 @@ contract MockErc4626VaultWithFees is OrigamiErc4626 {
         _areWithdrawalsPaused = withdrawals;
     }
 
-    function areDepositsPaused() public override view returns (bool) {
+    function areDepositsPaused() public view override returns (bool) {
         return _areDepositsPaused;
     }
 
-    function areWithdrawalsPaused() public override view returns (bool) {
+    function areWithdrawalsPaused() public view override returns (bool) {
         return _areWithdrawalsPaused;
     }
 
-    function depositFeeBps() public override view returns (uint256) {
+    function depositFeeBps() public view override returns (uint256) {
         return _depositFeeBps;
     }
 
-    function withdrawalFeeBps() public override view returns (uint256) {
+    function withdrawalFeeBps() public view override returns (uint256) {
         return _exitFeeBps;
     }
-
 }

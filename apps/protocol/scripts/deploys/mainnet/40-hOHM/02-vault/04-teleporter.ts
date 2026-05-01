@@ -15,7 +15,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     ADDRS.EXTERNAL.LAYER_ZERO.ENDPOINT,
     await owner.getAddress(),
   );

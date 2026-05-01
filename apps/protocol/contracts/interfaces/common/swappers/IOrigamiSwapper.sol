@@ -5,7 +5,7 @@ pragma solidity ^0.8.4;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @notice An on chain swapper contract to integrate with the 1Inch router | 0x proxy, 
+ * @notice An on chain swapper contract to integrate with the 1Inch router | 0x proxy,
  * possibly others which obtain quote calldata offchain and then execute via a low level call
  * to perform the swap onchain
  */
@@ -27,10 +27,7 @@ interface IOrigamiSwapper {
      * @notice Execute the swap per the instructions in `swapData`
      * @dev Implementations MAY require `sellToken` to be transferred to the swapper contract prior to execution
      */
-    function execute(
-        IERC20 sellToken, 
-        uint256 sellTokenAmount, 
-        IERC20 buyToken,
-        bytes memory swapData
-    ) external returns (uint256 buyTokenAmount);
+    function execute(IERC20 sellToken, uint256 sellTokenAmount, IERC20 buyToken, bytes memory swapData)
+        external
+        returns (uint256 buyTokenAmount);
 }

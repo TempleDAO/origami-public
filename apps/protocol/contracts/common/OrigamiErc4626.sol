@@ -29,21 +29,16 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
  *  - Permit support
  *  - IERC165 support
  *  - Reentrancy guard on deposit/mint/withdraw/redeem
- *  - maxRedeem & maxWithdraw for address(0) returns the total vault capacity (given any caps within the implementation) 
+ *  - maxRedeem & maxWithdraw for address(0) returns the total vault capacity (given any caps within the implementation)
  *    which can be withdrawn/redeemed (rather than always returning zero)
- * 
+ *
  * For the reference implementation, see:
- *  - https://github.com/OpenZeppelin/openzeppelin-contracts/blob/cae60c595b37b1e7ed7dd50ad0257387ec07c0cf/contracts/token/ERC20/extensions/ERC4626.sol
- *  - https://github.com/OpenZeppelin/openzeppelin-contracts/blob/cae60c595b37b1e7ed7dd50ad0257387ec07c0cf/contracts/token/ERC20/extensions/ERC20Permit.sol
+ *  -
+ * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/cae60c595b37b1e7ed7dd50ad0257387ec07c0cf/contracts/token/ERC20/extensions/ERC4626.sol
+ *  -
+ * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/cae60c595b37b1e7ed7dd50ad0257387ec07c0cf/contracts/token/ERC20/extensions/ERC20Permit.sol
  */
-contract OrigamiErc4626 is 
-    ERC20, 
-    IERC4626,
-    EIP712,
-    ReentrancyGuard,
-    OrigamiElevatedAccess,
-    IOrigamiErc4626
-{
+contract OrigamiErc4626 is ERC20, IERC4626, EIP712, ReentrancyGuard, OrigamiElevatedAccess, IOrigamiErc4626 {
     using SafeERC20 for IERC20;
     using OrigamiMath for uint256;
 
@@ -63,22 +58,17 @@ contract OrigamiErc4626 is
     /// @dev The scalar to convert from `asset` decimals to 18 decimals
     uint256 private immutable _assetsToSharesScalar;
 
-    constructor(
-        address initialOwner_,
-        string memory name_,
-        string memory symbol_,
-        IERC20 asset_
-    ) 
+    constructor(address initialOwner_, string memory name_, string memory symbol_, IERC20 asset_)
         OrigamiElevatedAccess(initialOwner_)
         ERC20(name_, symbol_)
-        EIP712(name_, "1") 
+        EIP712(name_, "1")
     {
         uint8 _underlyingDecimals = IERC20Metadata(address(asset_)).decimals();
 
         // Only allow <= 18 decimal places in the underlying
         // This satisfies the virtual offset requirement where:
-        // > Said otherwise, we use more decimal places to represent the shares than the underlying token does to represent the assets.
-        // https://docs.openzeppelin.com/contracts/4.x/erc4626#defending_with_a_virtual_offset
+        // > Said otherwise, we use more decimal places to represent the shares than the underlying token does to
+        // represent the assets. https://docs.openzeppelin.com/contracts/4.x/erc4626#defending_with_a_virtual_offset
         if (_underlyingDecimals > DECIMALS) revert CommonEventsAndErrors.InvalidToken(address(asset_));
         _assetsToSharesScalar = 10 ** (DECIMALS - _underlyingDecimals);
 
@@ -94,11 +84,12 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function seedDeposit(
-        uint256 assets, 
-        address receiver, 
-        uint256 maxTotalSupply_
-    ) external override onlyElevatedAccess returns (uint256 shares) {
+    function seedDeposit(uint256 assets, address receiver, uint256 maxTotalSupply_)
+        external
+        override
+        onlyElevatedAccess
+        returns (uint256 shares)
+    {
         // Only to be used for the first deposit
         if (totalSupply() != 0) revert CommonEventsAndErrors.InvalidParam();
         if (assets == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -144,22 +135,38 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IERC4626
-    function maxDeposit(address /*receiver*/) public virtual override view returns (uint256 maxAssets) {
+    function maxDeposit(
+        address /*receiver*/
+    )
+        public
+        view
+        virtual
+        override
+        returns (uint256 maxAssets)
+    {
         return _maxDeposit(depositFeeBps());
     }
 
     /// @inheritdoc IERC4626
-    function maxMint(address /*receiver*/) public virtual override view returns (uint256 maxShares) {
+    function maxMint(
+        address /*receiver*/
+    )
+        public
+        view
+        virtual
+        override
+        returns (uint256 maxShares)
+    {
         return _maxMint();
     }
 
     /// @inheritdoc IERC4626
-    function maxWithdraw(address sharesOwner) public virtual override view returns (uint256 maxAssets) {
+    function maxWithdraw(address sharesOwner) public view virtual override returns (uint256 maxAssets) {
         return _maxWithdraw(sharesOwner, withdrawalFeeBps());
     }
 
     /// @inheritdoc IERC4626
-    function maxRedeem(address sharesOwner) public virtual override view returns (uint256 maxShares) {
+    function maxRedeem(address sharesOwner) public view virtual override returns (uint256 maxShares) {
         return _maxRedeem(sharesOwner);
     }
 
@@ -182,12 +189,9 @@ contract OrigamiErc4626 is
     function previewRedeem(uint256 shares) public view virtual override returns (uint256 assets) {
         (assets,) = _previewRedeem(shares, withdrawalFeeBps());
     }
-    
+
     /// @inheritdoc IERC4626
-    function deposit(
-        uint256 assets, 
-        address receiver
-    ) public virtual override nonReentrant returns (uint256) {
+    function deposit(uint256 assets, address receiver) public virtual override nonReentrant returns (uint256) {
         uint256 feeBps = depositFeeBps();
         uint256 maxAssets = _maxDeposit(feeBps);
         if (assets > maxAssets) {
@@ -205,15 +209,12 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IERC4626
-    function mint(
-        uint256 shares, 
-        address receiver
-    ) public virtual override nonReentrant returns (uint256) {
+    function mint(uint256 shares, address receiver) public virtual override nonReentrant returns (uint256) {
         uint256 maxShares = _maxMint();
         if (shares > maxShares) {
             revert ERC4626ExceededMaxMint(receiver, shares, maxShares);
         }
-        
+
         uint256 feeBps = depositFeeBps();
         (uint256 assets, uint256 shareFeesTaken) = _previewMint(shares, feeBps);
         if (shareFeesTaken > 0) {
@@ -226,11 +227,13 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IERC4626
-    function withdraw(
-        uint256 assets, 
-        address receiver, 
-        address sharesOwner
-    ) public virtual override nonReentrant returns (uint256) {
+    function withdraw(uint256 assets, address receiver, address sharesOwner)
+        public
+        virtual
+        override
+        nonReentrant
+        returns (uint256)
+    {
         uint256 feeBps = withdrawalFeeBps();
         uint256 maxAssets = _maxWithdraw(sharesOwner, feeBps);
         if (assets > maxAssets) {
@@ -248,11 +251,13 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IERC4626
-    function redeem(
-        uint256 shares, 
-        address receiver, 
-        address sharesOwner
-    ) public virtual override nonReentrant returns (uint256) {
+    function redeem(uint256 shares, address receiver, address sharesOwner)
+        public
+        virtual
+        override
+        nonReentrant
+        returns (uint256)
+    {
         uint256 feeBps = withdrawalFeeBps();
         uint256 maxShares = _maxRedeem(sharesOwner);
         if (shares > maxShares) {
@@ -273,29 +278,28 @@ contract OrigamiErc4626 is
     /*              EXT. IMPLEMENTATIONS TO OVERRIDE              */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-
     /// @inheritdoc IOrigamiErc4626
-    function depositFeeBps() public virtual override view returns (uint256) {
+    function depositFeeBps() public view virtual override returns (uint256) {
         return 0;
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function withdrawalFeeBps() public virtual override view returns (uint256) {
+    function withdrawalFeeBps() public view virtual override returns (uint256) {
         return 0;
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function maxTotalSupply() public virtual override view returns (uint256) {
+    function maxTotalSupply() public view virtual override returns (uint256) {
         return _maxTotalSupply;
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function areDepositsPaused() public virtual override view returns (bool) {
+    function areDepositsPaused() public view virtual override returns (bool) {
         return false;
     }
 
     /// @inheritdoc IOrigamiErc4626
-    function areWithdrawalsPaused() public virtual override view returns (bool) {
+    function areWithdrawalsPaused() public view virtual override returns (bool) {
         return false;
     }
 
@@ -319,7 +323,8 @@ contract OrigamiErc4626 is
             revert ERC2612ExpiredSignature(deadline);
         }
 
-        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, sharesOwner, spender, value, _useNonce(sharesOwner), deadline));
+        bytes32 structHash =
+            keccak256(abi.encode(PERMIT_TYPEHASH, sharesOwner, spender, value, _useNonce(sharesOwner), deadline));
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
@@ -332,13 +337,13 @@ contract OrigamiErc4626 is
     }
 
     /// @inheritdoc IERC20Permit
-    function nonces(address sharesOwner) public override view returns (uint256) {
+    function nonces(address sharesOwner) public view override returns (uint256) {
         return _nonces[sharesOwner];
     }
 
     /// @inheritdoc IERC20Permit
     // solhint-disable-next-line func-name-mixedcase
-    function DOMAIN_SEPARATOR() external override view virtual returns (bytes32) {
+    function DOMAIN_SEPARATOR() external view virtual override returns (bytes32) {
         return _domainSeparatorV4();
     }
 
@@ -347,11 +352,9 @@ contract OrigamiErc4626 is
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public virtual override pure returns (bool) {
-        return interfaceId == type(IERC4626).interfaceId 
-            || interfaceId == type(IERC20Permit).interfaceId
-            || interfaceId == type(EIP712).interfaceId
-            || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
+        return interfaceId == type(IERC4626).interfaceId || interfaceId == type(IERC20Permit).interfaceId
+            || interfaceId == type(EIP712).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     /**
@@ -390,8 +393,7 @@ contract OrigamiErc4626 is
         }
 
         return _convertToAssets(
-            availableShares.inverseSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_UP),
-            OrigamiMath.Rounding.ROUND_UP
+            availableShares.inverseSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_UP), OrigamiMath.Rounding.ROUND_UP
         );
     }
 
@@ -413,10 +415,7 @@ contract OrigamiErc4626 is
      * May be overridden to enforce other constraints, such as current assets available to withdraw
      * from the underlying asset deployment
      */
-    function _maxWithdraw(
-        address sharesOwner, 
-        uint256 feeBps
-    ) internal view returns (uint256 maxAssets) {
+    function _maxWithdraw(address sharesOwner, uint256 feeBps) internal view returns (uint256 maxAssets) {
         if (sharesOwner == address(0)) return type(uint256).max;
 
         uint256 shares = balanceOf(sharesOwner);
@@ -431,28 +430,28 @@ contract OrigamiErc4626 is
      * May be overridden to enforce other constraints, such as current assets available to withdraw
      * from the underlying asset deployment
      */
-    function _maxRedeem(
-        address sharesOwner
-    ) internal view returns (uint256 maxShares) {
-        return sharesOwner == address(0)
-            ? type(uint256).max
-            : balanceOf(sharesOwner);
+    function _maxRedeem(address sharesOwner) internal view returns (uint256 maxShares) {
+        return sharesOwner == address(0) ? type(uint256).max : balanceOf(sharesOwner);
     }
 
-    function _previewDeposit(uint256 assets, uint256 feeBps) internal virtual view returns (
-        uint256 shares,
-        uint256 shareFeesTaken
-    ) {
+    function _previewDeposit(uint256 assets, uint256 feeBps)
+        internal
+        view
+        virtual
+        returns (uint256 shares, uint256 shareFeesTaken)
+    {
         shares = _convertToShares(assets, OrigamiMath.Rounding.ROUND_DOWN);
 
         // Deposit fees are taken from the shares in kind
         (shares, shareFeesTaken) = shares.splitSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_DOWN);
     }
 
-    function _previewMint(uint256 shares, uint256 feeBps) internal virtual view returns (
-        uint256 assets,
-        uint256 shareFeesTaken
-    ) {
+    function _previewMint(uint256 shares, uint256 feeBps)
+        internal
+        view
+        virtual
+        returns (uint256 assets, uint256 shareFeesTaken)
+    {
         // Deposit fees are taken from the shares the user would otherwise receive
         // so calculate the amount of shares required before fees are taken.
         uint256 sharesPlusFees = shares.inverseSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_UP);
@@ -462,11 +461,12 @@ contract OrigamiErc4626 is
 
         assets = _convertToAssets(sharesPlusFees, OrigamiMath.Rounding.ROUND_UP);
     }
-    
-    function _previewWithdraw(uint256 assets, uint256 feeBps) internal view returns (
-        uint256 shares,
-        uint256 shareFeesTaken
-    ) {
+
+    function _previewWithdraw(uint256 assets, uint256 feeBps)
+        internal
+        view
+        returns (uint256 shares, uint256 shareFeesTaken)
+    {
         uint256 sharesExcludingFees = _convertToShares(assets, OrigamiMath.Rounding.ROUND_UP);
         // Withdrawal fees are taken from the shares the user redeems
         // so calculate the amount of shares required before fees are taken.
@@ -476,10 +476,11 @@ contract OrigamiErc4626 is
         }
     }
 
-    function _previewRedeem(uint256 shares, uint256 feeBps) internal view returns (
-        uint256 assets,
-        uint256 shareFeesTaken
-    ) {
+    function _previewRedeem(uint256 shares, uint256 feeBps)
+        internal
+        view
+        returns (uint256 assets, uint256 shareFeesTaken)
+    {
         (shares, shareFeesTaken) = shares.splitSubtractBps(feeBps, OrigamiMath.Rounding.ROUND_DOWN);
         assets = _convertToAssets(shares, OrigamiMath.Rounding.ROUND_DOWN);
     }
@@ -522,13 +523,10 @@ contract OrigamiErc4626 is
     /**
      * @dev Withdraw/redeem common workflow.
      */
-    function _withdraw(
-        address caller,
-        address receiver,
-        address sharesOwner,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual {
+    function _withdraw(address caller, address receiver, address sharesOwner, uint256 assets, uint256 shares)
+        internal
+        virtual
+    {
         if (receiver == address(0)) revert CommonEventsAndErrors.InvalidAddress(receiver);
         if (areWithdrawalsPaused()) revert CommonEventsAndErrors.IsPaused();
 
@@ -543,7 +541,7 @@ contract OrigamiErc4626 is
         // Conclusion: we need to do the transfer after the burn so that any reentrancy would happen after the
         // shares are burned and after the assets are transferred, which is a valid state.
         _burn(sharesOwner, shares);
-        
+
         // If the vault has been fully exited, then reset the maxTotalSupply to zero, as if it were newly created.
         if (totalSupply() == 0) _maxTotalSupply = 0;
 
@@ -555,10 +553,7 @@ contract OrigamiErc4626 is
     /**
      * @dev A hook for the implementation to pull and send assets to the receiver
      */
-    function _withdrawHook(
-        uint256 assets,
-        address receiver
-    ) internal virtual {
+    function _withdrawHook(uint256 assets, address receiver) internal virtual {
         // The default implementation assumes the assets are just sitting in this contract.
         SafeERC20.safeTransfer(_asset, receiver, assets);
     }

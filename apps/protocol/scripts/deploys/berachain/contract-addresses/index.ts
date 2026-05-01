@@ -3,26 +3,6 @@ import {
   TokenPrices, TokenPrices__factory,
   IERC20Metadata,
   IERC20Metadata__factory,
-  OrigamiBoycoUsdcManager,
-  OrigamiBoycoUsdcManager__factory,
-  OrigamiBalancerComposableStablePoolHelper,
-  OrigamiBeraBgtProxy,
-  IBalancerVault,
-  IBalancerQueries,
-  IBalancerBptToken,
-  IBeraRewardsVault,
-  OrigamiBalancerComposableStablePoolHelper__factory,
-  OrigamiBeraBgtProxy__factory,
-  IBalancerVault__factory,
-  IBalancerQueries__factory,
-  IBalancerBptToken__factory,
-  IBeraRewardsVault__factory,
-  IBeraHoneyFactory,
-  IBeraHoneyFactoryReader,
-  IBeraHoneyFactory__factory,
-  IBeraHoneyFactoryReader__factory,
-  OrigamiInfraredVaultProxy,
-  OrigamiInfraredVaultProxy__factory,
   OrigamiDelegated4626Vault,
   OrigamiInfraredVaultManager,
   OrigamiDelegated4626Vault__factory,
@@ -33,12 +13,6 @@ import {
   OrigamiSwapperWithCallback__factory,
   OrigamiInfraredAutoCompounderFactory,
   OrigamiInfraredAutoCompounderFactory__factory,
-  OrigamiLovToken,
-  OrigamiEulerV2BorrowAndLend,
-  OrigamiLovTokenMorphoManagerMarketAL,
-  OrigamiLovToken__factory,
-  OrigamiEulerV2BorrowAndLend__factory,
-  OrigamiLovTokenMorphoManagerMarketAL__factory,
   OrigamiErc4626Oracle,
   OrigamiErc4626Oracle__factory,
   OrigamiVolatileChainlinkOracle,
@@ -49,6 +23,8 @@ import {
   OrigamiAutoStakingFactory__factory,
   OrigamiOFT,
   OrigamiOFT__factory,
+  OrigamiAutoStakingToErc4626,
+  OrigamiAutoStakingToErc4626__factory,
 } from "../../../../typechain";
 import { Signer } from "ethers";
 import { ContractAddresses } from "./types";
@@ -93,15 +69,6 @@ export async function getDeployedContracts1(
   throw new Error(`No contracts configured for ${network.name}`);
 }
 
-interface IType {
-  TOKEN: OrigamiLovToken;
-};
-
-interface IEulerV2Type extends IType {
-  EULER_V2_BORROW_LEND: OrigamiEulerV2BorrowAndLend;
-  MANAGER: OrigamiLovTokenMorphoManagerMarketAL;
-}
-
 export interface ContractInstances {
   CORE: {
     TOKEN_PRICES: {
@@ -122,24 +89,12 @@ export interface ContractInstances {
     hOHM: {
       TOKEN: OrigamiOFT;
     };
-    BOYCO_USDC_A: {
-      BEX_POOL_HELPERS: {
-        HONEY_USDC: OrigamiBalancerComposableStablePoolHelper;
-        HONEY_BYUSD: OrigamiBalancerComposableStablePoolHelper;
-      };
-      INFRARED_REWARDS_VAULT_PROXIES: {
-        HONEY_USDC: OrigamiInfraredVaultProxy;
-        HONEY_BYUSD: OrigamiInfraredVaultProxy;
-      };
-      BERA_BGT_PROXY: OrigamiBeraBgtProxy;
-      TOKEN: OrigamiDelegated4626Vault;
-      MANAGER: OrigamiBoycoUsdcManager;
-    };
     ORIBGT: {
       TOKEN: OrigamiDelegated4626Vault;
       MANAGER: OrigamiInfraredVaultManager;
       SWAPPER: OrigamiSwapperWithCallback;
     };
+    INFRARED_AUTO_STAKING_HOHM_HONEY_A: OrigamiAutoStakingToErc4626;
   };
 
   FACTORIES: {
@@ -151,8 +106,6 @@ export interface ContractInstances {
     };
   };
 
-  LOV_ORIBGT_A: IEulerV2Type;
-
   EXTERNAL: {
     CIRCLE: {
       USDC_TOKEN: IERC20Metadata;
@@ -163,13 +116,7 @@ export interface ContractInstances {
     BERACHAIN: {
       WBERA_TOKEN: IERC20Metadata;
       HONEY_TOKEN: IERC20Metadata;
-      HONEY_FACTORY: IBeraHoneyFactory;
-      HONEY_FACTORY_READER: IBeraHoneyFactoryReader;
       BGT_TOKEN: IERC20Metadata;
-      REWARD_VAULTS: {
-        HONEY_USDC: IBeraRewardsVault;
-        HONEY_BYUSD: IBeraRewardsVault;
-      };
     };
     INFRARED: {
       IBGT_TOKEN: IERC20Metadata;
@@ -179,14 +126,6 @@ export interface ContractInstances {
         HONEY_USDC: IInfraredVault;
         HONEY_BYUSD: IInfraredVault;
         OHM_HONEY: IInfraredVault;
-      };
-    };
-    BEX: {
-      BALANCER_VAULT: IBalancerVault;
-      BALANCER_QUERIES: IBalancerQueries;
-      LP_TOKENS: {
-        HONEY_USDC: IBalancerBptToken;
-        HONEY_BYUSD: IBalancerBptToken;
       };
     };
   },
@@ -215,26 +154,14 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
 
     VAULTS: {
       hOHM: {
-        TOKEN: OrigamiOFT__factory.connect(ADDRS.VAULTS.hOHM.TOKEN, owner),
-      },
-      BOYCO_USDC_A: {
-        BEX_POOL_HELPERS: {
-          HONEY_USDC: OrigamiBalancerComposableStablePoolHelper__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.BEX_POOL_HELPERS.HONEY_USDC, owner),
-          HONEY_BYUSD: OrigamiBalancerComposableStablePoolHelper__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.BEX_POOL_HELPERS.HONEY_BYUSD, owner),
-        },
-        INFRARED_REWARDS_VAULT_PROXIES: {
-          HONEY_USDC: OrigamiInfraredVaultProxy__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.INFRARED_REWARDS_VAULT_PROXIES.HONEY_USDC, owner),
-          HONEY_BYUSD: OrigamiInfraredVaultProxy__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.INFRARED_REWARDS_VAULT_PROXIES.HONEY_BYUSD, owner),
-        },
-        BERA_BGT_PROXY: OrigamiBeraBgtProxy__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.BERA_BGT_PROXY, owner),
-        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN, owner),
-        MANAGER: OrigamiBoycoUsdcManager__factory.connect(ADDRS.VAULTS.BOYCO_USDC_A.MANAGER, owner),
+        TOKEN: OrigamiOFT__factory.connect(ADDRS.VAULTS.hOHM.TOKEN.address, owner),
       },
       ORIBGT: {
-        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.ORIBGT.TOKEN, owner),
+        TOKEN: OrigamiDelegated4626Vault__factory.connect(ADDRS.VAULTS.ORIBGT.TOKEN.address, owner),
         MANAGER: OrigamiInfraredVaultManager__factory.connect(ADDRS.VAULTS.ORIBGT.MANAGER, owner),
         SWAPPER: OrigamiSwapperWithCallback__factory.connect(ADDRS.VAULTS.ORIBGT.SWAPPER, owner),
       },
+      INFRARED_AUTO_STAKING_HOHM_HONEY_A: OrigamiAutoStakingToErc4626__factory.connect(ADDRS.VAULTS.INFRARED_AUTO_STAKING_HOHM_HONEY_A.VAULT.address, owner),
     },
 
     FACTORIES: {
@@ -244,12 +171,6 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       INFRARED_AUTO_STAKING: {
         FACTORY: OrigamiAutoStakingFactory__factory.connect(ADDRS.FACTORIES.INFRARED_AUTO_STAKING.FACTORY, owner),
       },
-    },
-
-    LOV_ORIBGT_A: {
-      TOKEN: OrigamiLovToken__factory.connect(ADDRS.LOV_ORIBGT_A.TOKEN, owner),
-      EULER_V2_BORROW_LEND: OrigamiEulerV2BorrowAndLend__factory.connect(ADDRS.LOV_ORIBGT_A.EULER_V2_BORROW_LEND, owner),
-      MANAGER: OrigamiLovTokenMorphoManagerMarketAL__factory.connect(ADDRS.LOV_ORIBGT_A.MANAGER, owner),
     },
 
     EXTERNAL: {
@@ -262,13 +183,7 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
       BERACHAIN: {
         WBERA_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.BERACHAIN.WBERA_TOKEN, owner),
         HONEY_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.BERACHAIN.HONEY_TOKEN, owner),
-        HONEY_FACTORY: IBeraHoneyFactory__factory.connect(ADDRS.EXTERNAL.BERACHAIN.HONEY_FACTORY, owner),
-        HONEY_FACTORY_READER: IBeraHoneyFactoryReader__factory.connect(ADDRS.EXTERNAL.BERACHAIN.HONEY_FACTORY_READER, owner),
         BGT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.BERACHAIN.BGT_TOKEN, owner),
-        REWARD_VAULTS: {
-          HONEY_USDC: IBeraRewardsVault__factory.connect(ADDRS.EXTERNAL.BERACHAIN.REWARD_VAULTS.HONEY_USDC, owner),
-          HONEY_BYUSD: IBeraRewardsVault__factory.connect(ADDRS.EXTERNAL.BERACHAIN.REWARD_VAULTS.HONEY_BYUSD, owner),
-        },
       },
       INFRARED: {
         IBGT_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.INFRARED.IBGT_TOKEN, owner),
@@ -276,16 +191,8 @@ export function connectToContracts1(owner: Signer, ADDRS: ContractAddresses): Co
         IBERA_TOKEN: IERC20Metadata__factory.connect(ADDRS.EXTERNAL.INFRARED.IBERA_TOKEN, owner),
         REWARD_VAULTS: {
           HONEY_USDC: IInfraredVault__factory.connect(ADDRS.EXTERNAL.INFRARED.REWARD_VAULTS.HONEY_USDC, owner),
-          HONEY_BYUSD: IInfraredVault__factory.connect(ADDRS.EXTERNAL.INFRARED.REWARD_VAULTS.HONEY_BYUSD, owner),
+          HONEY_BYUSD: IInfraredVault__factory.connect(ADDRS.EXTERNAL.INFRARED.REWARD_VAULTS.BYUSD_HONEY_BEX, owner),
           OHM_HONEY: IInfraredVault__factory.connect(ADDRS.EXTERNAL.INFRARED.REWARD_VAULTS.OHM_HONEY, owner),
-        },
-      },
-      BEX: {
-        BALANCER_VAULT: IBalancerVault__factory.connect(ADDRS.EXTERNAL.BEX.BALANCER_VAULT, owner),
-        BALANCER_QUERIES: IBalancerQueries__factory.connect(ADDRS.EXTERNAL.BEX.BALANCER_QUERIES, owner),
-        LP_TOKENS: {
-          HONEY_USDC: IBalancerBptToken__factory.connect(ADDRS.EXTERNAL.BEX.LP_TOKENS.HONEY_USDC, owner),
-          HONEY_BYUSD: IBalancerBptToken__factory.connect(ADDRS.EXTERNAL.BEX.LP_TOKENS.HONEY_BYUSD, owner),
         },
       },
     },

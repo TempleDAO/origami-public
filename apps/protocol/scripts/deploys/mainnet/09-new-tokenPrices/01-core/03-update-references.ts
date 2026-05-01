@@ -16,27 +16,15 @@ let ADDRS: ContractAddresses;
 let INSTANCES: ContractInstances;
 
 async function updateTokenPrices(owner: Signer) {
-  await mine(INSTANCES.LOV_SUSDE_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_SUSDE_B.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_USDE_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_USDE_B.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_WEETH_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_EZETH_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_WSTETH_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
-  await mine(INSTANCES.LOV_WOETH_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
+  // await mine(INSTANCES.LOV_SUSDE_A.TOKEN.setTokenPrices(ADDRS.CORE.TOKEN_PRICES.V2));
+  // ...
 }
   
 async function updateTokenPricesSafeBatch() {
   const batch = createSafeBatch(
     [
-      setTokenPrices(INSTANCES.LOV_SUSDE_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_SUSDE_B.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_USDE_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_USDE_B.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_WEETH_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_EZETH_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_WSTETH_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
-      setTokenPrices(INSTANCES.LOV_WOETH_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
+      // setTokenPrices(INSTANCES.LOV_SUSDE_A.TOKEN, ADDRS.CORE.TOKEN_PRICES.V2),
+      // ...
     ],
   );
 

@@ -49,7 +49,8 @@ async function joinWithGohm(
     vault.joinWithToken(
       assetToken.address,
       gohmAmountBN,
-      accountAddress
+      accountAddress,
+      await vault.currentTokensHash(),
     )
   );
 
@@ -102,7 +103,7 @@ async function dumpPrices() {
     ADDRS.EXTERNAL.WETH_TOKEN,
     ADDRS.EXTERNAL.OLYMPUS.OHM_TOKEN,
     ADDRS.EXTERNAL.OLYMPUS.GOHM_TOKEN,
-    ADDRS.VAULTS.hOHM.TOKEN
+    ADDRS.VAULTS.hOHM.TOKEN.address
   ]);
   console.log("Token Prices ($):");
   console.log("\tUSDS:", ethers.utils.formatUnits(prices[0], 30));

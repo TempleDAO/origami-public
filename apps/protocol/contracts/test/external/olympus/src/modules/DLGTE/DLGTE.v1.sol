@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-import {IERC20 as ERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Module} from "../../Kernel.sol";
-import {IDLGTEv1} from "contracts/interfaces/external/olympus/IDLGTE.v1.sol";
+import { IERC20 as ERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Module } from "../../Kernel.sol";
+import { IDLGTEv1 } from "contracts/interfaces/external/olympus/IDLGTE.v1.sol";
 
 /**
  * @title  Olympus Governance Delegation
@@ -31,55 +31,49 @@ abstract contract DLGTEv1 is Module, IDLGTEv1 {
     // ========= FUNCTIONS ========= //
 
     /// @inheritdoc IDLGTEv1
-    function setMaxDelegateAddresses(
-        address account,
-        uint32 maxDelegateAddresses
-    ) external virtual override;
+    function setMaxDelegateAddresses(address account, uint32 maxDelegateAddresses) external virtual override;
 
     /// @inheritdoc IDLGTEv1
     function depositUndelegatedGohm(address onBehalfOf, uint256 amount) external virtual override;
 
     /// @inheritdoc IDLGTEv1
-    function withdrawUndelegatedGohm(
-        address onBehalfOf,
-        uint256 amount,
-        uint256 autoRescindMaxNumDelegates
-    ) external virtual override;
+    function withdrawUndelegatedGohm(address onBehalfOf, uint256 amount, uint256 autoRescindMaxNumDelegates)
+        external
+        virtual
+        override;
 
     /// @inheritdoc IDLGTEv1
-    function applyDelegations(
-        address onBehalfOf,
-        DelegationRequest[] calldata delegationRequests
-    )
+    function applyDelegations(address onBehalfOf, DelegationRequest[] calldata delegationRequests)
         external
         virtual
         override
         returns (uint256 totalDelegated, uint256 totalUndelegated, uint256 undelegatedBalance);
 
     /// @inheritdoc IDLGTEv1
-    function rescindDelegations(
-        address onBehalfOf,
-        uint256 requestedUndelegatedBalance,
-        uint256 maxNumDelegates
-    ) external virtual override returns (uint256 totalRescinded, uint256 newUndelegatedBalance);
+    function rescindDelegations(address onBehalfOf, uint256 requestedUndelegatedBalance, uint256 maxNumDelegates)
+        external
+        virtual
+        override
+        returns (uint256 totalRescinded, uint256 newUndelegatedBalance);
 
     /// @inheritdoc IDLGTEv1
-    function policyAccountBalances(
-        address policy,
-        address account
-    ) external view virtual override returns (uint256 gOhmBalance);
+    function policyAccountBalances(address policy, address account)
+        external
+        view
+        virtual
+        override
+        returns (uint256 gOhmBalance);
 
     /// @inheritdoc IDLGTEv1
-    function accountDelegationsList(
-        address account,
-        uint256 startIndex,
-        uint256 maxItems
-    ) external view virtual override returns (AccountDelegation[] memory delegations);
+    function accountDelegationsList(address account, uint256 startIndex, uint256 maxItems)
+        external
+        view
+        virtual
+        override
+        returns (AccountDelegation[] memory delegations);
 
     /// @inheritdoc IDLGTEv1
-    function accountDelegationSummary(
-        address account
-    )
+    function accountDelegationSummary(address account)
         external
         view
         virtual
@@ -94,9 +88,7 @@ abstract contract DLGTEv1 is Module, IDLGTEv1 {
     function totalDelegatedTo(address delegate) external view virtual returns (uint256);
 
     /// @inheritdoc IDLGTEv1
-    function maxDelegateAddresses(
-        address account
-    ) external view virtual override returns (uint32 result);
+    function maxDelegateAddresses(address account) external view virtual override returns (uint32 result);
 
     /// @inheritdoc IDLGTEv1
     function gOHM() external view override returns (IERC20) {

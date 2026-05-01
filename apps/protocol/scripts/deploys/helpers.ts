@@ -1,5 +1,5 @@
 import { ethers, network, upgrades } from "hardhat";
-import { BaseContract, BigNumber, BigNumberish, Contract, ContractFactory, ContractTransaction } from "ethers";
+import { BaseContract, BigNumber, BigNumberish, Contract, ContractFactory, ContractReceipt, ContractTransaction } from "ethers";
 import { getImplementationAddress, ProxyKindOption } from '@openzeppelin/upgrades-core';
 import { isAddress } from "ethers/lib/utils";
 import axios from 'axios';
@@ -26,9 +26,10 @@ export function fromAtto(n: BigNumber): number {
   return Number.parseFloat(ethers.utils.formatUnits(n, 18));
 }
 
-export async function mine(tx: Promise<ContractTransaction>) {
-  console.log(`Mining transaction: ${(await tx).hash}`);
-  await (await tx).wait();
+export async function mine(tx: Promise<ContractTransaction>): Promise<ContractReceipt> {
+  const aTx = await tx;
+  console.log(`Mining transaction: ${aTx.hash}`);
+  return aTx.wait();
 }
 
 const { AddressZero } = ethers.constants;
@@ -181,6 +182,7 @@ const expectedEnvvars: { [key: string]: string[] } = {
   bartio: ['BARTIO_ADDRESS_PRIVATE_KEY', 'BARTIO_RPC_URL'],
   cartio: ['CARTIO_ADDRESS_PRIVATE_KEY', 'CARTIO_RPC_URL'],
   berachain: ['BERACHAIN_ADDRESS_PRIVATE_KEY', 'BERACHAIN_RPC_URL'],
+  plasma: ['PLASMA_ADDRESS_PRIVATE_KEY', 'PLASMA_RPC_URL'],
   bepolia: ['BEPOLIA_ADDRESS_PRIVATE_KEY', 'BEPOLIA_RPC_URL'],
   anvil: [],
   localhost: [],
@@ -254,6 +256,14 @@ export async function setExplicitAccess(contract: Contract, allowedCaller: strin
       }
   });
   await mine(contract.setExplicitAccess(allowedCaller, access));
+}
+
+export async function setPauserEnabled(
+  managerContract: Contract,
+  account: string,
+  canPause: boolean,
+) {
+  await mine(managerContract.setPauser(account, canPause));
 }
 
 type TokenPricesArg = string | boolean | BigNumberish;

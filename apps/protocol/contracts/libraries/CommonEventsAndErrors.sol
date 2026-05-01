@@ -1,4 +1,5 @@
 pragma solidity ^0.8.19;
+
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (libraries/CommonEventsAndErrors.sol)
 
@@ -7,6 +8,7 @@ library CommonEventsAndErrors {
     error InsufficientBalance(address token, uint256 required, uint256 balance);
     error InvalidToken(address token);
     error InvalidParam();
+    error InvalidLength();
     error InvalidAddress(address addr);
     error InvalidAmount(address token, uint256 amount);
     error ExpectedNonZero();

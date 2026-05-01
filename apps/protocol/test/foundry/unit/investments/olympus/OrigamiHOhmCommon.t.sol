@@ -22,24 +22,19 @@ contract OrigamiHOhmCommon is OrigamiTest {
     //   11 [USDS/OHM] / 1000
     uint256 internal constant OHM_PER_GOHM = 269.24e18;
     uint256 internal constant SEED_GOHM_AMOUNT = 10e18;
-    uint256 internal constant SEED_HOHM_SHARES = SEED_GOHM_AMOUNT * OHM_PER_GOHM * 1_000 / OrigamiMath.WAD;
+    uint256 internal constant SEED_HOHM_SHARES = SEED_GOHM_AMOUNT * OHM_PER_GOHM * 1000 / OrigamiMath.WAD;
 
     // Intentionally at the starting cooler origination LTV
     // This means no surplus to start - but as the OLTV increases (per second) hOHM can borrow more from cooler.
-    uint256 internal constant SEED_USDS_AMOUNT = SEED_GOHM_AMOUNT * OlympusMonoCoolerDeployerLib.DEFAULT_OLTV / OrigamiMath.WAD;
+    uint256 internal constant SEED_USDS_AMOUNT =
+        SEED_GOHM_AMOUNT * OlympusMonoCoolerDeployerLib.DEFAULT_OLTV / OrigamiMath.WAD;
     uint256 internal constant MAX_TOTAL_SUPPLY = type(uint256).max;
 
     OrigamiHOhmVault internal vault;
     MockERC20 internal USDS;
     MockGohm internal gOHM;
 
-    event Join(
-        address indexed sender,
-        address indexed owner,
-        uint256[] assets,
-        uint256[] liabilities,
-        uint256 shares
-    );
+    event Join(address indexed sender, address indexed owner, uint256[] assets, uint256[] liabilities, uint256 shares);
 
     event Exit(
         address indexed sender,

@@ -19,7 +19,9 @@ import { MockSUsdsToken } from "contracts/test/external/maker/MockSUsdsToken.m.s
 import { TokenPrices } from "contracts/common/TokenPrices.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { IOrigamiHOhmVault } from "contracts/interfaces/investments/olympus/IOrigamiHOhmVault.sol";
-import { ITokenizedBalanceSheetVault } from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
+import {
+    ITokenizedBalanceSheetVault as ITBSV
+} from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
 
 import { OlympusMonoCoolerDeployerLib } from "test/foundry/unit/investments/olympus/OlympusMonoCoolerDeployerLib.m.sol";
 import { IOrigamiTokenizedBalanceSheetVault } from "contracts/interfaces/common/IOrigamiTokenizedBalanceSheetVault.sol";
@@ -49,6 +51,7 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
 
     address internal immutable OTHERS = makeAddr("OTHERS");
 
+    bytes32 internal tokenHash;
 
     event InKindFees(IOrigamiTokenizedBalanceSheetVault.FeeType feeType, uint256 feeBps, uint256 feeAmount);
     event DelegationApplied(address indexed account, address indexed delegate, int256 amount);
@@ -68,7 +71,9 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         ltvOracle = coolerContracts.ltvOracle;
 
         vm.prank(origamiMultisig);
-        ltvOracle.setOriginationLtvAt(uint96(uint256(11.5e18) * OHM_PER_GOHM / 1e18), uint32(vm.getBlockTimestamp()) + 182.5 days);
+        ltvOracle.setOriginationLtvAt(
+            uint96(uint256(11.5e18) * OHM_PER_GOHM / 1e18), uint32(vm.getBlockTimestamp()) + 182.5 days
+        );
 
         tokenPrices = new TokenPrices(30);
         tokenPrices.transferOwnership(origamiMultisig);
@@ -80,45 +85,31 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
     }
 
     function deployVault() internal {
-        vault = new OrigamiHOhmVault(
-            origamiMultisig, 
-            "Origami hOHM", 
-            "hOHM",
-            address(gOHM),
-            address(tokenPrices)
-        );
+        vault = new OrigamiHOhmVault(origamiMultisig, "Origami hOHM", "hOHM", address(gOHM), address(tokenPrices));
 
         manager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(sUSDS),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(sUSDS), PERFORMANCE_FEE, feeCollector
         );
 
         vm.startPrank(origamiMultisig);
         vault.setManager(address(manager));
+        tokenHash = vault.currentTokensHash();
         manager.setExitFees(EXIT_FEE_BPS);
 
-        tokenPrices.setTokenPriceFunction(
-            address(USDS),
-            abi.encodeCall(TokenPrices.scalar, (0.999e30))
-        );
-        tokenPrices.setTokenPriceFunction(
-            address(OHM),
-            abi.encodeCall(TokenPrices.scalar, (22.5e30))
-        );
+        tokenPrices.setTokenPriceFunction(address(USDS), abi.encodeCall(TokenPrices.scalar, (0.999e30)));
+        tokenPrices.setTokenPriceFunction(address(OHM), abi.encodeCall(TokenPrices.scalar, (22.5e30)));
         tokenPrices.setTokenPriceFunction(
             address(gOHM),
-            abi.encodeCall(TokenPrices.mul, (
-                abi.encodeCall(TokenPrices.tokenPrice, (address(OHM))),
-                abi.encodeCall(TokenPrices.scalar, (OHM_PER_GOHM * 10 ** (30-18)))
-            ))
+            abi.encodeCall(
+                TokenPrices.mul,
+                (
+                    abi.encodeCall(TokenPrices.tokenPrice, (address(OHM))),
+                    abi.encodeCall(TokenPrices.scalar, (OHM_PER_GOHM * 10 ** (30 - 18)))
+                )
+            )
         );
         tokenPrices.setTokenPriceFunction(
-            address(vault),
-            abi.encodeCall(TokenPrices.tokenizedBalanceSheetTokenPrice, (address(vault)))
+            address(vault), abi.encodeCall(TokenPrices.tokenizedBalanceSheetTokenPrice, (address(vault)))
         );
 
         vm.stopPrank();
@@ -133,7 +124,7 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         vm.startPrank(account);
         gOHM.mint(account, assetAmounts[0]);
         gOHM.approve(address(vault), assetAmounts[0]);
-        vault.seed(assetAmounts, liabilityAmounts, SEED_HOHM_SHARES, account, maxSupply);
+        vault.seed(assetAmounts, liabilityAmounts, SEED_HOHM_SHARES, account, maxSupply, "");
         vm.stopPrank();
     }
 
@@ -147,13 +138,16 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(true, true));
         manager.setDebtTokenFromCooler(address(0));
-        vault.setManager(address(manager));
+
         (address[] memory aTokens, address[] memory lTokens) = vault.tokens();
         assertEq(aTokens.length, 1);
         assertEq(aTokens[0], address(gOHM));
         assertEq(lTokens.length, 1);
         assertEq(lTokens[0], address(newDebtToken));
         manager.setPaused(IOrigamiManagerPausable.Paused(false, false));
+
+        tokenHash = vault.currentTokensHash();
+        assertEq(tokenHash, keccak256(abi.encode(aTokens, lTokens)));
         vm.stopPrank();
     }
 
@@ -172,11 +166,8 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         uint256 expectedAsset1,
         uint256 expectedLiability1
     ) internal view {
-        (
-            uint256 shares,
-            uint256[] memory assets,
-            uint256[] memory liabilities
-        ) = vault.convertFromToken(address(token), tokenAmount);
+        (uint256 shares, uint256[] memory assets, uint256[] memory liabilities) =
+            vault.convertFromToken(address(token), tokenAmount);
 
         assertEq(shares, expectedShares, "convertFromToken::shares");
         assertEq(assets.length, 1, "convertFromToken::assets::length");
@@ -193,15 +184,11 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         assertEq(liabilities[0], l1, "convertFromShares::liabilities[0]");
     }
 
-    function checkPreviewJoinWithShares(
-        uint256 shares,
-        uint256 expectedAsset1,
-        uint256 expectedLiability1
-    ) internal view {
-        (
-            uint256[] memory assets,
-            uint256[] memory liabilities
-        ) = vault.previewJoinWithShares(shares);
+    function checkPreviewJoinWithShares(uint256 shares, uint256 expectedAsset1, uint256 expectedLiability1)
+        internal
+        view
+    {
+        (uint256[] memory assets, uint256[] memory liabilities) = vault.previewJoinWithShares(shares);
 
         assertEq(assets.length, 1, "previewJoinWithShares::assets::length");
         assertEq(assets[0], expectedAsset1, "previewJoinWithShares::assets[0]");
@@ -216,11 +203,8 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         uint256 expectedAsset1,
         uint256 expectedLiability1
     ) internal view {
-        (
-            uint256 shares,
-            uint256[] memory assets,
-            uint256[] memory liabilities
-        ) = vault.previewJoinWithToken(address(token), tokenAmount);
+        (uint256 shares, uint256[] memory assets, uint256[] memory liabilities) =
+            vault.previewJoinWithToken(address(token), tokenAmount);
 
         assertEq(shares, expectedShares, "previewJoinWithToken::shares");
         assertEq(assets.length, 1, "previewJoinWithToken::assets::length");
@@ -229,15 +213,11 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         assertEq(liabilities[0], expectedLiability1, "previewJoinWithToken::liabilities[0]");
     }
 
-    function checkPreviewExitWithShares(
-        uint256 shares,
-        uint256 expectedAsset1,
-        uint256 expectedLiability1
-    ) internal view {
-        (
-            uint256[] memory assets,
-            uint256[] memory liabilities
-        ) = vault.previewExitWithShares(shares);
+    function checkPreviewExitWithShares(uint256 shares, uint256 expectedAsset1, uint256 expectedLiability1)
+        internal
+        view
+    {
+        (uint256[] memory assets, uint256[] memory liabilities) = vault.previewExitWithShares(shares);
 
         assertEq(assets.length, 1, "previewExitWithShares::assets::length");
         assertEq(assets[0], expectedAsset1, "previewExitWithShares::assets[0]");
@@ -252,11 +232,8 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         uint256 expectedAsset1,
         uint256 expectedLiability1
     ) internal view {
-        (
-            uint256 shares,
-            uint256[] memory assets,
-            uint256[] memory liabilities
-        ) = vault.previewExitWithToken(address(token), tokenAmount);
+        (uint256 shares, uint256[] memory assets, uint256[] memory liabilities) =
+            vault.previewExitWithToken(address(token), tokenAmount);
 
         assertEq(shares, expectedShares, "previewExitWithToken::shares");
         assertEq(assets.length, 1, "previewExitWithToken::assets::length");
@@ -265,21 +242,12 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         assertEq(liabilities[0], expectedLiability1, "previewExitWithToken::liabilities[0]");
     }
 
-    function joinWithToken(
-        address account,
-        IERC20 token,
-        uint256 tokenAmount,
-        address receiver
-    ) internal returns (
-        uint256 shares,
-        uint256[] memory assets,
-        uint256[] memory liabilities
-    ) {
-        (
-            uint256 previewShares,
-            uint256[] memory previewAssets,
-            uint256[] memory previewLiabilities
-        ) = vault.previewJoinWithToken(address(token), tokenAmount);
+    function joinWithToken(address account, IERC20 token, uint256 tokenAmount, address receiver)
+        internal
+        returns (uint256 shares, uint256[] memory assets, uint256[] memory liabilities)
+    {
+        (uint256 previewShares, uint256[] memory previewAssets, uint256[] memory previewLiabilities) =
+            vault.previewJoinWithToken(address(token), tokenAmount);
 
         // Check that the input token amount matches the result
         _checkInputTokenAmount(token, tokenAmount, previewAssets, previewLiabilities);
@@ -297,7 +265,7 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
 
         vm.expectEmit(address(vault));
         emit Join(account, receiver, previewAssets, previewLiabilities, previewShares);
-        (shares, assets, liabilities) = vault.joinWithToken(address(token), tokenAmount, receiver);
+        (shares, assets, liabilities) = vault.joinWithToken(address(token), tokenAmount, receiver, tokenHash);
         vm.stopPrank();
 
         assertEq(shares, previewShares, "joinWithToken::shares");
@@ -311,21 +279,16 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
     }
 
     function joinWithShares(address account, uint256 shares, address receiver) internal {
-        (
-            uint256[] memory previewAssets,
-            uint256[] memory previewLiabilities
-        ) = vault.previewJoinWithShares(shares);
+        (uint256[] memory previewAssets, uint256[] memory previewLiabilities) = vault.previewJoinWithShares(shares);
 
         vm.startPrank(account);
         gOHM.mint(account, previewAssets[0]);
         gOHM.approve(address(vault), previewAssets[0]);
-        
+
         vm.expectEmit(address(vault));
         emit Join(account, receiver, previewAssets, previewLiabilities, shares);
-        (
-            uint256[] memory actualAssets,
-            uint256[] memory actualLiabilities
-        ) = vault.joinWithShares(shares, receiver);
+        (uint256[] memory actualAssets, uint256[] memory actualLiabilities) =
+            vault.joinWithShares(shares, receiver, tokenHash);
         vm.stopPrank();
 
         assertEq(actualAssets.length, previewAssets.length);
@@ -334,16 +297,22 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         assertEq(actualLiabilities[0], previewLiabilities[0]);
     }
 
-    function exitWithToken(address caller, address sharesOwner, IERC20 token, uint256 tokenAmount, address receiver) internal {
+    function exitWithToken(address caller, address sharesOwner, IERC20 token, uint256 tokenAmount, address receiver)
+        internal
+    {
         exitWithToken(caller, sharesOwner, token, tokenAmount, receiver, USDS);
     }
 
-    function exitWithToken(address caller, address sharesOwner, IERC20 token, uint256 tokenAmount, address receiver, IERC20 debtToken) internal {
-        (
-            uint256 previewShares,
-            uint256[] memory previewAssets,
-            uint256[] memory previewLiabilities
-        ) = vault.previewExitWithToken(address(token), tokenAmount);
+    function exitWithToken(
+        address caller,
+        address sharesOwner,
+        IERC20 token,
+        uint256 tokenAmount,
+        address receiver,
+        IERC20 debtToken
+    ) internal {
+        (uint256 previewShares, uint256[] memory previewAssets, uint256[] memory previewLiabilities) =
+            vault.previewExitWithToken(address(token), tokenAmount);
 
         // Check that the input token amount matches the result
         _checkInputTokenAmount(token, tokenAmount, previewAssets, previewLiabilities);
@@ -351,27 +320,20 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
         // Assume the caller already has the debt tokens to repay.
         vm.startPrank(caller);
         debtToken.approve(address(vault), previewLiabilities[0]);
-        
+
         {
             (uint256 sharesNoFees,,) = vault.convertFromToken(address(token), tokenAmount);
             uint256 expectedFeeAmout = sharesNoFees > previewShares ? sharesNoFees - previewShares : 0;
             if (expectedFeeAmout > 0) {
                 vm.expectEmit(address(vault));
-                emit InKindFees(
-                    IOrigamiTokenizedBalanceSheetVault.FeeType.EXIT_FEE, 
-                    EXIT_FEE_BPS,
-                    expectedFeeAmout
-                );
+                emit InKindFees(IOrigamiTokenizedBalanceSheetVault.FeeType.EXIT_FEE, EXIT_FEE_BPS, expectedFeeAmout);
             }
         }
 
         vm.expectEmit(address(vault));
         emit Exit(caller, receiver, sharesOwner, previewAssets, previewLiabilities, previewShares);
-        (
-            uint256 actualShares,
-            uint256[] memory actualAssets,
-            uint256[] memory actualLiabilities
-        ) = vault.exitWithToken(address(token), tokenAmount, receiver, sharesOwner);
+        (uint256 actualShares, uint256[] memory actualAssets, uint256[] memory actualLiabilities) =
+            vault.exitWithToken(address(token), tokenAmount, receiver, sharesOwner, tokenHash);
         vm.stopPrank();
 
         assertEq(actualShares, previewShares);
@@ -385,33 +347,24 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
     }
 
     function exitWithShares(address caller, address sharesOwner, uint256 shares, address receiver) internal {
-        (
-            uint256[] memory previewAssets,
-            uint256[] memory previewLiabilities
-        ) = vault.previewExitWithShares(shares);
+        (uint256[] memory previewAssets, uint256[] memory previewLiabilities) = vault.previewExitWithShares(shares);
 
         // Assume the caller already has the debt tokens to repay.
         vm.startPrank(caller);
         USDS.approve(address(vault), previewLiabilities[0]);
-        
+
         {
             (, uint256 expectedFeeAmout) = shares.splitSubtractBps(EXIT_FEE_BPS, OrigamiMath.Rounding.ROUND_DOWN);
             if (expectedFeeAmout > 0) {
                 vm.expectEmit(address(vault));
-                emit InKindFees(
-                    IOrigamiTokenizedBalanceSheetVault.FeeType.EXIT_FEE, 
-                    EXIT_FEE_BPS,
-                    expectedFeeAmout
-                );
+                emit InKindFees(IOrigamiTokenizedBalanceSheetVault.FeeType.EXIT_FEE, EXIT_FEE_BPS, expectedFeeAmout);
             }
         }
 
         vm.expectEmit(address(vault));
         emit Exit(caller, receiver, sharesOwner, previewAssets, previewLiabilities, shares);
-        (
-            uint256[] memory actualAssets,
-            uint256[] memory actualLiabilities
-        ) = vault.exitWithShares(shares, receiver, sharesOwner);
+        (uint256[] memory actualAssets, uint256[] memory actualLiabilities) =
+            vault.exitWithShares(shares, receiver, sharesOwner, tokenHash);
         vm.stopPrank();
 
         assertEq(actualAssets.length, previewAssets.length);
@@ -421,16 +374,13 @@ contract OrigamiHOhmVaultTestBase is OrigamiHOhmCommon {
     }
 
     function check_accountDelegationBalances(
-        address account, 
+        address account,
         uint256 expectedTotalCollateral,
         address expectedDelegate,
         uint256 expectedDelegatedCollateral
     ) internal view {
-        (
-            uint256 totalCollateral,
-            address delegateAddress,
-            uint256 delegatedCollateral
-        ) = vault.accountDelegationBalances(account);
+        (uint256 totalCollateral, address delegateAddress, uint256 delegatedCollateral) =
+            vault.accountDelegationBalances(account);
         assertEq(totalCollateral, expectedTotalCollateral, "accountDelegationBalances::totalCollateral");
         assertEq(delegateAddress, expectedDelegate, "accountDelegationBalances::delegateAddress");
         assertEq(delegatedCollateral, expectedDelegatedCollateral, "accountDelegationBalances::delegatedCollateral");
@@ -441,13 +391,13 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
     event TokenPricesSet(address indexed tokenPrices);
     event ManagerSet(address indexed manager);
     event DebtTokenSet(address indexed debtToken);
-    
+
     function test_initialization() public view {
         assertEq(vault.owner(), origamiMultisig);
         assertEq(vault.name(), "Origami hOHM");
         assertEq(vault.symbol(), "hOHM");
         assertEq(vault.decimals(), 18);
-        
+
         assertEq(vault.maxTotalSupply(), type(uint256).max);
         assertEq(vault.areJoinsPaused(), false);
         assertEq(vault.areExitsPaused(), false);
@@ -455,10 +405,14 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
 
         checkBalanceSheet(SEED_GOHM_AMOUNT, SEED_USDS_AMOUNT);
 
-        checkConvertFromToken(gOHM, SEED_GOHM_AMOUNT*2, SEED_HOHM_SHARES*2, SEED_GOHM_AMOUNT*2, SEED_USDS_AMOUNT*2);
-        checkConvertFromToken(USDS, SEED_USDS_AMOUNT*2, SEED_HOHM_SHARES*2, SEED_GOHM_AMOUNT*2, SEED_USDS_AMOUNT*2);
+        checkConvertFromToken(
+            gOHM, SEED_GOHM_AMOUNT * 2, SEED_HOHM_SHARES * 2, SEED_GOHM_AMOUNT * 2, SEED_USDS_AMOUNT * 2
+        );
+        checkConvertFromToken(
+            USDS, SEED_USDS_AMOUNT * 2, SEED_HOHM_SHARES * 2, SEED_GOHM_AMOUNT * 2, SEED_USDS_AMOUNT * 2
+        );
 
-        checkConvertFromShares(SEED_HOHM_SHARES*100, SEED_GOHM_AMOUNT*100, SEED_USDS_AMOUNT*100);
+        checkConvertFromShares(SEED_HOHM_SHARES * 100, SEED_GOHM_AMOUNT * 100, SEED_USDS_AMOUNT * 100);
         checkConvertFromShares(1e18, 0.000003714158371712e18, 0.011e18);
 
         assertEq(vault.joinFeeBps(), 0);
@@ -474,11 +428,11 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
 
         // 5bps exit fees
         checkPreviewJoinWithShares(1e18, 0.000003714158371713e18, 0.011e18);
-        checkPreviewJoinWithToken(gOHM, 1e18, 269_240e18, 1e18, 2_961.64e18);
+        checkPreviewJoinWithToken(gOHM, 1e18, 269_240e18, 1e18, 2961.64e18);
         checkPreviewJoinWithToken(USDS, 1e18, 90.909090909090909091e18, 0.000337650761064816e18, 1e18);
         checkPreviewExitWithShares(1e18, 0.000003677016787995e18, 0.01089e18);
-        checkPreviewExitWithToken(gOHM, 1e18, 271_959.595959595959595960e18, 1e18, 2_961.64e18);
-        checkPreviewExitWithToken(USDS, 1e18, 91.827364554637281910e18, 0.000337650761064815e18, 1e18);
+        checkPreviewExitWithToken(gOHM, 1e18, 271_959.59595959595959596e18, 1e18, 2961.64e18);
+        checkPreviewExitWithToken(USDS, 1e18, 91.82736455463728191e18, 0.000337650761064815e18, 1e18);
 
         // No max total supply
         assertEq(vault.maxJoinWithToken(address(gOHM), alice), type(uint256).max);
@@ -494,7 +448,7 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
         assertEq(SEED_HOHM_SHARES, 2_692_400e18);
         assertEq(SEED_USDS_AMOUNT, 29_616.4e18);
         assertEq(SEED_GOHM_AMOUNT, 10e18);
-        
+
         vm.startPrank(origamiMultisig);
         uint256[] memory assetAmounts = new uint256[](1);
         assetAmounts[0] = SEED_GOHM_AMOUNT; // gOHM [18dp]
@@ -504,38 +458,25 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
         gOHM.mint(origamiMultisig, assetAmounts[0]);
         gOHM.approve(address(vault), assetAmounts[0]);
 
-        vault.seed(
-            assetAmounts, 
-            liabilityAmounts, 
-            SEED_HOHM_SHARES,
-            origamiMultisig,
-            3_333_333e18
-        );
+        vault.seed(assetAmounts, liabilityAmounts, SEED_HOHM_SHARES, origamiMultisig, 3_333_333e18, "");
         checkBalanceSheet(SEED_GOHM_AMOUNT, SEED_USDS_AMOUNT);
         assertEq(vault.maxTotalSupply(), 3_333_333e18);
-        
-        // A join is at the same ratio
-        (
-            uint256 shares,
-            uint256[] memory assets,
-            uint256[] memory liabilities
-        ) = joinWithToken(alice, gOHM, SEED_GOHM_AMOUNT/10, alice);
-        checkBalanceSheet(
-            SEED_GOHM_AMOUNT/10 + SEED_GOHM_AMOUNT,
-            SEED_USDS_AMOUNT/10 + SEED_USDS_AMOUNT
-        );
 
-        assertEq(shares, SEED_HOHM_SHARES/10);
+        // A join is at the same ratio
+        (uint256 shares, uint256[] memory assets, uint256[] memory liabilities) =
+            joinWithToken(alice, gOHM, SEED_GOHM_AMOUNT / 10, alice);
+        checkBalanceSheet(SEED_GOHM_AMOUNT / 10 + SEED_GOHM_AMOUNT, SEED_USDS_AMOUNT / 10 + SEED_USDS_AMOUNT);
+
+        assertEq(shares, SEED_HOHM_SHARES / 10);
         assertEq(assets.length, 1);
-        assertEq(assets[0], SEED_GOHM_AMOUNT/10);
+        assertEq(assets[0], SEED_GOHM_AMOUNT / 10);
         assertEq(liabilities.length, 1);
-        assertEq(liabilities[0], SEED_USDS_AMOUNT/10);
+        assertEq(liabilities[0], SEED_USDS_AMOUNT / 10);
 
         assertEq(gOHM.balanceOf(alice), 0);
         assertEq(USDS.balanceOf(alice), liabilities[0]);
         assertEq(vault.balanceOf(alice), shares);
     }
-
 
     function test_setManager_fail() public {
         vm.startPrank(origamiMultisig);
@@ -552,12 +493,7 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
 
     function test_setManager_newManager() public {
         OrigamiHOhmManager newManager = new OrigamiHOhmManager(
-            origamiMultisig, 
-            address(vault),
-            address(cooler),
-            address(sUSDS),
-            PERFORMANCE_FEE,
-            feeCollector
+            origamiMultisig, address(vault), address(cooler), address(sUSDS), PERFORMANCE_FEE, feeCollector
         );
 
         vm.startPrank(origamiMultisig);
@@ -574,12 +510,16 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
         cooler.setTreasuryBorrower(address(newTreasuryBorrower));
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(true, true));
-        manager.setDebtTokenFromCooler(address(0));
 
         vm.expectEmit(address(vault));
         emit DebtTokenSet(address(USDC));
-        vault.setManager(address(manager));
+        manager.setDebtTokenFromCooler(address(0));
 
+        assertEq(address(vault.manager()), address(manager));
+        assertEq(address(vault.debtToken()), address(USDC));
+
+        // Actually a no-op - it's the same manager, and the debtToken was updated already.
+        vault.setManager(address(manager));
         assertEq(address(vault.manager()), address(manager));
         assertEq(address(vault.debtToken()), address(USDC));
     }
@@ -596,6 +536,18 @@ contract OrigamiHOhmVaultTestAdmin is OrigamiHOhmVaultTestBase {
         emit TokenPricesSet(alice);
         vault.setTokenPrices(alice);
         assertEq(address(vault.tokenPrices()), alice);
+    }
+
+    function test_updateCurrentTokensHash_noChange() public {
+        address[] memory aTokens = new address[](1);
+        aTokens[0] = address(gOHM);
+        address[] memory lTokens = new address[](1);
+        lTokens[0] = address(USDS);
+        bytes32 expectedHash = keccak256(abi.encode(aTokens, lTokens));
+        assertEq(vault.currentTokensHash(), expectedHash);
+
+        vault.updateCurrentTokensHash();
+        assertEq(vault.currentTokensHash(), expectedHash);
     }
 }
 
@@ -635,40 +587,40 @@ contract OrigamiHOhmVaultTestViews is OrigamiHOhmVaultTestBase {
         assertEq(tokens[0], address(USDC));
     }
 
-    function test_isBalanceSheetToken_default() public view {
-        (bool isAsset, bool isLiability) = vault.isBalanceSheetToken(address(USDC));
-        assertFalse(isAsset);
-        assertFalse(isLiability);
+    function test_matchToken_default() public view {
+        (IOrigamiTokenizedBalanceSheetVault.AssetOrLiability kind, uint256 index) = vault.matchToken(address(USDC));
+        assertEq(uint256(kind), uint256(IOrigamiTokenizedBalanceSheetVault.AssetOrLiability.INVALID));
+        assertEq(index, 0);
 
-        (isAsset, isLiability) = vault.isBalanceSheetToken(address(gOHM));
-        assertTrue(isAsset);
-        assertFalse(isLiability);
+        (kind, index) = vault.matchToken(address(gOHM));
+        assertEq(uint256(kind), uint256(IOrigamiTokenizedBalanceSheetVault.AssetOrLiability.ASSET));
+        assertEq(index, 0);
 
-        (isAsset, isLiability) = vault.isBalanceSheetToken(address(USDS));
-        assertFalse(isAsset);
-        assertTrue(isLiability);
+        (kind, index) = vault.matchToken(address(USDS));
+        assertEq(uint256(kind), uint256(IOrigamiTokenizedBalanceSheetVault.AssetOrLiability.LIABILITY));
+        assertEq(index, 0);
     }
 
-    function test_isBalanceSheetToken_updated() public {
+    function test_matchToken_updated() public {
         updateDebtToken(address(USDC));
 
-        (bool isAsset, bool isLiability) = vault.isBalanceSheetToken(address(USDC));
-        assertFalse(isAsset);
-        assertTrue(isLiability);
+        (IOrigamiTokenizedBalanceSheetVault.AssetOrLiability kind, uint256 index) = vault.matchToken(address(USDC));
+        assertEq(uint256(kind), uint256(IOrigamiTokenizedBalanceSheetVault.AssetOrLiability.LIABILITY));
+        assertEq(index, 0);
 
-        (isAsset, isLiability) = vault.isBalanceSheetToken(address(gOHM));
-        assertTrue(isAsset);
-        assertFalse(isLiability);
+        (kind, index) = vault.matchToken(address(gOHM));
+        assertEq(uint256(kind), uint256(IOrigamiTokenizedBalanceSheetVault.AssetOrLiability.ASSET));
+        assertEq(index, 0);
 
-        (isAsset, isLiability) = vault.isBalanceSheetToken(address(USDS));
-        assertFalse(isAsset);
-        assertFalse(isLiability);
+        (kind, index) = vault.matchToken(address(USDS));
+        assertEq(uint256(kind), uint256(IOrigamiTokenizedBalanceSheetVault.AssetOrLiability.INVALID));
+        assertEq(index, 0);
     }
 
     function test_supportsInterface() public view {
         assertEq(vault.supportsInterface(type(IOrigamiHOhmVault).interfaceId), true);
         assertEq(vault.supportsInterface(type(IOrigamiTokenizedBalanceSheetVault).interfaceId), true);
-        assertEq(vault.supportsInterface(type(ITokenizedBalanceSheetVault).interfaceId), true);
+        assertEq(vault.supportsInterface(type(ITBSV).interfaceId), true);
         assertEq(vault.supportsInterface(type(IERC20Permit).interfaceId), true);
         assertEq(vault.supportsInterface(type(EIP712).interfaceId), true);
         assertEq(vault.supportsInterface(type(IERC165).interfaceId), true);
@@ -689,26 +641,30 @@ contract OrigamiHOhmVaultTestViews is OrigamiHOhmVaultTestBase {
         vm.prank(origamiMultisig);
         tokenPrices.setTokenPriceFunction(
             address(gOHM),
-            abi.encodeCall(TokenPrices.mul, (
-                abi.encodeCall(TokenPrices.tokenPrice, (address(OHM))),
-                abi.encodeCall(TokenPrices.scalar, 1e30)
-            ))
+            abi.encodeCall(
+                TokenPrices.mul,
+                (abi.encodeCall(TokenPrices.tokenPrice, (address(OHM))), abi.encodeCall(TokenPrices.scalar, 1e30))
+            )
         );
         assertEq(tokenPrices.tokenPrice(address(vault)), 0);
     }
 }
 
-contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {    
+contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
     function test_join_fail_paused() public {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
         manager.setPaused(IOrigamiManagerPausable.Paused(true, false));
 
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiTokenizedBalanceSheetVault.ExceededMaxJoinWithToken.selector, alice, address(gOHM), 10e18, 0));
-        vault.joinWithToken(address(gOHM), 10e18, alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiTokenizedBalanceSheetVault.ExceededMaxJoinWithToken.selector, alice, address(gOHM), 10e18, 0
+            )
+        );
+        vault.joinWithToken(address(gOHM), 10e18, alice, tokenHash);
     }
-    
+
     function test_exit_fail_paused() public {
         vm.startPrank(origamiMultisig);
         manager.setPauser(origamiMultisig, true);
@@ -717,8 +673,12 @@ contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
         joinWithToken(alice, gOHM, 10e18, alice);
 
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiTokenizedBalanceSheetVault.ExceededMaxExitWithToken.selector, alice, address(gOHM), 1e18, 0));
-        vault.exitWithToken(address(gOHM), 1e18, alice, alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiTokenizedBalanceSheetVault.ExceededMaxExitWithToken.selector, alice, address(gOHM), 1e18, 0
+            )
+        );
+        vault.exitWithToken(address(gOHM), 1e18, alice, alice, tokenHash);
     }
 
     function test_joinWithToken_gohm() public {
@@ -755,8 +715,12 @@ contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
 
     function test_joinWithToken_other() public {
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiTokenizedBalanceSheetVault.ExceededMaxJoinWithToken.selector, alice, address(USDC), 1e18, 0));
-        vault.joinWithToken(address(USDC), 1e18, alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiTokenizedBalanceSheetVault.ExceededMaxJoinWithToken.selector, alice, address(USDC), 1e18, 0
+            )
+        );
+        vault.joinWithToken(address(USDC), 1e18, alice, tokenHash);
     }
 
     function test_joinWithShares() public {
@@ -786,7 +750,9 @@ contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
         uint256 sharesExitAmount = 1_009_595.959595959595928728e18;
         exitWithToken(bob, bob, gOHM, gohmExitAmount, bob);
 
-        checkBalanceSheet(SEED_GOHM_AMOUNT + gohmJoinAmount - gohmExitAmount, SEED_USDS_AMOUNT + usdsJoinAmount - usdsExitAmount);
+        checkBalanceSheet(
+            SEED_GOHM_AMOUNT + gohmJoinAmount - gohmExitAmount, SEED_USDS_AMOUNT + usdsJoinAmount - usdsExitAmount
+        );
         assertEq(USDS.balanceOf(bob), usdsJoinAmount - usdsExitAmount);
 
         assertEq(vault.balanceOf(bob), sharesJoinAmount - sharesExitAmount);
@@ -804,18 +770,23 @@ contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
         uint256 sharesExitAmount = 1_009_595.959595959595928743e18;
         exitWithToken(bob, bob, USDS, usdsExitAmount, bob);
 
-        checkBalanceSheet(SEED_GOHM_AMOUNT + gohmJoinAmount - gohmExitAmount, SEED_USDS_AMOUNT + usdsJoinAmount - usdsExitAmount);
+        checkBalanceSheet(
+            SEED_GOHM_AMOUNT + gohmJoinAmount - gohmExitAmount, SEED_USDS_AMOUNT + usdsJoinAmount - usdsExitAmount
+        );
         assertEq(USDS.balanceOf(bob), usdsJoinAmount - usdsExitAmount);
 
         assertEq(vault.balanceOf(bob), sharesJoinAmount - sharesExitAmount + 1);
         assertEq(vault.totalSupply(), SEED_HOHM_SHARES + sharesJoinAmount - sharesExitAmount + 1);
     }
 
-
     function test_exitWithToken_other() public {
         vm.startPrank(alice);
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiTokenizedBalanceSheetVault.ExceededMaxExitWithToken.selector, alice, address(USDC), 1e18, 0));
-        vault.exitWithToken(address(USDC), 1e18, alice, alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiTokenizedBalanceSheetVault.ExceededMaxExitWithToken.selector, alice, address(USDC), 1e18, 0
+            )
+        );
+        vault.exitWithToken(address(USDC), 1e18, alice, alice, tokenHash);
     }
 
     function test_exitWithShares() public {
@@ -829,7 +800,9 @@ contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
         uint256 sharesExitAmount = 1_000_000e18;
         exitWithShares(bob, bob, sharesExitAmount, bob);
 
-        checkBalanceSheet(SEED_GOHM_AMOUNT + gohmJoinAmount - gohmExitAmount, SEED_USDS_AMOUNT + usdsJoinAmount - usdsExitAmount);
+        checkBalanceSheet(
+            SEED_GOHM_AMOUNT + gohmJoinAmount - gohmExitAmount, SEED_USDS_AMOUNT + usdsJoinAmount - usdsExitAmount
+        );
         assertEq(USDS.balanceOf(bob), usdsJoinAmount - usdsExitAmount);
 
         assertEq(vault.balanceOf(bob), sharesJoinAmount - sharesExitAmount);
@@ -840,7 +813,7 @@ contract OrigamiHOhmVaultTestJoinAndExit is OrigamiHOhmVaultTestBase {
 contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
     function test_delegateVotingPower_self() public {
         uint256 gohmJoinAmount = 100e18;
-        (, uint256[] memory assets, ) = joinWithToken(alice, gOHM, gohmJoinAmount, alice);
+        (, uint256[] memory assets,) = joinWithToken(alice, gOHM, gohmJoinAmount, alice);
         joinWithToken(bob, gOHM, gohmJoinAmount, bob);
         check_accountDelegationBalances(alice, gohmJoinAmount, address(0), 0);
 
@@ -896,28 +869,25 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         check_accountDelegationBalances(bob, 0, alice, 0);
     }
 
-    function test_delegateVotingPower_noUpfrontCollateral() public {    
-        check_accountDelegationBalances(bob, 0, address(0), 0);   
+    function test_delegateVotingPower_noUpfrontCollateral() public {
+        check_accountDelegationBalances(bob, 0, address(0), 0);
         vm.startPrank(bob);
         vault.delegateVotingPower(alice);
 
-        check_accountDelegationBalances(bob, 0, alice, 0);   
+        check_accountDelegationBalances(bob, 0, alice, 0);
 
         // now a fresh join will delegate
         uint256 gohmJoinAmount = 100e18;
         gOHM.mint(bob, gohmJoinAmount);
         gOHM.approve(address(vault), gohmJoinAmount);
 
-        (
-            uint256 previewShares,
-            uint256[] memory previewAssets,
-            uint256[] memory previewLiabilities
-        ) = vault.previewJoinWithToken(address(gOHM), gohmJoinAmount);
+        (uint256 previewShares, uint256[] memory previewAssets, uint256[] memory previewLiabilities) =
+            vault.previewJoinWithToken(address(gOHM), gohmJoinAmount);
         vm.expectEmit(address(manager));
         emit DelegationApplied(bob, alice, int256(gohmJoinAmount));
         vm.expectEmit(address(vault));
         emit Join(bob, bob, previewAssets, previewLiabilities, previewShares);
-        vault.joinWithToken(address(gOHM), gohmJoinAmount, bob);
+        vault.joinWithToken(address(gOHM), gohmJoinAmount, bob, tokenHash);
 
         check_accountDelegationBalances(bob, gohmJoinAmount, alice, gohmJoinAmount);
     }
@@ -939,7 +909,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         emit DelegationApplied(bob, alice, int256(gohmJoinAmount));
         vault.delegateVotingPower(alice);
 
-        uint256 addedCollateral = 10e18; 
+        uint256 addedCollateral = 10e18;
         {
             vm.startPrank(address(manager));
             gOHM.mint(address(manager), addedCollateral);
@@ -957,7 +927,9 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         emit DelegationApplied(bob, alice, int256(expectedExtraCollateral));
         vault.delegateVotingPower(alice);
 
-        check_accountDelegationBalances(bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount + expectedExtraCollateral);
+        check_accountDelegationBalances(
+            bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount + expectedExtraCollateral
+        );
     }
 
     function test_delegateVotingPower_ohmBacking_increaseAndSync() public {
@@ -977,7 +949,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         emit DelegationApplied(bob, alice, int256(gohmJoinAmount));
         vault.delegateVotingPower(alice);
 
-        uint256 addedCollateral = 10e18; 
+        uint256 addedCollateral = 10e18;
         {
             vm.startPrank(address(manager));
             gOHM.mint(address(manager), addedCollateral);
@@ -986,7 +958,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
         assertEq(vault.totalSupply(), expectedTotalSupply);
         uint256 expectedExtraCollateral = addedCollateral * 26_924_000e18 / expectedTotalSupply;
-        assertEq(expectedExtraCollateral, 4.761904761904761904e18);       
+        assertEq(expectedExtraCollateral, 4.761904761904761904e18);
         check_accountDelegationBalances(bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount);
 
         // Alice sync's Bob to the existing delegate
@@ -995,7 +967,9 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         emit DelegationApplied(bob, alice, int256(expectedExtraCollateral));
         vault.syncDelegation(bob);
 
-        check_accountDelegationBalances(bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount + expectedExtraCollateral);
+        check_accountDelegationBalances(
+            bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount + expectedExtraCollateral
+        );
     }
 
     function test_delegateVotingPower_ohmBacking_increaseAndJoinAgain() public {
@@ -1015,7 +989,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         emit DelegationApplied(bob, alice, int256(gohmJoinAmount));
         vault.delegateVotingPower(alice);
 
-        uint256 addedCollateral = 10e18; 
+        uint256 addedCollateral = 10e18;
         {
             vm.startPrank(address(manager));
             gOHM.mint(address(manager), addedCollateral);
@@ -1024,14 +998,16 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
         assertEq(vault.totalSupply(), expectedTotalSupply);
         uint256 expectedExtraCollateral = addedCollateral * 26_924_000e18 / expectedTotalSupply;
-        assertEq(expectedExtraCollateral, 4.761904761904761904e18);       
+        assertEq(expectedExtraCollateral, 4.761904761904761904e18);
         check_accountDelegationBalances(bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount);
         check_accountDelegationBalances(alice, gohmJoinAmount + expectedExtraCollateral, address(0), 0);
 
         // Alice joins more sending to bob
         joinWithToken(alice, gOHM, gohmJoinAmount, bob);
 
-        check_accountDelegationBalances(bob, 2*gohmJoinAmount + expectedExtraCollateral, alice, 2*gohmJoinAmount + expectedExtraCollateral);
+        check_accountDelegationBalances(
+            bob, 2 * gohmJoinAmount + expectedExtraCollateral, alice, 2 * gohmJoinAmount + expectedExtraCollateral
+        );
         check_accountDelegationBalances(alice, gohmJoinAmount + expectedExtraCollateral, address(0), 0);
     }
 
@@ -1048,42 +1024,43 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         expectedTotalSupply += expectedSharesMinted;
         assertEq(vault.totalSupply(), expectedTotalSupply);
 
-        assertEq(manager.collateralTokenBalance(), 2*gohmJoinAmount+SEED_GOHM_AMOUNT);
+        assertEq(manager.collateralTokenBalance(), 2 * gohmJoinAmount + SEED_GOHM_AMOUNT);
 
         vm.startPrank(bob);
         vm.expectEmit(address(manager));
         emit DelegationApplied(bob, alice, int256(gohmJoinAmount));
         vault.delegateVotingPower(alice);
 
-        uint256 addedCollateral = 10e18; 
+        uint256 addedCollateral = 10e18;
         {
             vm.startPrank(address(manager));
             gOHM.mint(address(manager), addedCollateral);
             cooler.addCollateral(uint128(addedCollateral), address(manager), new IDLGTEv1.DelegationRequest[](0));
         }
 
-        uint256 totalCollateral = 2*gohmJoinAmount + SEED_GOHM_AMOUNT + addedCollateral;
-        assertEq(manager.collateralTokenBalance(), 2*gohmJoinAmount + SEED_GOHM_AMOUNT + addedCollateral);
+        uint256 totalCollateral = 2 * gohmJoinAmount + SEED_GOHM_AMOUNT + addedCollateral;
+        assertEq(manager.collateralTokenBalance(), 2 * gohmJoinAmount + SEED_GOHM_AMOUNT + addedCollateral);
 
         assertEq(vault.totalSupply(), expectedTotalSupply);
         uint256 expectedExtraCollateral = addedCollateral * expectedSharesMinted / expectedTotalSupply;
-        assertEq(expectedExtraCollateral, 4.761904761904761904e18);       
+        assertEq(expectedExtraCollateral, 4.761904761904761904e18);
         check_accountDelegationBalances(bob, gohmJoinAmount + expectedExtraCollateral, alice, gohmJoinAmount);
         check_accountDelegationBalances(alice, gohmJoinAmount + expectedExtraCollateral, address(0), 0);
 
         // Bob exits
-        exitWithToken(bob, bob, gOHM, gohmJoinAmount/2, bob);
+        exitWithToken(bob, bob, gOHM, gohmJoinAmount / 2, bob);
         uint256 expectedSharesBurned = 12_979_889.807162534435261709e18;
         assertEq(vault.balanceOf(bob), expectedSharesMinted - expectedSharesBurned);
 
-        totalCollateral -= gohmJoinAmount/2;
+        totalCollateral -= gohmJoinAmount / 2;
         assertEq(manager.collateralTokenBalance(), totalCollateral);
 
         // 1% fees which burn the total supply. Means bob got hit with some fees in gOHM terms, and Alice earned them
         // Maths for that checked in other tests.
         uint256 aliceTotalCollateral = gohmJoinAmount + expectedExtraCollateral + 0.312163005845961746e18;
         check_accountDelegationBalances(alice, aliceTotalCollateral, address(0), 0);
-        uint256 bobTotalCollateral = gohmJoinAmount + expectedExtraCollateral - gohmJoinAmount/2 - 0.343379306430557920e18;
+        uint256 bobTotalCollateral =
+            gohmJoinAmount + expectedExtraCollateral - gohmJoinAmount / 2 - 0.34337930643055792e18;
         check_accountDelegationBalances(bob, bobTotalCollateral, alice, bobTotalCollateral);
 
         // The only spare should be from the seed
@@ -1101,7 +1078,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         joinWithToken(bob, gOHM, gohmJoinAmount, bob);
         expectedTotalSupply += 2 * 26_924_000e18;
         assertEq(vault.totalSupply(), expectedTotalSupply);
-        
+
         check_accountDelegationBalances(alice, gohmJoinAmount, address(0), 0);
 
         vm.startPrank(alice);
@@ -1110,17 +1087,19 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         uint256 gohmExitAmount = 33e18;
         USDS.approve(address(vault), type(uint256).max);
         vm.expectEmit(address(manager));
-        emit DelegationApplied(alice, alice, int256(66.792452830188679245e18) - int256(gohmJoinAmount)); // see maths below
-        vault.exitWithToken(address(gOHM), gohmExitAmount, alice, alice);
+        emit DelegationApplied(alice, alice, int256(66.792452830188679245e18) - int256(gohmJoinAmount)); // see maths
+        // below
+        vault.exitWithToken(address(gOHM), gohmExitAmount, alice, alice, tokenHash);
 
         expectedTotalSupply -= 8_974_666.666666666666666667e18;
         assertEq(vault.totalSupply(), expectedTotalSupply);
 
-        assertEq(manager.collateralTokenBalance(), SEED_GOHM_AMOUNT + 2*gohmJoinAmount - gohmExitAmount);
-        assertEq(vault.balanceOf(alice), 26_924_000e18-8_974_666.666666666666666667e18);
-        uint256 expectedAliceCollateral = manager.collateralTokenBalance() * vault.balanceOf(alice) / expectedTotalSupply;
+        assertEq(manager.collateralTokenBalance(), SEED_GOHM_AMOUNT + 2 * gohmJoinAmount - gohmExitAmount);
+        assertEq(vault.balanceOf(alice), 26_924_000e18 - 8_974_666.666666666666666667e18);
+        uint256 expectedAliceCollateral =
+            manager.collateralTokenBalance() * vault.balanceOf(alice) / expectedTotalSupply;
         assertEq(expectedAliceCollateral, 66.792452830188679245e18); // slightly less than the 67, because of fees
-        
+
         check_accountDelegationBalances(alice, expectedAliceCollateral, alice, expectedAliceCollateral);
 
         // No change after a forced sync
@@ -1128,12 +1107,14 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
         check_accountDelegationBalances(alice, expectedAliceCollateral, alice, expectedAliceCollateral);
 
         // Alice could exit for that amount, minus the exit fee%
-        assertEq(vault.maxExitWithToken(address(gOHM), alice), expectedAliceCollateral*(10_000-EXIT_FEE_BPS)/10_000);
+        assertEq(
+            vault.maxExitWithToken(address(gOHM), alice), expectedAliceCollateral * (10_000 - EXIT_FEE_BPS) / 10_000
+        );
     }
 
     function test_transfer_toSelf_noDelegation() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1151,7 +1132,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
     function test_transfer_zeroAmount() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1169,7 +1150,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
     function test_transfer_toOther_noDelegation() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1180,14 +1161,14 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
         vm.startPrank(alice);
         vault.transfer(bob, 10_000_000e18);
-        assertEq(vault.balanceOf(alice), aliceExpectedShares-10_000_000e18);
-        assertEq(vault.balanceOf(bob), bobExpectedShares+10_000_000e18);
+        assertEq(vault.balanceOf(alice), aliceExpectedShares - 10_000_000e18);
+        assertEq(vault.balanceOf(bob), bobExpectedShares + 10_000_000e18);
         checkBalanceSheet(143.33e18, 424_491.8612e18);
     }
 
     function test_transfer_toSelf_withDelegation() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1214,7 +1195,7 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
     function test_transfer_toOther_withDelegationFrom_noDelegationTo() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1232,22 +1213,25 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
         vm.startPrank(alice);
         vault.transfer(bob, 10_000_000e18);
-        assertEq(vault.balanceOf(alice), aliceExpectedShares-10_000_000e18);
-        assertEq(vault.balanceOf(bob), bobExpectedShares+10_000_000e18);
+        assertEq(vault.balanceOf(alice), aliceExpectedShares - 10_000_000e18);
+        assertEq(vault.balanceOf(bob), bobExpectedShares + 10_000_000e18);
         checkBalanceSheet(143.33e18, 424_491.8612e18);
         uint256 expectedGohmMoved = 37.141583717129698411e18;
-        check_accountDelegationBalances(alice, gohmAliceJoinAmount-expectedGohmMoved, alice, gohmAliceJoinAmount-expectedGohmMoved);
-        check_accountDelegationBalances(bob, gohmBobJoinAmount+expectedGohmMoved-1, address(0), 0); // small rounding effect
+        check_accountDelegationBalances(
+            alice, gohmAliceJoinAmount - expectedGohmMoved, alice, gohmAliceJoinAmount - expectedGohmMoved
+        );
+        check_accountDelegationBalances(bob, gohmBobJoinAmount + expectedGohmMoved - 1, address(0), 0); // small
+        // rounding effect
 
         address escrow = address(escrowFactory.escrowFor(alice));
-        assertEq(gOHM.balanceOf(escrow), gohmAliceJoinAmount-expectedGohmMoved);
+        assertEq(gOHM.balanceOf(escrow), gohmAliceJoinAmount - expectedGohmMoved);
         escrow = address(escrowFactory.escrowFor(bob));
         assertEq(gOHM.balanceOf(escrow), 0);
     }
 
     function test_transfer_toOther_noDelegationFrom_withDelegationTo() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1265,22 +1249,24 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
         vm.startPrank(alice);
         vault.transfer(bob, 10_000_000e18);
-        assertEq(vault.balanceOf(alice), aliceExpectedShares-10_000_000e18);
-        assertEq(vault.balanceOf(bob), bobExpectedShares+10_000_000e18);
+        assertEq(vault.balanceOf(alice), aliceExpectedShares - 10_000_000e18);
+        assertEq(vault.balanceOf(bob), bobExpectedShares + 10_000_000e18);
         checkBalanceSheet(143.33e18, 424_491.8612e18);
         uint256 expectedGohmMoved = 37.141583717129698411e18;
-        check_accountDelegationBalances(alice, gohmAliceJoinAmount-expectedGohmMoved, address(0), 0);
-        check_accountDelegationBalances(bob, gohmBobJoinAmount+expectedGohmMoved-1, alice, gohmBobJoinAmount+expectedGohmMoved-1);
+        check_accountDelegationBalances(alice, gohmAliceJoinAmount - expectedGohmMoved, address(0), 0);
+        check_accountDelegationBalances(
+            bob, gohmBobJoinAmount + expectedGohmMoved - 1, alice, gohmBobJoinAmount + expectedGohmMoved - 1
+        );
 
         address escrow = address(escrowFactory.escrowFor(alice));
-        assertEq(gOHM.balanceOf(escrow), gohmBobJoinAmount+expectedGohmMoved-1);
+        assertEq(gOHM.balanceOf(escrow), gohmBobJoinAmount + expectedGohmMoved - 1);
         escrow = address(escrowFactory.escrowFor(bob));
         assertEq(gOHM.balanceOf(escrow), 0);
     }
 
     function test_transfer_toOther_withDelegationFrom_withDelegationTo() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1304,15 +1290,22 @@ contract OrigamiHOhmVaultTestDelegations is OrigamiHOhmVaultTestBase {
 
         vm.startPrank(alice);
         vault.transfer(bob, 10_000_000e18);
-        assertEq(vault.balanceOf(alice), aliceExpectedShares-10_000_000e18);
-        assertEq(vault.balanceOf(bob), bobExpectedShares+10_000_000e18);
+        assertEq(vault.balanceOf(alice), aliceExpectedShares - 10_000_000e18);
+        assertEq(vault.balanceOf(bob), bobExpectedShares + 10_000_000e18);
         checkBalanceSheet(143.33e18, 424_491.8612e18);
         uint256 expectedGohmMoved = 37.141583717129698411e18;
-        check_accountDelegationBalances(alice, gohmAliceJoinAmount-expectedGohmMoved, alice, gohmAliceJoinAmount-expectedGohmMoved);
-        check_accountDelegationBalances(bob, gohmBobJoinAmount+expectedGohmMoved-1, alice, gohmBobJoinAmount+expectedGohmMoved-1);
+        check_accountDelegationBalances(
+            alice, gohmAliceJoinAmount - expectedGohmMoved, alice, gohmAliceJoinAmount - expectedGohmMoved
+        );
+        check_accountDelegationBalances(
+            bob, gohmBobJoinAmount + expectedGohmMoved - 1, alice, gohmBobJoinAmount + expectedGohmMoved - 1
+        );
 
         address escrow = address(escrowFactory.escrowFor(alice));
-        assertEq(gOHM.balanceOf(escrow), (gohmAliceJoinAmount-expectedGohmMoved)+(gohmBobJoinAmount+expectedGohmMoved-1));
+        assertEq(
+            gOHM.balanceOf(escrow),
+            (gohmAliceJoinAmount - expectedGohmMoved) + (gohmBobJoinAmount + expectedGohmMoved - 1)
+        );
         escrow = address(escrowFactory.escrowFor(bob));
         assertEq(gOHM.balanceOf(escrow), 0);
     }
@@ -1322,8 +1315,9 @@ contract OrigamiHOhmVaultTestMulticall is OrigamiHOhmVaultTestBase {
     function test_multicall_success_joinAndDelegate() public {
         uint256 gohmJoinAmount = 10e18;
         bytes[] memory operations = new bytes[](2);
-        (operations[0], operations[1]) = (
-            abi.encodeCall(ITokenizedBalanceSheetVault.joinWithToken, (address(gOHM), gohmJoinAmount, alice)),
+        (operations[0], operations[1]) =
+        (
+            abi.encodeCall(ITBSV.joinWithToken, (address(gOHM), gohmJoinAmount, alice, tokenHash)),
             abi.encodeCall(IOrigamiHOhmVault.delegateVotingPower, (alice))
         );
 
@@ -1331,11 +1325,8 @@ contract OrigamiHOhmVaultTestMulticall is OrigamiHOhmVaultTestBase {
         gOHM.mint(alice, gohmJoinAmount);
         gOHM.approve(address(vault), gohmJoinAmount);
 
-        (
-            uint256 previewShares,
-            uint256[] memory previewAssets,
-            uint256[] memory previewLiabilities
-        ) = vault.previewJoinWithToken(address(gOHM), gohmJoinAmount);
+        (uint256 previewShares, uint256[] memory previewAssets, uint256[] memory previewLiabilities) =
+            vault.previewJoinWithToken(address(gOHM), gohmJoinAmount);
         vm.expectEmit(address(vault));
         emit Join(alice, alice, previewAssets, previewLiabilities, previewShares);
         vm.expectEmit(address(manager));
@@ -1343,26 +1334,24 @@ contract OrigamiHOhmVaultTestMulticall is OrigamiHOhmVaultTestBase {
 
         bytes[] memory results = vault.multicall(operations);
         assertEq(results.length, 2);
-        (
-            uint256 actualShares,
-            uint256[] memory actualAssets,
-            uint256[] memory actualLiabilities
-        ) = abi.decode(results[0], (uint256,uint256[],uint256[]));
+        (uint256 actualShares, uint256[] memory actualAssets, uint256[] memory actualLiabilities) =
+            abi.decode(results[0], (uint256, uint256[], uint256[]));
         assertEq(actualShares, previewShares);
         assertEq(actualAssets[0], previewAssets[0]);
         assertEq(actualLiabilities[0], previewLiabilities[0]);
-        
+
         assertEq(results[1], bytes(""));
 
         check_accountDelegationBalances(alice, gohmJoinAmount, alice, gohmJoinAmount);
-        assertEq(vault.balanceOf(alice), 2_692_400e18);        
+        assertEq(vault.balanceOf(alice), 2_692_400e18);
     }
 
     function test_multicall_fail_joinAndTransferTooMuch() public {
         uint256 gohmJoinAmount = 10e18;
         bytes[] memory operations = new bytes[](2);
-        (operations[0], operations[1]) = (
-            abi.encodeCall(ITokenizedBalanceSheetVault.joinWithToken, (address(gOHM), gohmJoinAmount, alice)),
+        (operations[0], operations[1]) =
+        (
+            abi.encodeCall(ITBSV.joinWithToken, (address(gOHM), gohmJoinAmount, alice, tokenHash)),
             abi.encodeCall(IERC20.transfer, (alice, 10_000_000e18))
         );
 
@@ -1375,10 +1364,9 @@ contract OrigamiHOhmVaultTestMulticall is OrigamiHOhmVaultTestBase {
 }
 
 contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
-
     function test_changeDebtToken_noSurplus() public {
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1394,7 +1382,7 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
 
         uint256 exitGohmAmount = 25e18;
         uint256 exitUsdsAmount = 74_041e18;
-        uint256 exitSharesAmount = 6_798_989.898989898989898990e18;
+        uint256 exitSharesAmount = 6_798_989.89898989898989899e18;
         checkPreviewExitWithToken(gOHM, exitGohmAmount, exitSharesAmount, exitGohmAmount, exitUsdsAmount);
 
         // Update the cooler debt token to be USDC instead of USDS
@@ -1406,7 +1394,7 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
 
         // No longer any surplus - that's on the multisig to swap and put that back in
         {
-            checkBalanceSheet(143.33e18, expectedCoolerDebtInWad/1e12);
+            checkBalanceSheet(143.33e18, expectedCoolerDebtInWad / 1e12);
             assertEq(manager.coolerDebtInWad(), expectedCoolerDebtInWad);
             assertEq(manager.surplusDebtTokenAmount(), 0);
         }
@@ -1414,12 +1402,12 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
         // Do the swap so the manager has surplus USDC now instead of USDC
         {
             deal(address(USDS), address(manager), 0);
-            deal(address(USDC), address(manager), expectedSurplus/1e12);
-            checkBalanceSheet(143.33e18, (expectedCoolerDebtInWad-expectedSurplus)/1e12);
+            deal(address(USDC), address(manager), expectedSurplus / 1e12);
+            checkBalanceSheet(143.33e18, (expectedCoolerDebtInWad - expectedSurplus) / 1e12);
             assertEq(manager.coolerDebtInWad(), expectedCoolerDebtInWad);
-            assertEq(manager.surplusDebtTokenAmount(), expectedSurplus/1e12);
+            assertEq(manager.surplusDebtTokenAmount(), expectedSurplus / 1e12);
         }
-       
+
         uint256 exitUsdcAmount = exitUsdsAmount / 1e12;
         checkPreviewExitWithToken(gOHM, exitGohmAmount, exitSharesAmount, exitGohmAmount, exitUsdcAmount);
 
@@ -1440,7 +1428,7 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
         skip(90 days);
 
         uint256 gohmAliceJoinAmount = 100e18;
-        uint256 aliceExpectedShares = 26_924_000e18; 
+        uint256 aliceExpectedShares = 26_924_000e18;
         uint256 gohmBobJoinAmount = 33.33e18;
         uint256 bobExpectedShares = 8_973_769.2e18;
         joinWithToken(alice, gOHM, gohmAliceJoinAmount, alice);
@@ -1448,15 +1436,15 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
         joinWithToken(bob, gOHM, gohmBobJoinAmount, bob);
         assertEq(vault.balanceOf(bob), bobExpectedShares);
 
-        uint256 expectedCoolerDebtInWad = 434_007.245386300503568640e18;
-        uint256 expectedSurplus = 8_993.020939884823344424e18;
+        uint256 expectedCoolerDebtInWad = 434_007.24538630050356864e18;
+        uint256 expectedSurplus = 8993.020939884823344424e18;
         assertEq(manager.coolerDebtInWad(), expectedCoolerDebtInWad);
         assertEq(manager.surplusDebtTokenAmount(), expectedSurplus);
         checkBalanceSheet(143.33e18, expectedCoolerDebtInWad - expectedSurplus);
 
         uint256 exitGohmAmount = 25e18;
         uint256 exitUsdsAmount = 74_132.111987444303395001e18;
-        uint256 exitSharesAmount = 6_798_989.898989898989898990e18;
+        uint256 exitSharesAmount = 6_798_989.89898989898989899e18;
         checkPreviewExitWithToken(gOHM, exitGohmAmount, exitSharesAmount, exitGohmAmount, exitUsdsAmount);
 
         // Update the cooler debt token to be USDC instead of USDS
@@ -1468,7 +1456,7 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
 
         // No longer any surplus - that's on the multisig to swap and put that back in
         {
-            checkBalanceSheet(143.33e18, expectedCoolerDebtInWad/1e12 + 1);
+            checkBalanceSheet(143.33e18, expectedCoolerDebtInWad / 1e12 + 1);
             assertEq(manager.coolerDebtInWad(), expectedCoolerDebtInWad);
             assertEq(manager.surplusDebtTokenAmount(), 0);
         }
@@ -1476,12 +1464,12 @@ contract OrigamiHOhmVaultTestDebtTokenChange is OrigamiHOhmVaultTestBase {
         // Do the swap so the manager has surplus USDC now instead of USDC
         {
             deal(address(USDS), address(manager), 0);
-            deal(address(USDC), address(manager), expectedSurplus/1e12);
-            checkBalanceSheet(143.33e18, (expectedCoolerDebtInWad-expectedSurplus)/1e12+2);
+            deal(address(USDC), address(manager), expectedSurplus / 1e12);
+            checkBalanceSheet(143.33e18, (expectedCoolerDebtInWad - expectedSurplus) / 1e12 + 2);
             assertEq(manager.coolerDebtInWad(), expectedCoolerDebtInWad);
-            assertEq(manager.surplusDebtTokenAmount(), expectedSurplus/1e12);
+            assertEq(manager.surplusDebtTokenAmount(), expectedSurplus / 1e12);
         }
-       
+
         uint256 exitUsdcAmount = exitUsdsAmount / 1e12 + 1;
         checkPreviewExitWithToken(gOHM, exitGohmAmount, exitSharesAmount, exitGohmAmount, exitUsdcAmount);
 

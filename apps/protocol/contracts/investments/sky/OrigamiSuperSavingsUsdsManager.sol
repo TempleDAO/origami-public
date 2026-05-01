@@ -9,8 +9,12 @@ import { ISkySUsds } from "contracts/interfaces/external/sky/ISkySUsds.sol";
 
 import { ISkyStakingRewards } from "contracts/interfaces/external/sky/ISkyStakingRewards.sol";
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
-import { IOrigamiSuperSavingsUsdsManager } from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiSuperSavingsUsdsManager
+} from "contracts/interfaces/investments/sky/IOrigamiSuperSavingsUsdsManager.sol";
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
@@ -24,7 +28,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
  * @title Origami sUSDS+s Manager
  * @notice Handles USDS deposits and switching between farms
  */
-contract OrigamiSuperSavingsUsdsManager is 
+contract OrigamiSuperSavingsUsdsManager is
     IOrigamiSuperSavingsUsdsManager,
     OrigamiElevatedAccess,
     OrigamiManagerPausable,
@@ -59,7 +63,7 @@ contract OrigamiSuperSavingsUsdsManager is
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
     address public override feeCollector;
-    
+
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
     uint16 public sUsdsReferral;
 
@@ -79,16 +83,16 @@ contract OrigamiSuperSavingsUsdsManager is
     uint256 private constant MAX_FARMS = 100;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint16 public override constant depositFeeBps = 0;
+    uint16 public constant override depositFeeBps = 0;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint16 public override constant withdrawalFeeBps = 0;
+    uint16 public constant override withdrawalFeeBps = 0;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint256 public override constant maxDeposit = type(uint256).max;
+    uint256 public constant override maxDeposit = type(uint256).max;
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    uint256 public override constant maxWithdraw = type(uint256).max;
+    uint256 public constant override maxWithdraw = type(uint256).max;
 
     constructor(
         address initialOwner_,
@@ -99,9 +103,7 @@ contract OrigamiSuperSavingsUsdsManager is
         address feeCollector_,
         uint16 performanceFeeBpsForCaller_,
         uint16 performanceFeeBpsForOrigami_
-    ) 
-        OrigamiElevatedAccess(initialOwner_)
-    {
+    ) OrigamiElevatedAccess(initialOwner_) {
         vault = IOrigamiDelegated4626Vault(vault_);
         USDS = IERC20(vault.asset());
         sUSDS = ISkySUsds(sUSDS_);
@@ -130,20 +132,16 @@ contract OrigamiSuperSavingsUsdsManager is
 
         // Ensure rewards are harvested on the existing farm prior to updating.
         uint32 _currentFarmIndex = currentFarmIndex;
-        if(_currentFarmIndex > 0) {
+        if (_currentFarmIndex > 0) {
             // The `feeCollector` receives the extra incentives for harvesting.
-            _harvestRewards(
-                _currentFarmIndex, 
-                _farms[_currentFarmIndex],
-                _populateRewardsCache(feeCollector)
-            );
+            _harvestRewards(_currentFarmIndex, _farms[_currentFarmIndex], _populateRewardsCache(feeCollector));
         }
 
         OrigamiDelegated4626Vault(address(vault)).logPerformanceFeesSet(newTotalFee);
         _performanceFeeBpsForCaller = callerFeeBps;
         _performanceFeeBpsForOrigami = origamiFeeBps;
     }
-    
+
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
     function setFeeCollector(address _feeCollector) external override onlyElevatedAccess {
         if (_feeCollector == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
@@ -166,12 +164,12 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function addFarm(
-        address stakingAddress, 
-        uint16 referralCode
-    ) external override onlyElevatedAccess returns (
-        uint32 nextFarmIndex
-    ) {
+    function addFarm(address stakingAddress, uint16 referralCode)
+        external
+        override
+        onlyElevatedAccess
+        returns (uint32 nextFarmIndex)
+    {
         // Farm index starts at 1
         uint32 _maxFarmIndex = maxFarmIndex;
         nextFarmIndex = _maxFarmIndex + 1;
@@ -211,10 +209,7 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function setFarmReferralCode(
-        uint32 farmIndex,
-        uint16 referralCode
-    ) external override onlyElevatedAccess {
+    function setFarmReferralCode(uint32 farmIndex, uint16 referralCode) external override onlyElevatedAccess {
         if (farmIndex == 0) {
             sUsdsReferral = referralCode;
         } else {
@@ -237,26 +232,26 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function withdraw(
-        uint256 usdsAmount,
-        address receiver
-    ) external override onlyVault returns (uint256 usdsWithdrawn) {
+    function withdraw(uint256 usdsAmount, address receiver)
+        external
+        override
+        onlyVault
+        returns (uint256 usdsWithdrawn)
+    {
         uint32 _currentFarmIndex = currentFarmIndex;
 
         usdsWithdrawn = (_currentFarmIndex == 0)
             ? _withdrawFromSavings(usdsAmount, receiver)
-            : _withdrawFromFarm(
-                _farms[_currentFarmIndex].staking,
-                usdsAmount,
-                receiver
-            );
+            : _withdrawFromFarm(_farms[_currentFarmIndex].staking, usdsAmount, receiver);
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function switchFarms(uint32 newFarmIndex) external override onlyElevatedAccess returns (
-        uint256 amountWithdrawn,
-        uint256 amountDeposited
-    ) {
+    function switchFarms(uint32 newFarmIndex)
+        external
+        override
+        onlyElevatedAccess
+        returns (uint256 amountWithdrawn, uint256 amountDeposited)
+    {
         if (block.timestamp < lastSwitchTime + switchFarmCooldown) revert BeforeCooldownEnd();
 
         uint32 _currentFarmIndex = currentFarmIndex;
@@ -268,14 +263,10 @@ contract OrigamiSuperSavingsUsdsManager is
             USDS.forceApprove(address(sUSDS), 0);
         } else {
             ISkyStakingRewards staking = _farms[_currentFarmIndex].staking;
-            amountWithdrawn = _withdrawFromFarm(
-                staking, 
-                MAX_AMOUNT, 
-                address(this)
-            );
+            amountWithdrawn = _withdrawFromFarm(staking, MAX_AMOUNT, address(this));
             USDS.forceApprove(address(staking), 0);
         }
-        
+
         if (newFarmIndex == 0) {
             USDS.forceApprove(address(sUSDS), MAX_AMOUNT);
             amountDeposited = _depositIntoSavings(MAX_AMOUNT);
@@ -292,10 +283,11 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function claimFarmRewards(
-        uint32[] calldata farmIndexes, 
-        address incentivesReceiver
-    ) external override nonReentrant {
+    function claimFarmRewards(uint32[] calldata farmIndexes, address incentivesReceiver)
+        external
+        override
+        nonReentrant
+    {
         HarvestRewardCache memory cache = _populateRewardsCache(incentivesReceiver);
         uint32 farmIndex;
         uint256 _length = farmIndexes.length;
@@ -319,32 +311,35 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function asset() external override view returns (address) {
+    function asset() external view override returns (address) {
         return address(USDS);
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function performanceFeeBps() external view returns (uint16 /*forCaller*/, uint16 /*forOrigami*/) {
+    function performanceFeeBps()
+        external
+        view
+        returns (
+            uint16, /*forCaller*/
+            uint16 /*forOrigami*/
+        )
+    {
         return (_performanceFeeBpsForCaller, _performanceFeeBpsForOrigami);
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function farmDetails(uint32[] calldata farmIndexes) external override view returns (
-        FarmDetails[] memory details
-    ) {
+    function farmDetails(uint32[] calldata farmIndexes) external view override returns (FarmDetails[] memory details) {
         uint256 _length = farmIndexes.length;
         details = new FarmDetails[](_length);
         uint32 farmIndex;
         for (uint256 i; i < _length; ++i) {
             farmIndex = farmIndexes[i];
-            details[i] = farmIndex == 0
-                ? _buildSUsdsDetails()
-                : _buildFarmDetails(farmIndex);
+            details[i] = farmIndex == 0 ? _buildSUsdsDetails() : _buildFarmDetails(farmIndex);
         }
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function totalAssets() external override view returns (uint256 totalManagedAssets) {
+    function totalAssets() external view override returns (uint256 totalManagedAssets) {
         // This contract may have a balance of USDS, from Cow Swapper rewards and/or donations
         // And also included sUSDS deposits (also may be donations)
         totalManagedAssets = _unallocatedAssets();
@@ -358,7 +353,7 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function unallocatedAssets() external override view returns (uint256) {
+    function unallocatedAssets() external view override returns (uint256) {
         return _unallocatedAssets();
     }
 
@@ -367,24 +362,24 @@ contract OrigamiSuperSavingsUsdsManager is
     }
 
     /// @inheritdoc IOrigamiSuperSavingsUsdsManager
-    function getFarm(uint256 farmIndex) external override view returns (Farm memory farm) {
+    function getFarm(uint256 farmIndex) external view override returns (Farm memory farm) {
         return _farms[farmIndex];
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function areDepositsPaused() external virtual override view returns (bool) {
+    function areDepositsPaused() external view virtual override returns (bool) {
         return _paused.investmentsPaused;
     }
 
     /// @inheritdoc IOrigamiDelegated4626VaultManager
-    function areWithdrawalsPaused() external virtual override view returns (bool) {
+    function areWithdrawalsPaused() external view virtual override returns (bool) {
         return _paused.exitsPaused;
     }
 
     /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) public override pure returns (bool) {
-        return interfaceId == type(IOrigamiSuperSavingsUsdsManager).interfaceId
-            || interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        return
+            interfaceId == type(IOrigamiSuperSavingsUsdsManager).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     function _getFarm(uint32 farmIndex) internal view returns (Farm storage farm) {
@@ -400,34 +395,25 @@ contract OrigamiSuperSavingsUsdsManager is
         uint16 feeBpsForOrigami;
     }
 
-    function _transferRewards(
-        IERC20 rewardsToken,
-        uint256 totalRewardsClaimed,
-        HarvestRewardCache memory cache
-    ) internal returns (
-        uint256 amountForCaller,
-        uint256 amountForOrigami,
-        uint256 amountForVault
-    ) {
+    function _transferRewards(IERC20 rewardsToken, uint256 totalRewardsClaimed, HarvestRewardCache memory cache)
+        internal
+        returns (uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault)
+    {
         amountForCaller = totalRewardsClaimed.mulDiv(
-            cache.feeBpsForCaller, 
-            OrigamiMath.BASIS_POINTS_DIVISOR, 
-            OrigamiMath.Rounding.ROUND_DOWN
+            cache.feeBpsForCaller, OrigamiMath.BASIS_POINTS_DIVISOR, OrigamiMath.Rounding.ROUND_DOWN
         );
         if (amountForCaller > 0) {
             rewardsToken.safeTransfer(cache.caller, amountForCaller);
         }
 
         amountForOrigami = totalRewardsClaimed.mulDiv(
-            cache.feeBpsForOrigami, 
-            OrigamiMath.BASIS_POINTS_DIVISOR, 
-            OrigamiMath.Rounding.ROUND_DOWN
+            cache.feeBpsForOrigami, OrigamiMath.BASIS_POINTS_DIVISOR, OrigamiMath.Rounding.ROUND_DOWN
         );
         if (amountForOrigami > 0) {
             rewardsToken.safeTransfer(cache.feeCollector, amountForOrigami);
         }
 
-        // The remainder is for the vault        
+        // The remainder is for the vault
         unchecked {
             amountForVault = totalRewardsClaimed - amountForCaller - amountForOrigami;
         }
@@ -436,36 +422,21 @@ contract OrigamiSuperSavingsUsdsManager is
         }
     }
 
-    function _harvestRewards(
-        uint32 farmIndex, 
-        Farm storage farm, 
-        HarvestRewardCache memory cache
-    ) internal {
+    function _harvestRewards(uint32 farmIndex, Farm storage farm, HarvestRewardCache memory cache) internal {
         IERC20 rewardsToken = farm.rewardsToken;
         farm.staking.getReward();
         uint256 amountClaimed = rewardsToken.balanceOf(address(this));
 
-        (
-            uint256 amountForCaller,
-            uint256 amountForOrigami,
-            uint256 amountForVault
-        ) = _transferRewards(rewardsToken, amountClaimed, cache);
+        (uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault) =
+            _transferRewards(rewardsToken, amountClaimed, cache);
 
         if (amountClaimed > 0) {
-            emit ClaimedReward(
-                farmIndex, 
-                address(rewardsToken), 
-                amountForCaller, 
-                amountForOrigami, 
-                amountForVault
-            );
+            emit ClaimedReward(farmIndex, address(rewardsToken), amountForCaller, amountForOrigami, amountForVault);
         }
     }
 
     function _depositIntoSavings(uint256 assetsAmount) private returns (uint256 amountDeposited) {
-        amountDeposited = assetsAmount == MAX_AMOUNT 
-            ? USDS.balanceOf(address(this))
-            : assetsAmount;
+        amountDeposited = assetsAmount == MAX_AMOUNT ? USDS.balanceOf(address(this)) : assetsAmount;
 
         if (amountDeposited > 0) {
             uint16 referral = sUsdsReferral;
@@ -476,12 +447,10 @@ contract OrigamiSuperSavingsUsdsManager is
             }
         }
     }
-    
+
     function _depositIntoFarm(Farm storage farm, uint256 assetsAmount) private returns (uint256 amountDeposited) {
-        amountDeposited = assetsAmount == MAX_AMOUNT
-            ? USDS.balanceOf(address(this))
-            : assetsAmount;
-            
+        amountDeposited = assetsAmount == MAX_AMOUNT ? USDS.balanceOf(address(this)) : assetsAmount;
+
         if (amountDeposited > 0) {
             uint16 referral = farm.referral;
             if (referral == 0) {
@@ -501,17 +470,14 @@ contract OrigamiSuperSavingsUsdsManager is
             sUSDS.withdraw(usdsAmount, receiver, address(this));
         }
     }
-    
-    function _withdrawFromFarm(
-        ISkyStakingRewards staking,
-        uint256 usdsAmount,
-        address receiver
-    ) private returns (uint256 amountWithdrawn) {
+
+    function _withdrawFromFarm(ISkyStakingRewards staking, uint256 usdsAmount, address receiver)
+        private
+        returns (uint256 amountWithdrawn)
+    {
         // `staking` has an exit() function which also claims rewards in the same tx.
         // However we intentionally want to separate that out to incentivise external claims.
-        amountWithdrawn = (usdsAmount == MAX_AMOUNT)
-            ? staking.balanceOf(address(this))
-            : usdsAmount;
+        amountWithdrawn = (usdsAmount == MAX_AMOUNT) ? staking.balanceOf(address(this)) : usdsAmount;
 
         staking.withdraw(amountWithdrawn);
         if (receiver != address(this)) {
@@ -522,9 +488,7 @@ contract OrigamiSuperSavingsUsdsManager is
     function _buildSUsdsDetails() private view returns (FarmDetails memory details) {
         // The current amount of USDS which can be redeemed
         // excluding any any limits that maxWithdraw may have
-        details.stakedBalance = sUSDS.previewRedeem(
-            sUSDS.balanceOf(address(this))
-        );
+        details.stakedBalance = sUSDS.previewRedeem(sUSDS.balanceOf(address(this)));
 
         // The total amount of USDS within sUSDS
         details.totalSupply = sUSDS.totalAssets();
@@ -536,10 +500,8 @@ contract OrigamiSuperSavingsUsdsManager is
         // farmConfig can remain uninitialized
     }
 
-    function _buildFarmDetails(
-        uint32 farmIndex
-    ) private view returns (FarmDetails memory details) {
-        // If this farm isn't valid or has been removed, then 
+    function _buildFarmDetails(uint32 farmIndex) private view returns (FarmDetails memory details) {
+        // If this farm isn't valid or has been removed, then
         // just don't populate the fields
         Farm memory farm = _farms[farmIndex];
         if (address(farm.staking) != address(0)) {
@@ -551,9 +513,7 @@ contract OrigamiSuperSavingsUsdsManager is
         }
     }
 
-    function _populateRewardsCache(
-        address incentivesReceiver
-    ) private view returns (HarvestRewardCache memory) {
+    function _populateRewardsCache(address incentivesReceiver) private view returns (HarvestRewardCache memory) {
         return HarvestRewardCache({
             swapper: swapper,
             caller: incentivesReceiver,
@@ -562,7 +522,7 @@ contract OrigamiSuperSavingsUsdsManager is
             feeBpsForOrigami: _performanceFeeBpsForOrigami
         });
     }
-    
+
     modifier onlyVault() {
         if (msg.sender != address(vault)) revert CommonEventsAndErrors.InvalidAccess();
         _;

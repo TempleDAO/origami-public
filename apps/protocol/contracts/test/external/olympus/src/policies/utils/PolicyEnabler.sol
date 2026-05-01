@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {PolicyAdmin} from "./PolicyAdmin.sol";
+import { PolicyAdmin } from "./PolicyAdmin.sol";
 
 /// @title  PolicyEnabler
-/// @notice This contract is designed to be inherited by contracts that need to be enabled or disabled. It replaces the inconsistent usage of `active` and `locallyActive` state variables across the codebase.
-/// @dev    A contract that inherits from this contract should use the `onlyEnabled` and `onlyDisabled` modifiers to gate access to certain functions.
+/// @notice This contract is designed to be inherited by contracts that need to be enabled or disabled. It replaces the
+/// inconsistent usage of `active` and `locallyActive` state variables across the codebase. @dev    A contract that
+/// inherits from this contract should use the `onlyEnabled` and `onlyDisabled` modifiers to gate access to certain
+/// functions.
 ///
 ///         Inheriting contracts must do the following:
-///         - In `configureDependencies()`, assign the module address to the `ROLES` state variable, e.g. `ROLES = ROLESv1(getModuleAddress(toKeycode("ROLES")));`
-///
+///         - In `configureDependencies()`, assign the module address to the `ROLES` state variable, e.g. `ROLES =
+/// ROLESv1(getModuleAddress(toKeycode("ROLES")));`
 ///         The following are optional:
-///         - Override the `_enable()` and `_disable()` functions if custom logic and/or parameters are needed for the enable/disable functions.
-///           - For example, `enable()` could be called with initialisation data that is decoded, validated and assigned in `_enable()`.
+///         - Override the `_enable()` and `_disable()` functions if custom logic and/or parameters are needed for the
+/// enable/disable functions. - For example, `enable()` could be called with initialisation data that is decoded,
+/// validated and assigned in `_enable()`.
 abstract contract PolicyEnabler is PolicyAdmin {
     // ===== STATE VARIABLES ===== //
 
@@ -75,7 +78,7 @@ abstract contract PolicyEnabler is PolicyAdmin {
     ///
     /// @param  enableData_ Custom data that can be used by the implementation. The format of this data is
     ///         left to the discretion of the implementation.
-    function _enable(bytes calldata enableData_) internal virtual {}
+    function _enable(bytes calldata enableData_) internal virtual { }
 
     /// @notice Disable the contract
     /// @dev    This function performs the following steps:
@@ -107,5 +110,5 @@ abstract contract PolicyEnabler is PolicyAdmin {
     ///
     /// @param  disableData_ Custom data that can be used by the implementation. The format of this data is
     ///         left to the discretion of the implementation.
-    function _disable(bytes calldata disableData_) internal virtual {}
+    function _disable(bytes calldata disableData_) internal virtual { }
 }

@@ -8,14 +8,14 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
 
 /* solhint-disable func-name-mixedcase */
 contract Mock is OrigamiElevatedAccess {
-    constructor(
-        address _initialOwner
-    ) OrigamiElevatedAccess(_initialOwner)
-    // solhint-disable-next-line no-empty-blocks
-    {}
+    constructor(address _initialOwner)
+        OrigamiElevatedAccess(_initialOwner)
+        // solhint-disable-next-line no-empty-blocks
+
+    { }
 
     // solhint-disable-next-line no-empty-blocks
-    function validateOnlyElevatedAccess() public view onlyElevatedAccess {}
+    function validateOnlyElevatedAccess() public view onlyElevatedAccess { }
 
     function checkSig() public view {
         validateOnlyElevatedAccess();
@@ -30,7 +30,7 @@ contract Mock is OrigamiElevatedAccess {
     }
 
     // A magic function with a signature of 0x00000000
-    function wycpnbqcyf() external view onlyElevatedAccess {}
+    function wycpnbqcyf() external view onlyElevatedAccess { }
 }
 
 contract OrigamiElevatedAccessTestBase is OrigamiTest {
@@ -39,11 +39,9 @@ contract OrigamiElevatedAccessTestBase is OrigamiTest {
     function setUp() public {
         mock = new Mock(origamiMultisig);
     }
-
 }
 
 contract OrigamiElevatedAccessTest is OrigamiElevatedAccessTestBase {
-
     function test_initialization() public view {
         assertEq(mock.owner(), origamiMultisig);
     }
@@ -52,7 +50,7 @@ contract OrigamiElevatedAccessTest is OrigamiElevatedAccessTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
         mock = new Mock(address(0));
     }
-    
+
     function test_re_init_fail() public {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         mock.init(alice);
@@ -75,12 +73,12 @@ contract OrigamiElevatedAccessTest is OrigamiElevatedAccessTestBase {
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAccess.selector));
         mock.acceptOwner();
     }
-    
+
     function test_access_setExplicitAccess() public {
         expectElevatedAccess();
         setExplicitAccess(mock, alice, msg.sig, true);
     }
-    
+
     function test_access_revokeOwnership() public {
         expectElevatedAccess();
         mock.revokeOwnership();
@@ -90,7 +88,9 @@ contract OrigamiElevatedAccessTest is OrigamiElevatedAccessTestBase {
 contract OrigamiElevatedAccessTestSetters is OrigamiElevatedAccessTestBase {
     event ExplicitAccessSet(address indexed account, bytes4 indexed fnSelector, bool indexed value);
 
-    event NewOwnerProposed(address indexed oldOwner, address indexed oldProposedOwner, address indexed newProposedOwner);
+    event NewOwnerProposed(
+        address indexed oldOwner, address indexed oldProposedOwner, address indexed newProposedOwner
+    );
     event NewOwnerAccepted(address indexed oldOwner, address indexed newOwner);
 
     function test_newOwner() public {

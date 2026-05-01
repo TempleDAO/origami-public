@@ -1,4 +1,5 @@
 pragma solidity ^0.8.4;
+
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 /// @title Non-fungible token for positions
@@ -84,12 +85,7 @@ interface IUniswapV3NonfungiblePositionManager {
     function mint(MintParams calldata params)
         external
         payable
-        returns (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        );
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
 
     struct IncreaseLiquidityParams {
         uint256 tokenId;
@@ -113,11 +109,7 @@ interface IUniswapV3NonfungiblePositionManager {
     function increaseLiquidity(IncreaseLiquidityParams calldata params)
         external
         payable
-        returns (
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        );
+        returns (uint128 liquidity, uint256 amount0, uint256 amount1);
 
     struct DecreaseLiquidityParams {
         uint256 tokenId;

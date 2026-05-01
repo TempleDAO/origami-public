@@ -11,7 +11,7 @@ import { Chainlink } from "contracts/libraries/Chainlink.sol";
  * @title OrigamiVolatileChainlinkOracle
  * @notice A vanilla proxy to the chainlink price with no extra validation except for oracle staleness.
  * Both the spot price and historic reference price uses the Chainlink Oracle price
- * 
+ *
  * @dev Note the Chainlink lib is only suitable for mainnet. If a Chainlink Oracle is required on
  * an L2, then it should also take the sequencer staleness into consideration.
  * eg: https://docs.chain.link/data-feeds/l2-sequencer-feeds#example-code
@@ -51,21 +51,16 @@ contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
      */
     bool public immutable validateLastUpdatedAt;
 
-    constructor (
+    constructor(
         BaseOracleParams memory baseParams,
         address _priceOracle,
         uint128 _priceStalenessThreshold,
         bool _validateRoundId,
         bool _validateLastUpdatedAt
-    )
-        OrigamiOracleBase(baseParams)
-    {
+    ) OrigamiOracleBase(baseParams) {
         priceOracle = IAggregatorV3Interface(_priceOracle);
         priceStalenessThreshold = _priceStalenessThreshold;
-        (pricePrecisionScalar, pricePrecisionScaleDown) = Chainlink.scalingFactor(
-            priceOracle, 
-            decimals
-        );
+        (pricePrecisionScalar, pricePrecisionScaleDown) = Chainlink.scalingFactor(priceOracle, decimals);
         validateRoundId = _validateRoundId;
         validateLastUpdatedAt = _validateLastUpdatedAt;
     }
@@ -75,16 +70,22 @@ contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
      * @dev This may still revert if deemed stale or it returns a negative price
      */
     function latestPrice(
-        PriceType /*priceType*/, 
+        PriceType,
+        /*priceType*/
         OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256 price) {
+    )
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // There isn't a separate historic reference price, so return the same price for both SPOT and HISTORIC
         price = Chainlink.price(
             Chainlink.Config(
-                priceOracle, 
-                pricePrecisionScaleDown, 
+                priceOracle,
+                pricePrecisionScaleDown,
                 pricePrecisionScalar,
-                priceStalenessThreshold, 
+                priceStalenessThreshold,
                 validateRoundId,
                 validateLastUpdatedAt
             ),
@@ -93,31 +94,29 @@ contract OrigamiVolatileChainlinkOracle is OrigamiOracleBase {
     }
 
     /**
-     * @notice Same as `latestPrice()` but for two separate prices from this oracle	
+     * @notice Same as `latestPrice()` but for two separate prices from this oracle
      */
     function latestPrices(
-        PriceType priceType1, 
+        PriceType priceType1,
         OrigamiMath.Rounding roundingMode1,
-        PriceType priceType2, 
+        PriceType priceType2,
         OrigamiMath.Rounding roundingMode2
-    ) external override view returns (
-        uint256 /*price1*/, 
-        uint256 /*price2*/, 
-        address /*oracleBaseAsset*/,
-        address /*oracleQuoteAsset*/
-    ) {
+    )
+        external
+        view
+        override
+        returns (
+            uint256, /*price1*/
+            uint256, /*price2*/
+            address, /*oracleBaseAsset*/
+            address /*oracleQuoteAsset*/
+        )
+    {
         uint256 price1 = latestPrice(priceType1, roundingMode1);
 
         // Save a second oracle lookup if the rounding modes are the same.
-        uint256 price2 = roundingMode1 == roundingMode2
-            ? price1
-            : latestPrice(priceType2, roundingMode2);
+        uint256 price2 = roundingMode1 == roundingMode2 ? price1 : latestPrice(priceType2, roundingMode2);
 
-        return (
-            price1,
-            price2,
-            baseAsset,
-            quoteAsset
-        );
+        return (price1, price2, baseAsset, quoteAsset);
     }
 }

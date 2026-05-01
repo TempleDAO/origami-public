@@ -11,8 +11,8 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
 import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.sol";
 
 contract MockToken is ERC20 {
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
-    
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) { }
+
     function allowance(address, address) public pure override returns (uint256) {
         return type(uint256).max;
     }
@@ -32,7 +32,7 @@ contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
     event RouterWhitelisted(address indexed router, bool allowed);
 
     function setUp() public {
-        fork("mainnet", 18725488);
+        fork("mainnet", 18_725_488);
         swapper = new OrigamiDexAggregatorSwapper(origamiMultisig);
         dummyRouter = new DummyDexRouter();
 
@@ -76,37 +76,34 @@ contract OrigamiDexAggregatorSwapperTest is OrigamiTest {
     }
 
     function encode(bytes memory data) internal pure returns (bytes memory) {
-        return abi.encode(OrigamiDexAggregatorSwapper.RouteData({
-            router: router,
-            data: data
-        }));
+        return abi.encode(OrigamiDexAggregatorSwapper.RouteData({ router: router, data: data }));
     }
 
     function getQuoteData() internal pure returns (bytes memory) {
         // REQUEST:
         /*
-curl -X GET \
-"https://api.1inch.dev/swap/v5.2/1/swap?src=0x6b175474e89094c44da98b954eedeac495271d0f&dst=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&amount=1000000000000000000000&from=0x1111111254eeb25477b68fb85ed929f73a960582&slippage=0.5&disableEstimate=true" \
--H "Authorization: Bearer PinnqIP4n9rxYRndzIyWDVrMfmGKUbZG" \
--H "accept: application/json" \
--H "content-type: application/json"
-        */
+        curl -X GET \
+        "https://api.1inch.dev/swap/v5.2/1/swap?src=0x6b175474e89094c44da98b954eedeac495271d0f&dst=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48&amount=1000000000000000000000&from=0x1111111254eeb25477b68fb85ed929f73a960582&slippage=0.5&disableEstimate=true" \
+        -H "Authorization: Bearer PinnqIP4n9rxYRndzIyWDVrMfmGKUbZG" \
+        -H "accept: application/json" \
+        -H "content-type: application/json"
+                */
 
         // RESPONSE:
         /*
-{
-    "toAmount": "999903781",
-    "tx": {
-        "from": "0x1111111254eeb25477b68fb85ed929f73a960582",
-        "to": "0x1111111254eeb25477b68fb85ed929f73a960582",
-        "data": "0xe449022e00000000000000000000000000000000000000000000003635c9adc5dea00000000000000000000000000000000000000000000000000000000000003b4d08c6000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000005777d92f208679db4b9778590fa3cab3ac9e21688b1ccac8",
-        "value": "0",
-        "gas": 0,
-        "gasPrice": "45510051129"
-    }
-}
-        */
- 
+        {
+            "toAmount": "999903781",
+            "tx": {
+                "from": "0x1111111254eeb25477b68fb85ed929f73a960582",
+                "to": "0x1111111254eeb25477b68fb85ed929f73a960582",
+                "data": "0xe449022e00000000000000000000000000000000000000000000003635c9adc5dea00000000000000000000000000000000000000000000000000000000000003b4d08c6000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000005777d92f208679db4b9778590fa3cab3ac9e21688b1ccac8",
+                "value": "0",
+                "gas": 0,
+                "gasPrice": "45510051129"
+            }
+        }
+                */
+
         // Pulled from the quote data above
         return hex"e449022e00000000000000000000000000000000000000000000003635c9adc5dea00000000000000000000000000000000000000000000000000000000000003b4d08c6000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000005777d92f208679db4b9778590fa3cab3ac9e21688b1ccac8";
     }
@@ -114,25 +111,21 @@ curl -X GET \
     function test_execute_fail_invalidRouter() public {
         bytes memory data = getQuoteData();
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
 
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidRouter.selector, alice));        
+        vm.expectRevert(abi.encodeWithSelector(IOrigamiSwapper.InvalidRouter.selector, alice));
         swapper.execute(
-            DAI, sellTokenAmount, USDC, 
-            abi.encode(OrigamiDexAggregatorSwapper.RouteData({
-                router: alice,
-                data: data
-            }))
+            DAI, sellTokenAmount, USDC, abi.encode(OrigamiDexAggregatorSwapper.RouteData({ router: alice, data: data }))
         );
     }
 
     function test_execute_success() public {
         bytes memory data = getQuoteData();
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
@@ -153,7 +146,7 @@ curl -X GET \
     function test_execute_fail_sellRemainder() public {
         bytes memory data = getQuoteData();
 
-        uint256 sellTokenAmount = 1_500e18;
+        uint256 sellTokenAmount = 1500e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
@@ -163,14 +156,12 @@ curl -X GET \
     }
 
     function test_execute_fail_sellTokenSurplus() public {
-        uint256 sellTokenAmount = 1_000e18;
-        bytes memory data = abi.encodeCall(
-            DummyDexRouter.doExactSwap, 
-            (address(DAI), sellTokenAmount-1, address(USDC), 1000e6)
-        );
+        uint256 sellTokenAmount = 1000e18;
+        bytes memory data =
+            abi.encodeCall(DummyDexRouter.doExactSwap, (address(DAI), sellTokenAmount - 1, address(USDC), 1000e6));
 
         vm.startPrank(alice);
-        deal(address(DAI), alice, sellTokenAmount*2, true);
+        deal(address(DAI), alice, sellTokenAmount * 2, true);
         DAI.approve(address(swapper), sellTokenAmount);
 
         deal(address(USDC), address(dummyRouter), 1000e6, true);
@@ -180,19 +171,15 @@ curl -X GET \
             DAI,
             sellTokenAmount,
             USDC,
-            abi.encode(OrigamiDexAggregatorSwapper.RouteData({
-                router: address(dummyRouter),
-                data: data
-            }))
+            abi.encode(OrigamiDexAggregatorSwapper.RouteData({ router: address(dummyRouter), data: data }))
         );
     }
 
     function test_execute_fail_sellTokenDefecit() public {
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         MockToken sellToken = new MockToken("SELL_TOKEN", "SELL_TOKEN");
         bytes memory data = abi.encodeCall(
-            DummyDexRouter.doExactSwap, 
-            (address(sellToken), sellTokenAmount+1, address(USDC), 1000e6)
+            DummyDexRouter.doExactSwap, (address(sellToken), sellTokenAmount + 1, address(USDC), 1000e6)
         );
 
         vm.startPrank(alice);
@@ -207,10 +194,7 @@ curl -X GET \
             sellToken,
             sellTokenAmount,
             USDC,
-            abi.encode(OrigamiDexAggregatorSwapper.RouteData({
-                router: address(dummyRouter),
-                data: data
-            }))
+            abi.encode(OrigamiDexAggregatorSwapper.RouteData({ router: address(dummyRouter), data: data }))
         );
     }
 
@@ -229,7 +213,7 @@ curl -X GET \
     function test_execute_fail_badBalance() public {
         bytes memory data = getQuoteData();
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
@@ -247,7 +231,7 @@ curl -X GET \
         uint256 donateAmount = 100e6;
         deal(address(USDC), address(swapper), donateAmount, false);
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, false);
         DAI.approve(address(swapper), sellTokenAmount);
@@ -272,7 +256,7 @@ curl -X GET \
         uint256 donateAmount = 100e18;
         deal(address(DAI), address(swapper), donateAmount, false);
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, false);
         DAI.approve(address(swapper), sellTokenAmount);
@@ -293,12 +277,12 @@ curl -X GET \
     function test_execute_failure_approvalsAtWrapper() public {
         bytes memory data = getQuoteData();
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
 
         // 1 less for approvals
-        DAI.approve(address(swapper), sellTokenAmount-1);
+        DAI.approve(address(swapper), sellTokenAmount - 1);
         vm.expectRevert("Dai/insufficient-allowance");
         swapper.execute(DAI, sellTokenAmount, USDC, encode(data));
     }
@@ -320,7 +304,7 @@ curl -X GET \
         // Bad data - unknown function
         bytes memory data = hex"12345678";
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);
@@ -332,7 +316,7 @@ curl -X GET \
     function test_execute_failure_unknownError() public {
         bytes memory data = hex"12345678";
 
-        uint256 sellTokenAmount = 1_000e18;
+        uint256 sellTokenAmount = 1000e18;
         vm.startPrank(alice);
         deal(address(DAI), alice, sellTokenAmount, true);
         DAI.approve(address(swapper), sellTokenAmount);

@@ -2,7 +2,9 @@ pragma solidity ^0.8.4;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/investments/IOrigamiCompoundingVaultManager.sol)
 
-import {IOrigamiDelegated4626VaultManager} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 
 /**
  * @title Origami Auto-Compounding Vault Manager
@@ -14,10 +16,7 @@ interface IOrigamiCompoundingVaultManager is IOrigamiDelegated4626VaultManager {
     event AssetWithdrawn(uint256 amount);
     event SwapperSet(address indexed newSwapper);
     event ClaimedReward(
-        address indexed rewardToken, 
-        uint256 amountForCaller,
-        uint256 amountForOrigami,
-        uint256 amountForVault
+        address indexed rewardToken, uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault
     );
 
     /**
@@ -35,7 +34,8 @@ interface IOrigamiCompoundingVaultManager is IOrigamiDelegated4626VaultManager {
      * - The caller can nominate an address to receive a portion of these rewards (to compensate for gas).
      * - Origami will earn a portion of these rewards (as a performance fee).
      * - The remainder is sent to a swapper contract to be converted to the base asset.
-     * Base asset proceeds from the swapper will sent back to this contract ready to add to the vault on the next deposit.
+     * Base asset proceeds from the swapper will sent back to this contract ready to add to the vault on the next
+     * deposit.
      */
     function harvestRewards(address incentivesReceiver) external;
 

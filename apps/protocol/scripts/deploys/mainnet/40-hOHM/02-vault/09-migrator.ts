@@ -15,7 +15,7 @@ async function main() {
     factory,
     factory.deploy,
     ADDRS.CORE.MULTISIG,
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     ADDRS.EXTERNAL.OLYMPUS.GOHM_TOKEN,
     ADDRS.EXTERNAL.MAKER_DAO.DAI_TOKEN,
     ADDRS.EXTERNAL.SKY.USDS_TOKEN,

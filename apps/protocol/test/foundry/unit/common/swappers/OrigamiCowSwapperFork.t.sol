@@ -47,7 +47,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
     uint96 public constant SDAI_SELL_AMOUNT = 1_000_000e18;
 
     function setUp() public {
-        fork("mainnet", 20682077);
+        fork("mainnet", 20_682_077);
 
         cowSwapSettlement = MockCowSettlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
         cowSwapRelayer = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
@@ -57,41 +57,17 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
         sUSDe = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
         USDe = 0x4c9EDD5852cd905f086C759E8383e09bff1E68B3;
 
-        swapper = new OrigamiCowSwapper(
-            origamiMultisig, 
-            cowSwapRelayer,
-            address(cowSwapSettlement)
-        );
+        swapper = new OrigamiCowSwapper(origamiMultisig, cowSwapRelayer, address(cowSwapSettlement));
 
         sdaiOracle = new OrigamiErc4626Oracle(
-            IOrigamiOracle.BaseOracleParams(
-                "sDAI/USD",
-                sDAI,
-                18,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
-            address(0)
+            IOrigamiOracle.BaseOracleParams("sDAI/USD", sDAI, 18, INTERNAL_USD_ADDRESS, 18), address(0)
         );
         susdeOracle = new OrigamiErc4626Oracle(
-            IOrigamiOracle.BaseOracleParams(
-                "sUSDe/USD",
-                sUSDe,
-                18,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
-            address(0)
+            IOrigamiOracle.BaseOracleParams("sUSDe/USD", sUSDe, 18, INTERNAL_USD_ADDRESS, 18), address(0)
         );
-        
+
         limitPriceOracle = new OrigamiCrossRateOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "sDAI/sUSDe",
-                sDAI,
-                18,
-                sUSDe,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("sDAI/sUSDe", sDAI, 18, sUSDe, 18),
             address(sdaiOracle),
             address(susdeOracle),
             address(0)
@@ -121,31 +97,28 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
 
     function configureOrder() internal {
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            sDAI,
-            defaultOrderConfig()
-        );
+        swapper.setOrderConfig(sDAI, defaultOrderConfig());
     }
 
     function defaultConditionalOrderParams() internal view returns (IConditionalOrder.ConditionalOrderParams memory) {
-        return IConditionalOrder.ConditionalOrderParams(
-            address(0),
-            bytes32(0),
-            abi.encode(sDAI)
-        );
+        return IConditionalOrder.ConditionalOrderParams(address(0), bytes32(0), abi.encode(sDAI));
     }
 
     function test_oracle() public view {
         assertEq(
-            sdaiOracle.convertAmount(sDAI, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            sdaiOracle.convertAmount(sDAI, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             1.106391098015661527e18
         );
         assertEq(
-            susdeOracle.convertAmount(sUSDe, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
+            susdeOracle.convertAmount(
+                sUSDe, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             1.099454915539319362e18
         );
         assertEq(
-            limitPriceOracle.convertAmount(sDAI, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            limitPriceOracle.convertAmount(
+                sDAI, 1e18, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+            ),
             1.006308746614625608e18
         );
     }
@@ -153,14 +126,8 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
     function test_getTradeableOrderWithSignature_success_1() public {
         configureOrder();
 
-        (
-            GPv2Order.Data memory order, 
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         assertEq(address(order.sellToken), sDAI);
@@ -168,7 +135,7 @@ contract OrigamiCowSwapperForkTestBase is OrigamiTest {
         assertEq(order.receiver, address(swapper));
         assertEq(order.sellAmount, SDAI_SELL_AMOUNT);
         assertEq(order.buyAmount, 1_009_320e18);
-        assertEq(order.validTo, 1725511500); 
+        assertEq(order.validTo, 1_725_511_500);
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);

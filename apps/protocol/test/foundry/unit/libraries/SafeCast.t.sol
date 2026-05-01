@@ -6,15 +6,9 @@ import { SafeCast } from "contracts/libraries/SafeCast.sol";
 
 contract SafeCastTest is OrigamiTest {
     function test_encodeUInt128_success() public pure {
-        assertEq(
-            SafeCast.encodeUInt128(uint256(type(uint128).max)),
-            type(uint128).max
-        );
+        assertEq(SafeCast.encodeUInt128(uint256(type(uint128).max)), type(uint128).max);
 
-        assertEq(
-            SafeCast.encodeUInt128(uint256(0)),
-            uint128(0)
-        );
+        assertEq(SafeCast.encodeUInt128(uint256(0)), uint128(0));
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -25,15 +19,9 @@ contract SafeCastTest is OrigamiTest {
     }
 
     function test_encodeUInt112_success() public pure {
-        assertEq(
-            SafeCast.encodeUInt112(uint256(type(uint112).max)),
-            type(uint112).max
-        );
+        assertEq(SafeCast.encodeUInt112(uint256(type(uint112).max)), type(uint112).max);
 
-        assertEq(
-            SafeCast.encodeUInt112(uint256(0)),
-            uint112(0)
-        );
+        assertEq(SafeCast.encodeUInt112(uint256(0)), uint112(0));
     }
 
     /// forge-config: default.allow_internal_expect_revert = true
@@ -43,16 +31,23 @@ contract SafeCastTest is OrigamiTest {
         SafeCast.encodeUInt112(x);
     }
 
-    function test_encodeInt256_success() public pure {
-        assertEq(
-            SafeCast.encodeInt256(uint256(type(int256).max)),
-            type(int256).max
-        );
+    function test_encodeUInt160_success() public pure {
+        assertEq(SafeCast.encodeUInt160(uint256(type(uint160).max)), type(uint160).max);
 
-        assertEq(
-            SafeCast.encodeInt256(uint256(0)),
-            int256(0)
-        );
+        assertEq(SafeCast.encodeUInt160(uint256(0)), uint160(0));
+    }
+
+    /// forge-config: default.allow_internal_expect_revert = true
+    function test_encodeUInt160_failure() public {
+        uint256 x = uint256(type(uint160).max) + 1;
+        vm.expectRevert(abi.encodeWithSelector(SafeCast.Overflow.selector, x));
+        SafeCast.encodeUInt160(x);
+    }
+
+    function test_encodeInt256_success() public pure {
+        assertEq(SafeCast.encodeInt256(uint256(type(int256).max)), type(int256).max);
+
+        assertEq(SafeCast.encodeInt256(uint256(0)), int256(0));
     }
 
     /// forge-config: default.allow_internal_expect_revert = true

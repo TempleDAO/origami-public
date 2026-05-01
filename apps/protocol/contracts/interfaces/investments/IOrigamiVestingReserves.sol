@@ -1,4 +1,5 @@
 pragma solidity ^0.8.4;
+
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (interfaces/investments/IOrigamiVestingReserves.sol)
 
@@ -16,7 +17,7 @@ interface IOrigamiVestingReserves {
     function lastVestingCheckpoint() external view returns (uint48);
 
     /// @notice Rewards which are vesting in the current period
-    /// @dev Use the `vestingStatus()` in order to get accurate vested vs unvested split as 
+    /// @dev Use the `vestingStatus()` in order to get accurate vested vs unvested split as
     /// of the current block timestamp.
     /// `vestingReserves()` may still show a value > 0 even if the `block.timestamp` is
     ///  past the `lastVestingCheckpoint+reservesVestingDuration` (depending on checkpoint status)
@@ -26,9 +27,8 @@ interface IOrigamiVestingReserves {
     function futureVestingReserves() external view returns (uint128);
 
     /// @notice The breakdown of balances for the current period's vesting and any accrued for the next period
-    function vestingStatus() external view returns (
-        uint256 currentPeriodVested,
-        uint256 currentPeriodUnvested,
-        uint256 futurePeriodUnvested
-    );
+    function vestingStatus()
+        external
+        view
+        returns (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested);
 }

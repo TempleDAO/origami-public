@@ -13,7 +13,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.SKYp.TOKEN,
+    ADDRS.VAULTS.SKYp.TOKEN.address,
     ADDRS.EXTERNAL.SKY.LOCKSTAKE_ENGINE,
     DEFAULT_SETTINGS.VAULTS.SKYp.SWITCH_FARM_COOLDOWN_SECS,
     ADDRS.VAULTS.SKYp.COW_SWAPPER,

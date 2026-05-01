@@ -7,8 +7,8 @@ import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracl
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 
 /**
- * @notice A helper library to safely query prices from Chainlink oracles and scale them 
- * 
+ * @notice A helper library to safely query prices from Chainlink oracles and scale them
+ *
  * @dev Note this Chainlink lib is only suitable for mainnet. If a Chainlink Oracle is required on
  * an L2, then it should also take the sequencer staleness into consideration.
  * eg: https://docs.chain.link/data-feeds/l2-sequencer-feeds#example-code
@@ -29,11 +29,8 @@ library Chainlink {
      * @notice Query a price from a Chainlink oracle interface and perform sanity checks
      * The oracle price is scaled to the expected Origami precision (18dp)
      */
-    function price(
-        Config memory self,
-        OrigamiMath.Rounding roundingMode
-    ) internal view returns (uint256) {
-        (uint80 roundId, int256 feedValue, , uint256 lastUpdatedAt,) = self.oracle.latestRoundData();
+    function price(Config memory self, OrigamiMath.Rounding roundingMode) internal view returns (uint256) {
+        (uint80 roundId, int256 feedValue,, uint256 lastUpdatedAt,) = self.oracle.latestRoundData();
 
         // Invalid chainlink parameters
         if (self.validateRoundId && roundId == 0) revert IOrigamiOracle.InvalidOracleData(address(self.oracle));
@@ -52,7 +49,7 @@ library Chainlink {
         // Check for negative price
         if (feedValue < 0) revert IOrigamiOracle.InvalidPrice(address(self.oracle), feedValue);
 
-        return self.scaleDown 
+        return self.scaleDown
             ? uint256(feedValue).scaleDown(self.scalar, roundingMode)
             : uint256(feedValue).scaleUp(self.scalar);
     }
@@ -61,10 +58,11 @@ library Chainlink {
      * @notice Calculate the scaling factor to convert the chainlink oracle decimals to
      * our targetDecimals (18dp)
      */
-    function scalingFactor(
-        IAggregatorV3Interface oracle,
-        uint8 targetDecimals
-    ) internal view returns (uint128 scalar, bool scaleDown) {
+    function scalingFactor(IAggregatorV3Interface oracle, uint8 targetDecimals)
+        internal
+        view
+        returns (uint128 scalar, bool scaleDown)
+    {
         uint8 oracleDecimals = oracle.decimals();
 
         unchecked {

@@ -29,7 +29,8 @@ contract OrigamiEtherFiEthToEthOracle is OrigamiOracleBase, OrigamiElevatedAcces
     IAggregatorV3Interface public immutable spotPriceOracle;
 
     /**
-     * @notice True if the `spotPriceOracle` price should be scaled down by `spotPricePrecisionScalar` to match `decimals`
+     * @notice True if the `spotPriceOracle` price should be scaled down by `spotPricePrecisionScalar` to match
+     * `decimals`
      */
     bool public immutable spotPricePrecisionScaleDown;
 
@@ -56,23 +57,17 @@ contract OrigamiEtherFiEthToEthOracle is OrigamiOracleBase, OrigamiElevatedAcces
      */
     uint256 public maxRelativeToleranceBps;
 
-    constructor (
+    constructor(
         address _initialOwner,
         BaseOracleParams memory baseParams,
         address _spotPriceOracle,
         uint128 _spotPriceStalenessThreshold,
         uint256 _maxRelativeToleranceBps,
         address _etherfiLiquidityPool
-    ) 
-        OrigamiOracleBase(baseParams)
-        OrigamiElevatedAccess(_initialOwner)
-    {
+    ) OrigamiOracleBase(baseParams) OrigamiElevatedAccess(_initialOwner) {
         spotPriceOracle = IAggregatorV3Interface(_spotPriceOracle);
         spotPriceStalenessThreshold = _spotPriceStalenessThreshold;
-        (spotPricePrecisionScalar, spotPricePrecisionScaleDown) = Chainlink.scalingFactor(
-            spotPriceOracle, 
-            decimals
-        );
+        (spotPricePrecisionScalar, spotPricePrecisionScaleDown) = Chainlink.scalingFactor(spotPriceOracle, decimals);
 
         maxRelativeToleranceBps = _maxRelativeToleranceBps;
         etherfiLiquidityPool = IEtherFiLiquidityPool(_etherfiLiquidityPool);
@@ -90,13 +85,15 @@ contract OrigamiEtherFiEthToEthOracle is OrigamiOracleBase, OrigamiElevatedAcces
     /**
      * @notice Return the latest oracle price, to `decimals` precision
      * @param priceType What kind of price - Spot or Historic
-     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the 
+     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the
      * specified direction.
      */
-    function latestPrice(
-        PriceType priceType, 
-        OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256 price) {
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode)
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // Calculate how much ETH will be received when redeeming 1e18 ezETH
         uint256 onChainPrice = _calculateRedeemAmount(1e18);
 
@@ -108,7 +105,7 @@ contract OrigamiEtherFiEthToEthOracle is OrigamiOracleBase, OrigamiElevatedAcces
                     spotPricePrecisionScalar,
                     spotPriceStalenessThreshold,
                     false, // Redstone 'chainlink lookalike contracts' don't use the roundId
-                    true   // It does use the lastUpdatedAt though
+                    true // It does use the lastUpdatedAt though
                 ),
                 roundingMode
             );
@@ -116,11 +113,9 @@ contract OrigamiEtherFiEthToEthOracle is OrigamiOracleBase, OrigamiElevatedAcces
             // validate the oracle price is sufficiently close to the on chain redemption price
             // Round up to get the worst case
             uint256 relDiffBps = price.relativeDifferenceBps(onChainPrice, OrigamiMath.Rounding.ROUND_UP);
-            if (relDiffBps > maxRelativeToleranceBps) revert AboveMaxValidRange(
-                address(spotPriceOracle), 
-                price, 
-                SafeCast.encodeUInt128(onChainPrice)
-            );
+            if (relDiffBps > maxRelativeToleranceBps) {
+                revert AboveMaxValidRange(address(spotPriceOracle), price, SafeCast.encodeUInt128(onChainPrice));
+            }
         } else if (priceType == PriceType.HISTORIC_PRICE) {
             // Use the on chain weETH conversion
             price = onChainPrice;

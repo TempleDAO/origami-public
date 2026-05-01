@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-import {MINTRv1, OHM} from "./MINTR.v1.sol";
-import {Kernel, Module, Keycode, toKeycode} from "../../Kernel.sol";
+import { MINTRv1, OHM } from "./MINTR.v1.sol";
+import { Kernel, Module, Keycode, toKeycode } from "../../Kernel.sol";
 
 /// @notice Wrapper for minting and burning functions of OHM token.
 contract OlympusMinter is MINTRv1 {
@@ -47,10 +47,7 @@ contract OlympusMinter is MINTRv1 {
     }
 
     /// @inheritdoc MINTRv1
-    function burnOhm(
-        address from_,
-        uint256 amount_
-    ) external override permissioned onlyWhileActive {
+    function burnOhm(address from_, uint256 amount_) external override permissioned onlyWhileActive {
         if (amount_ == 0) revert MINTR_ZeroAmount();
 
         ohm.burnFrom(from_, amount_);
@@ -62,9 +59,7 @@ contract OlympusMinter is MINTRv1 {
     function increaseMintApproval(address policy_, uint256 amount_) external override permissioned {
         uint256 approval = mintApproval[policy_];
 
-        uint256 newAmount = type(uint256).max - approval <= amount_
-            ? type(uint256).max
-            : approval + amount_;
+        uint256 newAmount = type(uint256).max - approval <= amount_ ? type(uint256).max : approval + amount_;
         mintApproval[policy_] = newAmount;
 
         emit IncreaseMintApproval(policy_, newAmount);

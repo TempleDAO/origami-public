@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IDLGTEv1} from "contracts/interfaces/external/olympus/IDLGTE.v1.sol";
-import {ICoolerLtvOracle} from "contracts/interfaces/external/olympus/ICoolerLtvOracle.sol";
-import {ICoolerTreasuryBorrower} from "./ICoolerTreasuryBorrower.sol";
-import {IStaking} from "../IStaking.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IDLGTEv1 } from "contracts/interfaces/external/olympus/IDLGTE.v1.sol";
+import { ICoolerLtvOracle } from "contracts/interfaces/external/olympus/ICoolerLtvOracle.sol";
+import { ICoolerTreasuryBorrower } from "./ICoolerTreasuryBorrower.sol";
+import { IStaking } from "../IStaking.sol";
 
 /**
  * @title Mono Cooler
@@ -42,36 +42,17 @@ interface IMonoCooler {
     event InterestRateSet(uint96 interestRateWad);
     event LtvOracleSet(address indexed oracle);
     event TreasuryBorrowerSet(address indexed treasuryBorrower);
-    event CollateralAdded(
-        address indexed caller,
-        address indexed onBehalfOf,
-        uint128 collateralAmount
-    );
+    event CollateralAdded(address indexed caller, address indexed onBehalfOf, uint128 collateralAmount);
     event CollateralWithdrawn(
-        address indexed caller,
-        address indexed onBehalfOf,
-        address indexed recipient,
-        uint128 collateralAmount
+        address indexed caller, address indexed onBehalfOf, address indexed recipient, uint128 collateralAmount
     );
-    event Borrow(
-        address indexed caller,
-        address indexed onBehalfOf,
-        address indexed recipient,
-        uint128 amount
-    );
+    event Borrow(address indexed caller, address indexed onBehalfOf, address indexed recipient, uint128 amount);
     event Repay(address indexed caller, address indexed onBehalfOf, uint128 repayAmount);
     event Liquidated(
-        address indexed caller,
-        address indexed account,
-        uint128 collateralSeized,
-        uint128 debtWiped,
-        uint128 incentives
+        address indexed caller, address indexed account, uint128 collateralSeized, uint128 debtWiped, uint128 incentives
     );
     event AuthorizationSet(
-        address indexed caller,
-        address indexed account,
-        address indexed authorized,
-        uint96 authorizationDeadline
+        address indexed caller, address indexed account, address indexed authorized, uint96 authorizationDeadline
     );
 
     /// @notice The record of an individual account's collateral and debt data
@@ -218,15 +199,13 @@ interface IMonoCooler {
     /// @notice Whether `authorized` is authorized to act on `authorizer`'s behalf for all user actions
     /// up until the `authorizationDeadline` unix timestamp.
     /// @dev Anyone is authorized to modify their own positions, regardless of this variable.
-    function authorizations(
-        address authorizer,
-        address authorized
-    ) external view returns (uint96 authorizationDeadline);
+    function authorizations(address authorizer, address authorized) external view returns (uint96 authorizationDeadline);
 
     /// @notice The `authorizer`'s current nonce. Used to prevent replay attacks with EIP-712 signatures.
     function authorizationNonces(address authorizer) external view returns (uint256);
 
-    /// @dev Returns the domain separator used in the encoding of the signature for `setAuthorizationWithSig()`, as defined by {EIP712}.
+    /// @dev Returns the domain separator used in the encoding of the signature for `setAuthorizationWithSig()`, as
+    /// defined by {EIP712}.
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 
     /// @notice Sets the authorization for `authorized` to manage `msg.sender`'s positions until `authorizationDeadline`
@@ -242,11 +221,9 @@ interface IMonoCooler {
     /// @dev The nonce is passed as argument to be able to revert with a different error message.
     /// @param authorization The `Authorization` struct.
     /// @param signature The signature.
-    /// @dev Authorization can be revoked by calling `setAuthorization()` and setting the `authorizationDeadline` into the past
-    function setAuthorizationWithSig(
-        Authorization calldata authorization,
-        Signature calldata signature
-    ) external;
+    /// @dev Authorization can be revoked by calling `setAuthorization()` and setting the `authorizationDeadline` into
+    /// the past
+    function setAuthorizationWithSig(Authorization calldata authorization, Signature calldata signature) external;
 
     /// @dev Returns whether the `sender` is authorized to manage `onBehalf`'s positions.
     function isSenderAuthorized(address sender, address onBehalf) external view returns (bool);
@@ -287,7 +264,8 @@ interface IMonoCooler {
      *    - MUST NOT be address(0)
      * @param delegationRequests The set of delegations to apply before removing collateral.
      *    - MAY be empty, meaning no delegations are applied.
-     *    - MUST ONLY be requests to undelegate, and that total undelegated MUST BE less than the `collateralAmount` argument
+     *    - MUST ONLY be requests to undelegate, and that total undelegated MUST BE less than the `collateralAmount`
+     * argument
      */
     function withdrawCollateral(
         uint128 collateralAmount,
@@ -308,10 +286,7 @@ interface IMonoCooler {
      * @param onBehalfOf A caller can apply delegations on behalf of themselves or another address if
      *      authorized via `setAuthorization()` or `setAuthorizationWithSig()`
      */
-    function applyDelegations(
-        IDLGTEv1.DelegationRequest[] calldata delegationRequests,
-        address onBehalfOf
-    )
+    function applyDelegations(IDLGTEv1.DelegationRequest[] calldata delegationRequests, address onBehalfOf)
         external
         returns (uint256 totalDelegated, uint256 totalUndelegated, uint256 undelegatedBalance);
 
@@ -333,11 +308,9 @@ interface IMonoCooler {
      *    - MUST NOT be address(0)
      * @return amountBorrowedInWad The amount actually borrowed.
      */
-    function borrow(
-        uint128 borrowAmountInWad,
-        address onBehalfOf,
-        address recipient
-    ) external returns (uint128 amountBorrowedInWad);
+    function borrow(uint128 borrowAmountInWad, address onBehalfOf, address recipient)
+        external
+        returns (uint128 amountBorrowedInWad);
 
     /**
      * @notice Repay a portion, or all of the debt
@@ -351,10 +324,7 @@ interface IMonoCooler {
      * @param onBehalfOf A caller can repay the debt on behalf of themselves or another address
      * @return amountRepaidInWad The amount actually repaid.
      */
-    function repay(
-        uint128 repayAmountInWad,
-        address onBehalfOf
-    ) external returns (uint128 amountRepaidInWad);
+    function repay(uint128 repayAmountInWad, address onBehalfOf) external returns (uint128 amountRepaidInWad);
 
     //============================================================================================//
     //                                       LIQUIDATIONS                                         //
@@ -367,25 +337,18 @@ interface IMonoCooler {
      *    - If one of the provided accounts in the batch hasn't exceeded the max LTV then it is skipped.
      *    - Delegations are auto-rescinded if required. Ordering of this is not guaranteed.
      */
-    function batchLiquidate(
-        address[] calldata accounts
-    )
+    function batchLiquidate(address[] calldata accounts)
         external
-        returns (
-            uint128 totalCollateralClaimed,
-            uint128 totalDebtWiped,
-            uint128 totalLiquidationIncentive
-        );
+        returns (uint128 totalCollateralClaimed, uint128 totalDebtWiped, uint128 totalLiquidationIncentive);
 
     /**
      * @notice If an account becomes unhealthy and has many delegations such that liquidation can't be
      * performed in one transaction, then delegations can be rescinded over multiple transactions
      * in order to get this account into a state where it can then be liquidated.
      */
-    function applyUnhealthyDelegations(
-        address account,
-        uint256 autoRescindMaxNumDelegates
-    ) external returns (uint256 totalUndelegated, uint256 undelegatedBalance);
+    function applyUnhealthyDelegations(address account, uint256 autoRescindMaxNumDelegates)
+        external
+        returns (uint256 totalUndelegated, uint256 undelegatedBalance);
 
     //============================================================================================//
     //                                           ADMIN                                            //
@@ -417,9 +380,7 @@ interface IMonoCooler {
 
     /// @notice Update and checkpoint the total debt up until now
     /// @dev May be useful in case there are no new user actions for some time.
-    function checkpointDebt()
-        external
-        returns (uint128 totalDebtInWad, uint256 interestAccumulatorRay);
+    function checkpointDebt() external returns (uint128 totalDebtInWad, uint256 interestAccumulatorRay);
 
     //============================================================================================//
     //                                      AUX FUNCTIONS                                         //
@@ -429,42 +390,40 @@ interface IMonoCooler {
      * @notice Calculate the difference in debt required in order to be at or just under
      * the maxOriginationLTV if `collateralDelta` was added/removed
      * from the current position.
-     * A positive `debtDeltaInWad` means the account can borrow that amount after adding that `collateralDelta` collateral
-     * A negative `debtDeltaInWad` means it needs to repay that amount in order to withdraw that `collateralDelta` collateral
+     * A positive `debtDeltaInWad` means the account can borrow that amount after adding that `collateralDelta`
+     * collateral
+     * A negative `debtDeltaInWad` means it needs to repay that amount in order to withdraw that `collateralDelta`
+     * collateral
      * @dev debtDeltaInWad is always to 18 decimal places
      */
-    function debtDeltaForMaxOriginationLtv(
-        address account,
-        int128 collateralDelta
-    ) external view returns (int128 debtDeltaInWad);
+    function debtDeltaForMaxOriginationLtv(address account, int128 collateralDelta)
+        external
+        view
+        returns (int128 debtDeltaInWad);
 
     /**
      * @notice An view of an accounts current and up to date position as of this block
      * @param account The account to get a position for
      */
-    function accountPosition(
-        address account
-    ) external view returns (AccountPosition memory position);
+    function accountPosition(address account) external view returns (AccountPosition memory position);
 
     /**
      * @notice Compute the liquidity status for a set of accounts.
      * @dev This can be used to verify if accounts can be liquidated or not.
      * @param accounts The accounts to get the status for.
      */
-    function computeLiquidity(
-        address[] calldata accounts
-    ) external view returns (LiquidationStatus[] memory status);
+    function computeLiquidity(address[] calldata accounts) external view returns (LiquidationStatus[] memory status);
 
     /**
      * @notice Paginated view of an account's delegations
-     * @dev Can call sequentially increasing the `startIndex` each time by the number of items returned in the previous call,
+     * @dev Can call sequentially increasing the `startIndex` each time by the number of items returned in the previous
+     * call,
      * until number of items returned is less than `maxItems`
      */
-    function accountDelegationsList(
-        address account,
-        uint256 startIndex,
-        uint256 maxItems
-    ) external view returns (IDLGTEv1.AccountDelegation[] memory delegations);
+    function accountDelegationsList(address account, uint256 startIndex, uint256 maxItems)
+        external
+        view
+        returns (IDLGTEv1.AccountDelegation[] memory delegations);
 
     /// @notice A view of the last checkpoint of account data (not as of this block)
     function accountState(address account) external view returns (AccountState memory);
@@ -478,8 +437,5 @@ interface IMonoCooler {
     function accountDebt(address account) external view returns (uint128 debtInWad);
 
     /// @notice A view of the derived/internal cache data.
-    function globalState()
-        external
-        view
-        returns (uint128 totalDebt, uint256 interestAccumulatorRay);
+    function globalState() external view returns (uint128 totalDebt, uint256 interestAccumulatorRay);
 }

@@ -16,27 +16,28 @@ import { IMultiRewards } from "contracts/interfaces/external/staking/IMultiRewar
 
 /**
  * @title Origami Auto-Staking
- * @notice This is inspired by the infrared rewards vault contract at https://berascan.com/address/0x75f3be06b02e235f6d0e7ef2d462b29739168301#code
- *   - This contract deposits tokens into an underlying rewards vault, harvests the rewards and post-processes those rewards in order to pay out
- *     different tokens than what was claimed from the underlying vault. 
- *     For example within Infrared vaults, this can claim iBGT from the reward vaults, deposit into oriBGT and then 
+ * @notice This is inspired by the infrared rewards vault contract at
+ * https://berascan.com/address/0x75f3be06b02e235f6d0e7ef2d462b29739168301#code
+ *   - This contract deposits tokens into an underlying rewards vault, harvests the rewards and post-processes those
+ * rewards in order to pay out
+ *     different tokens than what was claimed from the underlying vault.
+ *     For example within Infrared vaults, this can claim iBGT from the reward vaults, deposit into oriBGT and then
  *     distribute oriBGT to users to claim
  *   - Stakers can withdraw their original tokens staked in full.
- * 
+ *
  * The vault can operate in two modes:
- *   - Single-Reward mode: Tokens other than the 'primary' reward token are sent to a swapper, which will sell those into more of the 'primary'
+ *   - Single-Reward mode: Tokens other than the 'primary' reward token are sent to a swapper, which will sell those
+ * into more of the 'primary'
  *     reward token. Users will only be distributed the 'primary' reward token.
- *   - Multi-Reward mode: Tokens other than the 'primary' reward token are distributed directly to the users. The underlying reward tokens claimed
+ *   - Multi-Reward mode: Tokens other than the 'primary' reward token are distributed directly to the users. The
+ * underlying reward tokens claimed
  *     may still be processed after claiming (eg iBGT => oriBGT)
- * 
- * @dev This contract uses the MultiRewards contract to distribute rewards to vault stakers, this is taken from curve.fi. (inspired by Synthetix).
+ *
+ * @dev This contract uses the MultiRewards contract to distribute rewards to vault stakers, this is taken from
+ * curve.fi. (inspired by Synthetix).
  * Does not support staking tokens with non-standard ERC20 transfer tax behavior.
  */
-abstract contract OrigamiAutoStaking is
-    MultiRewards,
-    IOrigamiAutoStaking,
-    OrigamiElevatedAccess
-{
+abstract contract OrigamiAutoStaking is MultiRewards, IOrigamiAutoStaking, OrigamiElevatedAccess {
     using SafeERC20 for IERC20;
     using OrigamiMath for uint256;
 
@@ -65,7 +66,7 @@ abstract contract OrigamiAutoStaking is
     Paused public override isPaused;
 
     /// @inheritdoc IOrigamiAutoStaking
-    mapping (address rewardToken => uint256 feeBps) public override performanceFeeBps;
+    mapping(address rewardToken => uint256 feeBps) public override performanceFeeBps;
 
     /// @dev Owner maintains a balance of 1 to recover rewards in periods where there is no stake
     uint256 private constant INITIAL_BALANCE = 1;
@@ -85,10 +86,7 @@ abstract contract OrigamiAutoStaking is
         address swapper;
     }
 
-    constructor(ConstructorArgs memory args)
-        MultiRewards(args.stakingToken)
-        OrigamiElevatedAccess(args.initialOwner)
-    {
+    constructor(ConstructorArgs memory args) MultiRewards(args.stakingToken) OrigamiElevatedAccess(args.initialOwner) {
         if (args.rewardsDuration == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
         feeCollector = args.feeCollector;
@@ -97,7 +95,9 @@ abstract contract OrigamiAutoStaking is
 
         // set rewards vault for staking token
         _rewardsVault = IMultiRewards(args.rewardsVault);
-        if (args.stakingToken != _rewardsVault.stakingToken()) revert CommonEventsAndErrors.InvalidAddress(args.stakingToken);
+        if (args.stakingToken != _rewardsVault.stakingToken()) {
+            revert CommonEventsAndErrors.InvalidAddress(args.stakingToken);
+        }
         IERC20(args.stakingToken).safeApprove(args.rewardsVault, type(uint256).max);
 
         _addRewardWithFee(args.primaryRewardToken, args.rewardsDuration, args.primaryPerformanceFeeBps);
@@ -144,24 +144,26 @@ abstract contract OrigamiAutoStaking is
     }
 
     /// @inheritdoc IOrigamiAutoStaking
-    function updateRewardsDuration(
-        address _rewardsToken,
-        uint256 _rewardsDuration
-    ) external override onlyElevatedAccess {
+    function updateRewardsDuration(address _rewardsToken, uint256 _rewardsDuration)
+        external
+        override
+        onlyElevatedAccess
+    {
         _setRewardsDuration(_rewardsToken, _rewardsDuration);
     }
 
     /// @inheritdoc IOrigamiAutoStaking
-    function addReward(
-        address _rewardsToken,
-        uint256 _rewardsDuration,
-        uint256 _performanceFeeBps
-    ) public virtual override onlyElevatedAccess {
+    function addReward(address _rewardsToken, uint256 _rewardsDuration, uint256 _performanceFeeBps)
+        public
+        virtual
+        override
+        onlyElevatedAccess
+    {
         if (_rewardsToken == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(0));
         if (_rewardsDuration == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (rewardData[_rewardsToken].rewardsDuration != 0) revert RewardAlreadyExists();
 
-        // In case the reward token was removed and then re-added, ensure the balance is enough 
+        // In case the reward token was removed and then re-added, ensure the balance is enough
         // to cover any existing unclaimed rewards.
         if (IERC20(_rewardsToken).balanceOf(address(this)) < totalUnclaimedRewards[_rewardsToken]) {
             revert CommonEventsAndErrors.InvalidAmount(_rewardsToken, totalUnclaimedRewards[_rewardsToken]);
@@ -251,16 +253,14 @@ abstract contract OrigamiAutoStaking is
     }
 
     /// @inheritdoc IOrigamiAutoStaking
-    function getAllRewardsForUser(
-        address _user
-    ) external view override returns (TokenAndAmount[] memory) {
+    function getAllRewardsForUser(address _user) external view override returns (TokenAndAmount[] memory) {
         uint256 len = rewardTokens.length;
         TokenAndAmount[] memory tempRewards = new TokenAndAmount[](len);
         uint256 count;
         for (uint256 i; i < len; i++) {
             uint256 amount = earned(_user, rewardTokens[i]);
             if (amount > 0) {
-                tempRewards[count] = TokenAndAmount({token: rewardTokens[i], amount: amount});
+                tempRewards[count] = TokenAndAmount({ token: rewardTokens[i], amount: amount });
                 count++;
             }
         }
@@ -315,7 +315,9 @@ abstract contract OrigamiAutoStaking is
         _rewardsVault.withdraw(amount);
 
         // The owner cannot withdraw the initial balance amount
-        if (msg.sender == owner && _balances[msg.sender] < INITIAL_BALANCE) revert CommonEventsAndErrors.InvalidParam();
+        if (msg.sender == owner && _balances[msg.sender] < INITIAL_BALANCE) {
+            revert CommonEventsAndErrors.InvalidParam();
+        }
     }
 
     /// @notice hook called prior to the reward being claimed to harvest the rewards
@@ -330,11 +332,7 @@ abstract contract OrigamiAutoStaking is
                                INTERNAL
     //////////////////////////////////////////////////////////////*/
 
-    function _addRewardWithFee(
-        address _rewardsToken,
-        uint256 _rewardsDuration,
-        uint256 _performanceFeeBps
-    ) internal {
+    function _addRewardWithFee(address _rewardsToken, uint256 _rewardsDuration, uint256 _performanceFeeBps) internal {
         _addReward(_rewardsToken, _rewardsDuration);
         _validateFee(_performanceFeeBps);
         performanceFeeBps[_rewardsToken] = _performanceFeeBps;
@@ -392,12 +390,13 @@ abstract contract OrigamiAutoStaking is
         }
     }
 
-    function _chargePerformanceFee(address rewardToken, uint256 amount) private returns (uint256 amountForDistribution) {
+    function _chargePerformanceFee(address rewardToken, uint256 amount)
+        private
+        returns (uint256 amountForDistribution)
+    {
         uint256 feeForOrigami;
-        (amountForDistribution, feeForOrigami) = amount.splitSubtractBps(
-            performanceFeeBps[rewardToken],
-            OrigamiMath.Rounding.ROUND_DOWN
-        );
+        (amountForDistribution, feeForOrigami) =
+            amount.splitSubtractBps(performanceFeeBps[rewardToken], OrigamiMath.Rounding.ROUND_DOWN);
 
         if (feeForOrigami > 0) {
             emit PerformanceFeesCollected(feeForOrigami);

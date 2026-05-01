@@ -44,28 +44,16 @@ contract OrigamiCowSwapperTestBase is OrigamiTest {
     uint96 public constant MIN_SELL_AMOUNT = 1;
 
     function setUp() public {
-        vm.warp(1704027600);
+        vm.warp(1_704_027_600);
         cowSwapSettlement = new MockCowSettlement();
         cowSwapRelayer = makeAddr("cowSwapRelayer");
 
         DAI = address(new DummyMintableToken(origamiMultisig, "DAI", "DAI", 18));
         USDC = address(new DummyMintableToken(origamiMultisig, "USDC", "USDC", 6));
 
-        swapper = new OrigamiCowSwapper(
-            origamiMultisig, 
-            cowSwapRelayer,
-            address(cowSwapSettlement)
-        );
+        swapper = new OrigamiCowSwapper(origamiMultisig, cowSwapRelayer, address(cowSwapSettlement));
         limitPriceOracle = new OrigamiFixedPriceOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "DAI/USDC",
-                DAI,
-                18,
-                USDC,
-                6
-            ),
-            0.95e18,
-            address(0)
+            IOrigamiOracle.BaseOracleParams("DAI/USDC", DAI, 18, USDC, 6), 0.95e18, address(0)
         );
 
         // Deal 1 gwei so it doesn't skip with PollTryAtEpoch
@@ -92,39 +80,23 @@ contract OrigamiCowSwapperTestBase is OrigamiTest {
 
     function configureDai() internal virtual {
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            defaultOrderConfig()
-        );
+        swapper.setOrderConfig(DAI, defaultOrderConfig());
     }
 
     function configureDaiWithDiscount() internal {
         vm.startPrank(origamiMultisig);
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         config.limitPriceAdjustmentBps = PRICE_DISCOUNT_BPS;
-        swapper.setOrderConfig(
-            DAI,
-            config
-        );
+        swapper.setOrderConfig(DAI, config);
     }
 
     function defaultConditionalOrderParams() internal view returns (IConditionalOrder.ConditionalOrderParams memory) {
-        return IConditionalOrder.ConditionalOrderParams(
-            address(0),
-            bytes32(0),
-            abi.encode(DAI)
-        );
+        return IConditionalOrder.ConditionalOrderParams(address(0), bytes32(0), abi.encode(DAI));
     }
 
-    function getDefaultOrder() internal view returns (
-        GPv2Order.Data memory order, 
-        bytes memory signature
-    ) {
+    function getDefaultOrder() internal view returns (GPv2Order.Data memory order, bytes memory signature) {
         return swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
     }
 }
@@ -159,8 +131,8 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         assertEq(IERC20(DAI).allowance(address(swapper), cowSwapRelayer), 0);
 
         // Still works even if token isn't configured.
-        swapper.setCowApproval(DAI, 12345e18);
-        assertEq(IERC20(DAI).allowance(address(swapper), cowSwapRelayer), 12345e18);
+        swapper.setCowApproval(DAI, 12_345e18);
+        assertEq(IERC20(DAI).allowance(address(swapper), cowSwapRelayer), 12_345e18);
 
         configureDai();
         swapper.setCowApproval(DAI, 0.987e18);
@@ -238,15 +210,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         // Non matching price oracle
         config.limitPriceAdjustmentBps = 0;
         config.limitPriceOracle = new OrigamiFixedPriceOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "alice/USDC",
-                alice,
-                18,
-                USDC,
-                6
-            ),
-            0.95e18,
-            address(0)
+            IOrigamiOracle.BaseOracleParams("alice/USDC", alice, 18, USDC, 6), 0.95e18, address(0)
         );
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         swapper.setOrderConfig(DAI, config);
@@ -263,11 +227,11 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
 
     function test_setOrderConfig_success() public {
         vm.startPrank(origamiMultisig);
-        
+
         // Unset to start
         IOrigamiCowSwapper.OrderConfig memory newConfig = swapper.orderConfig(DAI);
         assertEq(address(newConfig.buyToken), address(0));
-        
+
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         vm.expectEmit(address(swapper));
         emit OrderConfigSet(DAI);
@@ -317,7 +281,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
 
     function test_removeOrderConfig() public {
         vm.startPrank(origamiMultisig);
-        
+
         IOrigamiCowSwapper.OrderConfig memory newConfig = swapper.orderConfig(DAI);
         assertEq(address(newConfig.buyToken), address(0));
 
@@ -330,7 +294,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         configureDai();
         newConfig = swapper.orderConfig(DAI);
         assertEq(address(newConfig.buyToken), USDC);
-    
+
         vm.expectEmit(address(swapper));
         emit OrderConfigRemoved(DAI);
         swapper.removeOrderConfig(DAI);
@@ -363,10 +327,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         config.limitPriceOracle = IOrigamiOracle(address(0));
         config.limitPriceAdjustmentBps = 0;
-        swapper.setOrderConfig(
-            DAI,
-            config
-        );
+        swapper.setOrderConfig(DAI, config);
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         swapper.updateAmountsAndAdjustmentBps(DAI, MIN_SELL_AMOUNT, 123, 123, 123);
@@ -383,7 +344,7 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
         vm.expectEmit(address(swapper));
         emit OrderConfigSet(DAI);
         swapper.updateAmountsAndAdjustmentBps(DAI, MIN_SELL_AMOUNT, 123, 456, -789);
-        
+
         IOrigamiCowSwapper.OrderConfig memory newConfig = swapper.orderConfig(DAI);
         assertEq(newConfig.maxSellAmount, 123);
         assertEq(newConfig.minBuyAmount, 456);
@@ -396,7 +357,6 @@ contract OrigamiCowSwapperTestAdmin is OrigamiCowSwapperTestBase {
 }
 
 contract OrigamiCowSwapperTestAccess is OrigamiCowSwapperTestBase {
-
     function test_access_setPaused() public {
         expectElevatedAccess();
         swapper.setPaused(true);
@@ -409,10 +369,7 @@ contract OrigamiCowSwapperTestAccess is OrigamiCowSwapperTestBase {
 
     function test_access_setOrderConfig() public {
         expectElevatedAccess();
-        swapper.setOrderConfig(
-            DAI,
-            defaultOrderConfig()
-        );
+        swapper.setOrderConfig(DAI, defaultOrderConfig());
     }
 
     function test_access_removeOrderConfig() public {
@@ -449,7 +406,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
 
     function test_createConditionalOrder_fail_badSellToken() public {
         vm.startPrank(origamiMultisig);
-        
+
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.InvalidSellToken.selector, DAI));
         swapper.createConditionalOrder(DAI);
     }
@@ -458,168 +415,99 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         configureDai();
 
         vm.expectEmit(address(swapper));
-        emit ConditionalOrderCreated(
-            address(swapper),
-            defaultConditionalOrderParams()
-        );
+        emit ConditionalOrderCreated(address(swapper), defaultConditionalOrderParams());
         swapper.createConditionalOrder(DAI);
 
         // Doing a second time is fine
         vm.expectEmit(address(swapper));
-        emit ConditionalOrderCreated(
-            address(swapper),
-            defaultConditionalOrderParams()
-        );
+        emit ConditionalOrderCreated(address(swapper), defaultConditionalOrderParams());
         swapper.createConditionalOrder(DAI);
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_isPaused() public {
         vm.startPrank(origamiMultisig);
         swapper.setPaused(true);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.PollTryAtEpoch.selector, 
-            block.timestamp+300,
-            "Paused"
-        ));
-        swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        vm.expectRevert(
+            abi.encodeWithSelector(IWatchtowerErrors.PollTryAtEpoch.selector, block.timestamp + 300, "Paused")
         );
+        swapper.getTradeableOrderWithSignature(address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0));
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_invalidOwner() public {
         vm.startPrank(origamiMultisig);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.OrderNotValid.selector, 
-            "order owner must be self"
-        ));
-        swapper.getTradeableOrderWithSignature(
-            alice, 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
-        );
+        vm.expectRevert(abi.encodeWithSelector(IWatchtowerErrors.OrderNotValid.selector, "order owner must be self"));
+        swapper.getTradeableOrderWithSignature(alice, defaultConditionalOrderParams(), "", new bytes32[](0));
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_invalidHandler() public {
         vm.startPrank(origamiMultisig);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.OrderNotValid.selector, 
-            "handler must be unset"
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IWatchtowerErrors.OrderNotValid.selector, "handler must be unset"));
 
         swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            IConditionalOrder.ConditionalOrderParams(
-                alice,
-                bytes32(0),
-                abi.encode(DAI)
-            ),
+            address(swapper),
+            IConditionalOrder.ConditionalOrderParams(alice, bytes32(0), abi.encode(DAI)),
             "",
             new bytes32[](0)
         );
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_invalidSalt() public {
         vm.startPrank(origamiMultisig);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.OrderNotValid.selector, 
-            "salt must be unset"
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IWatchtowerErrors.OrderNotValid.selector, "salt must be unset"));
 
         swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            IConditionalOrder.ConditionalOrderParams(
-                address(0),
-                bytes32(keccak256("xxx")),
-                abi.encode(DAI)
-            ),
+            address(swapper),
+            IConditionalOrder.ConditionalOrderParams(address(0), bytes32(keccak256("xxx")), abi.encode(DAI)),
             "",
             new bytes32[](0)
         );
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_notConfiguredToken() public {
         vm.startPrank(origamiMultisig);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.OrderNotValid.selector, 
-            "sellToken not configured"
-        ));
+        vm.expectRevert(abi.encodeWithSelector(IWatchtowerErrors.OrderNotValid.selector, "sellToken not configured"));
 
-        swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
-        );
+        swapper.getTradeableOrderWithSignature(address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0));
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_zeroBalance() public {
         configureDai();
         deal(DAI, address(swapper), 0);
 
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.PollTryAtEpoch.selector, 
-            block.timestamp+300,
-            "MinBalance"
-        ));
-        swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        vm.expectRevert(
+            abi.encodeWithSelector(IWatchtowerErrors.PollTryAtEpoch.selector, block.timestamp + 300, "MinBalance")
         );
+        swapper.getTradeableOrderWithSignature(address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0));
     }
-    
+
     function test_getTradeableOrderWithSignature_fail_underMinBalance() public {
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         config.minSellAmount = 1e18;
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            config
-        );
+        swapper.setOrderConfig(DAI, config);
 
-        deal(DAI, address(swapper), config.minSellAmount-1);
-        vm.expectRevert(abi.encodeWithSelector(
-            IWatchtowerErrors.PollTryAtEpoch.selector, 
-            block.timestamp+300,
-            "MinBalance"
-        ));
-        swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        deal(DAI, address(swapper), config.minSellAmount - 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(IWatchtowerErrors.PollTryAtEpoch.selector, block.timestamp + 300, "MinBalance")
         );
+        swapper.getTradeableOrderWithSignature(address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0));
     }
 
     function test_getTradeableOrderWithSignature_success_atMinBalance() public {
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         config.minSellAmount = 1e18;
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            config
-        );
+        swapper.setOrderConfig(DAI, config);
 
         deal(DAI, address(swapper), config.minSellAmount);
 
-        (
-            GPv2Order.Data memory order, 
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         assertEq(address(order.sellToken), DAI);
@@ -627,7 +515,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         assertEq(order.receiver, config.recipient);
         assertEq(order.sellAmount, 1_000_000e18);
         assertEq(order.buyAmount, 952_850e6);
-        assertEq(order.validTo, block.timestamp + EXPIRY_PERIOD_SECS); 
+        assertEq(order.validTo, block.timestamp + EXPIRY_PERIOD_SECS);
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -637,7 +525,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
 
         assertEq(signature, abi.encode(order));
     }
-    
+
     function test_getTradeableOrderWithSignature_success_1() public {
         configureDai();
 
@@ -649,7 +537,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         assertEq(order.sellAmount, DAI_SELL_AMOUNT);
         assertEq(order.buyAmount, 952_850e6);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 5 minutes); 
+        assertEq(order.validTo, block.timestamp + 5 minutes);
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -659,7 +547,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
 
         assertEq(signature, abi.encode(order));
     }
-    
+
     // Flip the params and make sure the resulting order changes.
     function test_getTradeableOrderWithSignature_success_2() public {
         vm.startPrank(origamiMultisig);
@@ -675,23 +563,16 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
             useCurrentBalanceForSellAmount: false,
             limitPriceAdjustmentBps: PRICE_PREMIUM_BPS,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
-            expiryPeriodSecs: EXPIRY_PERIOD_SECS*3/2,
+            expiryPeriodSecs: EXPIRY_PERIOD_SECS * 3 / 2,
             appData: bytes32("abc")
         });
 
         swapper.setOrderConfig(USDC, config);
-        deal(USDC, address(swapper), 1);        
+        deal(USDC, address(swapper), 1);
 
-        (
-            GPv2Order.Data memory order, 
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            IConditionalOrder.ConditionalOrderParams(
-                address(0),
-                bytes32(0),
-                abi.encode(USDC)
-            ),
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper),
+            IConditionalOrder.ConditionalOrderParams(address(0), bytes32(0), abi.encode(USDC)),
             "",
             new bytes32[](0)
         );
@@ -702,7 +583,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         assertEq(order.sellAmount, 123e6);
         assertEq(order.buyAmount, 125e18);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 450); 
+        assertEq(order.validTo, block.timestamp + 450);
         assertEq(order.appData, bytes32("abc"));
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -725,7 +606,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         assertEq(order.sellAmount, DAI_SELL_AMOUNT);
         assertEq(order.buyAmount, 947_150e6);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 5 minutes); 
+        assertEq(order.validTo, block.timestamp + 5 minutes);
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -762,7 +643,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.InvalidSellToken.selector, DAI));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_success_lower() public {
         // First configure and get the order/sig
         configureDai();
@@ -837,7 +718,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         vm.mockCall(
             address(limitPriceOracle),
             abi.encodeWithSelector(IOrigamiOracle.convertAmount.selector),
-            abi.encode(1013687330762)
+            abi.encode(1_013_687_330_762)
         );
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 1_015_684.614e6, 1_016_720e6));
@@ -872,7 +753,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         // This succeeds instead of failing
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
-    
+
     function test_isValidSignature_fail_recipient() public {
         configureDai();
 
@@ -887,29 +768,23 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_fail_noHash() public {
         configureDai();
 
         (, bytes memory signature) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(bytes32(""), signature);
     }
-    
+
     function test_isValidSignature_fail_hashDoesntMatchSig() public {
         configureDai();
 
         (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         // Simulate alice getting the proceeds to herself
@@ -919,18 +794,12 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_fail_upatedField() public {
         configureDai();
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
@@ -942,24 +811,18 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_success_noSlippage() public {
         configureDai();
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
-    
+
     function test_isValidSignature_success_smallSlippage() public {
         configureDai();
 
@@ -983,7 +846,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
             abi.encodeWithSelector(IOrigamiOracle.convertAmount.selector),
             abi.encode(1_012_100e6)
         );
-        
+
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1024,10 +887,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         IOrigamiCowSwapper.OrderConfig memory config = defaultOrderConfig();
         config.minSellAmount = 1e18;
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            config
-        );
+        swapper.setOrderConfig(DAI, config);
 
         deal(DAI, address(swapper), config.minSellAmount);
 
@@ -1043,10 +903,7 @@ contract OrigamiCowSwapperTestLimitOrders is OrigamiCowSwapperTestBase {
         config.useCurrentBalanceForSellAmount = true;
         config.minSellAmount = 100e18;
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            config
-        );
+        swapper.setOrderConfig(DAI, config);
 
         deal(DAI, address(swapper), 100e18);
 
@@ -1160,9 +1017,7 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
     function test_getBuyAmount_fail_zero() public {
         configureDai();
         vm.mockCall(
-            address(limitPriceOracle),
-            abi.encodeWithSelector(IOrigamiOracle.convertAmount.selector),
-            abi.encode(0)
+            address(limitPriceOracle), abi.encodeWithSelector(IOrigamiOracle.convertAmount.selector), abi.encode(0)
         );
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
         swapper.getBuyAmount(DAI);
@@ -1171,8 +1026,8 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
     function test_getBuyAmount_success_nothingToRound() public {
         configureDai();
         (uint256 buyAmount, uint256 roundedBuyAmount) = swapper.getBuyAmount(DAI);
-        assertEq(buyAmount, 952850000000);
-        assertEq(roundedBuyAmount, 952850000000);
+        assertEq(buyAmount, 952_850_000_000);
+        assertEq(roundedBuyAmount, 952_850_000_000);
     }
 
     function test_getBuyAmount_success_somethingToRound_10() public {
@@ -1237,8 +1092,8 @@ contract OrigamiCowSwapperTestLimitOrderViews is OrigamiCowSwapperTestBase {
 }
 
 contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase {
-    uint96 public constant USDC_BUY_AMOUNT = 5_000.789e6;
-    uint96 public constant DAI_BALANCE = 6_001e18;
+    uint96 public constant USDC_BUY_AMOUNT = 5000.789e6;
+    uint96 public constant DAI_BALANCE = 6001e18;
 
     function marketOrderConfig() internal view returns (IOrigamiCowSwapper.OrderConfig memory) {
         return IOrigamiCowSwapper.OrderConfig({
@@ -1260,10 +1115,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
 
     function configureDai() internal override {
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            marketOrderConfig()
-        );
+        swapper.setOrderConfig(DAI, marketOrderConfig());
     }
 
     function test_getTradeableOrderWithSignature_success_1() public {
@@ -1278,7 +1130,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.sellAmount, DAI_BALANCE);
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 5 minutes); 
+        assertEq(order.validTo, block.timestamp + 5 minutes);
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -1288,7 +1140,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
 
         assertEq(signature, abi.encode(order));
     }
-    
+
     // Flip the params and make sure the resulting order changes.
     function test_getTradeableOrderWithSignature_success_2() public {
         vm.startPrank(origamiMultisig);
@@ -1304,23 +1156,16 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
             useCurrentBalanceForSellAmount: true,
             limitPriceAdjustmentBps: 0,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
-            expiryPeriodSecs: EXPIRY_PERIOD_SECS*3/2,
+            expiryPeriodSecs: EXPIRY_PERIOD_SECS * 3 / 2,
             appData: bytes32("abc")
         });
 
         swapper.setOrderConfig(USDC, config);
         deal(USDC, address(swapper), 123e6);
-        
-        (
-            GPv2Order.Data memory order, 
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            IConditionalOrder.ConditionalOrderParams(
-                address(0),
-                bytes32(0),
-                abi.encode(USDC)
-            ),
+
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper),
+            IConditionalOrder.ConditionalOrderParams(address(0), bytes32(0), abi.encode(USDC)),
             "",
             new bytes32[](0)
         );
@@ -1331,7 +1176,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.sellAmount, 123e6);
         assertEq(order.buyAmount, 110e18);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 450); 
+        assertEq(order.validTo, block.timestamp + 450);
         assertEq(order.appData, bytes32("abc"));
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -1341,25 +1186,19 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
 
         assertEq(signature, abi.encode(order));
     }
-    
+
     function test_isValidSignature_success_noSlippage() public {
         configureDai();
         deal(DAI, address(swapper), 123e18);
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
-    
+
     function test_isValidSignature_success_lower() public {
         // First configure and get the order/sig
         configureDai();
@@ -1371,7 +1210,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is LOWER
-        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*0.8e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT * 0.8e6 / 1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1386,7 +1225,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a little higher
-        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.009e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT * 1.009e6 / 1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1401,7 +1240,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a little higher
-        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.01e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT * 1.01e6 / 1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1417,24 +1256,18 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a LOT higher
-        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.0101e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT * 1.0101e6 / 1e6, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 5_050.796890e6, 5_051.296968e6));
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 5050.79689e6, 5051.296968e6));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_fail_recipient() public {
         configureDai();
         deal(DAI, address(swapper), 123e18);
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
@@ -1446,19 +1279,13 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_fail_upatedField() public {
         configureDai();
         deal(DAI, address(swapper), 123e18);
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
@@ -1479,16 +1306,13 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
             GPv2Order.Data memory order,
             // bytes memory signature
         ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
         // Keep the order but hand craft a signature with a bogus buyAmount
         order.receiver = alice;
-        bytes memory forgedSignature = abi.encode(order);       
+        bytes memory forgedSignature = abi.encode(order);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, forgedSignature);
     }
@@ -1522,7 +1346,7 @@ contract OrigamiCowSwapperTestMarketOrdersSellToken is OrigamiCowSwapperTestBase
 
 /// @dev Specified where it's an exact sell amount with a min USDC buy amount
 contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase {
-    uint96 public constant USDC_BUY_AMOUNT = 9_500e6;
+    uint96 public constant USDC_BUY_AMOUNT = 9500e6;
     uint96 public constant EXACT_DAI_SELL_AMOUNT = 10_000e18;
 
     function marketOrderConfig() internal view returns (IOrigamiCowSwapper.OrderConfig memory) {
@@ -1545,10 +1369,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
 
     function configureDai() internal override {
         vm.startPrank(origamiMultisig);
-        swapper.setOrderConfig(
-            DAI,
-            marketOrderConfig()
-        );
+        swapper.setOrderConfig(DAI, marketOrderConfig());
     }
 
     function test_getTradeableOrderWithSignature_success_1() public {
@@ -1562,7 +1383,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(order.sellAmount, EXACT_DAI_SELL_AMOUNT);
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 5 minutes); 
+        assertEq(order.validTo, block.timestamp + 5 minutes);
         assertEq(order.appData, APP_DATA);
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -1572,7 +1393,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
 
         assertEq(signature, abi.encode(order));
     }
-    
+
     // Flip the params and make sure the resulting order changes.
     function test_getTradeableOrderWithSignature_success_2() public {
         vm.startPrank(origamiMultisig);
@@ -1588,23 +1409,16 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
             useCurrentBalanceForSellAmount: true,
             limitPriceAdjustmentBps: 0,
             verifySlippageBps: VERIFY_SLIPPAGE_BPS,
-            expiryPeriodSecs: EXPIRY_PERIOD_SECS*3/2,
+            expiryPeriodSecs: EXPIRY_PERIOD_SECS * 3 / 2,
             appData: bytes32("abc")
         });
 
         swapper.setOrderConfig(USDC, config);
         deal(USDC, address(swapper), 123e6);
-        
-        (
-            GPv2Order.Data memory order, 
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            IConditionalOrder.ConditionalOrderParams(
-                address(0),
-                bytes32(0),
-                abi.encode(USDC)
-            ),
+
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper),
+            IConditionalOrder.ConditionalOrderParams(address(0), bytes32(0), abi.encode(USDC)),
             "",
             new bytes32[](0)
         );
@@ -1615,7 +1429,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(order.sellAmount, 123e6);
         assertEq(order.buyAmount, 110e18);
         // Was right at 00:00
-        assertEq(order.validTo, block.timestamp + 450); 
+        assertEq(order.validTo, block.timestamp + 450);
         assertEq(order.appData, bytes32("abc"));
         assertEq(order.feeAmount, 0);
         assertEq(order.kind, GPv2Order.KIND_SELL);
@@ -1625,51 +1439,45 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
 
         assertEq(signature, abi.encode(order));
     }
-    
+
     function test_getTradeableOrderWithSignature_orderExpiries() public {
         configureDai();
 
         (GPv2Order.Data memory order,) = getDefaultOrder();
         // Was right at 00:00
-        assertEq(block.timestamp, 1704027600);
-        assertEq(order.validTo, 1704027900);
+        assertEq(block.timestamp, 1_704_027_600);
+        assertEq(order.validTo, 1_704_027_900);
 
         // Still just in the same expiry window
         skip(299);
         (order,) = getDefaultOrder();
-        assertEq(block.timestamp, 1704027600 + 299);
-        assertEq(order.validTo, 1704027900);
+        assertEq(block.timestamp, 1_704_027_600 + 299);
+        assertEq(order.validTo, 1_704_027_900);
 
         // Moves into the next window
         skip(1);
         (order,) = getDefaultOrder();
-        assertEq(block.timestamp, 1704027600 + 300);
-        assertEq(order.validTo, 1704028200);
+        assertEq(block.timestamp, 1_704_027_600 + 300);
+        assertEq(order.validTo, 1_704_028_200);
 
         // Still in that same next window
         skip(180);
         (order,) = getDefaultOrder();
-        assertEq(block.timestamp, 1704027600 + 300 + 180);
-        assertEq(order.validTo, 1704028200);
+        assertEq(block.timestamp, 1_704_027_600 + 300 + 180);
+        assertEq(order.validTo, 1_704_028_200);
     }
 
     function test_isValidSignature_success_noSlippage() public {
         configureDai();
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
 
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
-    
+
     function test_isValidSignature_success_lower() public {
         // First configure and get the order/sig
         configureDai();
@@ -1680,7 +1488,7 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is LOWER
-        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*0.8e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT * 0.8e6 / 1e6, 0);
 
         assertEq(swapper.isValidSignature(hash, signature), swapper.isValidSignature.selector);
     }
@@ -1695,23 +1503,17 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         assertEq(order.buyAmount, USDC_BUY_AMOUNT);
 
         // Update so the new min buy amount is a LOT higher
-        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT*1.0101e6/1e6, 0);
+        swapper.updateAmountsAndAdjustmentBps(DAI, 1, DAI_SELL_AMOUNT, USDC_BUY_AMOUNT * 1.0101e6 / 1e6, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 9_500e6, 9_595.95e6));
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, 9500e6, 9595.95e6));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_fail_recipient() public {
         configureDai();
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
@@ -1723,18 +1525,12 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, signature);
     }
-    
+
     function test_isValidSignature_fail_upatedField() public {
         configureDai();
 
-        (
-            GPv2Order.Data memory order,
-            bytes memory signature
-        ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+        (GPv2Order.Data memory order, bytes memory signature) = swapper.getTradeableOrderWithSignature(
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
@@ -1754,16 +1550,13 @@ contract OrigamiCowSwapperTestMarketOrdersBuyToken is OrigamiCowSwapperTestBase 
             GPv2Order.Data memory order,
             // bytes memory signature
         ) = swapper.getTradeableOrderWithSignature(
-            address(swapper), 
-            defaultConditionalOrderParams(),
-            "",
-            new bytes32[](0)
+            address(swapper), defaultConditionalOrderParams(), "", new bytes32[](0)
         );
         bytes32 hash = GPv2Order.hash(order, cowSwapSettlement.domainSeparator());
 
         // Keep the order but hand craft a signature with a bogus buyAmount
         order.receiver = alice;
-        bytes memory forgedSignature = abi.encode(order);       
+        bytes memory forgedSignature = abi.encode(order);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiCowSwapper.OrderDoesNotMatchTradeableOrder.selector));
         swapper.isValidSignature(hash, forgedSignature);
     }

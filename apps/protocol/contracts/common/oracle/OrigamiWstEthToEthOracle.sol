@@ -25,11 +25,7 @@ contract OrigamiWstEthToEthOracle is OrigamiOracleBase {
      */
     IOrigamiOracle public immutable stEthToEthOracle;
 
-    constructor (
-        BaseOracleParams memory baseParams,
-        address _stEth,
-        address _stEthToEthOracle
-    ) 
+    constructor(BaseOracleParams memory baseParams, address _stEth, address _stEthToEthOracle)
         OrigamiOracleBase(baseParams)
     {
         stEth = IStETH(_stEth);
@@ -39,20 +35,19 @@ contract OrigamiWstEthToEthOracle is OrigamiOracleBase {
     /**
      * @notice Return the latest oracle price, to `decimals` precision
      * @param priceType What kind of price - Spot or Historic
-     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified direction.
+     * @param roundingMode Round the price at each intermediate step such that the final price rounds in the specified
+     * direction.
      */
-    function latestPrice(
-        PriceType priceType, 
-        OrigamiMath.Rounding roundingMode
-    ) public override view returns (uint256 price) {
+    function latestPrice(PriceType priceType, OrigamiMath.Rounding roundingMode)
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // 1 wstETH to stETH
         price = stEth.getPooledEthByShares(precision);
 
         // Convert wstETH to ETH using the stEth/ETH oracle price
-        price = price.mulDiv(
-            stEthToEthOracle.latestPrice(priceType, roundingMode),
-            precision,
-            roundingMode
-        );
+        price = price.mulDiv(stEthToEthOracle.latestPrice(priceType, roundingMode), precision, roundingMode);
     }
 }

@@ -11,7 +11,7 @@ import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSw
  * @dev Tokens are transferred to this contract in advance of swaps being executed. Swap outputs are
  * retained in this contract until they are deposited into an LP, at which point the output tokens are
  * transferred to the designated receiver.
-* 
+ *
  * Intended to be used asynchronously:
  *  - Each deployed instance should be used by only one client contract.
  *  - onlyElevatedAccess to call execute()
@@ -82,10 +82,7 @@ interface IOrigamiSwapperWithLiquidityManagement is IOrigamiSwapper {
      * @param addLiquidityParams Deposit parameters encoded as a `DepositParams` struct
      * @return receivedLpAmount The amount of LP tokens received
      */
-    function addLiquidity(
-        TokenAmount[] calldata tokenAmounts,
-        bytes calldata addLiquidityParams
-    )
+    function addLiquidity(TokenAmount[] calldata tokenAmounts, bytes calldata addLiquidityParams)
         external
         returns (uint256 receivedLpAmount);
 

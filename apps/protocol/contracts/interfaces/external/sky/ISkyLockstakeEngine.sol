@@ -3,7 +3,11 @@ pragma solidity ^0.8.4;
 // Origami (interfaces/external/sky/ISkyLockstakeEngine.sol)
 
 interface ISkyLockstakeEngine {
-    enum FarmStatus { UNSUPPORTED, ACTIVE, DELETED }
+    enum FarmStatus {
+        UNSUPPORTED,
+        ACTIVE,
+        DELETED
+    }
 
     // --- Events ---
     event Rely(address indexed usr);

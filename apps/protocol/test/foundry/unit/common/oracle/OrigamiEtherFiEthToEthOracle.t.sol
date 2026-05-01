@@ -16,7 +16,7 @@ import { IOrigamiOracle } from "contracts/interfaces/common/oracle/IOrigamiOracl
 
 contract MockEtherFiLiquidityPool is IEtherFiLiquidityPool {
     function amountForShare(uint256) external pure returns (uint256) {
-        return 1.036311707261417860e18;
+        return 1.03631170726141786e18;
     }
 }
 
@@ -32,31 +32,21 @@ contract OrigamiEtherFiEthToEthOracleTestBase is OrigamiTest {
     uint256 public constant validPriceDiffBps = 100; // 1%
 
     function setUp() public {
-        vm.warp(1713314062);
+        vm.warp(1_713_314_062);
 
         weEthToken = new DummyMintableToken(origamiMultisig, "weETH", "weETH", 18);
         etherfiLiquidityPool = new MockEtherFiLiquidityPool();
 
         redstoneWeEthToEthOracle = new DummyOracle(
             DummyOracle.Answer({
-                roundId: 0,
-                answer: 1.03457952e8,
-                startedAt: 1713264887,
-                updatedAtLag: 0,
-                answeredInRound: 0
+                roundId: 0, answer: 1.03457952e8, startedAt: 1_713_264_887, updatedAtLag: 0, answeredInRound: 0
             }),
             8
         );
 
         oWeEthToEthOracle = new OrigamiEtherFiEthToEthOracle(
             origamiMultisig,
-            IOrigamiOracle.BaseOracleParams(
-                "weETH/ETH",
-                address(weEthToken),
-                18,
-                address(0),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("weETH/ETH", address(weEthToken), 18, address(0), 18),
             address(redstoneWeEthToEthOracle),
             stalenessThreshold,
             validPriceDiffBps,
@@ -102,25 +92,32 @@ contract OrigamiEtherFiEthToEthOracleTestAccess is OrigamiEtherFiEthToEthOracleT
 contract OrigamiEtherFiEthToEthOracleTestPrice is OrigamiEtherFiEthToEthOracleTestBase {
     function test_latestPrice_spot_underThreshold() public view {
         assertEq(
-            oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             1.03457952e18
         );
     }
 
     function test_latestPrice_spot_overThreshold_premium() public {
-        uint256 expectedRefPrice = 1.036311707261417860e18;
+        uint256 expectedRefPrice = 1.03631170726141786e18;
         uint256 oraclePrice = expectedRefPrice * 1.01e18 / 1e18;
         vm.mockCall(
             address(redstoneWeEthToEthOracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(0, oraclePrice / 1e10 + 1, block.timestamp, block.timestamp, 0)
         );
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.AboveMaxValidRange.selector, address(redstoneWeEthToEthOracle), 1.04667483e18, expectedRefPrice));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector,
+                address(redstoneWeEthToEthOracle),
+                1.04667483e18,
+                expectedRefPrice
+            )
+        );
         oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP);
     }
 
     function test_latestPrice_spot_atThreshold_premium() public {
-        uint256 expectedRefPrice = 1.036311707261417860e18;
+        uint256 expectedRefPrice = 1.03631170726141786e18;
         uint256 oraclePrice = expectedRefPrice * 1.01e18 / 1e18;
         vm.mockCall(
             address(redstoneWeEthToEthOracle),
@@ -134,19 +131,26 @@ contract OrigamiEtherFiEthToEthOracleTestPrice is OrigamiEtherFiEthToEthOracleTe
     }
 
     function test_latestPrice_spot_overThreshold_discount() public {
-        uint256 expectedRefPrice = 1.036311707261417860e18;
+        uint256 expectedRefPrice = 1.03631170726141786e18;
         uint256 oraclePrice = expectedRefPrice * 0.99e18 / 1e18;
         vm.mockCall(
             address(redstoneWeEthToEthOracle),
             abi.encodeWithSelector(DummyOracle.latestRoundData.selector),
             abi.encode(0, oraclePrice / 1e10, block.timestamp, block.timestamp, 0)
         );
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiOracle.AboveMaxValidRange.selector, address(redstoneWeEthToEthOracle), 1.02594859e18, expectedRefPrice));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiOracle.AboveMaxValidRange.selector,
+                address(redstoneWeEthToEthOracle),
+                1.02594859e18,
+                expectedRefPrice
+            )
+        );
         oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP);
     }
 
     function test_latestPrice_spot_atThreshold_discount() public {
-        uint256 expectedRefPrice = 1.036311707261417860e18;
+        uint256 expectedRefPrice = 1.03631170726141786e18;
         uint256 oraclePrice = expectedRefPrice * 0.99e18 / 1e18;
         vm.mockCall(
             address(redstoneWeEthToEthOracle),
@@ -159,11 +163,10 @@ contract OrigamiEtherFiEthToEthOracleTestPrice is OrigamiEtherFiEthToEthOracleTe
         );
     }
 
-
     function test_latestPrice_historic_underThreshold() public view {
         assertEq(
-            oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            1.036311707261417860e18
+            oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
+            1.03631170726141786e18
         );
     }
 
@@ -175,8 +178,8 @@ contract OrigamiEtherFiEthToEthOracleTestPrice is OrigamiEtherFiEthToEthOracleTe
             abi.encode(0, 1.047e8, block.timestamp, block.timestamp, 0)
         );
         assertEq(
-            oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            1.036311707261417860e18
+            oWeEthToEthOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
+            1.03631170726141786e18
         );
     }
 }

@@ -203,7 +203,7 @@ contract OrigamiIBGTVaultTest_Admin is OrigamiIBGTVaultTestBase {
             swapper,
             PERF_FEE_FOR_ORIGAMI
         );
-       
+
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vault));
         emit ManagerSet(address(newManager));
@@ -331,7 +331,7 @@ contract OrigamiIBGTVaultTest_Deposit is OrigamiIBGTVaultTestBase {
         assertLt(aliceShares, bobShares);
         assertEq(vault.balanceOf(alice), 91e18, "balanceOf(alice)");
         assertEq(vault.totalSupply(), 191.1e18, "totalSupply");
-        assertEq(vault.totalSupply(), aliceShares + bobShares + SEED_AMOUNT, "totalSupply"); 
+        assertEq(vault.totalSupply(), aliceShares + bobShares + SEED_AMOUNT, "totalSupply");
 
         // total assets doesn't include iBGT reserved for fees
         assertEq(vault.totalAssets(), 100e18 + 100e18 + SEED_AMOUNT + donationAmount - 0.1e18, "totalAssets");
@@ -402,7 +402,7 @@ contract OrigamiIBGTVaultTest_Mint is OrigamiIBGTVaultTestBase {
         assertEq(vault.totalAssets(), SEED_AMOUNT + bobDeposit + aliceDeposit + donationAmount - 0.1e18, "totalAssets");
         assertEq(manager.stakedAssets(), SEED_AMOUNT + bobDeposit + aliceDeposit + donationAmount - 0.1e18);
         assertGt(aliceDeposit, bobDeposit); // alice paid a higher share price
-        assertEq(aliceDeposit, 109.890109890109890110e18);
+        assertEq(aliceDeposit, 109.89010989010989011e18);
 
         // Depositing causes reinvestment that pushes up the price
         assertEq(vault.convertToShares(1e18), 0.91e18 - 1); // rounding
@@ -440,7 +440,7 @@ contract OrigamiIBGTVaultTest_Withdraw is OrigamiIBGTVaultTestBase {
         assertEq(vault.balanceOf(alice), sharesRemaining);
         assertEq(vault.totalSupply(), sharesRemaining + SEED_AMOUNT, "totalSupply");
         // 2% perf fee taken off donation
-        assertEq(vault.totalAssets(), 73e18 + SEED_AMOUNT + 100e18 - 1e18, "totalAssets"); 
+        assertEq(vault.totalAssets(), 73e18 + SEED_AMOUNT + 100e18 - 1e18, "totalAssets");
         assertEq(manager.stakedAssets(), 73e18 + SEED_AMOUNT + 100e18 - 1e18);
         assertEq(vault.convertToShares(1e18), 0.424753050552004648e18);
         assertEq(vault.convertToAssets(1e18), 2.354309165526675786e18);
@@ -555,21 +555,22 @@ contract OrigamiIBGTVaultTest_Compound is OrigamiIBGTVaultTestBase {
     OrigamiSwapperWithCallback public compoundingSwapper;
     DummyDexRouter public router;
 
-    function encode(
-        uint256 sellAmount,
-        uint256 requestedBuyAmount,
-        uint256 buyTokenToReceiveAmount
-    )
+    function encode(uint256 sellAmount, uint256 requestedBuyAmount, uint256 buyTokenToReceiveAmount)
         internal
         view
         returns (bytes memory)
     {
-        return abi.encode(IOrigamiSwapper.RouteDataWithCallback({
-            minBuyAmount: requestedBuyAmount,
-            router: address(router),
-            receiver: address(manager),
-            data: abi.encodeCall(DummyDexRouter.doExactSwap, (address(honeyToken), sellAmount, address(asset), buyTokenToReceiveAmount))
-        }));
+        return abi.encode(
+            IOrigamiSwapper.RouteDataWithCallback({
+                minBuyAmount: requestedBuyAmount,
+                router: address(router),
+                receiver: address(manager),
+                data: abi.encodeCall(
+                    DummyDexRouter.doExactSwap,
+                    (address(honeyToken), sellAmount, address(asset), buyTokenToReceiveAmount)
+                )
+            })
+        );
     }
 
     function setUp() public override {
@@ -622,10 +623,11 @@ contract OrigamiIBGTVaultTest_Compound is OrigamiIBGTVaultTestBase {
 
         assertEq(iBgtVault.balanceOf(address(manager)), expectedTotalAssets); // The iBGT was staked
         assertEq(manager.stakedAssets(), expectedTotalAssets); // As above
-        assertEq(manager.unallocatedAssets(), 0); // Assets immediately staked in the swap callback, nothing in the contract
+        assertEq(manager.unallocatedAssets(), 0); // Assets immediately staked in the swap callback, nothing in the
+        // contract
         assertEq(manager.totalAssets(), 1000e18 + SEED_AMOUNT); // doesn't include the dripping in rewards yet
         assertEq(asset.balanceOf(address(manager)), 0); // No iBGT balance in the manager
-        assertEq(asset.balanceOf(address(feeCollector)), 1e18); // fees are collected on the swap callback 
+        assertEq(asset.balanceOf(address(feeCollector)), 1e18); // fees are collected on the swap callback
 
         assertEq(vault.convertToAssets(1e18), 1e18); // No change immediately - needs to drip in over time
 
@@ -642,7 +644,7 @@ contract OrigamiIBGTVaultTest_Compound is OrigamiIBGTVaultTestBase {
         // Verify share price increased
         newSharePrice = vault.convertToAssets(1e18);
         assertGt(newSharePrice, initialSharePrice);
-        assertEq(newSharePrice, 1.098990100989901009e18);       
+        assertEq(newSharePrice, 1.098990100989901009e18);
         assertEq(manager.totalAssets(), expectedTotalAssets); // total assets now includes the dripped in reserves
 
         // reinvesting rewards again causes no impact on the share price or total assets
@@ -669,13 +671,13 @@ contract OrigamiIBGTVaultTest_Compound is OrigamiIBGTVaultTestBase {
 
         skip(5 minutes); // Half way through the drip
         assertEq(manager.stakedAssets(), 1000e18 + SEED_AMOUNT + 99e18);
-        assertEq(manager.totalAssets(), 1_049.6e18);
+        assertEq(manager.totalAssets(), 1049.6e18);
         assertEq(vault.convertToAssets(1e18), 1.049495050494950504e18);
 
         // Another deposit - gets staked and added to total assets immediately
         deposit(alice, 1000e18);
         assertEq(manager.stakedAssets(), 2000e18 + SEED_AMOUNT + 99e18);
-        assertEq(manager.totalAssets(), 2_049.6e18);
+        assertEq(manager.totalAssets(), 2049.6e18);
         assertEq(vault.convertToAssets(1e18), 1.049495050494950504e18);
 
         // Alice withdraws all her shares and pockets her share of the increaseed yield.
@@ -683,10 +685,10 @@ contract OrigamiIBGTVaultTest_Compound is OrigamiIBGTVaultTestBase {
         // it to remaining holders
         // exit fee is zero by default.
         vm.startPrank(alice);
-        uint256 expectedAssets = 2_049.495050494950504949e18;
+        uint256 expectedAssets = 2049.495050494950504949e18;
         assertEq(vault.redeem(vault.balanceOf(alice), alice, alice), expectedAssets);
         assertEq(manager.stakedAssets(), 2000e18 + SEED_AMOUNT + 99e18 - expectedAssets);
-        assertEq(manager.totalAssets(), 2_049.6e18 - expectedAssets);
+        assertEq(manager.totalAssets(), 2049.6e18 - expectedAssets);
         assertEq(vault.convertToAssets(1e18), 1.049495050494950509e18); // up a little from rounding
 
         // past the end of the drip period

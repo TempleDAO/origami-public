@@ -1,33 +1,46 @@
 pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { DynamicTokensOrigamiTokenizedBalanceSheetVaultTestBase } from "test/foundry/unit/common/tokenizedBalanceSheet/DynamicAssetsTokenizedBalanceSheetVault.t.sol";
-import { TokenizedBalanceSheetVaultTest } from "test/foundry/invariant/investments/tokenizedBalanceSheet/TokenizedBalanceSheetVault.test.sol";
+import {
+    DynamicTokensOrigamiTokenizedBalanceSheetVaultTestBase
+} from "test/foundry/unit/common/tokenizedBalanceSheet/DynamicAssetsTokenizedBalanceSheetVault.t.sol";
+import {
+    TokenizedBalanceSheetVaultTest
+} from "test/foundry/invariant/investments/tokenizedBalanceSheet/TokenizedBalanceSheetVault.test.sol";
 import { DummyMintableTokenPermissionless } from "contracts/test/common/DummyMintableTokenPermissionless.sol";
 
-contract DynamicAssetsTokenizedBalanceSheetVaultFuzzTest is DynamicTokensOrigamiTokenizedBalanceSheetVaultTestBase, TokenizedBalanceSheetVaultTest {
+contract DynamicAssetsTokenizedBalanceSheetVaultFuzzTest is
+    DynamicTokensOrigamiTokenizedBalanceSheetVaultTestBase,
+    TokenizedBalanceSheetVaultTest
+{
     function setUp() public override(DynamicTokensOrigamiTokenizedBalanceSheetVaultTestBase) {
         super.setUp();
 
         _vault_ = vault;
+        _updateTokensHash();
         _delta_ = 0;
         _vaultMayBeEmpty = true;
         _unlimitedAmount = false;
 
         address[] memory liabilities = vault.liabilityTokens();
 
-        for (uint256 i; i < liabilities.length; i++){
+        for (uint256 i; i < liabilities.length; i++) {
             DummyMintableTokenPermissionless(liabilities[i]).deal(address(borrowLend), type(uint160).max);
         }
     }
-    
-    function setUpBalances(Init memory init) internal override returns (address[] memory assetTokens, address[] memory liabilityTokens) {
+
+    function setUpBalances(Init memory init)
+        internal
+        override
+        returns (address[] memory assetTokens, address[] memory liabilityTokens)
+    {
         super.setUpBalances(init);
 
         assetTokens = vault.assetTokens();
-        (uint256[] memory assetsBalances, ) = vault.balanceSheet();
+        (uint256[] memory assetsBalances,) = vault.balanceSheet();
 
         (address asset1New, address asset2New) = doRollover(assetTokens, assetsBalances, 0, 0);
+        _updateTokensHash();
 
         for (uint256 i; i < init.user.length; i++) {
             DummyMintableTokenPermissionless(asset1New).deal(init.user[i], type(uint160).max);
@@ -39,16 +52,14 @@ contract DynamicAssetsTokenizedBalanceSheetVaultFuzzTest is DynamicTokensOrigami
         liabilityTokens = vault.liabilityTokens();
     }
 
-    //dev: here we are assuming a different configuration in the balance sheet, either all the old assets are removed, or only a token or two
-    function _randomizeToken(
-        bool isAsset,
-        uint32 tokenIndex,
-        address[] memory assets,
-        address[] memory liabilities
-    ) internal view override returns (
-        address randomToken,
-        uint256 randomIndex
-    ) {
+    //dev: here we are assuming a different configuration in the balance sheet, either all the old assets are removed,
+    // or only a token or two
+    function _randomizeToken(bool isAsset, uint32 tokenIndex, address[] memory assets, address[] memory liabilities)
+        internal
+        view
+        override
+        returns (address randomToken, uint256 randomIndex)
+    {
         (uint256[] memory totalAssets, uint256[] memory totalLiabilities) = vault.balanceSheet();
         address[] memory tokens = isAsset ? assets : liabilities;
         uint256[] memory balances = isAsset ? totalAssets : totalLiabilities;

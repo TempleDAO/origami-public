@@ -8,9 +8,13 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuar
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import { IOrigamiCompoundingVaultManager } from "contracts/interfaces/investments/IOrigamiCompoundingVaultManager.sol";
-import { IOrigamiInfraredVaultManager } from "contracts/interfaces/investments/infrared/IOrigamiInfraredVaultManager.sol";
+import {
+    IOrigamiInfraredVaultManager
+} from "contracts/interfaces/investments/infrared/IOrigamiInfraredVaultManager.sol";
 import { IOrigamiDelegated4626Vault } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626Vault.sol";
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 import { IInfraredVault } from "contracts/interfaces/external/infrared/IInfraredVault.sol";
 import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrigamiSwapCallback.sol";
 
@@ -83,10 +87,7 @@ contract OrigamiInfraredVaultManager is
         address feeCollector_,
         address swapper_,
         uint16 performanceFeeBps_
-    )
-        OrigamiElevatedAccess(initialOwner_)
-        OrigamiVestingReserves(10 minutes)
-    {
+    ) OrigamiElevatedAccess(initialOwner_) OrigamiVestingReserves(10 minutes) {
         vault = IOrigamiDelegated4626Vault(vault_);
         _asset = IERC20(asset_);
         rewardVault = IInfraredVault(rewardVault_);
@@ -181,7 +182,13 @@ contract OrigamiInfraredVaultManager is
     }
 
     /// @inheritdoc IOrigamiCompoundingVaultManager
-    function harvestRewards(address /* incentivesReceiver */) external override nonReentrant {
+    function harvestRewards(
+        address /* incentivesReceiver */
+    )
+        external
+        override
+        nonReentrant
+    {
         // There are intentionally no incentives for the caller, as gas on bera is cheap
         _harvestRewards();
     }
@@ -288,7 +295,7 @@ contract OrigamiInfraredVaultManager is
         uint256 rewardAmount;
         for (uint256 i; i < rewardTokens.length; ++i) {
             rewardToken = IERC20(rewardTokens[i]);
-            
+
             // Rewards in the base asset token are handled separately
             if (address(rewardToken) == address(_asset)) continue;
 
@@ -304,10 +311,8 @@ contract OrigamiInfraredVaultManager is
         uint256 assetAmount = _asset.balanceOf(address(this));
         if (assetAmount > 0) {
             uint256 feeForOrigami;
-            (amountForVault, feeForOrigami) = assetAmount.splitSubtractBps(
-                _performanceFeeBps,
-                OrigamiMath.Rounding.ROUND_DOWN
-            );
+            (amountForVault, feeForOrigami) =
+                assetAmount.splitSubtractBps(_performanceFeeBps, OrigamiMath.Rounding.ROUND_DOWN);
 
             if (feeForOrigami > 0) {
                 emit PerformanceFeesCollected(feeForOrigami);

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {Kernel, Policy, Keycode, toKeycode} from "../../Kernel.sol";
-import {ROLESv1} from "../../modules/ROLES/OlympusRoles.sol";
-import {PolicyAdmin} from "../utils/PolicyAdmin.sol";
-import {ICoolerLtvOracle} from "contracts/interfaces/external/olympus/ICoolerLtvOracle.sol";
-import {IERC20Metadata as ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata as ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {SafeCast} from "contracts/libraries/SafeCast.sol";
+import { Kernel, Policy, Keycode, toKeycode } from "../../Kernel.sol";
+import { ROLESv1 } from "../../modules/ROLES/OlympusRoles.sol";
+import { PolicyAdmin } from "../utils/PolicyAdmin.sol";
+import { ICoolerLtvOracle } from "contracts/interfaces/external/olympus/ICoolerLtvOracle.sol";
+import { IERC20Metadata as ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata as ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { SafeCast } from "contracts/libraries/SafeCast.sol";
 
 /**
  * @title Cooler LTV Oracle
@@ -108,7 +108,7 @@ contract CoolerLtvOracle is ICoolerLtvOracle, Policy, PolicyAdmin {
         dependencies = new Keycode[](1);
         dependencies[0] = toKeycode("ROLES");
         ROLES = ROLESv1(getModuleAddress(dependencies[0]));
-        (uint8 ROLES_MAJOR, ) = ROLES.VERSION();
+        (uint8 ROLES_MAJOR,) = ROLES.VERSION();
 
         // Ensure Modules are using the expected major version.
         // Modules should be sorted in alphabetical order.
@@ -123,18 +123,17 @@ contract CoolerLtvOracle is ICoolerLtvOracle, Policy, PolicyAdmin {
     }
 
     /// @inheritdoc ICoolerLtvOracle
-    function setMinOriginationLtvTargetTimeDelta(
-        uint32 minTargetTimeDelta
-    ) external override onlyAdminRole {
+    function setMinOriginationLtvTargetTimeDelta(uint32 minTargetTimeDelta) external override onlyAdminRole {
         emit MinOriginationLtvTargetTimeDeltaSet(minTargetTimeDelta);
         minOriginationLtvTargetTimeDelta = minTargetTimeDelta;
     }
 
     /// @inheritdoc ICoolerLtvOracle
-    function setMaxOriginationLtvRateOfChange(
-        uint96 originationLtvDelta,
-        uint32 timeDelta
-    ) external override onlyAdminRole {
+    function setMaxOriginationLtvRateOfChange(uint96 originationLtvDelta, uint32 timeDelta)
+        external
+        override
+        onlyAdminRole
+    {
         // Calculate the rate of change, rounding down.
         uint96 maxRateOfChange = originationLtvDelta / timeDelta;
         emit MaxOriginationLtvRateOfChangeSet(maxRateOfChange);
@@ -142,10 +141,7 @@ contract CoolerLtvOracle is ICoolerLtvOracle, Policy, PolicyAdmin {
     }
 
     /// @inheritdoc ICoolerLtvOracle
-    function setOriginationLtvAt(
-        uint96 targetValue,
-        uint40 targetTime
-    ) external override onlyAdminRole {
+    function setOriginationLtvAt(uint96 targetValue, uint40 targetTime) external override onlyAdminRole {
         uint96 _currentOriginationLtv = currentOriginationLtv();
         uint40 _now = uint40(block.timestamp);
 
@@ -154,23 +150,19 @@ contract CoolerLtvOracle is ICoolerLtvOracle, Policy, PolicyAdmin {
         uint96 _originationLtvDelta = targetValue - _currentOriginationLtv;
 
         // targetTime must be at or after (now + minOriginationLtvTargetTimeDelta)
-        if (targetTime < _now + minOriginationLtvTargetTimeDelta)
+        if (targetTime < _now + minOriginationLtvTargetTimeDelta) {
             revert BreachedMinDateDelta(targetTime, _now, minOriginationLtvTargetTimeDelta);
+        }
         uint40 _timeDelta = targetTime - _now;
 
         // Check that the delta is within tolerance
-        if (_originationLtvDelta > maxOriginationLtvDelta)
-            revert BreachedMaxOriginationLtvDelta(
-                _currentOriginationLtv,
-                targetValue,
-                maxOriginationLtvDelta
-            );
+        if (_originationLtvDelta > maxOriginationLtvDelta) {
+            revert BreachedMaxOriginationLtvDelta(_currentOriginationLtv, targetValue, maxOriginationLtvDelta);
+        }
         uint96 _rateOfChange = _originationLtvDelta / _timeDelta;
-        if (_rateOfChange > maxOriginationLtvRateOfChange)
-            revert BreachedMaxOriginationLtvRateOfChange(
-                _rateOfChange,
-                maxOriginationLtvRateOfChange
-            );
+        if (_rateOfChange > maxOriginationLtvRateOfChange) {
+            revert BreachedMaxOriginationLtvRateOfChange(_rateOfChange, maxOriginationLtvRateOfChange);
+        }
 
         originationLtvData = OriginationLtvData({
             startingValue: _currentOriginationLtv,
@@ -215,12 +207,7 @@ contract CoolerLtvOracle is ICoolerLtvOracle, Policy, PolicyAdmin {
         return IERC20(address(_DEBT_TOKEN));
     }
 
-    function currentLtvs()
-        public
-        view
-        override
-        returns (uint96 originationLtv, uint96 liquidationLtv)
-    {
+    function currentLtvs() public view override returns (uint96 originationLtv, uint96 liquidationLtv) {
         originationLtv = currentOriginationLtv();
         liquidationLtv = _currentLiquidationLtv(originationLtv);
     }

@@ -9,7 +9,7 @@ import { IOrigamiManagerPausable } from "contracts/interfaces/investments/util/I
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 
 contract MockPausable is OrigamiManagerPausable {
-    constructor(address _initialOwner) OrigamiElevatedAccess(_initialOwner) {}
+    constructor(address _initialOwner) OrigamiElevatedAccess(_initialOwner) { }
 
     function getPaused() external view returns (Paused memory) {
         return _paused;

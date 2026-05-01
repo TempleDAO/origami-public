@@ -3,13 +3,19 @@ pragma solidity ^0.8.19;
 
 import { OrigamiAutoStakingToErc4626 } from "contracts/investments/staking/OrigamiAutoStakingToErc4626.sol";
 import { OrigamiAutoStaking } from "contracts/investments/staking/OrigamiAutoStaking.sol";
-import { IOrigamiAutoStakingFactory } from "contracts/interfaces/factories/infrared/autostaking/IOrigamiAutoStakingFactory.sol";
+import {
+    IOrigamiAutoStakingFactory
+} from "contracts/interfaces/factories/infrared/autostaking/IOrigamiAutoStakingFactory.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
-import { OrigamiAutoStakingToErc4626Common } from "test/foundry/unit/investments/staking/OrigamiAutoStakingToErc4626Common.t.sol";
-import { OrigamiSwapperWithCallbackDeployer } from "contracts/factories/swappers/OrigamiSwapperWithCallbackDeployer.sol";
+import {
+    OrigamiAutoStakingToErc4626Common
+} from "test/foundry/unit/investments/staking/OrigamiAutoStakingToErc4626Common.t.sol";
+import {
+    OrigamiSwapperWithCallbackDeployer
+} from "contracts/factories/swappers/OrigamiSwapperWithCallbackDeployer.sol";
 import { OrigamiSwapperWithCallback } from "contracts/common/swappers/OrigamiSwapperWithCallback.sol";
 
 contract OrigamiAutoStakingToErc4626FactoryTestBase is OrigamiAutoStakingToErc4626Common {
@@ -32,7 +38,7 @@ contract OrigamiAutoStakingToErc4626FactoryTestBase is OrigamiAutoStakingToErc46
         }
 
         (address vault, uint256 version) = vaultFactory.currentVaultForAsset(address(asset));
-        assertEq(vault, expectedVaults[expectedVaults.length-1]);
+        assertEq(vault, expectedVaults[expectedVaults.length - 1]);
         assertEq(version, expectedVaults.length);
     }
 }
@@ -50,7 +56,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Admin is OrigamiAutoStakingToErc
         assertEq(vaultDeployer.underlyingPrimaryRewardToken(), address(IBGT));
         assertEq(vaultDeployer.primaryRewardToken4626(), address(ORI_BGT));
     }
-    
+
     function test_setVaultDeployer() public {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vaultFactory));
@@ -58,7 +64,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Admin is OrigamiAutoStakingToErc
         vaultFactory.setVaultDeployer(alice);
         assertEq(address(vaultFactory.vaultDeployer()), alice);
     }
-    
+
     function test_setSwapperDeployer() public {
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vaultFactory));
@@ -118,11 +124,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Access is OrigamiAutoStakingToEr
     function test_registerVault_access() public {
         expectElevatedAccess();
         vaultFactory.registerVault(
-            address(WBERA),
-            address(IR_WBERA_HONEY),
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
+            address(WBERA), address(IR_WBERA_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0)
         );
     }
 
@@ -179,22 +181,16 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         // Expect the NewVault event to be emitted with correct parameters
         address expectedNewAddress = 0x3C8Ca53ee5661D29d3d3C0732689a4b86947EAF0;
         vm.expectEmit();
-        emit IOrigamiAutoStakingFactory.VaultCreated(
-            expectedNewAddress,
-            address(BYUSD_HONEY),
-            address(0)
-        );
+        emit IOrigamiAutoStakingFactory.VaultCreated(expectedNewAddress, address(BYUSD_HONEY), address(0));
 
         // Register the vault and capture the return value
-        OrigamiAutoStakingToErc4626 newVault = OrigamiAutoStakingToErc4626(address(
-            vaultFactory.registerVault(
-                address(BYUSD_HONEY),
-                address(IR_BYUSD_HONEY),
-                DEFAULT_FEE_BPS,
-                address(0),
-                new address[](0)
+        OrigamiAutoStakingToErc4626 newVault = OrigamiAutoStakingToErc4626(
+            address(
+                vaultFactory.registerVault(
+                    address(BYUSD_HONEY), address(IR_BYUSD_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0)
+                )
             )
-        ));
+        );
 
         // Validate that the returned vault address matches the expected new vault address
         assertEq(address(newVault), expectedNewAddress, "Vault not registered correctly");
@@ -228,23 +224,19 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         address expectedNewAddress = 0x3C8Ca53ee5661D29d3d3C0732689a4b86947EAF0;
         vm.expectEmit(true, true, true, false, address(vaultFactory));
         emit IOrigamiAutoStakingFactory.VaultCreated(
-            expectedNewAddress,
-            address(BYUSD_HONEY),
-            address(0x997e2AE3Ce38d42C64f362B05e17AdAeB2021ADB)
+            expectedNewAddress, address(BYUSD_HONEY), address(0x997e2AE3Ce38d42C64f362B05e17AdAeB2021ADB)
         );
 
         // Register the vault and capture the return value
         address[] memory routers = new address[](1);
         routers[0] = address(router);
-        OrigamiAutoStakingToErc4626 newVault = OrigamiAutoStakingToErc4626(address(
-            vaultFactory.registerVault(
-                address(BYUSD_HONEY),
-                address(IR_BYUSD_HONEY),
-                DEFAULT_FEE_BPS,
-                overlord,
-                routers
+        OrigamiAutoStakingToErc4626 newVault = OrigamiAutoStakingToErc4626(
+            address(
+                vaultFactory.registerVault(
+                    address(BYUSD_HONEY), address(IR_BYUSD_HONEY), DEFAULT_FEE_BPS, overlord, routers
+                )
             )
-        ));
+        );
 
         // Validate that the returned vault address matches the expected new vault address
         assertEq(address(newVault), expectedNewAddress, "Vault not registered correctly");
@@ -275,17 +267,12 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         // Expect a revert due to passing a zero asset address to registerVault
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        vaultFactory.registerVault(
-            address(0),
-            address(IR_OHM_HONEY),
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
-        );
+        vaultFactory.registerVault(address(0), address(IR_OHM_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0));
     }
 
     function test_registerVault_revertInvalidRewardVault() public {
-        DummyMintableToken mockAsset = new DummyMintableToken(origamiMultisig, "MockAsset", "MAS", 18); // Mock asset token
+        DummyMintableToken mockAsset = new DummyMintableToken(origamiMultisig, "MockAsset", "MAS", 18); // Mock asset
+        // token
         // Setup for the asset and reward tokens
         address assetAddress = address(mockAsset); // Your mock asset address
         address rewardVault = address(0);
@@ -293,13 +280,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         // Expect a revert due to invalid reward vault
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        vaultFactory.registerVault(
-            assetAddress,
-            rewardVault,
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
-        );
+        vaultFactory.registerVault(assetAddress, rewardVault, DEFAULT_FEE_BPS, address(0), new address[](0));
     }
 
     function test_registerVault_revertDuplicateAsset() public {
@@ -307,58 +288,38 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiAutoStakingFactory.AlreadyRegistered.selector));
         vaultFactory.registerVault(
-            address(OHM_HONEY),
-            address(IR_OHM_HONEY),
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
+            address(OHM_HONEY), address(IR_OHM_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0)
         );
         vm.expectRevert(abi.encodeWithSelector(IOrigamiAutoStakingFactory.AlreadyRegistered.selector));
         vaultFactory.registerVault(
-            address(WBERA_HONEY),
-            address(IR_WBERA_HONEY),
-            DEFAULT_FEE_BPS,
-            address(0),
-            new address[](0)
+            address(WBERA_HONEY), address(IR_WBERA_HONEY), DEFAULT_FEE_BPS, address(0), new address[](0)
         );
     }
 
     function test_manualRegisterVault_revertZeroAsset() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        vaultFactory.manualRegisterVault(
-            address(0),
-            address(IR_OHM_HONEY)
-        );
+        vaultFactory.manualRegisterVault(address(0), address(IR_OHM_HONEY));
     }
 
     function test_manualRegisterVault_revertInvalidRewardVault() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, address(0)));
-        vaultFactory.manualRegisterVault(
-            address(OTHER_REWARD_TOKEN),
-            address(0)
-        );
+        vaultFactory.manualRegisterVault(address(OTHER_REWARD_TOKEN), address(0));
     }
 
     function test_manualRegisterVault_revertDuplicateAsset() public {
         // Already created in setup
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiAutoStakingFactory.AlreadyRegistered.selector));
-        vaultFactory.manualRegisterVault(
-            address(OHM_HONEY),
-            address(IR_OHM_HONEY)
-        );
+        vaultFactory.manualRegisterVault(address(OHM_HONEY), address(IR_OHM_HONEY));
     }
 
     function test_manualRegisterVault_wrongAsset() public {
         // Already created in setup
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, alice));
-        vaultFactory.manualRegisterVault(
-            address(alice),
-            address(IR_OHM_HONEY)
-        );
+        vaultFactory.manualRegisterVault(address(alice), address(IR_OHM_HONEY));
     }
 
     function test_manualRegisterVault_badStakingToken() public {
@@ -366,10 +327,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
 
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, address(stakingAsset)));
-        vaultFactory.manualRegisterVault(
-            stakingAsset,
-            0xbbB228B0D7D83F86e23a5eF3B1007D0100581613
-        );
+        vaultFactory.manualRegisterVault(stakingAsset, 0xbbB228B0D7D83F86e23a5eF3B1007D0100581613);
     }
 
     function test_manualRegisterVault_success() public {
@@ -390,26 +348,16 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         );
 
         vm.expectEmit();
-        emit IOrigamiAutoStakingFactory.VaultCreated(
-            address(vault),
-            address(BYUSD_HONEY),
-            address(0)
-        );
+        emit IOrigamiAutoStakingFactory.VaultCreated(address(vault), address(BYUSD_HONEY), address(0));
 
-        vaultFactory.manualRegisterVault(
-            address(BYUSD_HONEY),
-            address(vault)
-        );
+        vaultFactory.manualRegisterVault(address(BYUSD_HONEY), address(vault));
         checkOneVault(BYUSD_HONEY, address(vault));
     }
 
     function test_migrateVault_fail_notRegistered() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(IOrigamiAutoStakingFactory.NotRegistered.selector));
-        vaultFactory.migrateVault(
-            address(alice),
-            address(0)
-        );
+        vaultFactory.migrateVault(address(alice), address(0));
     }
 
     function test_migrateVault_fail_badStakingToken() public {
@@ -430,10 +378,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         );
 
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, address(OHM_HONEY)));
-        vaultFactory.migrateVault(
-            address(OHM_HONEY),
-            address(newVault)
-        );        
+        vaultFactory.migrateVault(address(OHM_HONEY), address(newVault));
     }
 
     function test_migrateVault_fail_sameVault() public {
@@ -441,10 +386,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
 
         (address oldVault,) = vaultFactory.currentVaultForAsset(address(OHM_HONEY));
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAddress.selector, oldVault));
-        vaultFactory.migrateVault(
-            address(OHM_HONEY),
-            oldVault
-        );        
+        vaultFactory.migrateVault(address(OHM_HONEY), oldVault);
     }
 
     function test_migrateVault_success() public {
@@ -467,10 +409,7 @@ contract OrigamiAutoStakingToErc4626FactoryTest_Registration is OrigamiAutoStaki
         (address oldVault,) = vaultFactory.currentVaultForAsset(address(OHM_HONEY));
         vm.expectEmit(address(vaultFactory));
         emit IOrigamiAutoStakingFactory.VaultMigrated(oldVault, address(newVault), address(OHM_HONEY));
-        vaultFactory.migrateVault(
-            address(OHM_HONEY),
-            address(newVault)
-        );
+        vaultFactory.migrateVault(address(OHM_HONEY), address(newVault));
 
         address[] memory expectedVaults = new address[](2);
         expectedVaults[0] = oldVault;

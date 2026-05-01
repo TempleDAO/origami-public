@@ -5,7 +5,7 @@ pragma solidity ^0.8.4;
 import { ITokenPrices } from "contracts/interfaces/common/ITokenPrices.sol";
 import { IOrigamiErc4626 } from "contracts/interfaces/common/IOrigamiErc4626.sol";
 
-/** 
+/**
  * @title Origami Delegated ERC4626 Vault
  * @notice An Origami ERC4626 Vault, which delegates the handling of deposited assets
  * to a manager
@@ -21,7 +21,7 @@ interface IOrigamiDelegated4626Vault is IOrigamiErc4626 {
     function setTokenPrices(address tokenPrices) external;
 
     /**
-     * @notice Set the Origami delegated manager 
+     * @notice Set the Origami delegated manager
      * @dev If there was a prior manager set, then the totalAssets will be withdrawn
      * from existing manager and deposited into the new manager.
      * The new manager must have a min number of migrated assets - it may differ slightly

@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Cooler Treasury Borrower
  * @notice Policy which can borrow from Treasury on behalf of Cooler
  *  - Cooler will always represent the debt amount in 18 decimal places.
  *  - This logic is split out into a separate policy (rather than using `TreasuryCustodian`):
- *      1/ So the Cooler debt token can be updated if required in future to another stablecoin without a redeploy of Cooler.
+ *      1/ So the Cooler debt token can be updated if required in future to another stablecoin without a redeploy of
+ * Cooler.
  *      2/ In this case, debt is denominated in USDS but stored 'at rest' in Treasury into sUSDS for extra yield.
  *  - Upon an upgreade, if the actual debt token is changed (with a new deployment of this contract) to a non 18dp asset
  *    eg USDC, then borrow() and repay() will need to do the conversion.
@@ -43,9 +44,7 @@ interface ICoolerTreasuryBorrower {
     function debtToken() external view returns (IERC20);
 
     /// @notice Convert a debt amount in wad (18dp) into the decimals of the `debtToken`
-    function convertToDebtTokenAmount(
-        uint256 amountInWad
-    ) external view returns (IERC20 dToken, uint256 dTokenAmount);
+    function convertToDebtTokenAmount(uint256 amountInWad) external view returns (IERC20 dToken, uint256 dTokenAmount);
 
     /// @notice The decimal precision of the `amountInWad` used in borrow and repay functions.
     /// @dev A constant of 18

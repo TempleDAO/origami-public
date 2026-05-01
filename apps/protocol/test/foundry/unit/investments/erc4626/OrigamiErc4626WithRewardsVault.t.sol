@@ -36,15 +36,11 @@ contract OrigamiErc4626WithRewardsVaultTestBase is OrigamiTest {
     );
 
     function setUp() public virtual {
-        fork("mainnet", 22914300);
+        fork("mainnet", 22_914_300);
 
         tokenPrices = new TokenPrices(30);
         vault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami Morpho IMF-USDS Auto-Compounder", 
-            "oAC-MOR-IMF-USDS",
-            USDS,
-            address(tokenPrices)
+            origamiMultisig, "Origami Morpho IMF-USDS Auto-Compounder", "oAC-MOR-IMF-USDS", USDS, address(tokenPrices)
         );
 
         manager = new OrigamiErc4626WithRewardsManager(
@@ -207,11 +203,11 @@ contract OrigamiErc4626WithRewardsVaultTestAdmin is OrigamiErc4626WithRewardsVau
             address(merklRewardsDistributor),
             address(morphoRewardsDistributor)
         );
-      
+
         vm.startPrank(origamiMultisig);
 
         // loses an extra 1 wei from erc4626 rounding
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, totalAssets, totalAssets-1));
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.Slippage.selector, totalAssets, totalAssets - 1));
         vault.setManager(address(newManager), totalAssets);
     }
 
@@ -233,7 +229,7 @@ contract OrigamiErc4626WithRewardsVaultTestAdmin is OrigamiErc4626WithRewardsVau
             address(merklRewardsDistributor),
             address(morphoRewardsDistributor)
         );
-       
+
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(vault));
         emit ManagerSet(address(newManager));
@@ -263,7 +259,7 @@ contract OrigamiErc4626WithRewardsVaultTestAdmin is OrigamiErc4626WithRewardsVau
 
 contract OrigamiErc4626WithRewardsVaultTestAccess is OrigamiErc4626WithRewardsVaultTestBase {
     event PerformanceFeeSet(uint256 fee);
-    
+
     function test_setManager_access() public {
         expectElevatedAccess();
         vault.setManager(alice, 0);
@@ -320,7 +316,7 @@ contract OrigamiErc4626WithRewardsVaultTestDeposit is OrigamiErc4626WithRewardsV
         assertEq(vault.balanceOf(alice), expectedShares + 1230);
         assertEq(vault.totalSupply(), 123e18 + 0.1e18 + 1230);
         assertEq(vault.totalAssets(), 222.248401685165072069e18);
-        assertEq(vault.convertToShares(1e18), 0.553884748176422280e18);
+        assertEq(vault.convertToShares(1e18), 0.55388474817642228e18);
         assertEq(vault.convertToAssets(1e18), 1.805429745614663443e18);
     }
 
@@ -330,11 +326,8 @@ contract OrigamiErc4626WithRewardsVaultTestDeposit is OrigamiErc4626WithRewardsV
         // 1% of this donation will be fees
         addToSharePrice(10e18); // 10% increase
         assertEq(manager.totalAssets(), 110.073499366337725645e18);
-        (
-            uint256 currentPeriodVested,
-            uint256 currentPeriodUnvested,
-            uint256 futurePeriodUnvested
-        ) = manager.vestingStatus();
+        (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+            manager.vestingStatus();
         assertEq(currentPeriodVested, 9.9e18);
         assertEq(currentPeriodUnvested, 0);
         assertEq(futurePeriodUnvested, 0);
@@ -461,7 +454,7 @@ contract OrigamiErc4626WithRewardsVaultTestWithdraw is OrigamiErc4626WithRewards
         assertEq(vault.convertToAssets(1e18), 1.099635358305072173e18);
 
         assertEq(vault.maxWithdraw(alice), 109.963535830507218427e18);
-        assertEq(vault.maxRedeem(alice), 100.000000000000001000e18);
+        assertEq(vault.maxRedeem(alice), 100.000000000000001e18);
         withdraw(alice, 50e18);
 
         assertEq(USDS.balanceOf(alice), 50e18);
@@ -523,7 +516,7 @@ contract OrigamiErc4626WithRewardsVaultTestRedeem is OrigamiErc4626WithRewardsVa
         assertEq(vault.convertToAssets(1e18), 1.099635358305072173e18);
 
         assertEq(vault.maxWithdraw(alice), 109.963535830507218427e18);
-        assertEq(vault.maxRedeem(alice), 100.000000000000001000e18);
+        assertEq(vault.maxRedeem(alice), 100.000000000000001e18);
         redeem(alice, 50e18);
 
         uint256 expectedShares = OrigamiMath.subtractBps(100e18, DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_DOWN) - 50e18;
@@ -552,11 +545,8 @@ contract OrigamiErc4626WithRewardsVaultTestDonations is OrigamiErc4626WithReward
             assertEq(vault.convertToAssets(1e18), 0.999999999999999989e18);
             assertEq(manager.unallocatedAssets(), 0);
             assertEq(manager.depositedAssets(), 100.099999999999999998e18);
-            (
-                uint256 currentPeriodVested,
-                uint256 currentPeriodUnvested,
-                uint256 futurePeriodUnvested
-            ) = manager.vestingStatus();
+            (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+                manager.vestingStatus();
             assertEq(currentPeriodVested, 0);
             assertEq(currentPeriodUnvested, 0);
             assertEq(futurePeriodUnvested, 0);
@@ -569,13 +559,10 @@ contract OrigamiErc4626WithRewardsVaultTestDonations is OrigamiErc4626WithReward
 
         {
             assertEq(vault.convertToAssets(1e18), 0.999999999999999989e18);
-            assertEq(manager.unallocatedAssets(), 9.900000000000000000e18); // donated amount minus fees
+            assertEq(manager.unallocatedAssets(), 9.9e18); // donated amount minus fees
             assertEq(manager.depositedAssets(), 100.099999999999999998e18);
-            (
-                uint256 currentPeriodVested,
-                uint256 currentPeriodUnvested,
-                uint256 futurePeriodUnvested
-            ) = manager.vestingStatus();
+            (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+                manager.vestingStatus();
             assertEq(currentPeriodVested, 0);
             assertEq(currentPeriodUnvested, 0);
             assertEq(futurePeriodUnvested, 0);
@@ -588,17 +575,14 @@ contract OrigamiErc4626WithRewardsVaultTestDonations is OrigamiErc4626WithReward
             assertEq(vault.convertToAssets(1e18), 0.999999999999999989e18);
             assertEq(manager.unallocatedAssets(), 0);
             assertEq(manager.depositedAssets(), 109.999999999999999998e18);
-            (
-                uint256 currentPeriodVested,
-                uint256 currentPeriodUnvested,
-                uint256 futurePeriodUnvested
-            ) = manager.vestingStatus();
+            (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+                manager.vestingStatus();
             assertEq(currentPeriodVested, 0);
-            assertEq(currentPeriodUnvested, 9.900000000000000000e18);
+            assertEq(currentPeriodUnvested, 9.9e18);
             assertEq(futurePeriodUnvested, 0);
             assertEq(manager.totalAssets(), 100.099999999999999998e18);
         }
-        
+
         // After 100% vested, the share price increases
         skip(VESTING_DURATION);
 
@@ -606,12 +590,9 @@ contract OrigamiErc4626WithRewardsVaultTestDonations is OrigamiErc4626WithReward
             assertEq(vault.convertToAssets(1e18), 1.099635358305072173e18);
             assertEq(manager.unallocatedAssets(), 0);
             assertEq(manager.depositedAssets(), 110.073499366337725645e18);
-            (
-                uint256 currentPeriodVested,
-                uint256 currentPeriodUnvested,
-                uint256 futurePeriodUnvested
-            ) = manager.vestingStatus();
-            assertEq(currentPeriodVested, 9.900000000000000000e18);
+            (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+                manager.vestingStatus();
+            assertEq(currentPeriodVested, 9.9e18);
             assertEq(currentPeriodUnvested, 0);
             assertEq(futurePeriodUnvested, 0);
             assertEq(manager.totalAssets(), 110.073499366337725645e18);

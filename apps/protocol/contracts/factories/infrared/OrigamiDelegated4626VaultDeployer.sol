@@ -9,19 +9,10 @@ contract OrigamiDelegated4626VaultDeployer {
     /**
      * @notice Deploys a new `OrigamiDelegated4626Vault` contract.
      */
-    function deploy(
-        address owner,
-        string calldata name,
-        string calldata symbol,
-        address asset,
-        address tokenPrices
-    ) external returns (OrigamiDelegated4626Vault deployedAddress) {
-        return new OrigamiDelegated4626Vault(
-            owner,
-            name,
-            symbol,
-            IERC20(asset),
-            tokenPrices
-        );
+    function deploy(address owner, string calldata name, string calldata symbol, address asset, address tokenPrices)
+        external
+        returns (OrigamiDelegated4626Vault deployedAddress)
+    {
+        return new OrigamiDelegated4626Vault(owner, name, symbol, IERC20(asset), tokenPrices);
     }
 }

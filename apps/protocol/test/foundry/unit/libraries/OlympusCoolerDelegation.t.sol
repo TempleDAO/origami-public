@@ -26,41 +26,31 @@ contract CoolerUserMock {
         gohm.safeIncreaseAllowance(address(cooler), type(uint256).max);
     }
 
-    function addCollateral(
-        uint128 amount
-    ) external {
+    function addCollateral(uint128 amount) external {
         cooler.addCollateral(amount, address(this), new DLGTEv1.DelegationRequest[](0));
     }
-    
+
     function _applyDelegations(IDLGTEv1.DelegationRequest[] memory requests) private {
         if (requests.length > 0) {
             cooler.applyDelegations(requests, address(this));
         }
     }
 
-    function updateDelegateAndAmount(
-        address account,
-        address newDelegateAddress,
-        uint256 newAmount
-    ) external returns (IDLGTEv1.DelegationRequest[] memory requests) {
+    function updateDelegateAndAmount(address account, address newDelegateAddress, uint256 newAmount)
+        external
+        returns (IDLGTEv1.DelegationRequest[] memory requests)
+    {
         requests = OlympusCoolerDelegation.updateDelegateAndAmount(
-            delegations[account],
-            account,
-            newDelegateAddress,
-            newAmount
+            delegations[account], account, newDelegateAddress, newAmount
         );
         _applyDelegations(requests);
     }
 
-    function syncAccountAmount1(
-        address account,
-        uint256 accountNewAmount
-    ) external returns (IDLGTEv1.DelegationRequest[] memory requests) {
-        requests = OlympusCoolerDelegation.syncAccountAmount(
-            delegations[account],
-            account,
-            accountNewAmount
-        );
+    function syncAccountAmount1(address account, uint256 accountNewAmount)
+        external
+        returns (IDLGTEv1.DelegationRequest[] memory requests)
+    {
+        requests = OlympusCoolerDelegation.syncAccountAmount(delegations[account], account, accountNewAmount);
         _applyDelegations(requests);
     }
 
@@ -71,12 +61,7 @@ contract CoolerUserMock {
         uint256 account2NewAmount
     ) external returns (IDLGTEv1.DelegationRequest[] memory requests) {
         requests = OlympusCoolerDelegation.syncAccountAmount(
-            delegations[account1],
-            account1,
-            account1NewAmount,
-            delegations[account2],
-            account2,
-            account2NewAmount
+            delegations[account1], account1, account1NewAmount, delegations[account2], account2, account2NewAmount
         );
         _applyDelegations(requests);
     }
@@ -117,29 +102,27 @@ contract OlympusCoolerDelegationTestBase is OrigamiTest {
         uint256 expectedNumDelegateAddresses,
         uint256 expectedMaxAllowedDelegateAddresses
     ) internal view {
-        (
-            uint256 totalGOhm,
-            uint256 delegatedGOhm,
-            uint256 numDelegateAddresses,
-            uint256 maxAllowedDelegateAddresses
-        ) = DLGTE.accountDelegationSummary(address(coolerUserMock));
+        (uint256 totalGOhm, uint256 delegatedGOhm, uint256 numDelegateAddresses, uint256 maxAllowedDelegateAddresses) =
+            DLGTE.accountDelegationSummary(address(coolerUserMock));
         assertEq(totalGOhm, expectedTotalGOhm, "DLGTE.accountDelegationSummary::totalGOhm");
         assertEq(delegatedGOhm, expectedDelegatedGOhm, "DLGTE.accountDelegationSummary::delegatedGOhm");
-        assertEq(numDelegateAddresses, expectedNumDelegateAddresses, "DLGTE.accountDelegationSummary::numDelegateAddresses");
-        assertEq(maxAllowedDelegateAddresses, expectedMaxAllowedDelegateAddresses, "DLGTE.accountDelegationSummary::maxAllowedDelegateAddresses");
+        assertEq(
+            numDelegateAddresses, expectedNumDelegateAddresses, "DLGTE.accountDelegationSummary::numDelegateAddresses"
+        );
+        assertEq(
+            maxAllowedDelegateAddresses,
+            expectedMaxAllowedDelegateAddresses,
+            "DLGTE.accountDelegationSummary::maxAllowedDelegateAddresses"
+        );
     }
 
     function checkDelegations0() internal view {
-        DLGTEv1.AccountDelegation[] memory delegations = DLGTE.accountDelegationsList(
-            address(coolerUserMock), 0, 10
-        );
+        DLGTEv1.AccountDelegation[] memory delegations = DLGTE.accountDelegationsList(address(coolerUserMock), 0, 10);
         assertEq(delegations.length, 0, "DLGTE.accountDelegationsList::length");
     }
 
     function checkDelegations1(address delegate, uint256 amount) internal view {
-        DLGTEv1.AccountDelegation[] memory delegations = DLGTE.accountDelegationsList(
-            address(coolerUserMock), 0, 10
-        );
+        DLGTEv1.AccountDelegation[] memory delegations = DLGTE.accountDelegationsList(address(coolerUserMock), 0, 10);
         assertEq(delegations.length, 1, "DLGTE.accountDelegationsList::length");
         if (delegations.length > 0) {
             assertEq(delegations[0].delegate, delegate, "DLGTE.accountDelegationsList::delegate");
@@ -148,13 +131,8 @@ contract OlympusCoolerDelegationTestBase is OrigamiTest {
         }
     }
 
-    function checkDelegations2(
-        address delegate1, uint256 amount1,
-        address delegate2, uint256 amount2
-    ) internal view {
-        DLGTEv1.AccountDelegation[] memory delegations = DLGTE.accountDelegationsList(
-            address(coolerUserMock), 0, 10
-        );
+    function checkDelegations2(address delegate1, uint256 amount1, address delegate2, uint256 amount2) internal view {
+        DLGTEv1.AccountDelegation[] memory delegations = DLGTE.accountDelegationsList(address(coolerUserMock), 0, 10);
         if (delegations.length > 0) {
             assertEq(delegations.length, 2, "DLGTE.accountDelegationsList::length");
             assertEq(delegations[0].delegate, delegate1, "DLGTE.accountDelegationsList::delegate1");
@@ -166,18 +144,17 @@ contract OlympusCoolerDelegationTestBase is OrigamiTest {
             assertNotEq(delegations[1].escrow, delegations[0].escrow, "DLGTE.accountDelegationsList::escrow2");
             assertNotEq(delegations[1].escrow, address(0), "DLGTE.accountDelegationsList::escrow2");
             assertEq(delegations[1].amount, amount2, "DLGTE.accountDelegationsList::amount2");
-        }            
+        }
     }
 
     function checkEmpty(IDLGTEv1.DelegationRequest[] memory req) internal pure {
         assertEq(req.length, 0);
     }
 
-    function checkOne(
-        IDLGTEv1.DelegationRequest[] memory req,
-        address expectedDelegate,
-        int256 expectedAmount
-    ) internal pure {
+    function checkOne(IDLGTEv1.DelegationRequest[] memory req, address expectedDelegate, int256 expectedAmount)
+        internal
+        pure
+    {
         assertEq(req.length, 1);
         assertEq(req[0].delegate, expectedDelegate);
         assertEq(req[0].amount, expectedAmount);
@@ -292,7 +269,7 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
         emit DelegationApplied(alice, alice, -int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
         IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, bob, newDelegateAmount);
-        
+
         checkOne(req, alice, -int256(delegateAmount));
         checkDelegation(alice, bob, newDelegateAmount);
         checkTotalDelegated(ADDED_COLLATERAL, newDelegateAmount, 0, 10);
@@ -305,7 +282,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
 
         uint256 newDelegateAmount = delegateAmount;
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 0);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
 
         checkEmpty(req);
         checkDelegation(alice, alice, newDelegateAmount);
@@ -319,11 +297,12 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
 
         uint256 newDelegateAmount = 333e18;
         vm.expectEmit(address(coolerUserMock));
-        emit DelegationApplied(alice, alice, int256(newDelegateAmount)-int256(delegateAmount));
+        emit DelegationApplied(alice, alice, int256(newDelegateAmount) - int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
-        
-        checkOne(req, alice, int256(newDelegateAmount)-int256(delegateAmount));
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
+
+        checkOne(req, alice, int256(newDelegateAmount) - int256(delegateAmount));
         checkDelegation(alice, alice, newDelegateAmount);
         checkTotalDelegated(ADDED_COLLATERAL, newDelegateAmount, 1, 10);
         checkDelegations1(alice, newDelegateAmount);
@@ -335,11 +314,12 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
 
         uint256 newDelegateAmount = 69e18;
         vm.expectEmit(address(coolerUserMock));
-        emit DelegationApplied(alice, alice, int256(newDelegateAmount)-int256(delegateAmount));
+        emit DelegationApplied(alice, alice, int256(newDelegateAmount) - int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
 
-        checkOne(req, alice, int256(newDelegateAmount)-int256(delegateAmount));
+        checkOne(req, alice, int256(newDelegateAmount) - int256(delegateAmount));
         checkDelegation(alice, alice, newDelegateAmount);
         checkTotalDelegated(ADDED_COLLATERAL, newDelegateAmount, 1, 10);
         checkDelegations1(alice, newDelegateAmount);
@@ -351,11 +331,12 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
 
         uint256 newDelegateAmount = 0;
         vm.expectEmit(address(coolerUserMock));
-        emit DelegationApplied(alice, alice, int256(newDelegateAmount)-int256(delegateAmount));
+        emit DelegationApplied(alice, alice, int256(newDelegateAmount) - int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, alice, newDelegateAmount);
 
-        checkOne(req, alice, int256(newDelegateAmount)-int256(delegateAmount));
+        checkOne(req, alice, int256(newDelegateAmount) - int256(delegateAmount));
         checkDelegation(alice, alice, newDelegateAmount);
         checkTotalDelegated(ADDED_COLLATERAL, newDelegateAmount, 0, 10);
         checkDelegations0();
@@ -364,7 +345,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
     function test_updateDelegateAndAmount_removeDelegate_fromNone_zeroAmount() public {
         uint256 newDelegateAmount = 0;
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 0);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
 
         checkEmpty(req);
         checkDelegation(alice, address(0), newDelegateAmount);
@@ -375,7 +357,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
     function test_updateDelegateAndAmount_removeDelegate_fromNone_someAmount() public {
         uint256 newDelegateAmount = 69e18;
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 0);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
 
         checkEmpty(req);
         checkDelegation(alice, address(0), 0);
@@ -391,7 +374,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
         vm.expectEmit(address(coolerUserMock));
         emit DelegationApplied(alice, alice, -int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
 
         checkOne(req, alice, -int256(delegateAmount));
         checkDelegation(alice, address(0), 0);
@@ -407,7 +391,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
         vm.expectEmit(address(coolerUserMock));
         emit DelegationApplied(alice, alice, -int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
 
         checkOne(req, alice, -int256(delegateAmount));
         checkDelegation(alice, address(0), 0);
@@ -423,7 +408,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
         vm.expectEmit(address(coolerUserMock));
         emit DelegationApplied(alice, alice, -int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
 
         checkOne(req, alice, -int256(delegateAmount));
         checkDelegation(alice, address(0), 0);
@@ -439,7 +425,8 @@ contract OlympusCoolerDelegationTest_updateDelegateAndAmount is OlympusCoolerDel
         vm.expectEmit(address(coolerUserMock));
         emit DelegationApplied(alice, alice, -int256(delegateAmount));
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
-        IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
+        IDLGTEv1.DelegationRequest[] memory req =
+            coolerUserMock.updateDelegateAndAmount(alice, address(0), newDelegateAmount);
 
         checkOne(req, alice, -int256(delegateAmount));
         checkDelegation(alice, address(0), 0);
@@ -477,9 +464,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount1 is OlympusCoolerDelegati
         checkOne(req, alice, int256(100e18));
         checkDelegation(alice, alice, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 100e18, 1, 10);
-        checkDelegations1(
-            alice, 100e18
-        );
+        checkDelegations1(alice, 100e18);
     }
 
     function test_syncAccountAmount1_sameAccount1() public {
@@ -505,9 +490,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount1 is OlympusCoolerDelegati
         checkOne(req, alice, 100e18);
         checkDelegation(alice, alice, 200e18);
         checkTotalDelegated(ADDED_COLLATERAL, 200e18, 1, 10);
-        checkDelegations1(
-            alice, 200e18
-        );
+        checkDelegations1(alice, 200e18);
     }
 
     function test_syncAccountAmount1_decreaseAccount1() public {
@@ -521,9 +504,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount1 is OlympusCoolerDelegati
         checkOne(req, alice, -50e18);
         checkDelegation(alice, alice, 50e18);
         checkTotalDelegated(ADDED_COLLATERAL, 50e18, 1, 10);
-        checkDelegations1(
-            alice, 50e18
-        );
+        checkDelegations1(alice, 50e18);
     }
 
     function test_syncAccountAmount1_toZeroAccount() public {
@@ -584,10 +565,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 100e18);
         checkDelegation(bob, bob, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 200e18, 2, 10);
-        checkDelegations2(
-            bob, 100e18,
-            alice, 100e18
-        );
+        checkDelegations2(bob, 100e18, alice, 100e18);
     }
 
     function test_syncAccountAmount2_sameAccount1_noAccount2Delegate() public {
@@ -617,9 +595,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, bob, 100e18);
         checkDelegation(bob, bob, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 200e18, 1, 10);
-        checkDelegations1(
-            bob, 200e18
-        );
+        checkDelegations1(bob, 200e18);
     }
 
     function test_syncAccountAmount2_sameAccount1_sameAccount2() public {
@@ -633,10 +609,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 100e18);
         checkDelegation(bob, bob, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 200e18, 2, 10);
-        checkDelegations2(
-            alice, 100e18,
-            bob, 100e18
-        );
+        checkDelegations2(alice, 100e18, bob, 100e18);
     }
 
     function test_syncAccountAmount2_increaseAccount1_sameAccount2() public {
@@ -652,10 +625,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 200e18);
         checkDelegation(bob, bob, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 300e18, 2, 10);
-        checkDelegations2(
-            alice, 200e18,
-            bob, 100e18
-        );
+        checkDelegations2(alice, 200e18, bob, 100e18);
     }
 
     function test_syncAccountAmount2_decreaseAccount1_sameAccount2() public {
@@ -671,10 +641,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 50e18);
         checkDelegation(bob, bob, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 150e18, 2, 10);
-        checkDelegations2(
-            alice, 50e18,
-            bob, 100e18
-        );
+        checkDelegations2(alice, 50e18, bob, 100e18);
     }
 
     function test_syncAccountAmount2_sameAccount1_increaseAccount2() public {
@@ -690,10 +657,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 100e18);
         checkDelegation(bob, bob, 200e18);
         checkTotalDelegated(ADDED_COLLATERAL, 300e18, 2, 10);
-        checkDelegations2(
-            alice, 100e18,
-            bob, 200e18
-        );
+        checkDelegations2(alice, 100e18, bob, 200e18);
     }
 
     function test_syncAccountAmount2_increaseAccount1_increaseAccount2() public {
@@ -706,15 +670,12 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         emit DelegationApplied(bob, bob, 100e18);
         vm.expectCall(address(cooler), abi.encodeWithSelector(MonoCooler.applyDelegations.selector), 1);
         IDLGTEv1.DelegationRequest[] memory req = coolerUserMock.syncAccountAmount2(alice, 200e18, bob, 200e18);
-        
+
         checkTwo(req, alice, 100e18, bob, 100e18);
         checkDelegation(alice, alice, 200e18);
         checkDelegation(bob, bob, 200e18);
         checkTotalDelegated(ADDED_COLLATERAL, 400e18, 2, 10);
-        checkDelegations2(
-            alice, 200e18,
-            bob, 200e18
-        );
+        checkDelegations2(alice, 200e18, bob, 200e18);
     }
 
     function test_syncAccountAmount2_decreaseAccount1_increaseAccount2() public {
@@ -732,10 +693,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 50e18);
         checkDelegation(bob, bob, 200e18);
         checkTotalDelegated(ADDED_COLLATERAL, 250e18, 2, 10);
-        checkDelegations2(
-            alice, 50e18,
-            bob, 200e18
-        );
+        checkDelegations2(alice, 50e18, bob, 200e18);
     }
 
     function test_syncAccountAmount2_sameAccount1_decreaseAccount2() public {
@@ -751,10 +709,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 100e18);
         checkDelegation(bob, bob, 50e18);
         checkTotalDelegated(ADDED_COLLATERAL, 150e18, 2, 10);
-        checkDelegations2(
-            alice, 100e18,
-            bob, 50e18
-        );
+        checkDelegations2(alice, 100e18, bob, 50e18);
     }
 
     function test_syncAccountAmount2_increaseAccount1_decreaseAccount2() public {
@@ -772,10 +727,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 200e18);
         checkDelegation(bob, bob, 50e18);
         checkTotalDelegated(ADDED_COLLATERAL, 250e18, 2, 10);
-        checkDelegations2(
-            alice, 200e18,
-            bob, 50e18
-        );
+        checkDelegations2(alice, 200e18, bob, 50e18);
     }
 
     function test_syncAccountAmount2_decreaseAccount1_decreaseAccount2() public {
@@ -793,10 +745,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 50e18);
         checkDelegation(bob, bob, 50e18);
         checkTotalDelegated(ADDED_COLLATERAL, 100e18, 2, 10);
-        checkDelegations2(
-            alice, 50e18,
-            bob, 50e18
-        );
+        checkDelegations2(alice, 50e18, bob, 50e18);
     }
 
     function test_syncAccountAmount2_sameAccount1_toZeroAccount2() public {
@@ -812,9 +761,7 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 100e18);
         checkDelegation(bob, bob, 0);
         checkTotalDelegated(ADDED_COLLATERAL, 100e18, 1, 10);
-        checkDelegations1(
-            alice, 100e18
-        );
+        checkDelegations1(alice, 100e18);
     }
 
     function test_syncAccountAmount2_toZeroAccount1_sameAccount2() public {
@@ -830,8 +777,6 @@ contract OlympusCoolerDelegationtest_syncAccountAmount2 is OlympusCoolerDelegati
         checkDelegation(alice, alice, 0);
         checkDelegation(bob, bob, 100e18);
         checkTotalDelegated(ADDED_COLLATERAL, 100e18, 1, 10);
-        checkDelegations1(
-            bob, 100e18
-        );
+        checkDelegations1(bob, 100e18);
     }
 }

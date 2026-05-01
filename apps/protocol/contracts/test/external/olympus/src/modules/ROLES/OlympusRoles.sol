@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-import {ROLESv1} from "./ROLES.v1.sol";
-import {Kernel, Module, Keycode, toKeycode} from "../../Kernel.sol";
+import { ROLESv1 } from "./ROLES.v1.sol";
+import { Kernel, Module, Keycode, toKeycode } from "../../Kernel.sol";
 
 /// @notice Abstract contract to have the `onlyRole` modifier
 /// @dev    Inheriting this automatically makes ROLES module a dependency
@@ -21,7 +21,7 @@ contract OlympusRoles is ROLESv1 {
     //                                        MODULE SETUP                                        //
     //============================================================================================//
 
-    constructor(Kernel kernel_) Module(kernel_) {}
+    constructor(Kernel kernel_) Module(kernel_) { }
 
     /// @inheritdoc Module
     function KEYCODE() public pure override returns (Keycode) {
@@ -70,7 +70,7 @@ contract OlympusRoles is ROLESv1 {
 
     /// @inheritdoc ROLESv1
     function ensureValidRole(bytes32 role_) public pure override {
-        for (uint256 i = 0; i < 32; ) {
+        for (uint256 i = 0; i < 32;) {
             bytes1 char = role_[i];
             if ((char < 0x61 || char > 0x7A) && char != 0x5f && char != 0x00) {
                 revert ROLES_InvalidRole(role_); // a-z only

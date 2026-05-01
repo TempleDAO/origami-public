@@ -18,7 +18,7 @@ library DexAggregator {
 
     /**
      * @notice Execute a swap using a 1inch/0x Dex aggregator
-     * @dev 
+     * @dev
      *   - Assumes this contract already has sellTokenAmount amount, but not yet given approval
      *     to the router.
      *   - The balance of sellToken after the swap can never be less than before the swap
@@ -34,17 +34,15 @@ library DexAggregator {
     function swap(
         address router,
         IERC20 sellToken,
-        uint256 sellTokenAmount, 
+        uint256 sellTokenAmount,
         IERC20 buyToken,
         bytes memory swapData,
         bool revertOnSurplusSellToken
     ) internal returns (uint256 buyTokenAmount) {
         if (sellTokenAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
-        (uint256 _initialSellTokenBalance, uint256 _initialBuyTokenBalance) = (
-            sellToken.balanceOf(address(this)),
-            buyToken.balanceOf(address(this))
-        );
+        (uint256 _initialSellTokenBalance, uint256 _initialBuyTokenBalance) =
+            (sellToken.balanceOf(address(this)), buyToken.balanceOf(address(this)));
 
         // Approve the router to pull the sellToken's
         sellToken.forceApprove(router, sellTokenAmount);
@@ -57,8 +55,8 @@ library DexAggregator {
         uint256 _finalSellTokenBalance = sellToken.balanceOf(address(this));
         uint256 _expectedSellTokenBalance = _initialSellTokenBalance - sellTokenAmount;
         if (
-            _finalSellTokenBalance < _expectedSellTokenBalance ||
-            revertOnSurplusSellToken && _finalSellTokenBalance > _expectedSellTokenBalance
+            _finalSellTokenBalance < _expectedSellTokenBalance || revertOnSurplusSellToken
+                && _finalSellTokenBalance > _expectedSellTokenBalance
         ) revert IOrigamiSwapper.InvalidSwap();
 
         buyTokenAmount = buyToken.balanceOf(address(this)) - _initialBuyTokenBalance;

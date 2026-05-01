@@ -3,14 +3,16 @@ pragma solidity ^0.8.19;
 
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
-import { OrigamiTokenizedBalanceSheetVaultTestBase } from "test/foundry/unit/common/tokenizedBalanceSheet/OrigamiTokenizedBalanceSheetVault.t.sol";
+import {
+    OrigamiTokenizedBalanceSheetVaultTestBase
+} from "test/foundry/unit/common/tokenizedBalanceSheet/OrigamiTokenizedBalanceSheetVault.t.sol";
 import { IOrigamiTokenizedBalanceSheetVault } from "contracts/interfaces/common/IOrigamiTokenizedBalanceSheetVault.sol";
 
 /*
 Test join and exit with shares and tokens
 
 The invariant that must be satisfied for any join or exit operation is as following:
-The vault's balance must not decrease after any operation. 
+The vault's balance must not decrease after any operation.
 Since assets are positive and liabilities are negative for the balance, the following conditions must be satisfied:
 1) Assets per share must not decrease
 2) Liabilities per share must not increase
@@ -37,7 +39,7 @@ There are also 2 possible comparisions between shares and assets (liabilities):
 1) A lot more shares than assets (liabilities)
 Example: shares = 100, assets = 2, liabilities = 2
 
-In this case many different amounts of shares lead to the same amount of assets (liabilities), making inverse calculation 
+In this case many different amounts of shares lead to the same amount of assets (liabilities), making inverse calculation
 (shares from assets or liabilities) ambiguous, example with exit amounts:
 0 shares -> 0 assets, 0 liabilities
 1 shares -> 0 assets, 1 liabilities
@@ -59,13 +61,13 @@ When exiting, the best choice for the user here which satisfies the invariant ab
 - choose the smallest possible amount of shares with the assets (burn min shares for assets token sent to user)
 
 Note: Since preview functions must choose some shares value, we choose the default ones (for exits in token: the
- smallest amount of shares for assets, the largest amount of shares for liabilities), but when exiting with liability 
+ smallest amount of shares for assets, the largest amount of shares for liabilities), but when exiting with liability
  this amount can exceed user's shares balance, so this should be treated accordingly.
 
 2) A lot more assets (liabilities) than shares
 
 Example: shares = 2, assets = 99, liabilities = 99
-In this case many different amounts of assets (liabilities) lead to the same amount of shares, making direct calculation 
+In this case many different amounts of assets (liabilities) lead to the same amount of shares, making direct calculation
 (shares to assets and liabilities) ambiguous, example with join amounts:
 0 shares -> [0..49] assets, 0 liabilities
 1 shares -> [50..99] assets, [1..49] liabilities
@@ -80,8 +82,8 @@ When exiting, the best choice for the user here which satisfies the invariant ab
 - choose the smallest possible amount of liabilities (user sends min debt token to vault)
 
 Note: since preview functions must choose some asset/liability value, we choose the default ones, but unlike the 1st case,
- we don't care about user balance of assets/liabilities as there is no "fixed" user balance of tokens when he exits, 
- and we don't care about the balance of his tokens when he joins with shares. There is, however, a special case when 
+ we don't care about user balance of assets/liabilities as there is no "fixed" user balance of tokens when he exits,
+ and we don't care about the balance of his tokens when he joins with shares. There is, however, a special case when
  user joins with assets or liabilities amount, then amount must match what user specified, e.g.:
 - User wants to join with 74 assets:
  * he is minted 1 share
@@ -91,7 +93,6 @@ Note: since preview functions must choose some asset/liability value, we choose 
 */
 
 contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiTokenizedBalanceSheetVaultTestBase {
-
     uint256 public constant MAX_AMOUNT = 10_000_000;
 
     uint256 public sharesBefore;
@@ -100,8 +101,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
     uint256 public liability1Before;
     uint256 public liability2Before;
 
-    function setUp() public override {
-    }
+    function setUp() public override { }
 
     function createVault(
         uint256 _sharesBefore,
@@ -132,26 +132,35 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         asset1.approve(address(vault), assetAmounts[0]);
         asset2.deal(origamiMultisig, assetAmounts[1]);
         asset2.approve(address(vault), assetAmounts[1]);
-        vault.seed(assetAmounts, liabilityAmounts, sharesBefore, origamiMultisig, type(uint256).max);
+        vault.seed(assetAmounts, liabilityAmounts, sharesBefore, origamiMultisig, type(uint256).max, "");
 
         vm.stopPrank();
     }
 
-    function checkInvariant1(uint256 sharesAfter, uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter) view internal {
+    function checkInvariant1(uint256 sharesAfter, uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter)
+        internal
+        view
+    {
         assertGe(assetsAfter[0] * sharesBefore, asset1Before * sharesAfter, "Asset1 / share decreased");
         assertGe(assetsAfter[1] * sharesBefore, asset2Before * sharesAfter, "Asset2 / share decreased");
         assertLe(liabilitiesAfter[0] * sharesBefore, liability1Before * sharesAfter, "Liability1 / share increased");
         assertLe(liabilitiesAfter[1] * sharesBefore, liability2Before * sharesAfter, "Liability2 / share increased");
     }
 
-    function checkInvariant1() view internal {
+    function checkInvariant1() internal view {
         uint256 sharesAfter = vault.totalSupply();
         (uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter) = vault.balanceSheet();
 
         checkInvariant1(sharesAfter, assetsAfter, liabilitiesAfter);
     }
 
-    function checkInvariant2Join(uint shares, uint assets1, uint assets2, uint liability1, uint liability2) view internal {
+    function checkInvariant2Join(
+        uint256 shares,
+        uint256 assets1,
+        uint256 assets2,
+        uint256 liability1,
+        uint256 liability2
+    ) internal view {
         uint256 sharesAfter = vault.totalSupply();
         (uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter) = vault.balanceSheet();
 
@@ -162,7 +171,13 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         assertEq(liabilitiesAfter[1] - liability2Before, liability2, "Actual join liability2 mismatch");
     }
 
-    function checkInvariant2Exit(uint shares, uint assets1, uint assets2, uint liability1, uint liability2) view internal {
+    function checkInvariant2Exit(
+        uint256 shares,
+        uint256 assets1,
+        uint256 assets2,
+        uint256 liability1,
+        uint256 liability2
+    ) internal view {
         uint256 sharesAfter = vault.totalSupply();
         (uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter) = vault.balanceSheet();
 
@@ -173,11 +188,11 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         assertEq(liability2Before - liabilitiesAfter[1], liability2, "Actual exit liability2 mismatch");
     }
 
-    function checkInvariant1Exit(uint256 shares, uint256[] memory assets, uint256[] memory liabilities) view internal {
+    function checkInvariant1Exit(uint256 shares, uint256[] memory assets, uint256[] memory liabilities) internal view {
         assertGe(vault.totalSupply(), shares, "Trying to exit more shares than vault has");
         uint256 sharesAfter = vault.totalSupply() - shares;
         (uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter) = vault.balanceSheet();
-        for (uint i = 0; i < assetsAfter.length; i++) {
+        for (uint256 i = 0; i < assetsAfter.length; i++) {
             assertGe(assetsAfter[i], assets[i], "Trying to exit more assets than vault has");
             assetsAfter[i] -= assets[i];
             assertGe(liabilitiesAfter[i], liabilities[i], "Trying to exit more liability than vault has");
@@ -187,10 +202,10 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         checkInvariant1(sharesAfter, assetsAfter, liabilitiesAfter);
     }
 
-    function checkInvariant1Join(uint256 shares, uint256[] memory assets, uint256[] memory liabilities) view internal {
+    function checkInvariant1Join(uint256 shares, uint256[] memory assets, uint256[] memory liabilities) internal view {
         uint256 sharesAfter = vault.totalSupply() + shares;
         (uint256[] memory assetsAfter, uint256[] memory liabilitiesAfter) = vault.balanceSheet();
-        for (uint i = 0; i < assetsAfter.length; i++) {
+        for (uint256 i = 0; i < assetsAfter.length; i++) {
             assetsAfter[i] += assets[i];
             liabilitiesAfter[i] += liabilities[i];
         }
@@ -199,10 +214,10 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
     }
 
     function test_previewJoinExit_fuzz(
-        uint256 i, 
+        uint256 i,
         uint96 _sharesBefore,
-        uint96 _asset1Before, 
-        uint96 _asset2Before, 
+        uint96 _asset1Before,
+        uint96 _asset2Before,
         uint96 _liability1Before,
         uint96 _liability2Before,
         uint96 _amount
@@ -220,14 +235,14 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
     }
 
     function test_previewJoinExit1() public {
-        for (uint i; i < 10; i++) {
-            createVault(21, 11, 11000001, 11, 11000001);
+        for (uint256 i; i < 10; i++) {
+            createVault(21, 11, 11_000_001, 11, 11_000_001);
             testJoinExit(i, 1);
         }
     }
 
     function test_previewJoinExit2() public {
-        for (uint i; i < 10; i++) {
+        for (uint256 i; i < 10; i++) {
             createVault(1, 1, 100, 1, 100);
             testJoinExit(i, 1);
         }
@@ -244,7 +259,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
     // default shares amount exceeds user balance
     function test_previewExit1() public {
         createVault(100, 1, 1000, 1, 1000);
-        
+
         uint256 sharesDelta;
         uint256[] memory assetsDelta;
         uint256[] memory liabilitiesDelta;
@@ -262,8 +277,12 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         // actual exit
         vm.prank(alice);
         // will revert trying to burn shares exceeding user shares balance
-        vm.expectRevert(abi.encodeWithSelector(IOrigamiTokenizedBalanceSheetVault.ExceededMaxExitWithToken.selector, alice, address(debt1), 1, 0));
-        vault.exitWithToken(address(debt1), 1, address(alice), address(alice));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IOrigamiTokenizedBalanceSheetVault.ExceededMaxExitWithToken.selector, alice, address(debt1), 1, 0
+            )
+        );
+        vault.exitWithToken(address(debt1), 1, address(alice), address(alice), tokenHash);
     }
 
     function prepare(address who) internal {
@@ -282,7 +301,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         vm.stopPrank();
     }
 
-    function testJoinExit(uint what, uint amount) internal {
+    function testJoinExit(uint256 what, uint256 amount) internal {
         uint256 sharesDelta;
         uint256[] memory assetsDelta;
         uint256[] memory liabilitiesDelta;
@@ -296,7 +315,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
 
             // actual join
             vm.prank(alice);
-            vault.joinWithShares(amount, address(alice));
+            vault.joinWithShares(amount, address(alice), tokenHash);
             checkInvariant1();
             checkInvariant2Join(amount, assetsDelta[0], assetsDelta[1], liabilitiesDelta[0], liabilitiesDelta[1]);
         }
@@ -304,7 +323,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         if (what == 1 || what == 2) {
             address asset = address(what == 1 ? asset1 : asset2);
             uint8 decimals = asset == address(asset1) ? 18 : 6;
-            amount = _bound(amount, 1, MAX_AMOUNT * (10**decimals));
+            amount = _bound(amount, 1, MAX_AMOUNT * (10 ** decimals));
             (sharesDelta, assetsDelta, liabilitiesDelta) = vault.previewJoinWithToken(asset, amount);
             if (sharesDelta == 0) return;
 
@@ -312,15 +331,21 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
 
             // actual join
             vm.prank(alice);
-            vault.joinWithToken(asset, amount, address(alice));
+            vault.joinWithToken(asset, amount, address(alice), tokenHash);
             checkInvariant1();
-            checkInvariant2Join(sharesDelta, what == 1 ? amount : assetsDelta[0], what == 2 ? amount : assetsDelta[1], liabilitiesDelta[0], liabilitiesDelta[1]);
+            checkInvariant2Join(
+                sharesDelta,
+                what == 1 ? amount : assetsDelta[0],
+                what == 2 ? amount : assetsDelta[1],
+                liabilitiesDelta[0],
+                liabilitiesDelta[1]
+            );
         }
 
         if (what == 3 || what == 4) {
             address asset = address(what == 3 ? debt1 : debt2);
             uint8 decimals = asset == address(debt1) ? 18 : 6;
-            amount = _bound(amount, 1, MAX_AMOUNT * (10**decimals));
+            amount = _bound(amount, 1, MAX_AMOUNT * (10 ** decimals));
             (sharesDelta, assetsDelta, liabilitiesDelta) = vault.previewJoinWithToken(asset, amount);
             if (sharesDelta == 0) return;
 
@@ -328,9 +353,15 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
 
             // actual join
             vm.prank(alice);
-            vault.joinWithToken(asset, amount, address(alice));
+            vault.joinWithToken(asset, amount, address(alice), tokenHash);
             checkInvariant1();
-            checkInvariant2Join(sharesDelta, assetsDelta[0], assetsDelta[1], what == 3 ? amount : liabilitiesDelta[0], what == 4 ? amount : liabilitiesDelta[1]);
+            checkInvariant2Join(
+                sharesDelta,
+                assetsDelta[0],
+                assetsDelta[1],
+                what == 3 ? amount : liabilitiesDelta[0],
+                what == 4 ? amount : liabilitiesDelta[1]
+            );
         }
 
         if (what == 5) {
@@ -341,7 +372,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
 
             // actual exit
             vm.prank(alice);
-            vault.exitWithShares(amount, address(alice), address(alice));
+            vault.exitWithShares(amount, address(alice), address(alice), tokenHash);
             checkInvariant1();
             checkInvariant2Exit(amount, assetsDelta[0], assetsDelta[1], liabilitiesDelta[0], liabilitiesDelta[1]);
         }
@@ -349,7 +380,7 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
         if (what == 6 || what == 7) {
             address asset = address(what == 6 ? asset1 : asset2);
             uint8 decimals = asset == address(asset1) ? 18 : 6;
-            amount = _bound(amount, 0, MAX_AMOUNT * (10**decimals));
+            amount = _bound(amount, 0, MAX_AMOUNT * (10 ** decimals));
             amount = _bound(amount, 1, vault.maxExitWithToken(asset, alice));
 
             (sharesDelta, assetsDelta, liabilitiesDelta) = vault.previewExitWithToken(asset, amount);
@@ -359,15 +390,21 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
 
             // actual exit
             vm.prank(alice);
-            vault.exitWithToken(asset, amount, address(alice), address(alice));
+            vault.exitWithToken(asset, amount, address(alice), address(alice), tokenHash);
             checkInvariant1();
-            checkInvariant2Exit(sharesDelta, what == 6 ? amount : assetsDelta[0], what == 7 ? amount : assetsDelta[1], liabilitiesDelta[0], liabilitiesDelta[1]);
+            checkInvariant2Exit(
+                sharesDelta,
+                what == 6 ? amount : assetsDelta[0],
+                what == 7 ? amount : assetsDelta[1],
+                liabilitiesDelta[0],
+                liabilitiesDelta[1]
+            );
         }
 
         if (what == 8 || what == 9) {
             address asset = address(what == 8 ? debt1 : debt2);
             uint8 decimals = asset == address(debt1) ? 18 : 6;
-            amount = _bound(amount, 1, MAX_AMOUNT * (10**decimals));
+            amount = _bound(amount, 1, MAX_AMOUNT * (10 ** decimals));
             amount = _bound(amount, 1, vault.maxExitWithToken(asset, alice));
 
             (sharesDelta, assetsDelta, liabilitiesDelta) = vault.previewExitWithToken(asset, amount);
@@ -377,10 +414,15 @@ contract OrigamiTokenizedBalanceSheetVaultTestJoinExitSharesRounding is OrigamiT
 
             // actual exit1
             vm.prank(alice);
-            vault.exitWithToken(asset, amount, address(alice), address(alice));
+            vault.exitWithToken(asset, amount, address(alice), address(alice), tokenHash);
             checkInvariant1();
-            checkInvariant2Exit(sharesDelta, assetsDelta[0], assetsDelta[1], what == 8 ? amount : liabilitiesDelta[0], what == 9 ? amount : liabilitiesDelta[1]);
+            checkInvariant2Exit(
+                sharesDelta,
+                assetsDelta[0],
+                assetsDelta[1],
+                what == 8 ? amount : liabilitiesDelta[0],
+                what == 9 ? amount : liabilitiesDelta[1]
+            );
         }
     }
-
 }

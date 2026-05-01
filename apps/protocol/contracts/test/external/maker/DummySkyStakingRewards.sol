@@ -29,10 +29,7 @@ contract DummySkyStakingRewards is ISkyStakingRewards {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-        address _rewardsToken,
-        address _stakingToken
-    ) {
+    constructor(address _rewardsToken, address _stakingToken) {
         require(_rewardsToken != _stakingToken, "Rewards and staking tokens must not be the same");
 
         rewardsToken = IERC20(_rewardsToken);
@@ -65,9 +62,11 @@ contract DummySkyStakingRewards is ISkyStakingRewards {
         return address(0);
     }
 
-    function setRewardsDistribution(address /*_rewardsDistribution*/) external pure {
-
-    }
+    function setRewardsDistribution(
+        address /*_rewardsDistribution*/
+    )
+        external
+        pure { }
 
     function earned(address account) public view returns (uint256) {
         return (_balances[account] * (rewardPerToken() - userRewardPerTokenPaid[account])) / 1e18 + rewards[account];

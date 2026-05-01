@@ -106,17 +106,17 @@
 //     }
 // }
 
-// contract OrigamiInfraredVaultProxyTestAccess is OrigamiInfraredVaultProxyTestBase {   
+// contract OrigamiInfraredVaultProxyTestAccess is OrigamiInfraredVaultProxyTestBase {
 //     function test_stake_access() public {
 //         expectElevatedAccess();
 //         staker.stake(0);
 //     }
-    
+
 //     function test_withdraw_access() public {
 //         expectElevatedAccess();
 //         staker.withdraw(0, alice);
 //     }
-    
+
 //     function test_exit_access() public {
 //         expectElevatedAccess();
 //         staker.exit(alice);
@@ -126,12 +126,12 @@
 //         expectElevatedAccess();
 //         staker.getRewards(alice);
 //     }
-    
+
 //     function test_recoverToken_access() public {
 //         expectElevatedAccess();
 //         staker.recoverToken(alice, alice, 100e18);
 //     }
-    
+
 //     function test_setTokenAllowance_access() public {
 //         expectElevatedAccess();
 //         staker.setTokenAllowance(alice, alice, 100e18);

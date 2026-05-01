@@ -39,12 +39,9 @@ interface IBalancerVault {
      *
      * Emits a `PoolBalanceChanged` event.
      */
-    function joinPool(
-        bytes32 poolId,
-        address sender,
-        address recipient,
-        JoinPoolRequest memory request
-    ) external payable;
+    function joinPool(bytes32 poolId, address sender, address recipient, JoinPoolRequest memory request)
+        external
+        payable;
 
     struct JoinPoolRequest {
         address[] assets;
@@ -88,12 +85,7 @@ interface IBalancerVault {
      *
      * Emits a `PoolBalanceChanged` event.
      */
-    function exitPool( 
-        bytes32 poolId, 
-        address sender, 
-        address recipient, 
-        ExitPoolRequest memory request 
-    ) external;
+    function exitPool(bytes32 poolId, address sender, address recipient, ExitPoolRequest memory request) external;
 
     struct ExitPoolRequest {
         address[] assets;
@@ -103,24 +95,23 @@ interface IBalancerVault {
     }
 
     /**
-      * @dev Returns a Pool's registered tokens, the total balance for each, and the latest block when *any* of
-      * the tokens' `balances` changed.
-      *
-      * The order of the `tokens` array is the same order that will be used in `joinPool`, `exitPool`, as well as in all
-      * Pool hooks (where applicable). Calls to `registerTokens` and `deregisterTokens` may change this order.
-      *
-      * If a Pool only registers tokens once, and these are sorted in ascending order, they will be stored in the same
-      * order as passed to `registerTokens`.
-      *
-      * Total balances include both tokens held by the Vault and those withdrawn by the Pool's Asset Managers. These are
-      * the amounts used by joins, exits and swaps. For a detailed breakdown of token balances, use `getPoolTokenInfo`
-      * instead.
-      */
-    function getPoolTokens(bytes32 poolId) external view returns (
-        address[] memory tokens,
-        uint256[] memory balances,
-        uint256 lastChangeBlock
-    );
+     * @dev Returns a Pool's registered tokens, the total balance for each, and the latest block when *any* of
+     * the tokens' `balances` changed.
+     *
+     * The order of the `tokens` array is the same order that will be used in `joinPool`, `exitPool`, as well as in all
+     * Pool hooks (where applicable). Calls to `registerTokens` and `deregisterTokens` may change this order.
+     *
+     * If a Pool only registers tokens once, and these are sorted in ascending order, they will be stored in the same
+     * order as passed to `registerTokens`.
+     *
+     * Total balances include both tokens held by the Vault and those withdrawn by the Pool's Asset Managers. These are
+     * the amounts used by joins, exits and swaps. For a detailed breakdown of token balances, use `getPoolTokenInfo`
+     * instead.
+     */
+    function getPoolTokens(bytes32 poolId)
+        external
+        view
+        returns (address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock);
 
     /**
      * @dev Returns a Pool's contract address and specialization setting.
@@ -144,9 +135,16 @@ interface IBalancerVault {
     //  - Two Token: only allows two tokens to be registered. This achieves the lowest possible swap gas cost. Like
     // minimal swap info Pools, these are called via IMinimalSwapInfoPool.
 
-    enum PoolSpecialization { GENERAL, MINIMAL_SWAP_INFO, TWO_TOKEN }
+    enum PoolSpecialization {
+        GENERAL,
+        MINIMAL_SWAP_INFO,
+        TWO_TOKEN
+    }
 
-    enum SwapKind { GIVEN_IN, GIVEN_OUT }
+    enum SwapKind {
+        GIVEN_IN,
+        GIVEN_OUT
+    }
 
     /**
      * @dev Performs a swap with a single Pool.
@@ -161,12 +159,10 @@ interface IBalancerVault {
      *
      * Emits a `Swap` event.
      */
-    function swap(
-        SingleSwap memory singleSwap,
-        FundManagement memory funds,
-        uint256 limit,
-        uint256 deadline
-    ) external payable returns (uint256);
+    function swap(SingleSwap memory singleSwap, FundManagement memory funds, uint256 limit, uint256 deadline)
+        external
+        payable
+        returns (uint256);
 
     /**
      * @dev Data for a single swap executed by `swap`. `amount` is either `amountIn` or `amountOut` depending on

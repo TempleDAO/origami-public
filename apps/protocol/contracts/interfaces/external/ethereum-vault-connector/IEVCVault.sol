@@ -1,4 +1,5 @@
 pragma solidity ^0.8.4;
+
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 /// @title IVault

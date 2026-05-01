@@ -29,7 +29,7 @@ async function main() {
       [
         acceptOwner(swapper),
         createSafeTransaction(
-          ADDRS.VAULTS.INFRARED_AUTO_STAKING_BYUSD_HONEY_A.VAULT,
+          ADDRS.VAULTS.INFRARED_AUTO_STAKING_BYUSD_HONEY_A.VAULT.address,
           "setSwapper",
           [{
             argType: 'address',

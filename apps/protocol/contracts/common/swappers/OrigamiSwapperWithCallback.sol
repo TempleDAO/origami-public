@@ -13,9 +13,9 @@ import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
 
 /**
  * @title Origami DEX Aggregator Swapper With Callback
- * @notice An on chain swapper contract to integrate with a DEX Aggregator. After the swap it 
+ * @notice An on chain swapper contract to integrate with a DEX Aggregator. After the swap it
  * ensures the minimum amount is met, then calls `swapCallback()` on the designated receiver
- * 
+ *
  * Intended to be used asynchronously:
  *  - Each deployed instance should be used by only one client contract.
  *  - onlyElevatedAccess to call execute()
@@ -34,7 +34,7 @@ contract OrigamiSwapperWithCallback is IOrigamiSwapper, OrigamiElevatedAccess {
     /// @notice Approved router contracts for swaps
     mapping(address router => bool allowed) public whitelistedRouters;
 
-    constructor(address _initialOwner) OrigamiElevatedAccess(_initialOwner) {}
+    constructor(address _initialOwner) OrigamiElevatedAccess(_initialOwner) { }
 
     function whitelistRouter(address router, bool allowed) external onlyElevatedAccess {
         whitelistedRouters[router] = allowed;
@@ -51,24 +51,22 @@ contract OrigamiSwapperWithCallback is IOrigamiSwapper, OrigamiElevatedAccess {
         emit CommonEventsAndErrors.TokenRecovered(to, token, amount);
         IERC20(token).safeTransfer(to, amount);
     }
- 
+
     /**
      * @notice Execute a DEX aggregator swap
-     * @dev 
+     * @dev
      *   - The sellToken is transferred in advance to this contract
      *   - The buyToken is transferred back to the caller and `swapCallback()` is then called
      *   - It is a protected call since the sellTokens may be sitting in this contract for a
      *     period of time
      */
-    function execute(
-        IERC20 sellToken,
-        uint256 sellTokenAmount,
-        IERC20 buyToken,
-        bytes calldata swapData
-    ) external override onlyElevatedAccess returns (uint256 buyTokenAmount) {
-        RouteDataWithCallback memory routeData = abi.decode(
-            swapData, (RouteDataWithCallback)
-        );
+    function execute(IERC20 sellToken, uint256 sellTokenAmount, IERC20 buyToken, bytes calldata swapData)
+        external
+        override
+        onlyElevatedAccess
+        returns (uint256 buyTokenAmount)
+    {
+        RouteDataWithCallback memory routeData = abi.decode(swapData, (RouteDataWithCallback));
 
         if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
 

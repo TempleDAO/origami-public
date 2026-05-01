@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.19;
 
-import {IEVC} from "contracts/interfaces/external/ethereum-vault-connector/IEthereumVaultConnector.sol";
+import { IEVC } from "contracts/interfaces/external/ethereum-vault-connector/IEthereumVaultConnector.sol";
 
 // EVCUtil.sol taken from the following commit:
 //  https://github.com/euler-xyz/ethereum-vault-connector/commit/8cbbf516bd2532de41ea9c120af5dfacbea2ef48

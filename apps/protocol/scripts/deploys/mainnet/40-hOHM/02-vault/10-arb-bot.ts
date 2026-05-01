@@ -18,7 +18,7 @@ async function main() {
     factory,
     factory.deploy,
     await owner.getAddress(),
-    ADDRS.VAULTS.hOHM.TOKEN,
+    ADDRS.VAULTS.hOHM.TOKEN.address,
     ADDRS.EXTERNAL.OLYMPUS.GOHM_STAKING,
     ADDRS.EXTERNAL.SKY.SUSDS_TOKEN,
     ADDRS.EXTERNAL.UNISWAP.ROUTER_V3,
@@ -37,14 +37,14 @@ async function main() {
   // Route 1 approvals
   await mine(arbBot.approveToken(ADDRS.EXTERNAL.SKY.SUSDS_TOKEN, ADDRS.EXTERNAL.UNISWAP.ROUTER_V3, constants.MaxUint256));
   await mine(arbBot.approveToken(ADDRS.EXTERNAL.OLYMPUS.OHM_TOKEN, ADDRS.EXTERNAL.UNISWAP.ROUTER_V3, constants.MaxUint256));
-  await mine(arbBot.approveToken(ADDRS.EXTERNAL.SKY.USDS_TOKEN, ADDRS.VAULTS.hOHM.TOKEN, constants.MaxUint256));
+  await mine(arbBot.approveToken(ADDRS.EXTERNAL.SKY.USDS_TOKEN, ADDRS.VAULTS.hOHM.TOKEN.address, constants.MaxUint256));
   await mine(arbBot.approveToken(ADDRS.EXTERNAL.SKY.USDS_TOKEN, ADDRS.EXTERNAL.SKY.SUSDS_TOKEN, constants.MaxUint256));
   await mine(arbBot.approveToken(ADDRS.EXTERNAL.SKY.SUSDS_TOKEN, ADDRS.EXTERNAL.MORPHO.SINGLETON, constants.MaxUint256));
   
   // Extra route 2 approvals
   await mine(arbBot.approveToken(ADDRS.EXTERNAL.OLYMPUS.OHM_TOKEN, ADDRS.EXTERNAL.OLYMPUS.GOHM_STAKING, constants.MaxUint256));
-  await mine(arbBot.approveToken(ADDRS.EXTERNAL.OLYMPUS.GOHM_TOKEN, ADDRS.VAULTS.hOHM.TOKEN, constants.MaxUint256));
-  await mine(arbBot.approveToken(ADDRS.VAULTS.hOHM.TOKEN, ADDRS.EXTERNAL.UNISWAP.ROUTER_V3, constants.MaxUint256));
+  await mine(arbBot.approveToken(ADDRS.EXTERNAL.OLYMPUS.GOHM_TOKEN, ADDRS.VAULTS.hOHM.TOKEN.address, constants.MaxUint256));
+  await mine(arbBot.approveToken(ADDRS.VAULTS.hOHM.TOKEN.address, ADDRS.EXTERNAL.UNISWAP.ROUTER_V3, constants.MaxUint256));
 
   await mine(arbBot.proposeNewOwner(ADDRS.CORE.MULTISIG));
 }

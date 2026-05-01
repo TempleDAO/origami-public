@@ -12,5 +12,8 @@ interface IKodiakIsland is IERC20 {
     function pool() external view returns (IKodiakV3Pool);
     function lowerTick() external view returns (int24);
     function upperTick() external view returns (int24);
-    function getMintAmounts(uint256 amount0Max, uint256 amount1Max) external view returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
+    function getMintAmounts(uint256 amount0Max, uint256 amount1Max)
+        external
+        view
+        returns (uint256 amount0, uint256 amount1, uint256 mintAmount);
 }

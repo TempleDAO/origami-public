@@ -8,12 +8,18 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { OrigamiOracleBase } from "contracts/common/oracle/OrigamiOracleBase.sol";
 
 contract MockOracle is OrigamiOracleBase {
-    constructor (BaseOracleParams memory baseParams) OrigamiOracleBase(baseParams) {}
+    constructor(BaseOracleParams memory baseParams) OrigamiOracleBase(baseParams) { }
 
     function latestPrice(
-        PriceType /*priceType*/,
+        PriceType,
+        /*priceType*/
         OrigamiMath.Rounding /*roundingMode*/
-    ) public override pure returns (uint256 price) {
+    )
+        public
+        pure
+        override
+        returns (uint256 price)
+    {
         return 1.0e18;
     }
 }
@@ -29,40 +35,16 @@ contract OrigamiFixedPriceOracleTestBase is OrigamiTest {
     address public token2 = makeAddr("token2");
 
     function setUp() public {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
 
-        oOracleCheck = new MockOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "token1/token2",
-                token1,
-                18,
-                token2,
-                18
-            )
-        );
+        oOracleCheck = new MockOracle(IOrigamiOracle.BaseOracleParams("token1/token2", token1, 18, token2, 18));
 
         oOracleFixed = new OrigamiFixedPriceOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "token1/token2",
-                token1,
-                18,
-                token2,
-                18
-            ),
-            0.9999e18,
-            address(oOracleCheck)
+            IOrigamiOracle.BaseOracleParams("token1/token2", token1, 18, token2, 18), 0.9999e18, address(oOracleCheck)
         );
 
         oOracleFixedNoCheck = new OrigamiFixedPriceOracle(
-            IOrigamiOracle.BaseOracleParams(
-                "token1/token2",
-                token1,
-                18,
-                token2,
-                18
-            ),
-            1.1e18,
-            address(0)
+            IOrigamiOracle.BaseOracleParams("token1/token2", token1, 18, token2, 18), 1.1e18, address(0)
         );
     }
 }
@@ -94,30 +76,23 @@ contract OrigamiFixedPriceOracleTestInit is OrigamiFixedPriceOracleTestBase {
 contract OrigamiFixedPriceOracleWithCheck_LatestPrice is OrigamiFixedPriceOracleTestBase {
     function test_latestPrice_success() public view {
         assertEq(
-            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            0.9999e18
+            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 0.9999e18
         );
         assertEq(
-            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
-            0.9999e18
+            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 0.9999e18
         );
 
         assertEq(
-            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
-            0.9999e18
+            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 0.9999e18
         );
         assertEq(
-            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oOracleFixed.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             0.9999e18
         );
     }
 
     function test_latestPrice_fail_check() public {
-        vm.mockCallRevert(
-            address(oOracleCheck),
-            abi.encodeWithSelector(MockOracle.latestPrice.selector),
-            "bad price"
-        );
+        vm.mockCallRevert(address(oOracleCheck), abi.encodeWithSelector(MockOracle.latestPrice.selector), "bad price");
 
         vm.expectRevert("bad price");
         oOracleFixed.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP);

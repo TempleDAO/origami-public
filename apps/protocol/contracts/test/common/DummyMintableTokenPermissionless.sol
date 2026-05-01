@@ -8,15 +8,8 @@ import { IMintableToken } from "contracts/interfaces/common/IMintableToken.sol";
 
 contract DummyMintableTokenPermissionless is IMintableToken, ERC20Permit {
     uint8 private _decimals;
-    
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        uint8 decimals_
-    ) 
-        ERC20(_name, _symbol) 
-        ERC20Permit(_name) 
-    {
+
+    constructor(string memory _name, string memory _symbol, uint8 decimals_) ERC20(_name, _symbol) ERC20Permit(_name) {
         _decimals = decimals_;
     }
 
@@ -27,9 +20,9 @@ contract DummyMintableTokenPermissionless is IMintableToken, ERC20Permit {
     function deal(address _to, uint256 _amount) external {
         uint256 bal = balanceOf(_to);
         if (bal > _amount) {
-            _burn(_to, bal-_amount);
+            _burn(_to, bal - _amount);
         } else {
-            _mint(_to, _amount-bal);
+            _mint(_to, _amount - bal);
         }
     }
 
@@ -37,7 +30,7 @@ contract DummyMintableTokenPermissionless is IMintableToken, ERC20Permit {
         _burn(account, amount);
     }
 
-    function decimals() override public view returns (uint8) {
+    function decimals() public view override returns (uint8) {
         return _decimals;
     }
 }

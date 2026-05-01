@@ -14,9 +14,13 @@ import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiInfraredVaultManager } from "contracts/investments/infrared/OrigamiInfraredVaultManager.sol";
-import { OrigamiSwapperWithLiquidityManagement } from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
+import {
+    OrigamiSwapperWithLiquidityManagement
+} from "contracts/common/swappers/OrigamiSwapperWithLiquidityManagement.sol";
 import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.sol";
-import { IOrigamiSwapperWithLiquidityManagement } from "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
+import {
+    IOrigamiSwapperWithLiquidityManagement
+} from "contracts/interfaces/common/swappers/IOrigamiSwapperWithLiquidityManagement.sol";
 
 contract OrigamiOhmHoneyVaultTestBase is OrigamiTest {
     using OrigamiMath for uint256;
@@ -157,11 +161,7 @@ contract OrigamiOhmHoneyVaultTest_Compound is OrigamiOhmHoneyVaultTestBase {
         address buyToken,
         uint256 minBuyTokenAmount,
         uint256 buyTokenToReceiveAmount
-    )
-        internal
-        view
-        returns (bytes memory)
-    {
+    ) internal view returns (bytes memory) {
         return abi.encode(
             IOrigamiSwapperWithLiquidityManagement.SwapParams({
                 minBuyAmount: minBuyTokenAmount,
@@ -248,8 +248,9 @@ contract OrigamiOhmHoneyVaultTest_Compound is OrigamiOhmHoneyVaultTestBase {
             new IOrigamiSwapperWithLiquidityManagement.TokenAmount[](2);
         tokenAmounts[0] =
             IOrigamiSwapperWithLiquidityManagement.TokenAmount({ token: address(ohmToken), amount: 100e18 });
-        tokenAmounts[1] =
-            IOrigamiSwapperWithLiquidityManagement.TokenAmount({ token: address(honeyToken), amount: honeyToPairWithOhm });
+        tokenAmounts[1] = IOrigamiSwapperWithLiquidityManagement.TokenAmount({
+            token: address(honeyToken), amount: honeyToPairWithOhm
+        });
 
         compoundingSwapper.addLiquidity(
             tokenAmounts,
@@ -260,7 +261,15 @@ contract OrigamiOhmHoneyVaultTest_Compound is OrigamiOhmHoneyVaultTestBase {
                     minLpOutputAmount: expectedLpToReceive,
                     callData: abi.encodeCall(
                         kodiakIslandRouter.addLiquidity,
-                        (address(asset), 100e9, honeyToPairWithOhm, 0, 0, expectedLpToReceive, address(compoundingSwapper))
+                        (
+                            address(asset),
+                            100e9,
+                            honeyToPairWithOhm,
+                            0,
+                            0,
+                            expectedLpToReceive,
+                            address(compoundingSwapper)
+                        )
                     )
                 })
             )
@@ -282,12 +291,8 @@ contract OrigamiOhmHoneyVaultTest_Compound is OrigamiOhmHoneyVaultTestBase {
         assertEq(manager.totalAssets(), 1000e18 + SEED_AMOUNT, "Total assets doesn't change immediately");
         assertEq(asset.balanceOf(address(manager)), 0, "Manager doesn't hold the asset");
         assertEq(asset.balanceOf(address(feeCollector)), 167_503_472_262_530, "1% fees were collected");
-        (,uint256 expectedFees) = expectedLpToReceive.splitSubtractBps(100, OrigamiMath.Rounding.ROUND_DOWN);
-        assertEq(
-            asset.balanceOf(address(feeCollector)),
-            expectedFees,
-            "1% fees were collected"
-        );
+        (, uint256 expectedFees) = expectedLpToReceive.splitSubtractBps(100, OrigamiMath.Rounding.ROUND_DOWN);
+        assertEq(asset.balanceOf(address(feeCollector)), expectedFees, "1% fees were collected");
         assertEq(vault.convertToAssets(1e18), 1e18, "No immediate change in share price");
 
         // Skip to the end of the drip duration

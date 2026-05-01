@@ -1,4 +1,5 @@
 pragma solidity ^0.8.19;
+
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Origami (libraries/SafeCast.sol)
 
@@ -14,7 +15,14 @@ library SafeCast {
         }
         return uint128(amount);
     }
-    
+
+    function encodeUInt160(uint256 amount) internal pure returns (uint160) {
+        if (amount > type(uint160).max) {
+            revert Overflow(amount);
+        }
+        return uint160(amount);
+    }
+
     function encodeUInt112(uint256 amount) internal pure returns (uint112) {
         if (amount > type(uint112).max) {
             revert Overflow(amount);

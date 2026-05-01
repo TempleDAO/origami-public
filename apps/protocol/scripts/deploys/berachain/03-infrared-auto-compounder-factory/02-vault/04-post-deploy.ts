@@ -66,18 +66,18 @@ const getEncodedPrices = () => (
     wberaHoneyLpToUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.WBERA_HONEY_V3),
     wberaIbgtLpToUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.WBERA_IBGT_V3),
 
-    oriBgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.ORIBGT.TOKEN),
-    boycoUsdcAToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN),
-    oacOhmHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_OHM_HONEY_A.TOKEN),
-    oacByusdHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_A.TOKEN),
-    oacRusdHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_RUSD_HONEY_A.TOKEN),
-    oacWberaIberaToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBERA_A.TOKEN),
-    oacWberaHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_HONEY_A.TOKEN),
-    oacWberaIBgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBGT_A.TOKEN),
+    oriBgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.ORIBGT.TOKEN.address),
+    boycoUsdcAToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.BOYCO_USDC_A.TOKEN.address),
+    oacOhmHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_OHM_HONEY_A.TOKEN.address),
+    oacByusdHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_A.TOKEN.address),
+    oacRusdHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_RUSD_HONEY_A.TOKEN.address),
+    oacWberaIberaToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBERA_A.TOKEN.address),
+    oacWberaHoneyToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_HONEY_A.TOKEN.address),
+    oacWberaIBgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBGT_A.TOKEN.address),
 
     osBgt_toUsd: encodedTokenPrice(ADDRS.EXTERNAL.INFRARED.IBGT_TOKEN),
     iberaOsbgtLpToUsd: encodedKodiakIslandPrice(ADDRS.EXTERNAL.KODIAK.ISLANDS.IBERA_OSBGT_V3),
-    oacIberaOsbgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_IBERA_OSBGT_A.TOKEN),
+    oacIberaOsbgtToUsd: encodedErc4626TokenPrice(ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_IBERA_OSBGT_A.TOKEN.address),
   }
 );
 
@@ -146,35 +146,35 @@ async function updatePrices(contract: TokenPrices) {
   ));
 
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.ORIBGT.TOKEN,
+    ADDRS.VAULTS.ORIBGT.TOKEN.address,
     encodedPrices.oriBgtToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.BOYCO_USDC_A.TOKEN,
+    ADDRS.VAULTS.BOYCO_USDC_A.TOKEN.address,
     encodedPrices.boycoUsdcAToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_OHM_HONEY_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_OHM_HONEY_A.TOKEN.address,
     encodedPrices.oacOhmHoneyToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_BYUSD_HONEY_A.TOKEN.address,
     encodedPrices.oacByusdHoneyToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_RUSD_HONEY_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_RUSD_HONEY_A.TOKEN.address,
     encodedPrices.oacRusdHoneyToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBERA_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBERA_A.TOKEN.address,
     encodedPrices.oacWberaIberaToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_HONEY_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_HONEY_A.TOKEN.address,
     encodedPrices.oacWberaHoneyToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBGT_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_WBERA_IBGT_A.TOKEN.address,
     encodedPrices.oacWberaIBgtToUsd
   ));
 
@@ -187,7 +187,7 @@ async function updatePrices(contract: TokenPrices) {
     encodedPrices.iberaOsbgtLpToUsd
   ));
   await mine(contract.setTokenPriceFunction(
-    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_IBERA_OSBGT_A.TOKEN,
+    ADDRS.VAULTS.INFRARED_AUTO_COMPOUNDER_IBERA_OSBGT_A.TOKEN.address,
     encodedPrices.oacIberaOsbgtToUsd
   ));
 }

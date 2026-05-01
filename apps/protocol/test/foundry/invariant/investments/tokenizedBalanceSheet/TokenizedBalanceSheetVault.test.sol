@@ -1,8 +1,12 @@
 pragma solidity ^0.8.19;
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { TokenizedBalanceSheetProp } from "test/foundry/mocks/common/tokenizedBalanceSheet/TokenizedBalanceSheetProp.p.sol";
-import { ITokenizedBalanceSheetVault } from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
+import {
+    TokenizedBalanceSheetProp
+} from "test/foundry/mocks/common/tokenizedBalanceSheet/TokenizedBalanceSheetProp.p.sol";
+import {
+    ITokenizedBalanceSheetVault
+} from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
 import { DummyMintableTokenPermissionless } from "contracts/test/common/DummyMintableTokenPermissionless.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,7 +20,11 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         uint32[N] yield;
     }
 
-    function setUpBalances(Init memory init) internal virtual returns (address[] memory assets, address[] memory liabilities) {
+    function setUpBalances(Init memory init)
+        internal
+        virtual
+        returns (address[] memory assets, address[] memory liabilities)
+    {
         assets = _assets();
         liabilities = _liabilities();
 
@@ -31,10 +39,8 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
             // First mint enough assets and liabilities for a number of shares
             // limit to uint128 to avoid PRBMath_MulDiv_Overflow's when previewing
             uint256 mintShares = _bound(init.share[i], 1, type(uint96).max);
-            (
-                uint256[] memory joinAssets, 
-                uint256[] memory joinLiabilities
-            ) = ITokenizedBalanceSheetVault(_vault_).previewJoinWithShares(mintShares);
+            (uint256[] memory joinAssets, uint256[] memory joinLiabilities) =
+                ITokenizedBalanceSheetVault(_vault_).previewJoinWithShares(mintShares);
 
             uint256 j;
             for (j; j < assets.length; ++j) {
@@ -47,15 +53,16 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
             // Now limit the actual shares to some reasonable amount
             init.share[i] = _bound(init.share[i], 1, type(uint96).max);
-            
+
             _approveVaultSpend(assets, user, type(uint256).max);
-            vm.prank(user); _vault_.joinWithShares(init.share[i], user);
+            vm.prank(user);
+            _vault_.joinWithShares(init.share[i], user, _vaultTokensHash);
         }
 
         setUpYield(init.yield);
     }
 
-    function setUpYield(uint32[N] memory yield) internal virtual {}
+    function setUpYield(uint32[N] memory yield) internal virtual { }
 
     function test_tokens(Init memory init) public virtual {
         setUpBalances(init);
@@ -72,10 +79,13 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
     // convert
     //
 
-    function test_convertFromToken(Init memory init, bool isAsset, uint32 tokenIndex, uint128 tokenAmount) public virtual {
+    function test_convertFromToken(Init memory init, bool isAsset, uint32 tokenIndex, uint128 tokenAmount)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
-        
+
         prop_convertFromToken(init.user[0], init.user[1], token, tokenAmount);
     }
 
@@ -95,14 +105,17 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_maxJoinWithToken(token, init.user[1]);
     }
 
-    function test_previewJoinWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_previewJoinWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
 
         tokenAmount = _bound(tokenAmount, 0, type(uint128).max);
         tokenAmount = _bound(tokenAmount, 0, _max_joinWithToken(token, init.user[0]));
 
-        _dealTokens(assets, init.user[0], type(uint168).max);   
+        _dealTokens(assets, init.user[0], type(uint168).max);
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         prop_previewJoinWithToken(token, init.user[0], init.user[1], init.user[2], tokenAmount);
     }
@@ -113,7 +126,7 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         tokenAmount = _bound(tokenAmount, 0, type(uint128).max);
         tokenAmount = _bound(tokenAmount, 0, _max_joinWithToken(token, init.user[0]));
 
-        _dealTokens(assets, init.user[0], type(uint168).max);   
+        _dealTokens(assets, init.user[0], type(uint168).max);
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         prop_joinWithToken(token, init.user[0], init.user[1], tokenAmount);
     }
@@ -127,7 +140,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_maxJoinWithShares(init.user[0]);
     }
 
-    function test_previewJoinWithShares(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares) public virtual {
+    function test_previewJoinWithShares(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
         (uint256 maxJoinShares,) = _max_joinWithShares(token, init.user[0]);
@@ -165,21 +181,25 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_maxExitWithToken(token, init.user[0]);
     }
 
-    function test_previewExitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_previewExitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
-        
+
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
         tokenIndex = _setTokenIndex(isAsset, token);
 
         (uint256[] memory assetsAmounts, uint256[] memory liabilitiesAmounts) = _max_exitWithToken(init.user[2]);
         uint256 amount = isAsset ? assetsAmounts[tokenIndex] : liabilitiesAmounts[tokenIndex];
-        
+
         tokenAmount = _bound(tokenAmount, 0, _unlimitedAmount ? type(uint128).max : amount);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
         // This is being called from a different owner - so need to approve that spend and deal
         // the caller enough liabilities
-        vm.prank(init.user[2]); _safeApprove(address(_vault_), init.user[0], type(uint256).max);
+        vm.prank(init.user[2]);
+        _safeApprove(address(_vault_), init.user[0], type(uint256).max);
         _dealTokens(liabilities, init.user[0], type(uint128).max);
 
         prop_previewExitWithToken(token, init.user[0], init.user[1], init.user[2], init.user[3], tokenAmount);
@@ -192,17 +212,21 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         tokenIndex = _setTokenIndex(isAsset, token);
         (uint256[] memory assetsAmounts, uint256[] memory liabilitiesAmounts) = _max_exitWithToken(init.user[2]);
         uint256 amount = isAsset ? assetsAmounts[tokenIndex] : liabilitiesAmounts[tokenIndex];
-        
+
         tokenAmount = _bound(tokenAmount, 0, _unlimitedAmount ? type(uint128).max : amount);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
-        vm.prank(init.user[2]); _safeApprove(address(_vault_), init.user[0], type(uint256).max);
+        vm.prank(init.user[2]);
+        _safeApprove(address(_vault_), init.user[0], type(uint256).max);
         _dealTokens(liabilities, init.user[0], type(uint128).max);
 
         prop_exitWithToken(IERC20(token), isAsset, init.user[0], init.user[1], init.user[2], tokenAmount);
     }
 
-    function test_unsuccessful_exitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_unsuccessful_exitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
@@ -214,14 +238,15 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
         vm.assume(init.user[0] != init.user[2]);
 
-        _approveVaultSpend(liabilities, init.user[0], amount); // 
-        vm.prank(init.user[2]); _safeApprove(address(_vault_), init.user[0], 0);
+        _approveVaultSpend(liabilities, init.user[0], amount); //
+        vm.prank(init.user[2]);
+        _safeApprove(address(_vault_), init.user[0], 0);
 
         vm.prank(init.user[0]);
         (uint256 shares,,) = _vault_.previewExitWithToken(token, tokenAmount);
         vm.assume(shares > 0);
         if (tokenAmount > 0) vm.expectRevert("ERC20: insufficient allowance");
-        _vault_.exitWithToken(token, tokenAmount, init.user[1], init.user[2]);
+        _vault_.exitWithToken(token, tokenAmount, init.user[1], init.user[2], _vaultTokensHash);
     }
 
     //
@@ -240,12 +265,14 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
         shares = _bound(shares, 1, type(uint136).max);
         shares = _bound(shares, 1, maxShares);
-        vm.prank(init.user[2]); _safeApprove(address(_vault_), init.user[0], type(uint256).max);
+        vm.prank(init.user[2]);
+        _safeApprove(address(_vault_), init.user[0], type(uint256).max);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
         // This is being called from a different owner - so need to approve that spend and deal
         // the caller enough liabilities
-        vm.prank(init.user[2]); _safeApprove(address(_vault_), init.user[0], type(uint256).max);
+        vm.prank(init.user[2]);
+        _safeApprove(address(_vault_), init.user[0], type(uint256).max);
         _dealTokens(liabilities, init.user[0], type(uint128).max);
 
         prop_previewExitWithShares(init.user[0], init.user[1], init.user[2], init.user[3], shares);
@@ -255,7 +282,7 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         (, address[] memory liabilities) = setUpBalances(init);
         uint256 maxShares = _max_exitWithShares(init.user[2]);
         vm.assume(maxShares > 0);
-        
+
         shares = _bound(shares, 1, type(uint136).max);
         shares = _bound(shares, 1, maxShares);
 
@@ -263,9 +290,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
         // This is being called from a different owner - so need to approve that spend and deal
         // the caller enough liabilities
-        vm.prank(init.user[2]); _safeApprove(address(_vault_), init.user[0], type(uint256).max);
+        vm.prank(init.user[2]);
+        _safeApprove(address(_vault_), init.user[0], type(uint256).max);
         _dealTokens(liabilities, init.user[0], type(uint128).max);
-        
+
         prop_exitWithShares(init.user[0], init.user[1], init.user[2], shares);
     }
 
@@ -273,7 +301,12 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
     // round trip tests
     //
 
-    function test_RT_previewJoinWithToken_exactInput(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_RT_previewJoinWithToken_exactInput(
+        Init memory init,
+        bool isAsset,
+        uint32 tokenIndex,
+        uint256 tokenAmount
+    ) public virtual {
         tokenAmount = _bound(tokenAmount, 0, type(uint128).max);
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
@@ -283,7 +316,12 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_previewJoinWithToken(token, isAsset, tokenIndex, tokenAmount);
     }
 
-    function test_RT_previewExitWithToken_exactOutput(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_RT_previewExitWithToken_exactOutput(
+        Init memory init,
+        bool isAsset,
+        uint32 tokenIndex,
+        uint256 tokenAmount
+    ) public virtual {
         tokenAmount = _bound(tokenAmount, 0, type(uint128).max);
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
@@ -293,12 +331,17 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_previewExitWithToken(token, isAsset, tokenIndex, tokenAmount);
     }
 
-    function test_RT_joinWithToken_exitWithShares(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_RT_joinWithToken_exitWithShares(
+        Init memory init,
+        bool isAsset,
+        uint32 tokenIndex,
+        uint256 tokenAmount
+    ) public virtual {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
         tokenAmount = _bound(tokenAmount, 0, type(uint128).max);
         tokenAmount = _bound(tokenAmount, 0, _max_joinWithToken(token, init.user[0]));
-        
+
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
@@ -308,7 +351,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_joinWithToken_exitWithShares(token, init.user[0], tokenAmount);
     }
 
-    function test_RT_joinWithToken_exitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_RT_joinWithToken_exitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         _vault_.balanceSheet();
@@ -316,10 +362,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
         tokenIndex = _setTokenIndex(isAsset, token);
-        
+
         tokenAmount = _bound(tokenAmount, 0, type(uint128).max);
         tokenAmount = _bound(tokenAmount, 0, _max_joinWithToken(token, init.user[0]));
-        
+
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
@@ -329,7 +375,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_joinWithToken_exitWithToken(token, isAsset, tokenIndex, init.user[0], tokenAmount);
     }
 
-    function test_RT_exitWithShares_joinWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares) public virtual {
+    function test_RT_exitWithShares_joinWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
@@ -340,10 +389,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
         shares = _bound(shares, 1, type(uint136).max);
         shares = _bound(shares, 1, maxShares);
-        
+
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
-        
+
         _dealTokens(assets, init.user[0], type(uint136).max);
         _dealTokens(liabilities, init.user[0], type(uint136).max);
 
@@ -368,7 +417,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_exitWithShares_joinWithShares(init.user[0], shares);
     }
 
-    function test_RT_joinWithShares_exitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares) public virtual {
+    function test_RT_joinWithShares_exitWithToken(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
@@ -378,7 +430,7 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         vm.assume(maxJoinShares > 0);
         shares = _bound(shares, 1, type(uint136).max);
         shares = _bound(shares, 1, maxJoinShares);
-        
+
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
@@ -388,7 +440,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_joinWithShares_exitWithToken(token, isAsset, tokenIndex, init.user[0], shares);
     }
 
-    function test_RT_joinWithShares_exitWithShares(Init memory init,  bool isAsset, uint32 tokenIndex, uint256 shares) public virtual {
+    function test_RT_joinWithShares_exitWithShares(Init memory init, bool isAsset, uint32 tokenIndex, uint256 shares)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
         (uint256 maxJoinShares,) = _max_joinWithShares(token, init.user[0]);
@@ -405,17 +460,22 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_joinWithShares_exitWithShares(init.user[0], shares);
     }
 
-    function test_RT_exitWithToken_joinWithShares(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_RT_exitWithToken_joinWithShares(
+        Init memory init,
+        bool isAsset,
+        uint32 tokenIndex,
+        uint256 tokenAmount
+    ) public virtual {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
         tokenIndex = _setTokenIndex(isAsset, token);
 
         (uint256[] memory assetsAmounts, uint256[] memory liabilitiesAmounts) = _max_exitWithToken(init.user[0]);
-        
+
         uint256 amount = isAsset ? assetsAmounts[tokenIndex] : liabilitiesAmounts[tokenIndex];
         tokenAmount = _bound(tokenAmount, 0, _unlimitedAmount ? type(uint128).max : amount);
-        
+
         _approveVaultSpend(assets, init.user[0], type(uint256).max);
         _approveVaultSpend(liabilities, init.user[0], type(uint256).max);
 
@@ -425,7 +485,10 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_exitWithToken_joinWithShares(token, init.user[0], tokenAmount);
     }
 
-    function test_RT_withdraw_deposit(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount) public virtual {
+    function test_RT_withdraw_deposit(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount)
+        public
+        virtual
+    {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
@@ -445,7 +508,13 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         prop_RT_exitWithToken_joinWithToken(isAsset, token, init.user[0], tokenAmount);
     }
 
-    function test_RT_round_trips_tokens(Init memory init, bool isAsset, uint32 tokenIndex, uint256 tokenAmount, uint32 tokenIndex2) public virtual {
+    function test_RT_round_trips_tokens(
+        Init memory init,
+        bool isAsset,
+        uint32 tokenIndex,
+        uint256 tokenAmount,
+        uint32 tokenIndex2
+    ) public virtual {
         (address[] memory assets, address[] memory liabilities) = setUpBalances(init);
 
         (address token,) = _randomizeToken(isAsset, tokenIndex, assets, liabilities);
@@ -459,19 +528,21 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
 
         prop_RT_round_trips_tokens(token, tokenAmount, randAssetIndex, randLiabilityIndex, assets, liabilities);
     }
-    
-    function _isContract(address account) internal view returns (bool) { return account.code.length > 0; }
-    function _isEOA (address account) internal view returns (bool) { return account.code.length == 0 && account != address(0); }
 
-    function _randomizeToken(
-        bool isAsset,
-        uint32 tokenIndex,
-        address[] memory assets,
-        address[] memory liabilities
-    ) internal view virtual returns (
-        address randomToken,
-        uint256 randomIndex
-    ) {
+    function _isContract(address account) internal view returns (bool) {
+        return account.code.length > 0;
+    }
+
+    function _isEOA(address account) internal view returns (bool) {
+        return account.code.length == 0 && account != address(0);
+    }
+
+    function _randomizeToken(bool isAsset, uint32 tokenIndex, address[] memory assets, address[] memory liabilities)
+        internal
+        view
+        virtual
+        returns (address randomToken, uint256 randomIndex)
+    {
         randomIndex = _bound(tokenIndex, 0, isAsset ? assets.length - 1 : liabilities.length - 1);
         randomToken = isAsset ? assets[randomIndex] : liabilities[randomIndex];
     }
@@ -481,23 +552,24 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         address[] memory tokens;
 
         if (isAsset) {
-            tokens = vault.assetTokens();
+            (tokens,) = vault.tokens();
 
             for (uint32 i; i < tokens.length; i++) {
-                if (tokens[i] == token) tokenIndex = i; 
+                if (tokens[i] == token) tokenIndex = i;
             }
         } else {
-            tokens = vault.liabilityTokens();
+            (, tokens) = vault.tokens();
 
             for (uint32 i; i < tokens.length; i++) {
-                if (tokens[i] == token) tokenIndex = i; 
+                if (tokens[i] == token) tokenIndex = i;
             }
         }
     }
 
     function _approveVaultSpend(address[] memory tokens, address owner, uint256 amount) internal {
         for (uint256 i; i < tokens.length; ++i) {
-            vm.prank(owner); _safeApprove(tokens[i], address(_vault_), amount);
+            vm.prank(owner);
+            _safeApprove(tokens[i], address(_vault_), amount);
         }
     }
 
@@ -516,7 +588,11 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         return IERC20(token).balanceOf(from);
     }
 
-    function _max_joinWithShares(address token, address from) internal virtual returns (uint256 shares, uint256[] memory assets) {
+    function _max_joinWithShares(address token, address from)
+        internal
+        virtual
+        returns (uint256 shares, uint256[] memory assets)
+    {
         if (_unlimitedAmount) return (type(uint128).max, assets);
 
         (shares, assets,) = vault_convertFromToken(token, IERC20(token).balanceOf(from));
@@ -524,8 +600,13 @@ abstract contract TokenizedBalanceSheetVaultTest is TokenizedBalanceSheetProp {
         return (shares, assets);
     }
 
-    function _max_exitWithToken(address from) internal virtual returns (uint256[] memory assets, uint256[] memory liabilities) {
-        if (_unlimitedAmount) return (assets, liabilities);//note: do we have to return max for the liabilities as well?
+    function _max_exitWithToken(address from)
+        internal
+        virtual
+        returns (uint256[] memory assets, uint256[] memory liabilities)
+    {
+        if (_unlimitedAmount) return (assets, liabilities); //note: do we have to return max for the liabilities as
+        // well?
         return vault_convertFromShares(IERC20(_vault_).balanceOf(from));
     }
 

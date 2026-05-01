@@ -9,16 +9,22 @@ import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
 import { OrigamiTest } from "test/foundry/OrigamiTest.sol";
 import { OrigamiDelegated4626Vault } from "contracts/investments/OrigamiDelegated4626Vault.sol";
 import { OrigamiErc4626WithRewardsManager } from "contracts/investments/erc4626/OrigamiErc4626WithRewardsManager.sol";
-import { IOrigamiErc4626WithRewardsManager } from "contracts/interfaces/investments/erc4626/IOrigamiErc4626WithRewardsManager.sol";
+import {
+    IOrigamiErc4626WithRewardsManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiErc4626WithRewardsManager.sol";
 import { TokenPrices } from "contracts/common/TokenPrices.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { IOrigamiManagerPausable } from "contracts/interfaces/investments/util/IOrigamiManagerPausable.sol";
 import { stdError } from "forge-std/StdError.sol";
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { IMerklDistributor } from "contracts/interfaces/external/merkl/IMerklDistributor.sol";
-import { IMorphoUniversalRewardsDistributor } from "contracts/interfaces/external/morpho/IMorphoUniversalRewardsDistributor.sol";
+import {
+    IMorphoUniversalRewardsDistributor
+} from "contracts/interfaces/external/morpho/IMorphoUniversalRewardsDistributor.sol";
 import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
-import { IOrigamiDelegated4626VaultManager } from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
+import {
+    IOrigamiDelegated4626VaultManager
+} from "contracts/interfaces/investments/erc4626/IOrigamiDelegated4626VaultManager.sol";
 import { IOrigamiCompoundingVaultManager } from "contracts/interfaces/investments/IOrigamiCompoundingVaultManager.sol";
 
 contract MockMerklDistributor is IMerklDistributor {
@@ -38,7 +44,15 @@ contract MockMerklDistributor is IMerklDistributor {
         emit OperatorToggled(user, operator, oldValue == 0);
     }
 
-    function setClaimRecipient(address /*recipient*/, address /*token*/) external pure override {
+    function setClaimRecipient(
+        address,
+        /*recipient*/
+        address /*token*/
+    )
+        external
+        pure
+        override
+    {
         revert("UNIMPLEMENTED");
     }
 
@@ -62,11 +76,16 @@ contract MockMerklDistributor is IMerklDistributor {
     }
 
     function claimWithRecipient(
-        address[] calldata /*users*/,
-        address[] calldata /*tokens*/,
-        uint256[] calldata /*amounts*/,
-        bytes32[][] calldata /*proofs*/,
-        address[] calldata /*recipients*/,
+        address[] calldata,
+        /*users*/
+        address[] calldata,
+        /*tokens*/
+        uint256[] calldata,
+        /*amounts*/
+        bytes32[][] calldata,
+        /*proofs*/
+        address[] calldata,
+        /*recipients*/
         bytes[] memory /*datas*/
     ) external pure override {
         revert("UNIMPLEMENTED");
@@ -82,7 +101,10 @@ contract MockMorphoDistributor is IMorphoUniversalRewardsDistributor {
         address token,
         uint256 claimable,
         bytes32[] calldata /*proof*/
-    ) external returns (uint256 amount) {
+    )
+        external
+        returns (uint256 amount)
+    {
         IERC20(token).safeTransfer(account, claimable);
         return claimable;
     }
@@ -115,15 +137,11 @@ contract OrigamiErc4626WithRewardsManagerTestBase is OrigamiTest {
     );
 
     function setUp() public {
-        fork("mainnet", 22914300);
+        fork("mainnet", 22_914_300);
 
         tokenPrices = new TokenPrices(30);
         vault = new OrigamiDelegated4626Vault(
-            origamiMultisig, 
-            "Origami Morpho IMF-USDS Auto-Compounder", 
-            "oAC-MOR-IMF-USDS",
-            USDS,
-            address(tokenPrices)
+            origamiMultisig, "Origami Morpho IMF-USDS Auto-Compounder", "oAC-MOR-IMF-USDS", USDS, address(tokenPrices)
         );
 
         merklRewardsDistributor = new MockMerklDistributor();
@@ -159,7 +177,6 @@ contract OrigamiErc4626WithRewardsManagerTestBase is OrigamiTest {
         amountOut = manager.deposit(amount);
         vm.stopPrank();
     }
-
 }
 
 contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsManagerTestBase {
@@ -173,10 +190,7 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
     event OperatorToggled(address indexed user, address indexed operator, bool isWhitelisted);
     event PerformanceFeeSet(uint256 fee);
     event ClaimedReward(
-        address indexed rewardToken, 
-        uint256 amountForCaller,
-        uint256 amountForOrigami,
-        uint256 amountForVault
+        address indexed rewardToken, uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault
     );
 
     function test_bad_constructor() public {
@@ -192,7 +206,7 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
             address(merklRewardsDistributor),
             address(morphoRewardsDistributor)
         );
-        
+
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         new OrigamiErc4626WithRewardsManager(
             origamiMultisig,
@@ -228,11 +242,8 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
         assertEq(manager.lastVestingCheckpoint(), 0);
         assertEq(manager.vestingReserves(), 0);
         assertEq(manager.futureVestingReserves(), 0);
-        (
-            uint256 currentPeriodVested,
-            uint256 currentPeriodUnvested,
-            uint256 futurePeriodUnvested
-        ) = manager.vestingStatus();
+        (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+            manager.vestingStatus();
         assertEq(currentPeriodVested, 0);
         assertEq(currentPeriodUnvested, 0);
         assertEq(futurePeriodUnvested, 0);
@@ -249,10 +260,10 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
 
     function test_setReservesVestingDuration_failRange() public {
         vm.startPrank(origamiMultisig);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));        
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         manager.setReservesVestingDuration(0);
 
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));        
+        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
         manager.setReservesVestingDuration(7 days + 1);
     }
 
@@ -293,7 +304,7 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
         emit MerklRewardsDistributorSet(alice);
         manager.setMerklRewardsDistributor(alice);
         assertEq(address(manager.merklRewardsDistributor()), alice);
-        
+
         vm.expectEmit(address(manager));
         emit MerklRewardsDistributorSet(address(0));
         manager.setMerklRewardsDistributor(address(0));
@@ -306,7 +317,7 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
         emit MorphoRewardsDistributorSet(alice);
         manager.setMorphoRewardsDistributor(alice);
         assertEq(address(manager.morphoRewardsDistributor()), alice);
-        
+
         vm.expectEmit(address(manager));
         emit MorphoRewardsDistributorSet(address(0));
         manager.setMorphoRewardsDistributor(address(0));
@@ -379,7 +390,7 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
     function test_setPerformanceFees_tooHigh() public {
         vm.startPrank(origamiMultisig);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidParam.selector));
-        manager.setPerformanceFees(1_001);
+        manager.setPerformanceFees(1001);
     }
 
     function test_setPerformanceFees_success() public {
@@ -387,11 +398,11 @@ contract OrigamiErc4626WithRewardsManagerTestAdmin is OrigamiErc4626WithRewardsM
 
         // It's emitted from the vault
         vm.expectEmit(address(vault));
-        emit PerformanceFeeSet(1_000);
-        manager.setPerformanceFees(1_000);
+        emit PerformanceFeeSet(1000);
+        manager.setPerformanceFees(1000);
         (uint16 forCaller, uint16 forOrigami) = manager.performanceFeeBps();
         assertEq(forCaller, 0);
-        assertEq(forOrigami, 1_000);
+        assertEq(forOrigami, 1000);
     }
 
     function test_setPerformanceFees_withHarvest() public {
@@ -552,7 +563,7 @@ contract OrigamiErc4626WithRewardsManagerTestDeposit is OrigamiErc4626WithReward
         assertEq(IMF_USDS_VAULT.balanceOf(address(manager)), 24.347137513268786146e18);
         assertEq(USDS.balanceOf(address(manager)), 75e18);
         assertEq(manager.totalAssets(), 25e18 - 1);
-        assertEq(manager.unallocatedAssets(), 75e18*99/100);
+        assertEq(manager.unallocatedAssets(), 75e18 * 99 / 100);
         assertEq(manager.vestingReserves(), 0);
         assertEq(manager.futureVestingReserves(), 0);
     }
@@ -594,7 +605,9 @@ contract OrigamiErc4626WithRewardsManagerTestWithdraw is OrigamiErc4626WithRewar
 
     function test_withdraw_failNotEnough() public {
         vm.startPrank(address(vault));
-        vm.expectRevert(abi.encodeWithSelector(ERC20InsufficientBalance.selector, address(manager), 0, 97.388550053075144588e18));
+        vm.expectRevert(
+            abi.encodeWithSelector(ERC20InsufficientBalance.selector, address(manager), 0, 97.388550053075144588e18)
+        );
         assertEq(manager.withdraw(100e18, alice), 0);
     }
 
@@ -603,9 +616,9 @@ contract OrigamiErc4626WithRewardsManagerTestWithdraw is OrigamiErc4626WithRewar
 
         vm.startPrank(address(vault));
         vm.expectEmit(address(manager));
-        emit AssetWithdrawn(100e18-1);
-        assertEq(manager.withdraw(manager.totalAssets(), alice), 100e18-1);
-        assertEq(USDS.balanceOf(alice), 100e18-1);
+        emit AssetWithdrawn(100e18 - 1);
+        assertEq(manager.withdraw(manager.totalAssets(), alice), 100e18 - 1);
+        assertEq(USDS.balanceOf(alice), 100e18 - 1);
 
         assertEq(IMF_USDS_VAULT.balanceOf(address(manager)), 0);
         assertEq(USDS.balanceOf(address(manager)), 0);
@@ -616,22 +629,19 @@ contract OrigamiErc4626WithRewardsManagerTestWithdraw is OrigamiErc4626WithRewar
 
     function test_withdraw_successSameReceiver() public {
         assertEq(deposit(100e18), 100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         vm.startPrank(address(vault));
         assertEq(manager.withdraw(50e18, address(manager)), 50e18);
-        assertEq(manager.totalAssets(), 50e18-1);
-        assertEq(manager.unallocatedAssets(), 50e18*99/100);
+        assertEq(manager.totalAssets(), 50e18 - 1);
+        assertEq(manager.unallocatedAssets(), 50e18 * 99 / 100);
         assertEq(manager.vestingReserves(), 0);
     }
 }
 
 contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithRewardsManagerTestBase {
     event ClaimedReward(
-        address indexed rewardToken, 
-        uint256 amountForCaller,
-        uint256 amountForOrigami,
-        uint256 amountForVault
+        address indexed rewardToken, uint256 amountForCaller, uint256 amountForOrigami, uint256 amountForVault
     );
     event AssetStaked(uint256 amount);
 
@@ -641,7 +651,7 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_merklClaim_withClaimAndReinvest() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         address[] memory tokens = new address[](1);
         tokens[0] = address(IMF);
@@ -655,10 +665,10 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_merklClaim_withNonRewardTokens() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         DummyMintableToken fakeToken = new DummyMintableToken(origamiMultisig, "fake", "fake", 18);
-        deal(address(fakeToken), address(merklRewardsDistributor), 1_000e18);
+        deal(address(fakeToken), address(merklRewardsDistributor), 1000e18);
 
         address[] memory tokens = new address[](2);
         tokens[0] = address(fakeToken);
@@ -677,14 +687,14 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_merklClaim_withExtraVaultTokens() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         {
-            deal(address(USDS), origamiMultisig, 1_000e18);
+            deal(address(USDS), origamiMultisig, 1000e18);
             vm.startPrank(origamiMultisig);
-            USDS.approve(address(IMF_USDS_VAULT), 1_000e18);
-            IMF_USDS_VAULT.deposit(1_000e18, address(merklRewardsDistributor));
-            deal(address(USDS), address(merklRewardsDistributor), 1_000e18);
+            USDS.approve(address(IMF_USDS_VAULT), 1000e18);
+            IMF_USDS_VAULT.deposit(1000e18, address(merklRewardsDistributor));
+            deal(address(USDS), address(merklRewardsDistributor), 1000e18);
         }
 
         address[] memory tokens = new address[](3);
@@ -707,16 +717,13 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
         // 100e18 from deposit + 123e18*99/100 from USDS + 123e18 IMF-USDS shares -> USDS
         assertEq(manager.depositedAssets(), 348.068214659697715959e18);
 
-        (
-            uint256 currentPeriodVested,
-            uint256 currentPeriodUnvested,
-            uint256 futurePeriodUnvested
-        ) = manager.vestingStatus();
+        (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+            manager.vestingStatus();
         assertEq(currentPeriodVested, 0);
-        assertEq(currentPeriodUnvested, (123e18 * 99/100));
+        assertEq(currentPeriodUnvested, (123e18 * 99 / 100));
         assertEq(futurePeriodUnvested, 0);
 
-        assertEq(manager.totalAssets(), 348.068214659697715959e18 - (123e18 * 99/100));
+        assertEq(manager.totalAssets(), 348.068214659697715959e18 - (123e18 * 99 / 100));
     }
 
     function test_externalMerklClaim() public {
@@ -732,14 +739,14 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
         manager.reinvest();
         assertEq(IMF.balanceOf(address(swapper)), 123e18);
     }
-    
+
     function test_morphoClaim_no_inputs() public {
         manager.morphoClaim(new address[](0), new uint256[](0), new bytes32[][](0));
     }
 
     function test_morphoClaim_withClaimAndReinvest() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         address[] memory tokens = new address[](1);
         tokens[0] = address(IMF);
@@ -753,10 +760,10 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_morphoClaim_withNonRewardTokens() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         DummyMintableToken fakeToken = new DummyMintableToken(origamiMultisig, "fake", "fake", 18);
-        deal(address(fakeToken), address(morphoRewardsDistributor), 1_000e18);
+        deal(address(fakeToken), address(morphoRewardsDistributor), 1000e18);
 
         address[] memory tokens = new address[](2);
         tokens[0] = address(fakeToken);
@@ -775,14 +782,14 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_morphoClaim_withExtraVaultTokens() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         {
-            deal(address(USDS), origamiMultisig, 1_000e18);
+            deal(address(USDS), origamiMultisig, 1000e18);
             vm.startPrank(origamiMultisig);
-            USDS.approve(address(IMF_USDS_VAULT), 1_000e18);
-            IMF_USDS_VAULT.deposit(1_000e18, address(morphoRewardsDistributor));
-            deal(address(USDS), address(morphoRewardsDistributor), 1_000e18);
+            USDS.approve(address(IMF_USDS_VAULT), 1000e18);
+            IMF_USDS_VAULT.deposit(1000e18, address(morphoRewardsDistributor));
+            deal(address(USDS), address(morphoRewardsDistributor), 1000e18);
         }
 
         address[] memory tokens = new address[](3);
@@ -805,16 +812,13 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
         // 100e18 from deposit + 123e18*99/100 from USDS + 123e18 IMF-USDS shares -> USDS
         assertEq(manager.depositedAssets(), 348.068214659697715959e18);
 
-        (
-            uint256 currentPeriodVested,
-            uint256 currentPeriodUnvested,
-            uint256 futurePeriodUnvested
-        ) = manager.vestingStatus();
+        (uint256 currentPeriodVested, uint256 currentPeriodUnvested, uint256 futurePeriodUnvested) =
+            manager.vestingStatus();
         assertEq(currentPeriodVested, 0);
-        assertEq(currentPeriodUnvested, (123e18 * 99/100));
+        assertEq(currentPeriodUnvested, (123e18 * 99 / 100));
         assertEq(futurePeriodUnvested, 0);
 
-        assertEq(manager.totalAssets(), 348.068214659697715959e18 - (123e18 * 99/100));
+        assertEq(manager.totalAssets(), 348.068214659697715959e18 - (123e18 * 99 / 100));
     }
 
     function test_externalMorphoClaim() public {
@@ -833,14 +837,14 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_reinvest_nothing() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
         manager.reinvest();
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
     }
 
     function test_reinvest_withFees() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         // Will get sent to the swapper
         deal(address(IMF), address(manager), 100e18);
@@ -868,7 +872,7 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_harvestRewards() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         // Will get sent to the swapper
         deal(address(IMF), address(manager), 100e18);
@@ -896,7 +900,7 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
 
     function test_swapCallback() public {
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         // Will get sent to the swapper
         deal(address(IMF), address(manager), 100e18);
@@ -930,7 +934,7 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
                 address(IMF_USDS_VAULT),
                 feeCollector,
                 swapper,
-                1_000,
+                1000,
                 VESTING_DURATION,
                 address(merklRewardsDistributor),
                 address(morphoRewardsDistributor)
@@ -947,7 +951,7 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
         }
 
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         // Will get sent to the swapper
         deal(address(IMF), address(manager), 100e18);
@@ -974,9 +978,9 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
     function test_reinvest_noFees() public {
         vm.startPrank(origamiMultisig);
         manager.setPerformanceFees(0);
-        
+
         deposit(100e18);
-        assertEq(manager.totalAssets(), 100e18-1);
+        assertEq(manager.totalAssets(), 100e18 - 1);
 
         // Will get sent to the swapper
         deal(address(IMF), address(manager), 100e18);
@@ -996,7 +1000,7 @@ contract OrigamiErc4626WithRewardsManagerTestRewards is OrigamiErc4626WithReward
         skip(7 days);
 
         // All vested in, and interest from the ERC4626
-        assertEq(manager.totalAssets(), 201.497639841254392840e18);
+        assertEq(manager.totalAssets(), 201.49763984125439284e18);
 
         // Fees
         assertEq(USDS.balanceOf(feeCollector), 0);

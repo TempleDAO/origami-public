@@ -23,12 +23,12 @@ import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors
  * @dev Either LIMIT or MARKET orders can be placed by setting the relevant config
  */
 contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
-    using SafeERC20 for IERC20; 
+    using SafeERC20 for IERC20;
     using GPv2Order for GPv2Order.Data;
     using OrigamiMath for uint256;
 
     /// @inheritdoc IOrigamiCowSwapper
-    address public override immutable cowSwapRelayer;
+    address public immutable override cowSwapRelayer;
 
     /// @inheritdoc IOrigamiCowSwapper
     bool public override isPaused;
@@ -43,15 +43,13 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     /// @notice The domain separator used for CoW order digest
     bytes32 private immutable COW_SETTLEMENT_DOMAIN_SEPARATOR;
 
-    constructor(
-        address _initialOwner,
-        address _cowSwapRelayer,
-        address _cowSettlement
-    ) OrigamiElevatedAccess(_initialOwner) {
+    constructor(address _initialOwner, address _cowSwapRelayer, address _cowSettlement)
+        OrigamiElevatedAccess(_initialOwner)
+    {
         cowSwapRelayer = _cowSwapRelayer;
         COW_SETTLEMENT_DOMAIN_SEPARATOR = ICowSettlement(_cowSettlement).domainSeparator();
     }
-    
+
     /// @inheritdoc IOrigamiCowSwapper
     function setPaused(bool paused) external override onlyElevatedAccess {
         isPaused = paused;
@@ -66,19 +64,22 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     }
 
     /// @inheritdoc IOrigamiCowSwapper
-    function setOrderConfig(
-        address sellToken, 
-        OrderConfig calldata config
-    ) external override onlyElevatedAccess {
+    function setOrderConfig(address sellToken, OrderConfig calldata config) external override onlyElevatedAccess {
         if (sellToken == address(0)) revert CommonEventsAndErrors.InvalidAddress(sellToken);
-        if (address(config.buyToken) == address(0)) revert CommonEventsAndErrors.InvalidAddress(address(config.buyToken));
-        if (sellToken == address(config.buyToken)) revert CommonEventsAndErrors.InvalidAddress(address(config.buyToken));
+        if (address(config.buyToken) == address(0)) {
+            revert CommonEventsAndErrors.InvalidAddress(address(config.buyToken));
+        }
+        if (sellToken == address(config.buyToken)) {
+            revert CommonEventsAndErrors.InvalidAddress(address(config.buyToken));
+        }
 
         if (config.minSellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (config.minSellAmount > config.maxSellAmount) revert CommonEventsAndErrors.InvalidParam();
         if (config.minBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
 
-        _validateOracleConfig(sellToken, address(config.buyToken), config.limitPriceOracle, config.limitPriceAdjustmentBps);
+        _validateOracleConfig(
+            sellToken, address(config.buyToken), config.limitPriceOracle, config.limitPriceAdjustmentBps
+        );
 
         if (config.recipient == address(0)) revert CommonEventsAndErrors.InvalidAddress(config.recipient);
         if (config.verifySlippageBps > OrigamiMath.BASIS_POINTS_DIVISOR) revert CommonEventsAndErrors.InvalidParam();
@@ -103,7 +104,7 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         uint96 maxSellAmount,
         uint96 minBuyAmount,
         int16 limitPriceAdjustmentBps
-    ) external override onlyElevatedAccess { 
+    ) external override onlyElevatedAccess {
         if (minSellAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
         if (minSellAmount > maxSellAmount) revert CommonEventsAndErrors.InvalidParam();
         if (minBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
@@ -129,8 +130,9 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     ) private view {
         if (address(limitPriceOracle) != address(0)) {
             // If the price oracle is set, then the assets must match
-            if (!limitPriceOracle.matchAssets(sellToken, buyToken))
+            if (!limitPriceOracle.matchAssets(sellToken, buyToken)) {
                 revert CommonEventsAndErrors.InvalidParam();
+            }
 
             // Restrict the limit price adjustment to be within [-100%, 100%]
             if (limitPriceAdjustmentBps > 10_000) revert CommonEventsAndErrors.InvalidParam();
@@ -167,13 +169,13 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         // It is also passed into getTradeableOrderWithSignature() when creating discrete orders.
         address orderOwner = address(this);
 
-        // The 'handler' isn't in this contract or watchtower. 
+        // The 'handler' isn't in this contract or watchtower.
         // It's intended for use with the more complex ComposableCow framework they provide
         address handler = address(0);
 
         // The salt is unused - there will only be one valid conditional order per sellToken
         // at a time.
-        // If the ConditionalOrderCreated event is emitted with the same parameters, 
+        // If the ConditionalOrderCreated event is emitted with the same parameters,
         // there's no issue - Watchtower skips adding into it's registry again if the params
         // are the same
         // https://github.com/cowprotocol/watch-tower/blob/90ecbf5de87447657a36dfcd49a714b1b5105380/src/domain/events/index.ts#L206
@@ -186,14 +188,10 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         // The following event will be pickd up by the watchtower offchain
         // service, which is responsible for automatically posting CoW AMM
         // orders on the CoW Protocol orderbook.
-        // See: https://github.com/cowprotocol/watch-tower/blob/90ecbf5de87447657a36dfcd49a714b1b5105380/src/domain/events/index.ts#L105
+        // See:
+        // https://github.com/cowprotocol/watch-tower/blob/90ecbf5de87447657a36dfcd49a714b1b5105380/src/domain/events/index.ts#L105
         emit IConditionalOrder.ConditionalOrderCreated(
-            orderOwner,
-            IConditionalOrder.ConditionalOrderParams(
-                handler,
-                conditionalOrderSalt,
-                staticInput
-            )
+            orderOwner, IConditionalOrder.ConditionalOrderParams(handler, conditionalOrderSalt, staticInput)
         );
     }
 
@@ -205,14 +203,12 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         IConditionalOrder.ConditionalOrderParams calldata params,
         // Unused by watchtower
         // https://github.com/cowprotocol/watch-tower/blob/90ecbf5de87447657a36dfcd49a714b1b5105380/src/domain/polling/index.ts#L309
-        bytes calldata /*offchainInput*/, 
+        bytes calldata,
+        /*offchainInput*/
         // Unused when using conditional orders directly (as opposed to via Safe)
         bytes32[] calldata /*proof*/
-    ) external override view returns (
-        GPv2Order.Data memory order, 
-        bytes memory signature
-    ) {
-        // If the contract is paused, then give a hint to Watchtower to try again in 
+    ) external view override returns (GPv2Order.Data memory order, bytes memory signature) {
+        // If the contract is paused, then give a hint to Watchtower to try again in
         // ORDER_DELAY_SECONDS
         if (isPaused) revert PollTryAtEpoch(block.timestamp + ORDER_DELAY_SECONDS, "Paused");
 
@@ -239,18 +235,15 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
             revert OrderNotValid("sellToken not configured");
         }
 
-        // If the current balance is under a minimum configured to sell, 
+        // If the current balance is under a minimum configured to sell,
         // then give a hint to Watchtower to try again in ORDER_DELAY_SECONDS
         uint256 sellTokenBalance = sellToken.balanceOf(address(this));
         if (sellTokenBalance < config.minSellAmount) {
             revert PollTryAtEpoch(block.timestamp + ORDER_DELAY_SECONDS, "MinBalance");
         }
 
-        uint256 sellAmount = _getSellAmount(
-            config.maxSellAmount, 
-            config.useCurrentBalanceForSellAmount, 
-            sellTokenBalance
-        );
+        uint256 sellAmount =
+            _getSellAmount(config.maxSellAmount, config.useCurrentBalanceForSellAmount, sellTokenBalance);
 
         (, uint256 roundedBuyAmount) = _getBuyAmount(sellToken, sellAmount, config);
         order = _getDiscreteOrder(sellToken, sellAmount, config, roundedBuyAmount);
@@ -263,23 +256,28 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
      * @dev This function is called by the CoW swap settlement contract.
      *
      * This verify step needs to protect against unintentional/malicious orders being placed.
-     * However if using a price oracle for limit orders, the buyAmount may have changed between when the (legitimate) 
-     * order was placed versus this function being called by the CoW swap solvers during settlement to verify the 
+     * However if using a price oracle for limit orders, the buyAmount may have changed between when the (legitimate)
+     * order was placed versus this function being called by the CoW swap solvers during settlement to verify the
      * order signature.
      *
      * - If the latest calculated buyAmount is LESS THAN the buyAmount of the originally placed order, that's ok.
      *   That original order is simply unlikely to be filled but if it does, that's an ok result.
      *   That out of the money order will expire and be replaced in the next validTo (aka expiry) period anyway.
-     * - If the latest calculated buyAmount is MORE THAN the buyAmount of the originally placed order, 
+     * - If the latest calculated buyAmount is MORE THAN the buyAmount of the originally placed order,
      *   that is ok but ONLY WITHIN A `verifySlippageBps` TOLERANCE. It will revert if outside of this tolerance
-     *   If the original order is priced a lot lower, we will get a fill for less that what we are truly looking for, 
+     *   If the original order is priced a lot lower, we will get a fill for less that what we are truly looking for,
      *   potentially at a loss (depending on the application)
-     * 
-     * The `tradeableOrderDigest` is the EIP-712 hash of the GPv2Order.Data representing the trade which will be 
+     *
+     * The `tradeableOrderDigest` is the EIP-712 hash of the GPv2Order.Data representing the trade which will be
      * executed by the CoW Settlement contract. The order within the encoded signature is hashed using the same
      * method and checked it matches the `tradeableOrderDigest` to ensure what will be executed matches the signature.
      */
-    function isValidSignature(bytes32 tradeableOrderDigest, bytes memory signature) external override view returns (bytes4) {
+    function isValidSignature(bytes32 tradeableOrderDigest, bytes memory signature)
+        external
+        view
+        override
+        returns (bytes4)
+    {
         // A revert here simply means the swap cannot be executed by a solver. The actual behaviour of that
         // order is then not defined. Best case it's picked up again in the next auction, worst case is that
         // the order is dropped by solvers. That's ok as we submit a new order in the next expiry window anyway.
@@ -298,19 +296,23 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
 
         // Can use any sellAmount (from the decoded order) as long as it's under the
         // configured maxSellAmount
-        // This does mean it's possible for a smaller order to be placed by anyone outside of getTradeableOrderWithSignature(),
-        // but the minBuyAmount puts a floor on what is eligable to be filled. CoW Solvers will fill at the best price anyway since
+        // This does mean it's possible for a smaller order to be placed by anyone outside of
+        // getTradeableOrderWithSignature(), but the minBuyAmount puts a floor on what is eligable to be filled. CoW
+        // Solvers will fill at the best price anyway since
         // it's a competitive auction.
         uint256 maxSellAmount = config.maxSellAmount;
         uint256 sellAmount = order.sellAmount < maxSellAmount ? order.sellAmount : maxSellAmount;
 
         // The order order sellAmount is checked vs the configured minimum.
-        // Note: If the order is partially fillable, this does not prevent a given fill from executing under the `config.minSellAmount`
-        // Similarly when `config.useCurrentBalanceForSellAmount = false`, in which case `order.sellAmount` would equal the `config.maxSellAmount`
-        // So while the intended watchtower wouldn't submit an order with a low sellAmount (because the balance is checked in 
-        // getTradeableOrderWithSignature()), it would still be possible for another actor (other than watchtower) to submit an order 
-        // when there's a small sellToken balance. Worst case this could result in a worse overall execution price (frequent small orders would 
-        // mean a larger gas+solver fee proportional to notional), even though each order in isolation has best execution from the competitive auction.
+        // Note: If the order is partially fillable, this does not prevent a given fill from executing under the
+        // `config.minSellAmount` Similarly when `config.useCurrentBalanceForSellAmount = false`, in which case
+        // `order.sellAmount` would equal the `config.maxSellAmount`
+        // So while the intended watchtower wouldn't submit an order with a low sellAmount (because the balance is
+        // checked in getTradeableOrderWithSignature()), it would still be possible for another actor (other than
+        // watchtower) to submit an order
+        // when there's a small sellToken balance. Worst case this could result in a worse overall execution price
+        // (frequent small orders would mean a larger gas+solver fee proportional to notional), even though each order
+        // in isolation has best execution from the competitive auction.
         // This risk can be managed externally by controlling when funds are actually sent into this swapper.
         if (sellAmount < config.minSellAmount) revert UnderMinSellAmount();
 
@@ -320,11 +322,12 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         // If the latest rounded buyAmount is greater than when the order is placed plus some slippage tolerance
         // then revert.
         //
-        // Note: Because this (rounded) buyAmount will be in discrete steps, when the order is verified it might have moved to the next
-        // divisor, which may cause it to be outside the slippage tolerance suddenly. This is ok and as expected; The 
+        // Note: Because this (rounded) buyAmount will be in discrete steps, when the order is verified it might have
+        // moved to the next divisor, which may cause it to be outside the slippage tolerance suddenly. This is ok and
+        // as expected; The
         // order configuration just needs to take this into consideration:
-        //   a/ The `verifySlippageBps` can be set a little larger than the effect of `roundDownDivisor` on that notional; or
-        //   b/ The `roundDownDivisor` can be reduced; or
+        //   a/ The `verifySlippageBps` can be set a little larger than the effect of `roundDownDivisor` on that
+        // notional; or b/ The `roundDownDivisor` can be reduced; or
         //   c/ That particular order is now just deemed invalid, so will attempt again at the next expiry window.
         uint256 verifySlippageBps = config.verifySlippageBps;
         uint256 orderBuyAmountWithSlippage = (verifySlippageBps > 0)
@@ -342,34 +345,37 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         if (keccak256(abi.encode(generatedOrder)) != keccak256(signature)) {
             revert OrderDoesNotMatchTradeableOrder();
         }
-        
+
         return this.isValidSignature.selector;
     }
 
     /**
      * @notice IOrigamiCowSwapper
      */
-    function orderConfig(address sellToken) external override view returns (OrderConfig memory config) {
+    function orderConfig(address sellToken) external view override returns (OrderConfig memory config) {
         return _orderConfig[IERC20(sellToken)];
     }
 
     /**
      * @notice IOrigamiCowSwapper
      */
-    function getSellAmount(address sellToken) external override view returns (uint256) {
+    function getSellAmount(address sellToken) external view override returns (uint256) {
         IERC20 _sellToken = IERC20(sellToken);
         OrderConfig storage config = _getOrderConfig(_sellToken);
         return _getSellAmount(
-            config.maxSellAmount, 
-            config.useCurrentBalanceForSellAmount, 
-            _sellToken.balanceOf(address(this))
+            config.maxSellAmount, config.useCurrentBalanceForSellAmount, _sellToken.balanceOf(address(this))
         );
     }
 
     /**
      * @notice IOrigamiCowSwapper
      */
-    function getBuyAmount(address sellToken) external override view returns (uint256 unroundedBuyAmount, uint256 roundedBuyAmount) {
+    function getBuyAmount(address sellToken)
+        external
+        view
+        override
+        returns (uint256 unroundedBuyAmount, uint256 roundedBuyAmount)
+    {
         IERC20 _sellToken = IERC20(sellToken);
         OrderConfig storage config = _getOrderConfig(_sellToken);
         return _getBuyAmount(_sellToken, config.maxSellAmount, config);
@@ -378,18 +384,16 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
     /*
      * @inheritdoc IERC165
      */
-    function supportsInterface(bytes4 interfaceId) external override pure returns (bool) {
-        return interfaceId == type(IOrigamiCowSwapper).interfaceId
-            || interfaceId == type(IConditionalOrder).interfaceId 
-            || interfaceId == type(IERC165).interfaceId
-            || interfaceId == type(IERC1271).interfaceId;
+    function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
+        return interfaceId == type(IOrigamiCowSwapper).interfaceId || interfaceId == type(IConditionalOrder).interfaceId
+            || interfaceId == type(IERC165).interfaceId || interfaceId == type(IERC1271).interfaceId;
     }
 
-    function _getSellAmount(
-        uint256 maxSellAmount,
-        bool useCurrentBalanceForSellAmount,
-        uint256 sellTokenBalance
-    ) internal pure returns (uint256 sellAmount) {
+    function _getSellAmount(uint256 maxSellAmount, bool useCurrentBalanceForSellAmount, uint256 sellTokenBalance)
+        internal
+        pure
+        returns (uint256 sellAmount)
+    {
         // Capped by the maxSellAmount
         return useCurrentBalanceForSellAmount
             ? (sellTokenBalance < maxSellAmount ? sellTokenBalance : maxSellAmount)
@@ -398,38 +402,38 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
 
     /**
      * @dev Calculate the buyAmount for a CoW swap order as of now, for a given sellToken
-     * If applyRoundingDown, then the final amount will be rounded down to the 
+     * If applyRoundingDown, then the final amount will be rounded down to the
      * configured power of 10.
      * This ensures that small changes in price block to block don't end up
      * in a lot of new orders being placed.
      */
-    function _getBuyAmount(
-        IERC20 sellToken,
-        uint256 sellAmount,
-        OrderConfig storage config
-    ) internal view returns (uint256 unroundedBuyAmount, uint256 roundedBuyAmount) {
+    function _getBuyAmount(IERC20 sellToken, uint256 sellAmount, OrderConfig storage config)
+        internal
+        view
+        returns (uint256 unroundedBuyAmount, uint256 roundedBuyAmount)
+    {
         IOrigamiOracle limitPriceOracle = config.limitPriceOracle;
         // ROUND_DOWN is fine in all cases as this is just the limit order price
         if (address(limitPriceOracle) != address(0)) {
             // Similarly minor precision loss from transient divisions in these calcs are also
             // acceptable.
-            unroundedBuyAmount = config.limitPriceOracle.convertAmount(
-                address(sellToken),
-                sellAmount,
-                IOrigamiOracle.PriceType.SPOT_PRICE,
-                OrigamiMath.Rounding.ROUND_DOWN
-            );
+            unroundedBuyAmount = config.limitPriceOracle
+                .convertAmount(
+                    address(sellToken), sellAmount, IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN
+                );
 
             // Adjust the oracle price to determine the buyAmount limit
             int16 limitPriceAdjustmentBps = config.limitPriceAdjustmentBps;
             if (limitPriceAdjustmentBps > 0) {
-                unroundedBuyAmount = unroundedBuyAmount.addBps(uint16(limitPriceAdjustmentBps), OrigamiMath.Rounding.ROUND_DOWN);
+                unroundedBuyAmount =
+                    unroundedBuyAmount.addBps(uint16(limitPriceAdjustmentBps), OrigamiMath.Rounding.ROUND_DOWN);
             } else if (limitPriceAdjustmentBps < 0) {
-                unroundedBuyAmount = unroundedBuyAmount.subtractBps(uint16(-limitPriceAdjustmentBps), OrigamiMath.Rounding.ROUND_DOWN);
+                unroundedBuyAmount =
+                    unroundedBuyAmount.subtractBps(uint16(-limitPriceAdjustmentBps), OrigamiMath.Rounding.ROUND_DOWN);
             }
         }
 
-        // The `config.minBuyAmount` is the absolute floor that we will accept for the buyAmount in the order. 
+        // The `config.minBuyAmount` is the absolute floor that we will accept for the buyAmount in the order.
         // Use the maximum of the two values (the one oracle derived buyAmount and the min set in config)
         // in order to get the more conservative (ie higher) value we would be willing to accept receiving for that
         // amount of sellToken.
@@ -439,23 +443,23 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
         // Intentionally lose precision when rounding down to the nearest divisor.
         uint256 divisor = config.roundDownDivisor;
         roundedBuyAmount = (divisor > 0)
+            /// forge-lint: disable-next-line(divide-before-multiply)
             ? (unroundedBuyAmount / divisor) * divisor
             : unroundedBuyAmount;
 
         if (roundedBuyAmount == 0) revert CommonEventsAndErrors.ExpectedNonZero();
     }
-    
+
     function _getOrderConfig(IERC20 sellToken) internal view returns (OrderConfig storage config) {
         config = _orderConfig[sellToken];
         if (address(config.buyToken) == address(0)) revert InvalidSellToken(address(sellToken));
     }
 
-    function _getDiscreteOrder(
-        IERC20 sellToken, 
-        uint256 sellAmount,
-        OrderConfig storage config, 
-        uint256 buyAmount
-    ) internal view returns (GPv2Order.Data memory) {
+    function _getDiscreteOrder(IERC20 sellToken, uint256 sellAmount, OrderConfig storage config, uint256 buyAmount)
+        internal
+        view
+        returns (GPv2Order.Data memory)
+    {
         return GPv2Order.Data({
             sellToken: sellToken,
             buyToken: config.buyToken,
@@ -464,7 +468,7 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
             buyAmount: buyAmount,
             validTo: _calcOrderExpiry(config.expiryPeriodSecs),
             appData: config.appData,
-            feeAmount:0,
+            feeAmount: 0,
             kind: GPv2Order.KIND_SELL,
             partiallyFillable: config.partiallyFillable,
             sellTokenBalance: GPv2Order.BALANCE_ERC20,
@@ -480,9 +484,9 @@ contract OrigamiCowSwapper is IOrigamiCowSwapper, OrigamiElevatedAccess {
      * 13:48:45 order time will have an expiry of 13:55:00 UTC
      */
     function _calcOrderExpiry(uint32 expiryPeriodSecs) internal view returns (uint32) {
-        // slither-disable-next-line divide-before-multiply
         return (
-            (uint32(block.timestamp) / expiryPeriodSecs) * expiryPeriodSecs
-        ) + expiryPeriodSecs;
+                /// forge-lint: disable-next-line(divide-before-multiply)
+                (uint32(block.timestamp) / expiryPeriodSecs) * expiryPeriodSecs
+            ) + expiryPeriodSecs;
     }
 }

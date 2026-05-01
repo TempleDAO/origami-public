@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.15;
 
-import {ROLESv1} from "../modules/ROLES/ROLES.v1.sol";
+import { ROLESv1 } from "../modules/ROLES/ROLES.v1.sol";
 import "../Kernel.sol";
 
 /// @notice The RolesAdmin Policy grants and revokes Roles in the ROLES module.
@@ -40,7 +40,7 @@ contract RolesAdmin is Policy {
 
         ROLES = ROLESv1(getModuleAddress(dependencies[0]));
 
-        (uint8 ROLES_MAJOR, ) = ROLES.VERSION();
+        (uint8 ROLES_MAJOR,) = ROLES.VERSION();
 
         // Ensure Modules are using the expected major version.
         // Modules should be sorted in alphabetical order.

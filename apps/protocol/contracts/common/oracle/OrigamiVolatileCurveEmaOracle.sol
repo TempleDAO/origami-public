@@ -12,8 +12,8 @@ import { OrigamiElevatedAccess } from "contracts/common/access/OrigamiElevatedAc
 /**
  * @title OrigamiVolatileCurveEmaOracle
  * @notice The Curve finance exponential moving average oracle for a given stableswap-ng pool
- * 
- * @dev Note: This assumes it's a newer implementation (or tokens are both 18dp tokens) 
+ *
+ * @dev Note: This assumes it's a newer implementation (or tokens are both 18dp tokens)
  * and so not affected by the issue here:
  * https://docs.curve.fi/stableswap-exchange/stableswap-ng/pools/oracles/?h=oracle
  */
@@ -21,7 +21,7 @@ contract OrigamiVolatileCurveEmaOracle is OrigamiOracleBase, OrigamiElevatedAcce
     using Range for Range.Data;
 
     /**
-     * @notice The curve stableswap NG. The coins must match the nominated 
+     * @notice The curve stableswap NG. The coins must match the nominated
      * baseAsset & quoteAsset in any order
      */
     ICurveStableSwapNG public immutable stableSwapNg;
@@ -36,23 +36,20 @@ contract OrigamiVolatileCurveEmaOracle is OrigamiOracleBase, OrigamiElevatedAcce
      */
     Range.Data public validSpotPriceRange;
 
-    constructor (
+    constructor(
         address _initialOwner,
         BaseOracleParams memory baseParams,
         address _stableSwapNg,
         Range.Data memory _validSpotPriceRange
-    )
-        OrigamiOracleBase(baseParams)
-        OrigamiElevatedAccess(_initialOwner)
-    {
+    ) OrigamiOracleBase(baseParams) OrigamiElevatedAccess(_initialOwner) {
         stableSwapNg = ICurveStableSwapNG(_stableSwapNg);
 
         if (stableSwapNg.N_COINS() != 2) revert CommonEventsAndErrors.InvalidParam();
-        
+
         address _a0 = stableSwapNg.coins(0);
         address _a1 = stableSwapNg.coins(1);
         if (!matchAssets(_a0, _a1)) revert CommonEventsAndErrors.InvalidParam();
-        
+
         // price_oracle(0) returns the `coins(1)` in terms of `coins(0)`
         // So the price needs flipping if it's in the same baseAsset/quoteAsset order
         reciprocal = (_a0 == baseAsset && _a1 == quoteAsset);
@@ -65,10 +62,10 @@ contract OrigamiVolatileCurveEmaOracle is OrigamiOracleBase, OrigamiElevatedAcce
      * @dev Any price outside of this range for that oracle will revert when `latestPrice()` is called
      * with priceType=SPOT_PRICE
      */
-    function setValidSpotPriceRange(
-        uint128 _validSpotPriceFloor, 
-        uint128 _validSpotPriceCeiling
-    ) external onlyElevatedAccess {
+    function setValidSpotPriceRange(uint128 _validSpotPriceFloor, uint128 _validSpotPriceCeiling)
+        external
+        onlyElevatedAccess
+    {
         emit ValidPriceRangeSet(_validSpotPriceFloor, _validSpotPriceCeiling);
         validSpotPriceRange.set(_validSpotPriceFloor, _validSpotPriceCeiling);
     }
@@ -78,9 +75,15 @@ contract OrigamiVolatileCurveEmaOracle is OrigamiOracleBase, OrigamiElevatedAcce
      * @dev This may still revert if the price is outside of the valid price range
      */
     function latestPrice(
-        PriceType /*priceType*/,
+        PriceType,
+        /*priceType*/
         OrigamiMath.Rounding /*roundingMode*/
-    ) public override view returns (uint256 price) {
+    )
+        public
+        view
+        override
+        returns (uint256 price)
+    {
         // Curve oracle always returns to 18dp
         price = stableSwapNg.price_oracle(0);
         if (reciprocal) {
@@ -88,32 +91,37 @@ contract OrigamiVolatileCurveEmaOracle is OrigamiOracleBase, OrigamiElevatedAcce
         }
 
         Range.Data memory _validSpotPriceRange = validSpotPriceRange;
-        if (price < _validSpotPriceRange.floor) revert BelowMinValidRange(address(stableSwapNg), price, _validSpotPriceRange.floor);
-        if (price > _validSpotPriceRange.ceiling) revert AboveMaxValidRange(address(stableSwapNg), price, _validSpotPriceRange.ceiling);
+        if (price < _validSpotPriceRange.floor) {
+            revert BelowMinValidRange(address(stableSwapNg), price, _validSpotPriceRange.floor);
+        }
+        if (price > _validSpotPriceRange.ceiling) {
+            revert AboveMaxValidRange(address(stableSwapNg), price, _validSpotPriceRange.ceiling);
+        }
     }
 
     /**
-     * @notice Same as `latestPrice()` but for two separate prices from this oracle	
+     * @notice Same as `latestPrice()` but for two separate prices from this oracle
      */
     function latestPrices(
-        PriceType priceType1, 
+        PriceType priceType1,
         OrigamiMath.Rounding roundingMode1,
-        PriceType /*priceType2*/, 
+        PriceType,
+        /*priceType2*/
         OrigamiMath.Rounding /*roundingMode2*/
-    ) external override view returns (
-        uint256 /*price1*/, 
-        uint256 /*price2*/, 
-        address /*oracleBaseAsset*/,
-        address /*oracleQuoteAsset*/
-    ) {
+    )
+        external
+        view
+        override
+        returns (
+            uint256, /*price1*/
+            uint256, /*price2*/
+            address, /*oracleBaseAsset*/
+            address /*oracleQuoteAsset*/
+        )
+    {
         // priceType and roundingMode are unused in this oracle
         uint256 price = latestPrice(priceType1, roundingMode1);
 
-        return (
-            price,
-            price,
-            baseAsset,
-            quoteAsset
-        );
+        return (price, price, baseAsset, quoteAsset);
     }
 }

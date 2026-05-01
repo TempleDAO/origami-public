@@ -3,16 +3,19 @@ pragma solidity ^0.8.4;
 // Origami (interfaces/external/uniswap/IUniswapV3Pool.sol)
 
 interface IUniswapV3Pool {
-    function slot0() external view returns (
-        uint160 sqrtPriceX96,
-        int24 tick,
-        uint16 observationIndex,
-        uint16 observationCardinality,
-        uint16 observationCardinalityNext,
-        uint8 feeProtocol,
-        bool unlocked
-    );
-        
+    function slot0()
+        external
+        view
+        returns (
+            uint160 sqrtPriceX96,
+            int24 tick,
+            uint16 observationIndex,
+            uint16 observationCardinality,
+            uint16 observationCardinalityNext,
+            uint8 feeProtocol,
+            bool unlocked
+        );
+
     function token0() external view returns (address);
     function token1() external view returns (address);
     function tickSpacing() external view returns (int24);

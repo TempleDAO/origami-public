@@ -10,7 +10,9 @@ import { IMultiRewards } from "contracts/interfaces/external/staking/IMultiRewar
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { OrigamiAutoStakingToErc4626 } from "contracts/investments/staking/OrigamiAutoStakingToErc4626.sol";
 import { DummyMintableToken } from "contracts/test/common/DummyMintableToken.sol";
-import { OrigamiAutoStakingToErc4626Common } from "test/foundry/unit/investments/staking/OrigamiAutoStakingToErc4626Common.t.sol";
+import {
+    OrigamiAutoStakingToErc4626Common
+} from "test/foundry/unit/investments/staking/OrigamiAutoStakingToErc4626Common.t.sol";
 import { OrigamiAutoStaking } from "contracts/investments/staking/OrigamiAutoStaking.sol";
 import { IOrigamiSwapper } from "contracts/interfaces/common/swappers/IOrigamiSwapper.sol";
 import { DummyDexRouter } from "contracts/test/common/swappers/DummyDexRouter.sol";
@@ -48,8 +50,7 @@ contract AnnoyingToken {
         _transfer(msg.sender, to, amount);
     }
 
-    function approve(address spender, uint256 amount) external {
-    }
+    function approve(address spender, uint256 amount) external { }
 
     function transferFrom(address from, address to, uint256 amount) external {
         _transfer(from, to, amount);
@@ -65,10 +66,10 @@ contract AnnoyingToken {
 contract MockMultiRewards is MultiRewards {
     using SafeERC20 for IERC20;
 
-    constructor(address stakingToken_) MultiRewards(stakingToken_) {}
-    function onStake(uint256 amount) internal override {}
-    function onWithdraw(uint256 amount) internal override {}
-    function onReward() internal override {}
+    constructor(address stakingToken_) MultiRewards(stakingToken_) { }
+    function onStake(uint256 amount) internal override { }
+    function onWithdraw(uint256 amount) internal override { }
+    function onReward() internal override { }
 
     function addReward(address _rewardsToken, uint256 _rewardsDuration) external {
         _addReward(_rewardsToken, _rewardsDuration);
@@ -84,16 +85,13 @@ contract OrigamiAutoStakingToErc4626TestBase is OrigamiAutoStakingToErc4626Commo
     uint256 internal constant tolerance = 1e18 / 1e12; // Example tolerance: 0.000001 ether
 
     function setUp() public virtual {
-        fork("berachain_mainnet", BERACHAIN_FORK_BLOCK_NUMBER);        
+        fork("berachain_mainnet", BERACHAIN_FORK_BLOCK_NUMBER);
         setUpContracts();
     }
 
-    function stakeOnBehalfOf(
-        OrigamiAutoStakingToErc4626 vault,
-        address token,
-        address staker,
-        uint256 stakeAmount
-    ) internal {
+    function stakeOnBehalfOf(OrigamiAutoStakingToErc4626 vault, address token, address staker, uint256 stakeAmount)
+        internal
+    {
         // deal(staker, stakeAmount);
         vm.startPrank(staker);
         deal(token, staker, stakeAmount);
@@ -134,7 +132,6 @@ contract OrigamiAutoStakingToErc4626TestBase is OrigamiAutoStakingToErc4626Commo
 }
 
 contract OrigamiAutoStakingToErc4626TestAccess is OrigamiAutoStakingToErc4626TestBase {
-
     function test_harvestVault_access() public {
         // OK when not restricted
         assertEq(wberaHoneyAutoStaking.restrictedPublicHarvest(), false);
@@ -524,9 +521,11 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
         assertEq(tokens.length, 1);
         wberaHoneyAutoStaking.recoverToken(address(OTHER_REWARD_TOKEN), origamiMultisig, 99e18);
         assertEq(OTHER_REWARD_TOKEN.balanceOf(origamiMultisig), 99e18);
-        
+
         // Can't be added again until there's enough balance to cover the previous unclaimed rewards
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(OTHER_REWARD_TOKEN), 99e18));
+        vm.expectRevert(
+            abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(OTHER_REWARD_TOKEN), 99e18)
+        );
         wberaHoneyAutoStaking.addReward(address(OTHER_REWARD_TOKEN), 1 days, 100);
         OTHER_REWARD_TOKEN.transfer(address(wberaHoneyAutoStaking), 99e18);
 
@@ -580,7 +579,7 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
         assertFalse(onStake_);
         assertFalse(onWithdraw_);
         assertFalse(onGetReward_);
-        
+
         vm.startPrank(origamiMultisig);
         vm.expectEmit(address(wberaHoneyAutoStaking));
         emit IOrigamiAutoStaking.PausedSet(true, true, true);
@@ -622,7 +621,7 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
         // Setup reward token in the wberaHoneyAutoStaking and mint rewards
         vm.startPrank(origamiMultisig);
         uint256 rewardsAmount = 100e18;
-        wberaHoneyAutoStaking.addReward(address(OTHER_REWARD_TOKEN), 86400, 100);
+        wberaHoneyAutoStaking.addReward(address(OTHER_REWARD_TOKEN), 86_400, 100);
 
         deal(address(ORI_BGT), origamiMultisig, rewardsAmount);
         ORI_BGT.approve(address(wberaHoneyAutoStaking), rewardsAmount);
@@ -709,7 +708,7 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
         vm.expectEmit(address(wberaHoneyAutoStaking));
         emit IOrigamiAutoStaking.FeeCollectorSet(alice);
         wberaHoneyAutoStaking.setFeeCollector(alice);
-        assertEq(wberaHoneyAutoStaking.feeCollector(), alice,"Fee collector is set");
+        assertEq(wberaHoneyAutoStaking.feeCollector(), alice, "Fee collector is set");
     }
 
     function test_updateRewardsDuration_success() public {
@@ -723,11 +722,7 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
 
         // Verify that the rewards duration was updated correctly
         (, uint256 actualDuration,,,,,) = wberaHoneyAutoStaking.rewardData(address(ORI_BGT));
-        assertEq(
-            actualDuration,
-            newDuration,
-            "Rewards duration not updated correctly"
-        );
+        assertEq(actualDuration, newDuration, "Rewards duration not updated correctly");
     }
 
     function test_updateRewardsDuration_withLeftovers() public {
@@ -759,11 +754,11 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
             uint256 rewardResidual
         ) = wberaHoneyAutoStaking.rewardData(address(ORI_BGT));
         assertEq(rewardsDuration, newDuration);
-        assertEq(periodFinish, 1744052344);
-        assertEq(rewardRate, 451634831);
-        assertEq(lastUpdateTime, 1743447544);
-        assertEq(rewardPerTokenStored, 1127802981022);
-        assertEq(rewardResidual, 105450);
+        assertEq(periodFinish, 1_744_052_344);
+        assertEq(rewardRate, 451_634_831);
+        assertEq(lastUpdateTime, 1_743_447_544);
+        assertEq(rewardPerTokenStored, 1_127_802_981_022);
+        assertEq(rewardResidual, 105_450);
     }
 
     function test_updateRewardsDuration_revertRewardDoesntExist() public {
@@ -774,7 +769,7 @@ contract OrigamiAutoStakingToErc4626TestAdmin is OrigamiAutoStakingToErc4626Test
         wberaHoneyAutoStaking.updateRewardsDuration(address(OTHER_REWARD_TOKEN), newDuration);
     }
 
-     function testRevertWithZeroDurationUpdateRewardsDuration() public {
+    function testRevertWithZeroDurationUpdateRewardsDuration() public {
         vm.startPrank(origamiMultisig);
         wberaHoneyAutoStaking.addReward(address(OTHER_REWARD_TOKEN), 1 days, 100); // Setup reward token
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.ExpectedNonZero.selector));
@@ -804,7 +799,8 @@ contract OrigamiAutoStakingToErc4626Test_StakeWithdraw is OrigamiAutoStakingToEr
         assertEq(userBalance, stakeAmount, "User balance should be updated");
 
         // Check total supply in the infraredVault
-        uint256 totalSupply = wberaHoneyAutoStaking.totalSupply() - 1; // infared holds a balance of 1 wei in every vault
+        uint256 totalSupply = wberaHoneyAutoStaking.totalSupply() - 1; // infared holds a balance of 1 wei in every
+        // vault
         assertEq(totalSupply, stakeAmount, "Total supply should be updated");
 
         // Check staking token staked in infrared vault
@@ -858,30 +854,23 @@ contract OrigamiAutoStakingToErc4626Test_StakeWithdraw is OrigamiAutoStakingToEr
 
         // Check user's balance in the infraredVault after withdrawal
         uint256 userBalance = wberaHoneyAutoStaking.balanceOf(bob);
-        assertEq(
-            userBalance, 0, "User balance should decrease after withdrawal"
-        );
+        assertEq(userBalance, 0, "User balance should decrease after withdrawal");
 
         // Check total supply in the infraredVault after withdrawal
-        uint256 totalSupply = wberaHoneyAutoStaking.totalSupply() - 1; // infared holds a balance of 1 wei in every vault
-        assertEq(
-            totalSupply, 0, "Total supply should decrease after withdrawal"
-        );
+        uint256 totalSupply = wberaHoneyAutoStaking.totalSupply() - 1; // infared holds a balance of 1 wei in every
+        // vault
+        assertEq(totalSupply, 0, "Total supply should decrease after withdrawal");
 
         // Check user's token balance
         uint256 userTokenBalance = WBERA_HONEY.balanceOf(bob);
-        assertEq(
-            userTokenBalance,
-            amount,
-            "User should receive the withdrawn tokens"
-        );
+        assertEq(userTokenBalance, amount, "User should receive the withdrawn tokens");
     }
 
     function test_withdraw_revertMoreThanStaked() public {
         // User stakes tokens
         deal(bob, 500e18);
         vm.startPrank(bob);
-         deal(address(WBERA_HONEY), bob, 500e18);
+        deal(address(WBERA_HONEY), bob, 500e18);
         WBERA_HONEY.approve(address(wberaHoneyAutoStaking), 500e18);
         wberaHoneyAutoStaking.stake(500e18);
         vm.stopPrank();
@@ -889,7 +878,9 @@ contract OrigamiAutoStakingToErc4626Test_StakeWithdraw is OrigamiAutoStakingToEr
         uint256 withdrawAmount = 600e18; // More than staked amount
 
         vm.startPrank(bob);
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(WBERA_HONEY), withdrawAmount));
+        vm.expectRevert(
+            abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(WBERA_HONEY), withdrawAmount)
+        );
         wberaHoneyAutoStaking.withdraw(withdrawAmount);
         vm.stopPrank();
     }
@@ -923,14 +914,15 @@ contract OrigamiAutoStakingToErc4626Test_StakeWithdraw is OrigamiAutoStakingToEr
 
         vm.startPrank(otherUser);
         // Assuming otherUser hasn't staked anything
-        vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(WBERA_HONEY), withdrawAmount));
+        vm.expectRevert(
+            abi.encodeWithSelector(CommonEventsAndErrors.InvalidAmount.selector, address(WBERA_HONEY), withdrawAmount)
+        );
         wberaHoneyAutoStaking.withdraw(withdrawAmount);
         vm.stopPrank();
     }
 }
 
 contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToErc4626TestBase {
-
     function test_harvestVault_primary_withFees() public virtual {
         assertEq(wberaHoneyAutoStaking.performanceFeeBps(address(ORI_BGT)), 100);
         stakeOnBehalfOf(wberaHoneyAutoStaking, address(WBERA_HONEY), alice, 100e18);
@@ -1000,9 +992,9 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         rewardAmount = ORI_BGT.previewDeposit(rewardAmount);
 
         uint256 residual = rewardAmount % 30 days;
-        uint256 actualOribgtAdded = 947.493620815309056000e18; // doesn't include the residual
+        uint256 actualOribgtAdded = 947.493620815309056e18; // doesn't include the residual
         assertApproxEqAbs(
-            (rewardAmount - residual)*99/100, // 1% fee
+            (rewardAmount - residual) * 99 / 100, // 1% fee
             actualOribgtAdded, // Slightly different due to rounding
             1e7
         );
@@ -1010,24 +1002,19 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         emit IMultiRewards.RewardAdded(address(ORI_BGT), actualOribgtAdded);
         wberaHoneyAutoStaking.harvestVault();
 
-        (
-            ,
-            ,
-            uint256 periodFinish,
-            uint256 rewardRate,
-            uint256 lastUpdateTime,
-            uint256 rewardPerTokenStored,
-        ) = wberaHoneyAutoStaking.rewardData(address(ORI_BGT));
+        (,, uint256 periodFinish, uint256 rewardRate, uint256 lastUpdateTime, uint256 rewardPerTokenStored,) =
+            wberaHoneyAutoStaking.rewardData(address(ORI_BGT));
         assertGt(periodFinish, vm.getBlockTimestamp(), "Reward notification failed");
         // check reward data updated on notify
-        assertApproxEqAbs(rewardRate, rewardAmount * 99/100 / (30 days), tolerance); // 1% fee
+        assertApproxEqAbs(rewardRate, rewardAmount * 99 / 100 / (30 days), tolerance); // 1% fee
         assertEq(lastUpdateTime, vm.getBlockTimestamp());
         assertEq(periodFinish, vm.getBlockTimestamp() + 30 days);
         assertEq(rewardPerTokenStored, 0);
         // check balance transfer
-        assertApproxEqAbs(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), rewardAmount*99/100, tolerance); // 1% fee
+        assertApproxEqAbs(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), rewardAmount * 99 / 100, tolerance); // 1%
+        // fee
         assertEq(ORI_BGT.balanceOf(origamiMultisig), 0);
-        assertEq(wberaHoneyAutoStaking.totalUnclaimedRewards(address(ORI_BGT)), rewardAmount*99/100);
+        assertEq(wberaHoneyAutoStaking.totalUnclaimedRewards(address(ORI_BGT)), rewardAmount * 99 / 100);
     }
 
     function test_anonUserClaimsViaInfrared() public {
@@ -1035,18 +1022,18 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         skip(3 days);
 
         assertEq(IBGT.balanceOf(address(wberaHoneyAutoStaking)), 0);
-        assertEq(wberaHoneyAutoStaking.unharvestedRewards(address(IBGT)), 0.002040521969010900e18);
+        assertEq(wberaHoneyAutoStaking.unharvestedRewards(address(IBGT)), 0.0020405219690109e18);
         IR_WBERA_HONEY.getRewardForUser(address(wberaHoneyAutoStaking));
         uint256 ibgtEarned = IBGT.balanceOf(address(wberaHoneyAutoStaking));
-        assertEq(ibgtEarned, 0.002040521969010900e18);
+        assertEq(ibgtEarned, 0.0020405219690109e18);
         uint256 shares = getOriSharesAfterDeposit(ibgtEarned);
         assertEq(shares, 0.001952905594849359e18);
 
-        // Now harvest the vault 
+        // Now harvest the vault
         assertEq(wberaHoneyAutoStaking.unharvestedRewards(address(IBGT)), 0);
         wberaHoneyAutoStaking.harvestVault();
         assertEq(IBGT.balanceOf(address(wberaHoneyAutoStaking)), 0);
-        assertApproxEqAbs(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), shares*99/100, tolerance);
+        assertApproxEqAbs(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), shares * 99 / 100, tolerance);
     }
 
     function test_getRewardForUser_failure() public {
@@ -1057,11 +1044,11 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         wberaHoneyAutoStaking.harvestVault();
         assertEq(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), 0.135668134542432732e18);
         uint256 earned = wberaHoneyAutoStaking.earned(alice, address(ORI_BGT));
-        assertEq(earned, 0.001933376538900500e18);
+        assertEq(earned, 0.0019333765389005e18);
 
         // Deal one less than earned - that just gets skipped
-        deal(address(ORI_BGT), address(wberaHoneyAutoStaking), earned-1, true);
-        assertEq(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), earned-1);
+        deal(address(ORI_BGT), address(wberaHoneyAutoStaking), earned - 1, true);
+        assertEq(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), earned - 1);
         wberaHoneyAutoStaking.getRewardForUser(alice);
         assertEq(ORI_BGT.balanceOf(alice), 0);
     }
@@ -1084,9 +1071,9 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         IERC20(ORI_BGT).approve(address(wberaHoneyAutoStaking), boostedAmount);
 
         uint256 residual = rewardAmount % 30 days;
-        uint256 actualOribgtAdded = 1_046.493620815310496000e18;
+        uint256 actualOribgtAdded = 1046.493620815310496e18;
         assertApproxEqAbs(
-            (rewardAmount - residual)*99/100, // 1% fee
+            (rewardAmount - residual) * 99 / 100, // 1% fee
             actualOribgtAdded, // Slightly different due to rounding
             1e7
         );
@@ -1095,26 +1082,21 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
 
         wberaHoneyAutoStaking.notifyRewardAmount(address(ORI_BGT), boostedAmount);
 
-        (
-            ,
-            ,
-            uint256 periodFinish,
-            uint256 rewardRate,
-            uint256 lastUpdateTime,
-            uint256 rewardPerTokenStored,
-        ) = wberaHoneyAutoStaking.rewardData(address(ORI_BGT));
+        (,, uint256 periodFinish, uint256 rewardRate, uint256 lastUpdateTime, uint256 rewardPerTokenStored,) =
+            wberaHoneyAutoStaking.rewardData(address(ORI_BGT));
         assertGt(periodFinish, vm.getBlockTimestamp(), "Reward notification failed");
 
         // check reward data updated on notify
-        assertApproxEqAbs(rewardRate, rewardAmount * 99/100 / (30 days), tolerance); // 1% fee
+        assertApproxEqAbs(rewardRate, rewardAmount * 99 / 100 / (30 days), tolerance); // 1% fee
         assertEq(lastUpdateTime, vm.getBlockTimestamp());
         assertEq(periodFinish, vm.getBlockTimestamp() + 30 days);
         assertEq(rewardPerTokenStored, 0);
 
         // check balance transfer
-        assertApproxEqAbs(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), rewardAmount * 99/100, tolerance); // 1% fee
+        assertApproxEqAbs(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), rewardAmount * 99 / 100, tolerance); // 1%
+        // fee
         assertEq(ORI_BGT.balanceOf(origamiMultisig), 0);
-        assertEq(wberaHoneyAutoStaking.totalUnclaimedRewards(address(ORI_BGT)), rewardAmount * 99/100);
+        assertEq(wberaHoneyAutoStaking.totalUnclaimedRewards(address(ORI_BGT)), rewardAmount * 99 / 100);
     }
 
     function test_notifyRewardAmount_revertNotRewardToken() public virtual {
@@ -1149,7 +1131,7 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         uint256 vaultBalance = ORI_BGT.balanceOf(address(wberaHoneyAutoStaking));
         assertEq(vaultBalance, 0);
         uint256 ibgtEarned = IMultiRewards(IR_WBERA_HONEY).earned(address(wberaHoneyAutoStaking), address(IBGT));
-        assertEq(ibgtEarned, 0.002040521969010900e18);
+        assertEq(ibgtEarned, 0.0020405219690109e18);
         uint256 shares = getOriSharesAfterDeposit(ibgtEarned);
         assertEq(shares, 0.001952905594849359e18);
 
@@ -1166,13 +1148,13 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         assertEq(newOribgtTotalSupply, 1_411_172.744608520706548231e18, "OriBGT total supply should increase");
         assertEq(wberaHoneyAutoStaking.performanceFeeBps(address(ORI_BGT)), 100);
         assertEq(
-            (shares+boostAmount)*99/100, // 1% fee
+            (shares + boostAmount) * 99 / 100, // 1% fee
             newVaultBalance,
             "Vault OriBGT balance"
         );
         assertEq(IBGT.balanceOf(address(wberaHoneyAutoStaking)), 0);
     }
-    
+
     /*//////////////////////////////////////////////////////////////
                         getReward
     //////////////////////////////////////////////////////////////*/
@@ -1192,7 +1174,7 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         // Check user's rewards token balance
         assertApproxEqAbs(
             ORI_BGT.balanceOf(alice),
-            rewardsAmount*99/100, // 1% fee
+            rewardsAmount * 99 / 100, // 1% fee
             tolerance,
             "User should receive the rewards within tolerance"
         );
@@ -1233,7 +1215,7 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         // Check user's rewards token balance after second claim
         assertApproxEqAbs(
             ORI_BGT.balanceOf(alice),
-            rewardsAmount*99/100, // 1% fee
+            rewardsAmount * 99 / 100, // 1% fee
             tolerance,
             "User should receive the full rewards within tolerance after second claim"
         );
@@ -1242,7 +1224,11 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
 
     function test_getReward_multipleRewardTokens() public virtual {
         uint256 rewardsDuration = 30 days;
-        uint256 firstRewardAmount = setUpGetReward(50e18 /* iBGT */, rewardsDuration);
+        uint256 firstRewardAmount = setUpGetReward(
+            50e18,
+            /* iBGT */
+            rewardsDuration
+        );
 
         // Notify rewards for both tokens
         uint256 secondRewardAmount = 75e18;
@@ -1264,13 +1250,13 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         // Check user received rewards for both tokens
         assertApproxEqAbs(
             ORI_BGT.balanceOf(alice),
-            firstRewardAmount*99/100, // 1% fee
+            firstRewardAmount * 99 / 100, // 1% fee
             tolerance,
             "Incorrect first reward amount"
         );
         assertApproxEqAbs(
             OTHER_REWARD_TOKEN.balanceOf(alice),
-            secondRewardAmount*995/1000, // 0.5% fee
+            secondRewardAmount * 995 / 1000, // 0.5% fee
             tolerance,
             "Incorrect second reward amount"
         );
@@ -1287,7 +1273,7 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         // Check user's rewards token balance
         assertApproxEqAbs(
             ORI_BGT.balanceOf(alice),
-            rewardsAmount*99/100, // 1% fee
+            rewardsAmount * 99 / 100, // 1% fee
             tolerance,
             "User should receive the rewards within tolerance"
         );
@@ -1315,11 +1301,11 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         ohmHoneyAutoStaking.harvestVault();
         skip(1 days);
 
-        assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 138.311812904077418300e18);
-        assertEq(ohmHoneyAutoStaking.earned(alice, address(usdt)), 17.553031185108239900e18);
+        assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 138.3118129040774183e18);
+        assertEq(ohmHoneyAutoStaking.earned(alice, address(usdt)), 17.5530311851082399e18);
         ohmHoneyAutoStaking.getRewardForUser(alice);
-        assertEq(ORI_BGT.balanceOf(alice), 138.311812904077418300e18);
-        assertEq(usdt.balanceOf(alice), 17.553031185108239900e18);
+        assertEq(ORI_BGT.balanceOf(alice), 138.3118129040774183e18);
+        assertEq(usdt.balanceOf(alice), 17.5530311851082399e18);
     }
 
     function test_rewardTokenIsStakingToken() public {
@@ -1342,11 +1328,11 @@ contract OrigamiAutoStakingToErc4626Test_MultiAssetMode is OrigamiAutoStakingToE
         ohmHoneyAutoStaking.harvestVault();
         skip(1 days);
 
-        assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 138.311812904077418300e18);
-        assertEq(ohmHoneyAutoStaking.earned(alice, address(OHM_HONEY)), 17.553031185108239900e18);
+        assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 138.3118129040774183e18);
+        assertEq(ohmHoneyAutoStaking.earned(alice, address(OHM_HONEY)), 17.5530311851082399e18);
         ohmHoneyAutoStaking.getRewardForUser(alice);
-        assertEq(ORI_BGT.balanceOf(alice), 138.311812904077418300e18);
-        assertEq(OHM_HONEY.balanceOf(alice), 17.553031185108239900e18);
+        assertEq(ORI_BGT.balanceOf(alice), 138.3118129040774183e18);
+        assertEq(OHM_HONEY.balanceOf(alice), 17.5530311851082399e18);
     }
 }
 
@@ -1360,7 +1346,11 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
 
     function test_getReward_multipleRewardTokens() public override {
         uint256 rewardsDuration = 30 days;
-        uint256 firstRewardAmount = setUpGetReward(50e18 /* iBGT */, rewardsDuration);
+        uint256 firstRewardAmount = setUpGetReward(
+            50e18,
+            /* iBGT */
+            rewardsDuration
+        );
 
         // Notify rewards for the 'other' reward token
         uint256 secondRewardAmount = 75e18;
@@ -1382,7 +1372,7 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
         // Check user received rewards for only the pricipal token
         assertApproxEqAbs(
             ORI_BGT.balanceOf(alice),
-            firstRewardAmount*99/100, // 1% fee
+            firstRewardAmount * 99 / 100, // 1% fee
             tolerance,
             "Incorrect first reward amount"
         );
@@ -1400,17 +1390,25 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
         uint256 buyTokenAmount,
         uint256 minBuyAmount
     ) internal view returns (bytes memory) {
-        return abi.encode(IOrigamiSwapper.RouteDataWithCallback({
-            minBuyAmount: minBuyAmount,
-            router: address(router),
-            receiver: callbackHandler,
-            data: abi.encodeCall(DummyDexRouter.doExactSwap, (address(sellToken), sellAmount, address(buyToken), buyTokenAmount))
-        }));
+        return abi.encode(
+            IOrigamiSwapper.RouteDataWithCallback({
+                minBuyAmount: minBuyAmount,
+                router: address(router),
+                receiver: callbackHandler,
+                data: abi.encodeCall(
+                    DummyDexRouter.doExactSwap, (address(sellToken), sellAmount, address(buyToken), buyTokenAmount)
+                )
+            })
+        );
     }
 
     function test_swapCallback_success() public {
         uint256 rewardsDuration = 1 days;
-        uint256 firstRewardAmount = setUpGetReward(50e18 /* iBGT */, rewardsDuration);
+        uint256 firstRewardAmount = setUpGetReward(
+            50e18,
+            /* iBGT */
+            rewardsDuration
+        );
         assertEq(firstRewardAmount, 47.853213172490451944e18);
 
         // Notify rewards for the 'other' reward token
@@ -1433,14 +1431,7 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
                 OTHER_REWARD_TOKEN,
                 OTHER_REWARD_TOKEN.balanceOf(address(swapper)),
                 IBGT,
-                encodeSwap(
-                    address(wberaHoneyAutoStaking),
-                    OTHER_REWARD_TOKEN,
-                    IBGT,
-                    sellAmount,
-                    buyAmount,
-                    buyAmount
-                )
+                encodeSwap(address(wberaHoneyAutoStaking), OTHER_REWARD_TOKEN, IBGT, sellAmount, buyAmount, buyAmount)
             );
             assertEq(buyIbgtAmount, buyAmount);
         }
@@ -1454,11 +1445,7 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
         wberaHoneyAutoStaking.getReward();
 
         // Check user received rewards for only the pricipal token
-        assertApproxEqAbs(
-            ORI_BGT.balanceOf(alice),
-            (expectedOriBgtAmount + firstRewardAmount) * 99/100,
-            0.01e18
-        );
+        assertApproxEqAbs(ORI_BGT.balanceOf(alice), (expectedOriBgtAmount + firstRewardAmount) * 99 / 100, 0.01e18);
         assertEq(OTHER_REWARD_TOKEN.balanceOf(alice), 0);
 
         // Swapper doesn't have anything left
@@ -1546,13 +1533,13 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
             }
 
             skip(5 minutes);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 11.525984408673118100e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.999999999999999700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.749999999999999800e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 11.5259844086731181e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.9999999999999997e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.7499999999999998e18);
             ohmHoneyAutoStaking.getRewardForUser(alice);
-            assertEq(ORI_BGT.balanceOf(alice), 11.525984408673118100e18);
-            assertEq(rewardToken1.balanceOf(alice), 49.999999999999999700e18);
-            assertEq(rewardToken2.balanceOf(alice), 49.749999999999999800e18);
+            assertEq(ORI_BGT.balanceOf(alice), 11.5259844086731181e18);
+            assertEq(rewardToken1.balanceOf(alice), 49.9999999999999997e18);
+            assertEq(rewardToken2.balanceOf(alice), 49.7499999999999998e18);
 
             {
                 assertEq(IBGT.balanceOf(address(ohmHoneyAutoStaking)), 0);
@@ -1561,10 +1548,10 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
                 assertEq(ORI_BGT.balanceOf(address(ohmHoneyAutoStaking)), 23.274343825222669504e18);
                 assertEq(ORI_BGT.balanceOf(feeCollector), 0.232848169872184207e18);
                 assertEq(ORI_BGT.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.999999999999999700e18);
+                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.9999999999999997e18);
                 assertEq(rewardToken1.balanceOf(feeCollector), 0);
                 assertEq(rewardToken1.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 99.5e18 - 49.749999999999999800e18);
+                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 99.5e18 - 49.7499999999999998e18);
                 assertEq(rewardToken2.balanceOf(feeCollector), 0.5e18);
                 assertEq(rewardToken2.balanceOf(address(swapper)), 0);
             }
@@ -1580,7 +1567,7 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
 
             // Notify some more and skip another 5 mins
             ohmHoneyAutoStaking.harvestVault();
-            
+
             {
                 assertEq(IBGT.balanceOf(address(ohmHoneyAutoStaking)), 0);
                 assertEq(IBGT.balanceOf(feeCollector), 0);
@@ -1588,10 +1575,10 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
                 assertEq(ORI_BGT.balanceOf(address(ohmHoneyAutoStaking)), 23.156860231057173992e18);
                 assertEq(ORI_BGT.balanceOf(feeCollector), 0.350331764037679719e18);
                 assertEq(ORI_BGT.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.999999999999999700e18);
+                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.9999999999999997e18);
                 assertEq(rewardToken1.balanceOf(feeCollector), 0);
                 assertEq(rewardToken1.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.749999999999999800e18 - 0.5e18);
+                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.7499999999999998e18 - 0.5e18);
                 assertEq(rewardToken2.balanceOf(feeCollector), 0.5e18);
                 assertEq(rewardToken2.balanceOf(address(swapper)), 0);
             }
@@ -1608,24 +1595,24 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
                 assertEq(ORI_BGT.balanceOf(address(ohmHoneyAutoStaking)), 23.156860231057173992e18);
                 assertEq(ORI_BGT.balanceOf(feeCollector), 0.350331764037679719e18);
                 assertEq(ORI_BGT.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.999999999999999700e18);
+                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.9999999999999997e18);
                 assertEq(rewardToken1.balanceOf(feeCollector), 0);
                 assertEq(rewardToken1.balanceOf(address(swapper)), 100e18);
-                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.749999999999999800e18 - 0.5e18);
+                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.7499999999999998e18 - 0.5e18);
                 assertEq(rewardToken2.balanceOf(feeCollector), 0.5e18);
                 assertEq(rewardToken2.balanceOf(address(swapper)), 100e18);
             }
 
             // Rewards that have already been notified are still received by the user until
             // the duration of the period
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 11.578430115528586700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.999999999999999700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.749999999999999800e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 11.5784301155285867e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.9999999999999997e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.7499999999999998e18);
 
             skip(5 minutes);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 23.156860231057173500e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.999999999999999700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.749999999999999800e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 23.1568602310571735e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.9999999999999997e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.7499999999999998e18);
 
             // Execute the swaps -- oriBGT increases a lot from the 2x100 new iBGT
             executeSwap(rewardToken1);
@@ -1639,27 +1626,27 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
                 assertEq(ORI_BGT.balanceOf(address(ohmHoneyAutoStaking)), 235.991790880958134193e18);
                 assertEq(ORI_BGT.balanceOf(feeCollector), 2.500179548380113661e18);
                 assertEq(ORI_BGT.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.999999999999999700e18);
+                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.9999999999999997e18);
                 assertEq(rewardToken1.balanceOf(feeCollector), 0);
                 assertEq(rewardToken1.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.749999999999999800e18 - 0.5e18);
+                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 - 49.7499999999999998e18 - 0.5e18);
                 assertEq(rewardToken2.balanceOf(feeCollector), 0.5e18);
                 assertEq(rewardToken2.balanceOf(address(swapper)), 0);
             }
 
             skip(10 minutes);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 235.991790880958133400e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.999999999999999700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.749999999999999800e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 235.9917908809581334e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.9999999999999997e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.7499999999999998e18);
         }
 
         // Switch back to multi-mode
         {
             vm.startPrank(origamiMultisig);
             ohmHoneyAutoStaking.setSwapper(address(0));
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 235.991790880958133400e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.999999999999999700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.749999999999999800e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 235.9917908809581334e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 49.9999999999999997e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 49.7499999999999998e18);
 
             // Notify some more and skip another 5 mins
             ohmHoneyAutoStaking.harvestVault();
@@ -1674,22 +1661,25 @@ contract OrigamiAutoStakingToErc4626Test_SingleAssetMode is OrigamiAutoStakingTo
                 assertEq(ORI_BGT.balanceOf(address(ohmHoneyAutoStaking)), 259.501320384130298598e18);
                 assertEq(ORI_BGT.balanceOf(feeCollector), 2.737649543361650676e18);
                 assertEq(ORI_BGT.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 + 100e18 - 49.999999999999999700e18);
+                assertEq(rewardToken1.balanceOf(address(ohmHoneyAutoStaking)), 100e18 + 100e18 - 49.9999999999999997e18);
                 assertEq(rewardToken1.balanceOf(feeCollector), 0);
                 assertEq(rewardToken1.balanceOf(address(swapper)), 0);
-                assertEq(rewardToken2.balanceOf(address(ohmHoneyAutoStaking)), 100e18 + 100e18 - 49.749999999999999800e18 - 1e18);
+                assertEq(
+                    rewardToken2.balanceOf(address(ohmHoneyAutoStaking)),
+                    100e18 + 100e18 - 49.7499999999999998e18 - 1e18
+                );
                 assertEq(rewardToken2.balanceOf(feeCollector), 1e18);
                 assertEq(rewardToken2.balanceOf(address(swapper)), 0);
             }
 
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 247.746555632544215700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 99.999999999999999700e18);
-            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 99.499999999999999600e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(ORI_BGT)), 247.7465556325442157e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken1)), 99.9999999999999997e18);
+            assertEq(ohmHoneyAutoStaking.earned(alice, address(rewardToken2)), 99.4999999999999996e18);
 
             ohmHoneyAutoStaking.getRewardForUser(alice);
-            assertEq(ORI_BGT.balanceOf(alice), 11.525984408673118100e18 + 247.746555632544215700e18);
-            assertEq(rewardToken1.balanceOf(alice), 49.999999999999999700e18 + 99.999999999999999700e18);
-            assertEq(rewardToken2.balanceOf(alice), 49.749999999999999800e18 + 99.499999999999999600e18);
+            assertEq(ORI_BGT.balanceOf(alice), 11.5259844086731181e18 + 247.7465556325442157e18);
+            assertEq(rewardToken1.balanceOf(alice), 49.9999999999999997e18 + 99.9999999999999997e18);
+            assertEq(rewardToken2.balanceOf(alice), 49.7499999999999998e18 + 99.4999999999999996e18);
         }
     }
 }
@@ -1733,16 +1723,16 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         deal(address(OTHER_REWARD_TOKEN), infrared, 100e18);
         OTHER_REWARD_TOKEN.approve(address(IR_OHM_HONEY), 100e18);
         IR_OHM_HONEY.notifyRewardAmount(address(OTHER_REWARD_TOKEN), 100e18);
-        skip(1 days/2);
-        
+        skip(1 days / 2);
+
         uint256 underlyingBalance = IR_OHM_HONEY.balanceOf(address(ohmHoneyAutoStaking));
         assertEq(underlyingBalance, 100e18);
         uint256 underlyingTotalSupply = IR_OHM_HONEY.totalSupply();
         assertEq(underlyingTotalSupply, 564.005150768431931108e18);
-        
+
         // Earned proportional rewards for 50% of the period
         uint256 earned = IR_OHM_HONEY.earned(address(ohmHoneyAutoStaking), address(OTHER_REWARD_TOKEN));
-        assertApproxEqAbs(earned, underlyingBalance*100e18/underlyingTotalSupply/2, tolerance);
+        assertApproxEqAbs(earned, underlyingBalance * 100e18 / underlyingTotalSupply / 2, tolerance);
         assertEq(ohmHoneyAutoStaking.unharvestedRewards(address(OTHER_REWARD_TOKEN)), earned);
     }
 
@@ -1792,16 +1782,16 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         // Get all rewards for user
         IOrigamiAutoStaking.TokenAndAmount[] memory rewards = ohmHoneyAutoStaking.getAllRewardsForUser(bob);
         assertEq(rewards.length, 2, "Should have 2 reward tokens");
-        assertEq(rewards[0].amount, 94.749362081531094500e18, "User should have rewards for InfraredBGT");
+        assertEq(rewards[0].amount, 94.7493620815310945e18, "User should have rewards for InfraredBGT");
         assertEq(rewards[0].token, address(ORI_BGT), "User should have rewards for rewardToken");
 
-        assertEq(rewards[1].amount, 994.999999999999999700e18, "User should have rewards for rewardToken");
+        assertEq(rewards[1].amount, 994.9999999999999997e18, "User should have rewards for rewardToken");
         assertEq(rewards[1].token, address(OTHER_REWARD_TOKEN), "User should have rewards for rewardToken");
 
-        assertEq(ohmHoneyAutoStaking.getRewardForDuration(address(ORI_BGT)), 94.749362081531094600e18);
-        assertEq(ohmHoneyAutoStaking.getRewardForDuration(address(OTHER_REWARD_TOKEN)), 994.999999999999999800e18);
-        assertEq(ohmHoneyAutoStaking.lastTimeRewardApplicable(address(ORI_BGT)), 1743447424);
-        assertEq(ohmHoneyAutoStaking.lastTimeRewardApplicable(address(OTHER_REWARD_TOKEN)), 1743447424);
+        assertEq(ohmHoneyAutoStaking.getRewardForDuration(address(ORI_BGT)), 94.7493620815310946e18);
+        assertEq(ohmHoneyAutoStaking.getRewardForDuration(address(OTHER_REWARD_TOKEN)), 994.9999999999999998e18);
+        assertEq(ohmHoneyAutoStaking.lastTimeRewardApplicable(address(ORI_BGT)), 1_743_447_424);
+        assertEq(ohmHoneyAutoStaking.lastTimeRewardApplicable(address(OTHER_REWARD_TOKEN)), 1_743_447_424);
     }
 
     function test_getAllRewardsForUser_onlyOneRewardToken() public {
@@ -1826,15 +1816,15 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         // get rewards for alice
         IOrigamiAutoStaking.TokenAndAmount[] memory user2Rewards = ohmHoneyAutoStaking.getAllRewardsForUser(alice);
         assertEq(user2Rewards.length, 1, "Should have 1 reward token");
-        assertEq(user2Rewards[0].amount, 69.155906464191322400e18, "User should have rewards for OriBGT");
+        assertEq(user2Rewards[0].amount, 69.1559064641913224e18, "User should have rewards for OriBGT");
         assertEq(user2Rewards[0].token, address(ORI_BGT), "User should have rewards for OriBGT");
 
         // get rewards for bob and verify amount is greater
         IOrigamiAutoStaking.TokenAndAmount[] memory userRewards = ohmHoneyAutoStaking.getAllRewardsForUser(bob);
         assertEq(userRewards.length, 2, "Should have 2 reward tokens");
-        assertEq(userRewards[0].amount, 163.905268545722416900e18, "User should have rewards for OriBGT");
+        assertEq(userRewards[0].amount, 163.9052685457224169e18, "User should have rewards for OriBGT");
         assertEq(userRewards[0].token, address(ORI_BGT), "User should have rewards for OriBGT");
-        assertEq(userRewards[1].amount, 994.999999999999999700e18, "User should have rewards for other rewward token");
+        assertEq(userRewards[1].amount, 994.9999999999999997e18, "User should have rewards for other rewward token");
         assertEq(userRewards[1].token, address(OTHER_REWARD_TOKEN), "User should have rewards for other rewward token");
     }
 
@@ -1849,8 +1839,7 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         vm.stopPrank();
 
         // Get all rewards for user with no stake
-        IOrigamiAutoStaking.TokenAndAmount[] memory rewards =
-            ohmHoneyAutoStaking.getAllRewardsForUser(bob);
+        IOrigamiAutoStaking.TokenAndAmount[] memory rewards = ohmHoneyAutoStaking.getAllRewardsForUser(bob);
 
         assertEq(rewards.length, 0);
     }
@@ -1871,9 +1860,7 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         IERC20 rewardsToken = ORI_BGT;
 
         vm.startPrank(origamiMultisig);
-        ohmHoneyAutoStaking.updateRewardsDuration(
-            address(rewardsToken), rewardDuration
-        );
+        ohmHoneyAutoStaking.updateRewardsDuration(address(rewardsToken), rewardDuration);
         vm.stopPrank();
 
         // User stakes
@@ -1911,9 +1898,7 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         deal(address(rewardsToken), origamiMultisig, additionalRewardAmount);
         vm.startPrank(origamiMultisig);
         rewardsToken.approve(address(ohmHoneyAutoStaking), additionalRewardAmount);
-        ohmHoneyAutoStaking.notifyRewardAmount(
-            address(rewardsToken), additionalRewardAmount
-        );
+        ohmHoneyAutoStaking.notifyRewardAmount(address(rewardsToken), additionalRewardAmount);
         vm.stopPrank();
 
         // Skip time again
@@ -1949,7 +1934,7 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         stakeOnBehalfOf(ohmHoneyAutoStaking, address(stakingToken), alice, 1e18);
 
         // Check total supply
-        assertEq(ohmHoneyAutoStaking.totalSupply(), 1e18+1);
+        assertEq(ohmHoneyAutoStaking.totalSupply(), 1e18 + 1);
 
         // Simulate time passage
         skip(60);
@@ -1957,23 +1942,22 @@ contract OrigamiAutoStakingToErc4626Test_Views is OrigamiAutoStakingToErc4626Tes
         // Verify reward per token for rewardToken
         // NB: -48 rounding for rewardResidual in `_notifyRewardAmount()`
         uint256 expectedRewards = uint256(100e18) * 60 / 3600;
-        assertEq(ohmHoneyAutoStaking.rewardPerToken(address(HONEY)), expectedRewards*999/1000 - 1);
+        assertEq(ohmHoneyAutoStaking.rewardPerToken(address(HONEY)), expectedRewards * 999 / 1000 - 1);
         assertEq(ohmHoneyAutoStaking.rewardPerToken(address(WBERA)), expectedRewards - 48);
-        assertEq(ohmHoneyAutoStaking.rewardPerToken(address(USDC)), expectedRewards*997/1000 - 28);
+        assertEq(ohmHoneyAutoStaking.rewardPerToken(address(USDC)), expectedRewards * 997 / 1000 - 28);
 
         // Verify earnings for Alice
-        assertEq(ohmHoneyAutoStaking.earned(alice, address(HONEY)), expectedRewards*999/1000 - 1);
+        assertEq(ohmHoneyAutoStaking.earned(alice, address(HONEY)), expectedRewards * 999 / 1000 - 1);
         assertEq(ohmHoneyAutoStaking.earned(alice, address(WBERA)), expectedRewards - 48);
-        assertEq(ohmHoneyAutoStaking.earned(alice, address(USDC)), expectedRewards*997/1000 - 28);
+        assertEq(ohmHoneyAutoStaking.earned(alice, address(USDC)), expectedRewards * 997 / 1000 - 28);
 
         vm.prank(alice);
         ohmHoneyAutoStaking.getReward();
 
-        assertEq(HONEY.balanceOf(alice), expectedRewards*999/1000 - 1);
+        assertEq(HONEY.balanceOf(alice), expectedRewards * 999 / 1000 - 1);
         assertEq(WBERA.balanceOf(alice), expectedRewards - 48);
-        assertEq(USDC.balanceOf(alice), expectedRewards*997/1000 - 28);
+        assertEq(USDC.balanceOf(alice), expectedRewards * 997 / 1000 - 28);
     }
-
 }
 
 contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc4626TestBase {
@@ -2010,7 +1994,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
 
         // Check total supply in the infraredVault
         uint256 totalSupply = IR_WBERA_HONEY.totalSupply();
-        assertEq(totalSupply, irVaultTotalSupply+stakeAmount, "Total supply should be updated");
+        assertEq(totalSupply, irVaultTotalSupply + stakeAmount, "Total supply should be updated");
 
         // Check staking token staked in infrared vault
         assertEq(IR_WBERA_HONEY.balanceOf(address(wberaHoneyAutoStaking)), stakeAmount);
@@ -2036,7 +2020,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         // Pass time to earn some ibgt rewards
         skip(7 days);
         earned = IR_WBERA_HONEY.earned(address(wberaHoneyAutoStaking), address(IBGT));
-        assertEq(earned, 0.002040521969010900e18, "Earned ibgt increased");
+        assertEq(earned, 0.0020405219690109e18, "Earned ibgt increased");
         uint256 shares = getOriSharesAfterDeposit(earned);
 
         // Stake again. This time, there is a claimable ibgt amount
@@ -2055,7 +2039,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         wberaHoneyAutoStaking.harvestVault();
         assertEq(
             wberaHoneyAutoStaking.totalUnclaimedRewards(address(ORI_BGT)),
-            shares*99/100,
+            shares * 99 / 100,
             "Total Unclaimed Rewards is updated"
         );
     }
@@ -2081,7 +2065,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         // Pass time to earn some ibgt rewards
         skip(7 days);
         earned = IR_WBERA_HONEY.earned(address(wberaHoneyAutoStaking), address(IBGT));
-        assertEq(earned, 0.002040521969010900e18, "Earned ibgt increased");
+        assertEq(earned, 0.0020405219690109e18, "Earned ibgt increased");
 
         // Stake again.
         // No claimable ibgt amount as `postProcessingDisabled=true`
@@ -2096,7 +2080,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
     function test_onWithdraw_paused() public {
         vm.startPrank(origamiMultisig);
         wberaHoneyAutoStaking.setPaused(false, true, false);
-        
+
         vm.startPrank(alice);
         deal(address(WBERA_HONEY), alice, 100e18);
         WBERA_HONEY.approve(address(wberaHoneyAutoStaking), 100e18);
@@ -2148,9 +2132,8 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         {
             address owner = OrigamiDelegated4626Vault(address(ORI_BGT)).owner();
             vm.startPrank(owner);
-            IOrigamiManagerPausable manager = IOrigamiManagerPausable(
-                OrigamiDelegated4626Vault(address(ORI_BGT)).manager()
-            );
+            IOrigamiManagerPausable manager =
+                IOrigamiManagerPausable(OrigamiDelegated4626Vault(address(ORI_BGT)).manager());
             manager.setPauser(owner, true);
             manager.setPaused(IOrigamiManagerPausable.Paused(true, true));
         }
@@ -2205,16 +2188,16 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         wberaHoneyAutoStaking.harvestVault();
         assertEq(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), 0.135668134542432732e18);
         uint256 earned = wberaHoneyAutoStaking.earned(alice, address(ORI_BGT));
-        assertEq(earned, 0.001933376538900500e18);
+        assertEq(earned, 0.0019333765389005e18);
 
         wberaHoneyAutoStaking.getReward();
-        assertEq(ORI_BGT.balanceOf(address(alice)), 0.001933376538900500e18);
+        assertEq(ORI_BGT.balanceOf(address(alice)), 0.0019333765389005e18);
     }
 
     function test_onReward_paused() public {
         vm.startPrank(origamiMultisig);
         wberaHoneyAutoStaking.setPaused(false, false, true);
-        
+
         vm.startPrank(alice);
         deal(address(WBERA_HONEY), alice, 100e18);
         WBERA_HONEY.approve(address(wberaHoneyAutoStaking), 100e18);
@@ -2239,7 +2222,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         uint256 shares = getOriSharesAfterDeposit(earned);
         assertEq(ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)), 0.001933376538900865e18);
         uint256 aliceEarnedOriBGT = wberaHoneyAutoStaking.earned(alice, address(ORI_BGT));
-        assertEq(aliceEarnedOriBGT, 0.001933376538900500e18);
+        assertEq(aliceEarnedOriBGT, 0.0019333765389005e18);
 
         // User withdraws staked amount
         vm.startPrank(alice);
@@ -2265,7 +2248,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         wberaHoneyAutoStaking.harvestVault();
         assertEq(
             ORI_BGT.balanceOf(address(wberaHoneyAutoStaking)),
-            shares*99/100, // 1% fee
+            shares * 99 / 100, // 1% fee
             "Shares of vault after harvest is as calculated"
         );
     }
@@ -2295,7 +2278,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         uint256 vaultBalance = ORI_BGT.balanceOf(address(wberaHoneyAutoStaking));
         assertEq(vaultBalance, 0);
         uint256 ibgtEarned = wberaHoneyAutoStaking.unharvestedRewards(address(IBGT));
-        assertEq(ibgtEarned, 0.002040521969010900e18);
+        assertEq(ibgtEarned, 0.0020405219690109e18);
         uint256 shares = getOriSharesAfterDeposit(ibgtEarned);
         assertEq(shares, 0.001952905594849359e18);
 
@@ -2308,7 +2291,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         assertEq(newVaultBalance, 0.001933376538900865e18, "OriBGT balance of vault should increase");
         assertEq(newOribgtTotalSupply, 1_411_172.744608520706548231e18, "OriBGT total supply should increase");
         assertEq(
-            shares * 99/100, // 1% fee
+            shares * 99 / 100, // 1% fee
             newVaultBalance,
             "Vault OriBGT balance"
         );
@@ -2321,7 +2304,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         stakeOnBehalfOf(wberaHoneyAutoStaking, address(WBERA_HONEY), alice, 100e18);
         uint256 irVaultTotalSupply = IR_WBERA_HONEY.totalSupply();
 
-        // User withdraws partial amount 
+        // User withdraws partial amount
         vm.startPrank(alice);
         vm.expectEmit(address(IR_WBERA_HONEY));
         emit IMultiRewards.Withdrawn(address(wberaHoneyAutoStaking), 50e18);
@@ -2331,7 +2314,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
 
         // Check balances
         assertEq(50e18, userBalance);
-        assertEq(irVaultNewTotalSupply, irVaultTotalSupply-50e18);
+        assertEq(irVaultNewTotalSupply, irVaultTotalSupply - 50e18);
         assertEq(WBERA_HONEY.balanceOf(address(wberaHoneyAutoStaking)), 0);
 
         // User withdraws remaining staked
@@ -2339,8 +2322,7 @@ contract OrigamiAutoStakingToErc4626Test_Callbacks is OrigamiAutoStakingToErc462
         userBalance = WBERA_HONEY.balanceOf(alice);
         irVaultNewTotalSupply = IR_WBERA_HONEY.totalSupply();
         assertEq(100e18, userBalance);
-        assertEq(irVaultNewTotalSupply, irVaultTotalSupply-100e18);
+        assertEq(irVaultNewTotalSupply, irVaultTotalSupply - 100e18);
         assertEq(WBERA_HONEY.balanceOf(address(wberaHoneyAutoStaking)), 0);
     }
-
 }

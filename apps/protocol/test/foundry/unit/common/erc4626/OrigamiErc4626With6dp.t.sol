@@ -8,7 +8,9 @@ import { IERC4626 } from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import { IERC165 } from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import { EIP712 } from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import { IOrigamiInvestment } from "contracts/interfaces/investments/IOrigamiInvestment.sol";
+import {
+    ITokenizedBalanceSheetVault
+} from "contracts/interfaces/external/tokenizedBalanceSheetVault/ITokenizedBalanceSheetVault.sol";
 import { CommonEventsAndErrors } from "contracts/libraries/CommonEventsAndErrors.sol";
 import { MockErc4626VaultWithFees } from "test/foundry/mocks/common/erc4626/MockErc4626VaultWithFees.m.sol";
 import { OrigamiMath } from "contracts/libraries/OrigamiMath.sol";
@@ -32,17 +34,10 @@ contract OrigamiErc4626With6dpTestBase is OrigamiTest {
 
     function setUp() public {
         asset = new DummyMintableToken(origamiMultisig, "UNDERLYING", "UDLY", 6);
-        vault = new MockErc4626VaultWithFees(
-            origamiMultisig, 
-            "VAULT",
-            "VLT",
-            asset,
-            DEPOSIT_FEE,
-            WITHDRAWAL_FEE
-        );
+        vault = new MockErc4626VaultWithFees(origamiMultisig, "VAULT", "VLT", asset, DEPOSIT_FEE, WITHDRAWAL_FEE);
         seedDeposit(origamiMultisig, SEED_DEPOSIT_SIZE, MAX_TOTAL_SUPPLY);
 
-        vm.warp(100000000);
+        vm.warp(100_000_000);
     }
 
     function seedDeposit(address account, uint256 amount, uint256 maxSupply) internal {
@@ -61,8 +56,8 @@ contract OrigamiErc4626With6dpTestBase is OrigamiTest {
 
         vm.expectEmit(address(vault));
         emit InKindFees(
-            IOrigamiErc4626.FeeType.DEPOSIT_FEE, 
-            DEPOSIT_FEE, 
+            IOrigamiErc4626.FeeType.DEPOSIT_FEE,
+            DEPOSIT_FEE,
             expectedShares.inverseSubtractBps(DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP) - expectedShares
         );
         vm.expectEmit(address(vault));
@@ -81,8 +76,8 @@ contract OrigamiErc4626With6dpTestBase is OrigamiTest {
 
         vm.expectEmit(address(vault));
         emit InKindFees(
-            IOrigamiErc4626.FeeType.DEPOSIT_FEE, 
-            DEPOSIT_FEE, 
+            IOrigamiErc4626.FeeType.DEPOSIT_FEE,
+            DEPOSIT_FEE,
             shares.inverseSubtractBps(DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP) - shares
         );
         vm.expectEmit(address(vault));
@@ -138,14 +133,7 @@ contract OrigamiErc4626With6dpTestAdmin is OrigamiErc4626With6dpTestBase {
     function test_fail_constructor() public {
         asset = new DummyMintableToken(origamiMultisig, "UNDERLYING", "UDLY", 30);
         vm.expectRevert(abi.encodeWithSelector(CommonEventsAndErrors.InvalidToken.selector, address(asset)));
-        vault = new MockErc4626VaultWithFees(
-            origamiMultisig, 
-            "VAULT",
-            "VLT",
-            asset,
-            DEPOSIT_FEE,
-            WITHDRAWAL_FEE
-        );
+        vault = new MockErc4626VaultWithFees(origamiMultisig, "VAULT", "VLT", asset, DEPOSIT_FEE, WITHDRAWAL_FEE);
     }
 
     function test_initialization() public view {
@@ -181,7 +169,7 @@ contract OrigamiErc4626With6dpTestAdmin is OrigamiErc4626With6dpTestBase {
         assertEq(vault.supportsInterface(type(IERC20Permit).interfaceId), true);
         assertEq(vault.supportsInterface(type(EIP712).interfaceId), true);
         assertEq(vault.supportsInterface(type(IERC165).interfaceId), true);
-        assertEq(vault.supportsInterface(type(IOrigamiInvestment).interfaceId), false);
+        assertEq(vault.supportsInterface(type(ITokenizedBalanceSheetVault).interfaceId), false);
     }
 
     function test_recoverToken_failure() public {
@@ -200,7 +188,6 @@ contract OrigamiErc4626With6dpTestAdmin is OrigamiErc4626With6dpTestBase {
     }
 }
 
-
 contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
     using OrigamiMath for uint256;
 
@@ -209,8 +196,8 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 123e6 + 0.1e6);
-        assertEq(vault.balanceOf(alice), 121.773081119188808110e18);
-        assertEq(vault.totalSupply(), 121.872581119188808110e18);
+        assertEq(vault.balanceOf(alice), 121.77308111918880811e18);
+        assertEq(vault.totalSupply(), 121.87258111918880811e18);
         assertEq(vault.totalAssets(), 123e6 + 0.1e6);
     }
 
@@ -221,18 +208,18 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
 
         assertEq(asset.balanceOf(alice), 0);
         assertEq(asset.balanceOf(address(vault)), 223e6 + 0.1e6);
-        assertEq(vault.balanceOf(alice), 121.773081119188808110e18);
-        assertEq(vault.totalSupply(), 121.872581119188808110e18);
+        assertEq(vault.balanceOf(alice), 121.77308111918880811e18);
+        assertEq(vault.totalSupply(), 121.87258111918880811e18);
         assertEq(vault.totalAssets(), 223e6 + 0.1e6);
         assertEq(vault.convertToShares(1e6), 0.546268855100492841e18);
-        assertEq(vault.convertToAssets(1e18), 1.830600e6);
+        assertEq(vault.convertToAssets(1e18), 1.8306e6);
     }
 
     function test_deposit_afterShareIncrease() public {
         deposit(bob, 100e6);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.900109037918630450e18);
+        assertEq(vault.convertToShares(1e6), 0.90010903791863045e18);
         assertEq(vault.convertToAssets(1e18), 1.110976e6);
 
         assertEq(vault.maxDeposit(alice), 111_655_820.271738e6);
@@ -246,17 +233,19 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
         assertEq(vault.totalAssets(), 233e6 + 0.1e6);
 
         // Deposit fees continue to help the share price
-        assertEq(vault.convertToShares(1e6), 0.897734232873820700e18);
+        assertEq(vault.convertToShares(1e6), 0.8977342328738207e18);
         assertEq(vault.convertToAssets(1e18), 1.113915e6);
 
         uint256 _max = vault.maxDeposit(alice);
 
         // Can't deposit more.
         {
-            deal(address(asset), alice, _max+1);
-            asset.approve(address(vault), _max+1);
-            vm.expectRevert(abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxDeposit.selector, alice, _max+1, _max));
-            vault.deposit(_max+1, alice);
+            deal(address(asset), alice, _max + 1);
+            asset.approve(address(vault), _max + 1);
+            vm.expectRevert(
+                abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxDeposit.selector, alice, _max + 1, _max)
+            );
+            vault.deposit(_max + 1, alice);
         }
 
         deposit(alice, _max);
@@ -273,8 +262,8 @@ contract OrigamiErc4626With6dpTestDeposit is OrigamiErc4626With6dpTestBase {
 
         vm.expectEmit(address(vault));
         emit InKindFees(
-            IOrigamiErc4626.FeeType.DEPOSIT_FEE, 
-            DEPOSIT_FEE, 
+            IOrigamiErc4626.FeeType.DEPOSIT_FEE,
+            DEPOSIT_FEE,
             expectedShares.inverseSubtractBps(DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP) - expectedShares
         );
         vm.expectEmit(address(vault));
@@ -339,11 +328,13 @@ contract OrigamiErc4626With6dpTestMint is OrigamiErc4626With6dpTestBase {
 
         // Can't mint more.
         {
-            uint256 expectedAssets = vault.previewMint(_max+1);
+            uint256 expectedAssets = vault.previewMint(_max + 1);
             deal(address(asset), alice, expectedAssets);
             asset.approve(address(vault), expectedAssets);
-            vm.expectRevert(abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxMint.selector, alice, _max+1, _max));
-            vault.mint(_max+1, alice);
+            vm.expectRevert(
+                abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxMint.selector, alice, _max + 1, _max)
+            );
+            vault.mint(_max + 1, alice);
         }
 
         mint(alice, _max);
@@ -360,8 +351,8 @@ contract OrigamiErc4626With6dpTestMint is OrigamiErc4626With6dpTestBase {
 
         vm.expectEmit(address(vault));
         emit InKindFees(
-            IOrigamiErc4626.FeeType.DEPOSIT_FEE, 
-            DEPOSIT_FEE, 
+            IOrigamiErc4626.FeeType.DEPOSIT_FEE,
+            DEPOSIT_FEE,
             shares.inverseSubtractBps(DEPOSIT_FEE, OrigamiMath.Rounding.ROUND_UP) - shares
         );
         vm.expectEmit(address(vault));
@@ -409,7 +400,7 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
         deposit(alice, 100e6);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.900109037918630450e18);
+        assertEq(vault.convertToShares(1e6), 0.90010903791863045e18);
         assertEq(vault.convertToAssets(1e18), 1.110976e6);
 
         assertEq(vault.maxWithdraw(alice), 107.789668e6);
@@ -432,8 +423,10 @@ contract OrigamiErc4626With6dpTestWithdraw is OrigamiErc4626With6dpTestBase {
 
         // Can't withdraw more
         {
-            vm.expectRevert(abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxWithdraw.selector, alice, _max+1, _max));
-            vault.withdraw(_max+1, alice, alice);
+            vm.expectRevert(
+                abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxWithdraw.selector, alice, _max + 1, _max)
+            );
+            vault.withdraw(_max + 1, alice, alice);
         }
 
         // Because of the dp difference, there's (diminishing) dust on each maxWithdraw.
@@ -517,8 +510,8 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
 
         assertEq(asset.balanceOf(alice), 49.493495e6);
         assertEq(asset.balanceOf(address(vault)), 73.606505e6);
-        assertEq(vault.balanceOf(alice), 71.773081119188808110e18);
-        assertEq(vault.totalSupply(), 71.872581119188808110e18);
+        assertEq(vault.balanceOf(alice), 71.77308111918880811e18);
+        assertEq(vault.totalSupply(), 71.87258111918880811e18);
         assertEq(vault.totalAssets(), 73.606505e6);
     }
 
@@ -530,8 +523,8 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
 
         assertEq(asset.balanceOf(alice), 49.493495e6);
         assertEq(asset.balanceOf(address(vault)), 173.606505e6);
-        assertEq(vault.balanceOf(alice), 71.773081119188808110e18);
-        assertEq(vault.totalSupply(), 71.872581119188808110e18);
+        assertEq(vault.balanceOf(alice), 71.77308111918880811e18);
+        assertEq(vault.totalSupply(), 71.87258111918880811e18);
         assertEq(vault.totalAssets(), 173.606505e6);
         assertEq(vault.convertToShares(1e6), 0.413997054460555804e18);
         assertEq(vault.convertToAssets(1e18), 2.415476e6);
@@ -541,7 +534,7 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
         deposit(alice, 100e6);
 
         addToSharePrice(10e6); // 10% increase
-        assertEq(vault.convertToShares(1e6), 0.900109037918630450e18);
+        assertEq(vault.convertToShares(1e6), 0.90010903791863045e18);
         assertEq(vault.convertToAssets(1e18), 1.110976e6);
 
         assertEq(vault.maxWithdraw(alice), 107.789668e6);
@@ -562,8 +555,10 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
 
         // Can't redeem more.
         {
-            vm.expectRevert(abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxRedeem.selector, alice, _max+1, _max));
-            vault.redeem(_max+1, alice, alice);
+            vm.expectRevert(
+                abi.encodeWithSelector(IOrigamiErc4626.ERC4626ExceededMaxRedeem.selector, alice, _max + 1, _max)
+            );
+            vault.redeem(_max + 1, alice, alice);
         }
 
         redeem(alice, _max);
@@ -637,7 +632,7 @@ contract OrigamiErc4626With6dpTestRedeem is OrigamiErc4626With6dpTestBase {
 contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
     function test_erc4626_donationAttack_noFees_6dp() public {
         vault = new MockErc4626VaultWithFees(
-            origamiMultisig, 
+            origamiMultisig,
             "VAULT",
             "VLT",
             asset,
@@ -645,12 +640,12 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
             0 // WITHDRAWAL_FEE
         );
         seedDeposit(origamiMultisig, SEED_DEPOSIT_SIZE, MAX_TOTAL_SUPPLY);
-        vm.warp(100000000);
+        vm.warp(100_000_000);
 
         // declarations
         address attacker = makeAddr("atacker");
         uint256 initialAttackerAssets = 50_000e6;
-        
+
         // preparations & context
         deal(address(asset), alice, 7000e6);
         deal(address(asset), attacker, initialAttackerAssets);
@@ -661,15 +656,15 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
         vm.prank(attacker);
         asset.approve(address(vault), type(uint256).max);
 
-        // The attempted attack beings. The attacker must be the first depositor of the vault, 
-        // so he must front-run the first depositor (alice)  
+        // The attempted attack beings. The attacker must be the first depositor of the vault,
+        // so he must front-run the first depositor (alice)
         vm.prank(attacker);
         vault.deposit(1, attacker);
         assertEq(vault.totalSupply(), 0.1e18 + 1e12);
         assertEq(vault.totalAssets(), 0.1e6 + 1);
         assertEq(vault.convertToShares(1), 1e12);
 
-        // right after the deposit, the attacker makes a big donation of `asset` 
+        // right after the deposit, the attacker makes a big donation of `asset`
         // to inflate the share price
         vm.prank(attacker);
 
@@ -681,19 +676,19 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
 
         // An honest depositor deposits some amount of assets
         vm.startPrank(alice);
-        assertEq(vault.deposit(3_000e6, alice), 0.030000299991000030e18);
-        assertEq(vault.balanceOf(alice), 0.030000299991000030e18);
+        assertEq(vault.deposit(3000e6, alice), 0.03000029999100003e18);
+        assertEq(vault.balanceOf(alice), 0.03000029999100003e18);
         assertEq(vault.balanceOf(attacker), 1e12);
 
-        // Thanks to the inflation-attack-protection inside convertToAssets(), 
-        // even though the attacker owns 100% of the shares, 
+        // Thanks to the inflation-attack-protection inside convertToAssets(),
+        // even though the attacker owns 100% of the shares,
         // only a portion of them can be withdrawn. The attacker is currently at a loss.
         assertEq(vault.maxWithdraw(attacker), 0.099999e6);
 
         vm.startPrank(attacker);
         assertEq(vault.redeem(vault.maxRedeem(attacker), attacker, attacker), 0.099999e6);
-        assertEq(vault.totalSupply(), 0.130000299991000030e18);
-        assertEq(vault.balanceOf(alice), 0.030000299991000030e18);
+        assertEq(vault.totalSupply(), 0.13000029999100003e18);
+        assertEq(vault.balanceOf(alice), 0.03000029999100003e18);
         assertEq(vault.balanceOf(attacker), 0);
 
         // When the attacker redeems his shares, he IS AT A LOSS
@@ -702,9 +697,9 @@ contract OrigamiErc4626TestAttacksJP is OrigamiErc4626With6dpTestBase {
 
         // Alice gets her cash back.
         vm.startPrank(alice);
-        assertEq(vault.balanceOf(alice), 0.030000299991000030e18);
-        assertEq(vault.maxRedeem(alice), 0.030000299991000030e18);
-        assertEq(vault.redeem(vault.balanceOf(alice), alice, alice), 3_000e6);
-        assertEq(asset.balanceOf(alice), 7_000e6);
+        assertEq(vault.balanceOf(alice), 0.03000029999100003e18);
+        assertEq(vault.maxRedeem(alice), 0.03000029999100003e18);
+        assertEq(vault.redeem(vault.balanceOf(alice), alice, alice), 3000e6);
+        assertEq(asset.balanceOf(alice), 7000e6);
     }
 }

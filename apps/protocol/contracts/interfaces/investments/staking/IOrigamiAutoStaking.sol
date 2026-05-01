@@ -7,23 +7,28 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
 
 /**
  * @title Origami Auto-Staking
- * @notice This is inspired by the infrared rewards vault contract at https://berascan.com/address/0x75f3be06b02e235f6d0e7ef2d462b29739168301#code
- *   - This contract deposits tokens into an underlying rewards vault, harvests the rewards and post-processes those rewards in order to pay out
- *     different tokens than what was claimed from the underlying vault. 
- *     For example within Infrared vaults, this can claim iBGT from the reward vaults, deposit into oriBGT and then 
+ * @notice This is inspired by the infrared rewards vault contract at
+ * https://berascan.com/address/0x75f3be06b02e235f6d0e7ef2d462b29739168301#code
+ *   - This contract deposits tokens into an underlying rewards vault, harvests the rewards and post-processes those
+ * rewards in order to pay out
+ *     different tokens than what was claimed from the underlying vault.
+ *     For example within Infrared vaults, this can claim iBGT from the reward vaults, deposit into oriBGT and then
  *     distribute oriBGT to users to claim
  *   - Stakers can withdraw their original tokens staked in full.
- * 
+ *
  * The vault can operate in two modes:
- *   - Single-Reward mode: Tokens other than the 'primary' reward token are sent to a swapper, which will sell those into more of the 'primary'
+ *   - Single-Reward mode: Tokens other than the 'primary' reward token are sent to a swapper, which will sell those
+ * into more of the 'primary'
  *     reward token. Users will only be distributed the 'primary' reward token.
- *   - Multi-Reward mode: Tokens other than the 'primary' reward token are distributed directly to the users. The underlying reward tokens claimed
+ *   - Multi-Reward mode: Tokens other than the 'primary' reward token are distributed directly to the users. The
+ * underlying reward tokens claimed
  *     may still be processed after claiming (eg iBGT => oriBGT)
- * 
- * @dev This contract uses the MultiRewards contract to distribute rewards to vault stakers, this is taken from curve.fi. (inspired by Synthetix).
+ *
+ * @dev This contract uses the MultiRewards contract to distribute rewards to vault stakers, this is taken from
+ * curve.fi. (inspired by Synthetix).
  * Does not support staking tokens with non-standard ERC20 transfer tax behavior.
  */
- interface IOrigamiAutoStaking is IMultiRewards, IOrigamiSwapCallback {
+interface IOrigamiAutoStaking is IMultiRewards, IOrigamiSwapCallback {
     struct TokenAndAmount {
         address token;
         uint256 amount;
@@ -55,10 +60,7 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
      * @param _rewardsToken The address of the reward token
      * @param _rewardsDuration The new duration in seconds
      */
-    function updateRewardsDuration(
-        address _rewardsToken,
-        uint256 _rewardsDuration
-    ) external;
+    function updateRewardsDuration(address _rewardsToken, uint256 _rewardsDuration) external;
 
     /**
      * @notice Adds a new reward token to the vault
@@ -67,11 +69,7 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
      * @param _rewardsDuration The reward period duration
      * @param _performanceFeeBps The performance fee in basis points taken on this rewward token
      */
-    function addReward(
-        address _rewardsToken,
-        uint256 _rewardsDuration,
-        uint256 _performanceFeeBps
-    ) external;
+    function addReward(address _rewardsToken, uint256 _rewardsDuration, uint256 _performanceFeeBps) external;
 
     /**
      * @notice Used to remove malicious or unused reward tokens
@@ -90,8 +88,7 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
      * @param _rewardToken The reward token address
      * @param _reward The amount of new rewards
      */
-    function notifyRewardAmount(address _rewardToken, uint256 _reward)
-        external;
+    function notifyRewardAmount(address _rewardToken, uint256 _reward) external;
 
     /**
      * @notice Recovers ERC20 tokens sent accidentally to the contract
@@ -102,7 +99,7 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
     /// @dev Each fee is represented in basis points.
     function setPerformanceFees(TokenAndAmount[] calldata feeData) external;
 
-    /// @notice Set the address used to collect the Origami performance fees.    
+    /// @notice Set the address used to collect the Origami performance fees.
     function setFeeCollector(address _feeCollector) external;
 
     /// @notice Set whether post processing of the rewards is enabled/disabled
@@ -127,7 +124,7 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
     /// @notice The swapper contract responsible for swapping reward tokens into the base asset.
     /// @dev Only required to be set if the underlying vault has more than just the primaryRewardToken as rewards
     function swapper() external view returns (address);
-    
+
     /// @notice Performance fees (in basis points) as a fraction of the ibgt tokens reinvested.
     function performanceFeeBps(address rewardToken) external view returns (uint256);
 
@@ -155,7 +152,7 @@ import { IOrigamiSwapCallback } from "contracts/interfaces/common/swappers/IOrig
      */
     function getAllRewardsForUser(address _user) external view returns (TokenAndAmount[] memory);
 
-    /// @notice Returns the amount of rewards from the underlying reward vault which 
+    /// @notice Returns the amount of rewards from the underlying reward vault which
     /// are yet to be harvested and notified.
     function unharvestedRewards(address rewardToken) external view returns (uint256);
 

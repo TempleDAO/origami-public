@@ -16,11 +16,11 @@ import { DexAggregator } from "contracts/libraries/DexAggregator.sol";
  * @notice An on chain swapper contract to integrate with a DEX Aggregator via the 1Inch router | 0x proxy.
  * A custom route is also provided, where after the DEX Aggregator swap the funds can be deposited into an
  * ERC-4626 Vault.
- * 
- * @dev This is intentionally kept quite specific to one use case and will be redundant 
+ *
+ * @dev This is intentionally kept quite specific to one use case and will be redundant
  * once 1inch supports the route directly
  * The amount of tokens bought is expected to be checked for slippage in the calling contract
- * 
+ *
  * Intended to be used synchronously from another contract:
  *  - Each deployed instance can be used by multiple client contracts.
  *  - Permisionless to call execute()
@@ -56,10 +56,7 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
         bytes data;
     }
 
-    constructor(
-        address _initialOwner,
-        address _vault
-    ) OrigamiElevatedAccess(_initialOwner) {
+    constructor(address _initialOwner, address _vault) OrigamiElevatedAccess(_initialOwner) {
         vault = IERC4626(_vault);
         vaultUnderlyingAsset = IERC20(vault.asset());
     }
@@ -84,17 +81,14 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
      * @notice Execute a swap. `swapData` needs to be abi encoded RouteData.
      * The VIA_DEX_AGGREGATOR_THEN_DEPOSIT_IN_VAULT route type is only valid when the buyToken is the ERC-4626 `vault`
      */
-    function execute(
-        IERC20 sellToken, 
-        uint256 sellTokenAmount, 
-        IERC20 buyToken, 
-        bytes calldata swapData
-    ) external override returns (uint256 buyTokenAmount) {
+    function execute(IERC20 sellToken, uint256 sellTokenAmount, IERC20 buyToken, bytes calldata swapData)
+        external
+        override
+        returns (uint256 buyTokenAmount)
+    {
         sellToken.safeTransferFrom(msg.sender, address(this), sellTokenAmount);
 
-        RouteData memory routeData = abi.decode(
-            swapData, (RouteData)
-        );
+        RouteData memory routeData = abi.decode(swapData, (RouteData));
 
         if (!whitelistedRouters[routeData.router]) revert InvalidRouter(routeData.router);
 
@@ -111,7 +105,8 @@ contract OrigamiErc4626AndDexAggregatorSwapper is IOrigamiSwapper, OrigamiElevat
             if (address(buyToken) != address(vault)) revert CommonEventsAndErrors.InvalidToken(address(buyToken));
 
             // First swap from the sellToken to the vault deposit token
-            buyTokenAmount = routeData.router.swap(sellToken, sellTokenAmount, vaultUnderlyingAsset, routeData.data, true);
+            buyTokenAmount =
+                routeData.router.swap(sellToken, sellTokenAmount, vaultUnderlyingAsset, routeData.data, true);
 
             // Now deposit 100% of the bought tokens into the vault
             vaultUnderlyingAsset.forceApprove(address(vault), buyTokenAmount);

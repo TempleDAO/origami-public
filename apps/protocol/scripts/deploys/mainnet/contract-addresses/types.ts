@@ -1,13 +1,18 @@
-type Address = `0x${string}`;
+export type Address = `0x${string}`;
+
+export interface DeployedContract {
+  address: Address;
+  creationBlock: number;
+}
 
 export interface IType {
   OVERLORD_WALLET: Address;
-  TOKEN: Address;
+  TOKEN: DeployedContract;
   MANAGER: Address;
 }
 
 export interface IMorphoType extends IType {
-  MORPHO_BORROW_LEND: Address;
+  MORPHO_BORROW_LEND: DeployedContract;
 }
 
 export interface ISparkType extends IType {
@@ -16,6 +21,33 @@ export interface ISparkType extends IType {
 
 export interface IZeroLendType extends IType {
   ZEROLEND_BORROW_LEND: Address;
+}
+
+export interface BundlerContracts {
+  BUNDLER: Address;
+  PLUGINS: {
+    FLASHLOAN: {
+      AAVE_V3_CORE: Address;
+      SPARK: Address;
+      MORPHO: Address;
+    };
+    OHM_STAKING: Address;
+    TBS: {
+      V1: Address;
+      V2: Address;
+    };
+    SWAP: {
+      KYBER: Address;
+      PENDLE: Address;
+    };
+    ENTRY_POINT: Address;
+  };
+}
+
+export interface IOpalVault {
+  OVERLORD_WALLET: Address;
+  TOKEN: DeployedContract;
+  MANAGER: DeployedContract;
 }
 
 export interface ContractAddresses {
@@ -27,6 +59,9 @@ export interface ContractAddresses {
       V2: Address;
       V3: Address;
       V4: Address;
+    };
+    HYPERNATIVE: {
+      SYSTEM_WALLET: Address;
     };
   };
   ORACLES: {
@@ -76,6 +111,9 @@ export interface ContractAddresses {
     MKR_USDS: Address;
     SKY_USDS: Address;
     PT_LBTC_MAR_2025_LBTC: Address;
+    PT_SUSDE_NOV_2025_USDE: Address;
+    PT_SUSDE_FEB_2026_USDE: Address;
+    PT_SUSDE_7MAY2026_USDE: Address;
   };
   SWAPPERS: {
     DIRECT_SWAPPER: Address;
@@ -122,7 +160,7 @@ export interface ContractAddresses {
   VAULTS: {
     SUSDSpS: {
       OVERLORD_WALLET: Address;
-      TOKEN: Address;
+      TOKEN: DeployedContract;
       MANAGER: Address;
       COW_SWAPPER: Address;
       COW_SWAPPER_2: Address;
@@ -131,15 +169,16 @@ export interface ContractAddresses {
     };
     SKYp: {
       OVERLORD_WALLET: Address;
-      TOKEN: Address;
+      TOKEN: DeployedContract;
       MANAGER: Address;
+      REWARDS_HARVESTER: Address;
       COW_SWAPPER: Address;
       COW_SWAPPER_2: Address;
       COW_SWAPPER_3: Address;
     };
     hOHM: {
       OVERLORD_WALLET: Address;
-      TOKEN: Address;
+      TOKEN: DeployedContract;
       MANAGER: Address;
       SWEEP_SWAPPER: Address;
       TELEPORTER: Address;
@@ -149,9 +188,34 @@ export interface ContractAddresses {
     };
     OAC_USDS_IMF_MOR: {
       OVERLORD_WALLET: Address;
-      TOKEN: Address;
+      TOKEN: DeployedContract;
       MANAGER: Address;
       COW_SWAPPER: Address;
+    };
+    // Fully deprecated - to be removed in follow up PR
+    OPAL_WEETH_A_DEPRECATED: IOpalVault & {
+      ADAPTER_INSTANCES: {
+        'AAVE_V3.1: [weETH]/[WETH]': Address;
+      };
+    };
+    OPAL_WEETH_A: IOpalVault & {
+      ADAPTER_INSTANCES: {
+        'AAVE_V3.1: [weETH]/[WETH]': Address;
+      };
+    };
+    // Fully deprecated - to be removed in follow up PR
+    OPAL_PT_SUSDE_A_DEPRECATED: IOpalVault & {
+      ADAPTER_INSTANCES: {
+        'AAVE_V3.1: [sUSDe]/[USDC]': Address;
+        'AAVE_V3.1: [PT-sUSDE-5FEB2026]/[USDC]': Address;
+        'AAVE_V3.1: [PT-sUSDE-7MAY2026]/[USDC]': Address;
+      };
+    };
+    OPAL_PT_SUSDE_B: IOpalVault & {
+      ADAPTER_INSTANCES: {
+        'AAVE_V3.1: [sUSDe]/[USDT]': Address;
+        'AAVE_V3.1: [PT-sUSDE-7MAY2026]/[USDT]': Address;
+      };
     };
   };
 
@@ -159,10 +223,31 @@ export interface ContractAddresses {
     TOKEN_RECOVERY: Address;
   };
 
+  BUNDLER: BundlerContracts;
+
+  OPAL: {
+    ADAPTER_FACTORY: Address;
+    ADAPTER_IMPLEMENTATIONS: {
+      AAVE_V3: {
+        V1: Address;
+      };
+      MORPHO: {
+        V1: Address;
+      };
+      EULER_V2: {
+        V1: Address;
+      };
+      SPOT_ASSETS: {
+        V1: Address;
+      };
+    };
+  };
+
   EXTERNAL: {
     WETH_TOKEN: Address;
     WBTC_TOKEN: Address;
     INTERNAL_USD: Address;
+    PERMIT2: Address;
     MAKER_DAO: {
       DAI_TOKEN: Address;
       SDAI_TOKEN: Address;
@@ -178,6 +263,7 @@ export interface ContractAddresses {
       STAKING_FARMS: {
         STAKE_USDS_EARN_SKY: Address;
         STAKE_SKY_EARN_USDS: Address;
+        STAKE_SKY_EARN_SKY: Address;
       };
 
       LOCKSTAKE_ENGINE: Address;
@@ -185,11 +271,15 @@ export interface ContractAddresses {
     CIRCLE: {
       USDC_TOKEN: Address;
     };
+    TETHER: {
+      USDT_TOKEN: Address;
+    };
     ETHENA: {
       USDE_TOKEN: Address;
       SUSDE_TOKEN: Address;
     };
     ETHERFI: {
+      EETH_TOKEN: Address;
       WEETH_TOKEN: Address;
       LIQUIDITY_POOL: Address;
       EBTC_TOKEN: Address;
@@ -241,6 +331,10 @@ export interface ContractAddresses {
       AAVE_USD_ORACLE: Address;
       USDC_USD_ORACLE: Address;
       USD0pp_USD_ORACLE: Address;
+      WEETH_ETH_ORACLE: Address;
+      USDE_USD_ORACLE: Address;
+      SUSDE_USD_ORACLE: Address;
+      USDT_USD_ORACLE: Address;
     };
     ORIGAMI_ORACLE_ADAPTERS: {
       RSWETH_ETH_EXCHANGE_RATE: Address;
@@ -272,6 +366,9 @@ export interface ContractAddresses {
         IMF_USDS: Address;
       };
       REWARDS_DISTRIBUTOR: Address;
+    };
+    EULER_V2: {
+      EVC: Address;
     };
     PENDLE: {
       ORACLE: Address;
@@ -306,6 +403,18 @@ export interface ContractAddresses {
         MARKET: Address;
         PT_TOKEN: Address;
       };
+      SUSDE_NOV_2025: {
+        MARKET: Address;
+        PT_TOKEN: Address;
+      };
+      SUSDE_FEB_2026: {
+        MARKET: Address;
+        PT_TOKEN: Address;
+      };
+      SUSDE_7MAY2026: {
+        MARKET: Address;
+        PT_TOKEN: Address;
+      };
     };
     SPARK: {
       SPK_TOKEN: Address;
@@ -324,6 +433,7 @@ export interface ContractAddresses {
     };
     KYBERSWAP: {
       ROUTER_V2: Address;
+      SCALING_HELPER: Address;
     };
     COW_SWAP: {
       VAULT_RELAYER: Address;

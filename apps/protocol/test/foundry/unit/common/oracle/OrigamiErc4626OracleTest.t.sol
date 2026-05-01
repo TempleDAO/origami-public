@@ -27,16 +27,12 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
     address public constant INTERNAL_USD_ADDRESS = 0x000000000000000000000000000000000000115d;
 
     function setUp() public {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
 
         // 18 decimals
         clUsdeUsdOracle = new DummyOracle(
             DummyOracle.Answer({
-                roundId: 1,
-                answer: int256(USDE_USD_ORACLE_RATE),
-                startedAt: 0,
-                updatedAtLag: 0,
-                answeredInRound: 1
+                roundId: 1, answer: int256(USDE_USD_ORACLE_RATE), startedAt: 0, updatedAtLag: 0, answeredInRound: 1
             }),
             18
         );
@@ -48,13 +44,7 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
 
         oUsdeToUsdOracle = new OrigamiStableChainlinkOracle(
             origamiMultisig,
-            IOrigamiOracle.BaseOracleParams(
-                "USDe/USD",
-                address(usdEToken),
-                18,
-                INTERNAL_USD_ADDRESS,
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("USDe/USD", address(usdEToken), 18, INTERNAL_USD_ADDRESS, 18),
             USDE_USD_HISTORIC_RATE,
             address(clUsdeUsdOracle),
             100 days,
@@ -64,13 +54,7 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
         );
 
         oSUsdeToUsdOracle = new OrigamiErc4626Oracle(
-            IOrigamiOracle.BaseOracleParams(
-                "sUSDe/USD",
-                address(sUsdeToken),
-                18, 
-                address(INTERNAL_USD_ADDRESS),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("sUSDe/USD", address(sUsdeToken), 18, address(INTERNAL_USD_ADDRESS), 18),
             address(oUsdeToUsdOracle)
         );
 
@@ -92,11 +76,11 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * USDE_USD_ORACLE_RATE / 1e18);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate + 1
         );
 
@@ -106,11 +90,11 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * USDE_USD_ORACLE_RATE / 1e18);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate + 1
         );
     }
@@ -121,11 +105,11 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * USDE_USD_HISTORIC_RATE / 1e18);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
 
@@ -135,20 +119,20 @@ contract OrigamiErc4626OracleTest is OrigamiTest {
         assertEq(expectedRate, ratio * USDE_USD_HISTORIC_RATE / 1e18);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
     }
 
     function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oSUsdeToUsdOracle.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_UP,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN
         );
         // Based off the sUSDe/USDe price, so includes the sUSDe/USDe ratio
@@ -170,20 +154,14 @@ contract OrigamiErc4626OracleNoQuoteAssetOracleTest is OrigamiTest {
     address public constant INTERNAL_USD_ADDRESS = 0x000000000000000000000000000000000000115d;
 
     function setUp() public {
-        vm.warp(1672531200); // 1 Jan 2023
+        vm.warp(1_672_531_200); // 1 Jan 2023
 
         usdEToken = new DummyMintableToken(origamiMultisig, "USDe", "USDe", 18);
         sUsdeToken = new MockSDaiToken(usdEToken);
         sUsdeToken.setInterestRate(VAULT_INTEREST_RATE);
 
         oSUsdeToUsdOracle = new OrigamiErc4626Oracle(
-            IOrigamiOracle.BaseOracleParams(
-                "sUSDe/USD",
-                address(sUsdeToken),
-                18, 
-                address(INTERNAL_USD_ADDRESS),
-                18
-            ),
+            IOrigamiOracle.BaseOracleParams("sUSDe/USD", address(sUsdeToken), 18, address(INTERNAL_USD_ADDRESS), 18),
             address(0)
         );
 
@@ -205,11 +183,11 @@ contract OrigamiErc4626OracleNoQuoteAssetOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
 
@@ -219,11 +197,11 @@ contract OrigamiErc4626OracleNoQuoteAssetOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.SPOT_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
     }
@@ -234,11 +212,11 @@ contract OrigamiErc4626OracleNoQuoteAssetOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
 
@@ -248,20 +226,20 @@ contract OrigamiErc4626OracleNoQuoteAssetOracleTest is OrigamiTest {
         assertEq(expectedRate, ratio);
 
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_DOWN),
             expectedRate
         );
         assertEq(
-            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP), 
+            oSUsdeToUsdOracle.latestPrice(IOrigamiOracle.PriceType.HISTORIC_PRICE, OrigamiMath.Rounding.ROUND_UP),
             expectedRate
         );
     }
 
     function test_latestPrices() public view {
         (uint256 spot, uint256 hist, address baseAsset, address quoteAsset) = oSUsdeToUsdOracle.latestPrices(
-            IOrigamiOracle.PriceType.SPOT_PRICE, 
+            IOrigamiOracle.PriceType.SPOT_PRICE,
             OrigamiMath.Rounding.ROUND_UP,
-            IOrigamiOracle.PriceType.HISTORIC_PRICE, 
+            IOrigamiOracle.PriceType.HISTORIC_PRICE,
             OrigamiMath.Rounding.ROUND_DOWN
         );
         // Based off the sUSDe/USDe price, so includes the sUSDe/USDe ratio
