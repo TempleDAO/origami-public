@@ -1,0 +1,3 @@
+// berachain: FACTORIES.INFRARED_AUTO_COMPOUNDER.SWAPPER_DEPLOYER=0x0E3122638435b65F1CAD3EE64291f60014045B6D
+// yarn hardhat verify --network berachain 0x0E3122638435b65F1CAD3EE64291f60014045B6D --constructor-args scripts/deploys/berachain/deploymentArgs/0x0E3122638435b65F1CAD3EE64291f60014045B6D.js
+module.exports = [];

@@ -1,0 +1,6 @@
+// mainnet: SWAPPERS.SUSDE_SWAPPER=0x302563254A72B59d71DD5BC209e1e91b7a84E262
+// yarn hardhat verify --network mainnet 0x302563254A72B59d71DD5BC209e1e91b7a84E262 --constructor-args scripts/deploys/mainnet/deploymentArgs/0x302563254A72B59d71DD5BC209e1e91b7a84E262.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x9D39A5DE30e57443BfF2A8307A4256c8797A3497"
+];

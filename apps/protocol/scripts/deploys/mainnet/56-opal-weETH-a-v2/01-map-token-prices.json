@@ -1,0 +1,37 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xD6c68aAc3C46E754cA54a551560ce07cB89dc20b",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "name": "setTokenPriceFunctions",
+        "payable": false,
+        "inputs": [
+          {
+            "components": [
+              {
+                "internalType": "address",
+                "name": "token",
+                "type": "address"
+              },
+              {
+                "internalType": "bytes",
+                "name": "fnCalldata",
+                "type": "bytes"
+              }
+            ],
+            "internalType": "struct TokenPrices.PriceMapping[]",
+            "name": "mappings",
+            "type": "tuple[]"
+          }
+        ]
+      },
+      "contractInputsValues": {
+        "mappings": "[[\"0x489Dd7f6f57df08871d195e78A0F0e295Cf97Ea1\",\"0xc02486d0000000000000000000000000489dd7f6f57df08871d195e78a0f0e295cf97ea1\"]]"
+      }
+    }
+  ]
+}

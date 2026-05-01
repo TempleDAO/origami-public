@@ -1,0 +1,93 @@
+{
+  "chainId": "80094",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xB1952dDFF59748248cc1c96bF25379EAB8D23FB3",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "canPause",
+            "type": "bool"
+          }
+        ],
+        "name": "setPauser",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0x50b9eccaf261fbdb41eaf2de47d1ec46d61a4c44",
+        "canPause": "true"
+      }
+    },
+    {
+      "to": "0x8e008401d7D4788C05a4a746e531B65CF2f5602b",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "canPause",
+            "type": "bool"
+          }
+        ],
+        "name": "setPauser",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "account": "0x50b9eccaf261fbdb41eaf2de47d1ec46d61a4c44",
+        "canPause": "true"
+      }
+    },
+    {
+      "to": "0x50C10fCe5c1505Ccab903c7AcAee4ca1Cf727E91",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0x50b9eccaf261fbdb41eaf2de47d1ec46d61a4c44",
+        "_access": "[[\"0x331c138c\",true]]"
+      }
+    }
+  ]
+}

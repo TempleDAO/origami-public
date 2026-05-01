@@ -1,0 +1,28 @@
+{
+  "chainId": "9745",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x2eC7777838A49E2C83152d455B3CA753c6d08b79",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xFE76a8323334288815B40f2424893beC3DAE3504",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwner",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

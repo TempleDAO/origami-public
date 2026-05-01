@@ -1,0 +1,9 @@
+// berachain: FACTORIES.INFRARED_AUTO_STAKING.FACTORY=0xc3d19aC9b79A8D89272a7ef88Ddc1786fE36d747
+// yarn hardhat verify --network berachain 0xc3d19aC9b79A8D89272a7ef88Ddc1786fE36d747 --constructor-args scripts/deploys/berachain/deploymentArgs/0xc3d19aC9b79A8D89272a7ef88Ddc1786fE36d747.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x5A1e918371E5ec307Aa93DdA67d500B0E49a2423",
+  "0x781B4c57100738095222bd92D37B07ed034AB696",
+  600,
+  "0x000b7163b325e147e33AC728d62FeBAd1d67B83D"
+];

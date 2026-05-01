@@ -1,0 +1,6 @@
+// plasma: BUNDLER.PLUGINS.SWAP.PENDLE=0xc0F9dd64D247f4Cb50C07632353896918bE79562
+// yarn hardhat verify --network plasma 0xc0F9dd64D247f4Cb50C07632353896918bE79562 --constructor-args scripts/deploys/plasma/deploymentArgs/0xc0F9dd64D247f4Cb50C07632353896918bE79562.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "0x888888888889758F76e7103c6CbF23ABbF58F946"
+];

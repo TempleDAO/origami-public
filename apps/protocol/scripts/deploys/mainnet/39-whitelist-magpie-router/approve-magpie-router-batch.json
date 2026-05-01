@@ -1,0 +1,56 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xD3674dc273236213379207ca3Ac6b0f292c47Dd5",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_router",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "_allowed",
+            "type": "bool"
+          }
+        ],
+        "name": "whitelistRouter",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_router": "0x15392211222b46a0ea85a9a800830486d144848d",
+        "_allowed": "true"
+      }
+    },
+    {
+      "to": "0x302563254A72B59d71DD5BC209e1e91b7a84E262",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_router",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "_allowed",
+            "type": "bool"
+          }
+        ],
+        "name": "whitelistRouter",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_router": "0x15392211222b46a0ea85a9a800830486d144848d",
+        "_allowed": "true"
+      }
+    }
+  ]
+}

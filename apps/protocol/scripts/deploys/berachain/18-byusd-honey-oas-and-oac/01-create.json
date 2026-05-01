@@ -1,0 +1,98 @@
+{
+  "chainId": "80094",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0xaEa4Cc072Bd05eD784E254eB37495da576F37934",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "name_",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "symbol_",
+            "type": "string"
+          },
+          {
+            "internalType": "contract IInfraredVault",
+            "name": "infraredRewardVault_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "performanceFeeBps_",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "overlord_",
+            "type": "address"
+          },
+          {
+            "internalType": "address[]",
+            "name": "expectedSwapRouters_",
+            "type": "address[]"
+          }
+        ],
+        "name": "create",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "name_": "Origami BYUSD-HONEY LP Auto-Compounder (Kodiak)",
+        "symbol_": "oAC-BYUSD-HONEY-b",
+        "infraredRewardVault_": "0xcE083277A1756f540eb8Bee3718C5b2367FB26a8",
+        "performanceFeeBps_": "100",
+        "overlord_": "0x43f3e21016c6a94d3349ec60ea0bb72bfd055ebb",
+        "expectedSwapRouters_": "[\"0xFd88aD4849BA0F729D6fF4bC27Ff948Ab1Ac3dE7\",\"0x52bebb970697476313ae2b3383f40d4afd4ad9d3\",\"0x679a7C63FC83b6A4D9C1F931891d705483d4791F\",\"0x43Dac637c4383f91B4368041E7A8687da3806Cae\",\"0xe301E48F77963D3F7DbD2a4796962Bd7f3867Fb4\"]"
+      }
+    },
+    {
+      "to": "0xc3d19aC9b79A8D89272a7ef88Ddc1786fE36d747",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "asset_",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "rewardsVault_",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "performanceFeeBps_",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "overlord_",
+            "type": "address"
+          },
+          {
+            "internalType": "address[]",
+            "name": "expectedSwapRouters_",
+            "type": "address[]"
+          }
+        ],
+        "name": "registerVault",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "asset_": "0x939F1B6f513C3d62EB25C7E057Ed8bb24021A000",
+        "rewardsVault_": "0xcE083277A1756f540eb8Bee3718C5b2367FB26a8",
+        "performanceFeeBps_": "100",
+        "overlord_": "0x0000000000000000000000000000000000000000",
+        "expectedSwapRouters_": "[]"
+      }
+    }
+  ]
+}

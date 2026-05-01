@@ -1,0 +1,11 @@
+// mainnet: LOV_PT_USD0PP_MAR_2025_A.TOKEN=0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205
+// yarn hardhat verify --network mainnet 0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205 --constructor-args scripts/deploys/mainnet/deploymentArgs/0xBd46AbF8999E979C4Ec507E8bE06b5D4402A0205.js
+module.exports = [
+  "0xb20AaE0Fe007519b7cE6f090a2aB8353B3Da5d80",
+  "Origami lov-PT-USD0++-Mar2025-a",
+  "lov-PT-USD0++-Mar2025-a",
+  200,
+  "0x781B4c57100738095222bd92D37B07ed034AB696",
+  "0x43A3cb2cf5eA2331174c166214302f0C3BbA6A85",
+  "0"
+];

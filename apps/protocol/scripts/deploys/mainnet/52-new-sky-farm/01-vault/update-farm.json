@@ -1,0 +1,87 @@
+{
+  "chainId": "",
+  "meta": {},
+  "transactions": [
+    {
+      "to": "0x25dD72CC1dE50e963948e464c09AeBA0d9312349",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_allowedCaller",
+            "type": "address"
+          },
+          {
+            "internalType": "struct IOrigamiElevatedAccess.ExplicitAccess[]",
+            "name": "_access",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "bytes4",
+                "name": "fnSelector",
+                "type": "bytes4"
+              },
+              {
+                "internalType": "bool",
+                "name": "allowed",
+                "type": "bool"
+              }
+            ]
+          }
+        ],
+        "name": "setExplicitAccess",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "_allowedCaller": "0xcb782f6dd2d27fb681d0bee2df0796b6fedd70b0",
+        "_access": "[[\"0xa7229fd9\",true]]"
+      }
+    },
+    {
+      "to": "0xc522335fBfe21d7A7d1135eb0E016a89DA49dC9e",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "stakingAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint16",
+            "name": "referralCode",
+            "type": "uint16"
+          }
+        ],
+        "name": "addFarm",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "stakingAddress": "0xB44C2Fb4181D7Cb06bdFf34A46FdFe4a259B40Fc",
+        "referralCode": "0"
+      }
+    },
+    {
+      "to": "0xc522335fBfe21d7A7d1135eb0E016a89DA49dC9e",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint32",
+            "name": "newFarmIndex",
+            "type": "uint32"
+          }
+        ],
+        "name": "switchFarms",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "newFarmIndex": "3"
+      }
+    }
+  ]
+}
