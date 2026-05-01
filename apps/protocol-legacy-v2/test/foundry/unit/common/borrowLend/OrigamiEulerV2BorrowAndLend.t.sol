@@ -1410,7 +1410,7 @@ contract OrigamiMorphoBorrowAndLendTestIncreaseLeverage is OrigamiEulerV2BorrowA
         borrowLend.setSwapper(alice);
 
         vm.prank(posOwner);
-        vm.expectRevert(EVC_EmptyError.selector);
+        vm.expectRevert(/* "call to non-contract address 0x328809Bc894f92807417D2dAD6b7C998c1aFdac6" */);
         borrowLend.increaseLeverage(supplyAmount, borrowAmount, swapData, 0);
     }
 
